@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Zeshan Agent Banking",
-    "slug": "zeshan-agent-banking",
+    "name": "Zesha Agent Banking",
+    "slug": "z",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
@@ -17,6 +17,13 @@
       "bundler": "metro"
     },
     "plugins": ["expo-router"],
-    "scheme": "zeshan-app"
+    "scheme": "zeshan-app",
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "fe756f9a-6158-4fba-ba42-a0573c86f372"
+      }
+    },
+    "owner": "zesha-capital-enterprises"
   }
 }
