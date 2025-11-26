@@ -1,0 +1,22 @@
+{
+  "expo": {
+    "name": "Zeshan Agent Banking",
+    "slug": "zeshan-agent-banking",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.zeshan.agentbanking"
+    },
+    "android": {
+      "package": "com.zeshan.agentbanking"
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "plugins": ["expo-router"],
+    "scheme": "zeshan-app"
+  }
+}
