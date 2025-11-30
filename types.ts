@@ -323,3 +323,36 @@ export interface ReconciliationUpdate {
   reviewed_at?: string;
   run_key?: string;
 }
+
+// ============= LEGACY TYPES (for backward compatibility) =============
+export type TransactionType = "income" | "expense";
+
+export type TransactionCategory =
+  | "Food & Dining"
+  | "Transportation"
+  | "Entertainment"
+  | "Shopping"
+  | "Bills & Utilities"
+  | "Healthcare"
+  | "Education"
+  | "Other";
+
+export interface Transaction {
+  id: string;
+  date: string;
+  description: string;
+  category: string;
+  amount: number;
+  type: TransactionType;
+  hasReceipt: boolean;
+  account: string;
+}
+
+export interface BalanceHistoryEntry {
+  id: string;
+  date: string;
+  totalCash: number;
+  amount: number;
+  capital: number;
+  status: "Balanced" | "Pending" | "Discrepancy";
+}
