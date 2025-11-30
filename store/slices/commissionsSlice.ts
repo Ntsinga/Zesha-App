@@ -1,9 +1,9 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import {
-  Expense,
-  ExpenseCreate,
-  ExpenseUpdate,
-  ExpenseFilters,
+  Commission,
+  CommissionCreate,
+  CommissionUpdate,
+  CommissionFilters,
 } from "../../types";
 import {
   API_BASE_URL,
@@ -12,19 +12,19 @@ import {
 } from "../../config/api";
 
 // Types
-export interface ExpensesState {
-  items: Expense[];
-  selectedExpense: Expense | null;
+export interface CommissionsState {
+  items: Commission[];
+  selectedCommission: Commission | null;
   totalAmount: number;
   isLoading: boolean;
   error: string | null;
   lastFetched: number | null;
-  filters: ExpenseFilters;
+  filters: CommissionFilters;
 }
 
-const initialState: ExpensesState = {
+const initialState: CommissionsState = {
   items: [],
-  selectedExpense: null,
+  selectedCommission: null,
   totalAmount: 0,
   isLoading: false,
   error: null,
@@ -60,166 +60,171 @@ async function apiRequest<T>(
 }
 
 // Async thunks
-export const fetchExpenses = createAsyncThunk(
-  "expenses/fetchAll",
-  async (filters: ExpenseFilters = {}, { rejectWithValue }) => {
+export const fetchCommissions = createAsyncThunk(
+  "commissions/fetchAll",
+  async (filters: CommissionFilters = {}, { rejectWithValue }) => {
     try {
       const query = buildQueryString(filters);
-      const expenses = await apiRequest<Expense[]>(
-        `${API_ENDPOINTS.expenses.list}${query}`
+      const commissions = await apiRequest<Commission[]>(
+        `${API_ENDPOINTS.commissions.list}${query}`
       );
-      return expenses;
+      return commissions;
     } catch (error) {
       return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to fetch expenses"
+        error instanceof Error ? error.message : "Failed to fetch commissions"
       );
     }
   }
 );
 
-export const fetchExpenseById = createAsyncThunk(
-  "expenses/fetchById",
+export const fetchCommissionById = createAsyncThunk(
+  "commissions/fetchById",
   async (id: number, { rejectWithValue }) => {
     try {
-      const expense = await apiRequest<Expense>(API_ENDPOINTS.expenses.get(id));
-      return expense;
+      const commission = await apiRequest<Commission>(
+        API_ENDPOINTS.commissions.get(id)
+      );
+      return commission;
     } catch (error) {
       return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to fetch expense"
+        error instanceof Error ? error.message : "Failed to fetch commission"
       );
     }
   }
 );
 
-export const createExpense = createAsyncThunk(
-  "expenses/create",
-  async (data: ExpenseCreate, { rejectWithValue }) => {
+export const createCommission = createAsyncThunk(
+  "commissions/create",
+  async (data: CommissionCreate, { rejectWithValue }) => {
     try {
-      const expense = await apiRequest<Expense>(API_ENDPOINTS.expenses.create, {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
-      return expense;
+      const commission = await apiRequest<Commission>(
+        API_ENDPOINTS.commissions.create,
+        {
+          method: "POST",
+          body: JSON.stringify(data),
+        }
+      );
+      return commission;
     } catch (error) {
       return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to create expense"
+        error instanceof Error ? error.message : "Failed to create commission"
       );
     }
   }
 );
 
-export const updateExpense = createAsyncThunk(
-  "expenses/update",
+export const updateCommission = createAsyncThunk(
+  "commissions/update",
   async (
-    { id, data }: { id: number; data: ExpenseUpdate },
+    { id, data }: { id: number; data: CommissionUpdate },
     { rejectWithValue }
   ) => {
     try {
-      const expense = await apiRequest<Expense>(
-        API_ENDPOINTS.expenses.update(id),
+      const commission = await apiRequest<Commission>(
+        API_ENDPOINTS.commissions.update(id),
         {
           method: "PATCH",
           body: JSON.stringify(data),
         }
       );
-      return expense;
+      return commission;
     } catch (error) {
       return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to update expense"
+        error instanceof Error ? error.message : "Failed to update commission"
       );
     }
   }
 );
 
-export const deleteExpense = createAsyncThunk(
-  "expenses/delete",
+export const deleteCommission = createAsyncThunk(
+  "commissions/delete",
   async (id: number, { rejectWithValue }) => {
     try {
-      await apiRequest<void>(API_ENDPOINTS.expenses.delete(id), {
+      await apiRequest<void>(API_ENDPOINTS.commissions.delete(id), {
         method: "DELETE",
       });
       return id;
     } catch (error) {
       return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to delete expense"
+        error instanceof Error ? error.message : "Failed to delete commission"
       );
     }
   }
 );
 
 // Slice
-const expensesSlice = createSlice({
-  name: "expenses",
+const commissionsSlice = createSlice({
+  name: "commissions",
   initialState,
   reducers: {
     clearError: (state) => {
       state.error = null;
     },
-    setFilters: (state, action: PayloadAction<ExpenseFilters>) => {
+    setFilters: (state, action: PayloadAction<CommissionFilters>) => {
       state.filters = { ...state.filters, ...action.payload };
     },
     clearFilters: (state) => {
       state.filters = {};
     },
-    clearSelectedExpense: (state) => {
-      state.selectedExpense = null;
+    clearSelectedCommission: (state) => {
+      state.selectedCommission = null;
     },
   },
   extraReducers: (builder) => {
     // Fetch all
     builder
-      .addCase(fetchExpenses.pending, (state) => {
+      .addCase(fetchCommissions.pending, (state) => {
         state.isLoading = true;
         state.error = null;
       })
-      .addCase(fetchExpenses.fulfilled, (state, action) => {
+      .addCase(fetchCommissions.fulfilled, (state, action) => {
         state.isLoading = false;
         state.items = action.payload;
         state.totalAmount = action.payload.reduce(
-          (sum, expense) => sum + Number(expense.amount),
+          (sum, commission) => sum + Number(commission.amount),
           0
         );
         state.lastFetched = Date.now();
       })
-      .addCase(fetchExpenses.rejected, (state, action) => {
+      .addCase(fetchCommissions.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
       });
 
     // Fetch by ID
     builder
-      .addCase(fetchExpenseById.pending, (state) => {
+      .addCase(fetchCommissionById.pending, (state) => {
         state.isLoading = true;
         state.error = null;
       })
-      .addCase(fetchExpenseById.fulfilled, (state, action) => {
+      .addCase(fetchCommissionById.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.selectedExpense = action.payload;
+        state.selectedCommission = action.payload;
       })
-      .addCase(fetchExpenseById.rejected, (state, action) => {
+      .addCase(fetchCommissionById.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
       });
 
     // Create
     builder
-      .addCase(createExpense.pending, (state) => {
+      .addCase(createCommission.pending, (state) => {
         state.isLoading = true;
         state.error = null;
       })
-      .addCase(createExpense.fulfilled, (state, action) => {
+      .addCase(createCommission.fulfilled, (state, action) => {
         state.isLoading = false;
         state.items.unshift(action.payload);
         state.totalAmount += Number(action.payload.amount);
       })
-      .addCase(createExpense.rejected, (state, action) => {
+      .addCase(createCommission.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
       });
 
     // Update
     builder
-      .addCase(updateExpense.fulfilled, (state, action) => {
+      .addCase(updateCommission.fulfilled, (state, action) => {
         const index = state.items.findIndex(
           (item) => item.id === action.payload.id
         );
@@ -229,34 +234,34 @@ const expensesSlice = createSlice({
           state.totalAmount =
             state.totalAmount - oldAmount + Number(action.payload.amount);
         }
-        if (state.selectedExpense?.id === action.payload.id) {
-          state.selectedExpense = action.payload;
+        if (state.selectedCommission?.id === action.payload.id) {
+          state.selectedCommission = action.payload;
         }
       })
-      .addCase(updateExpense.rejected, (state, action) => {
+      .addCase(updateCommission.rejected, (state, action) => {
         state.error = action.payload as string;
       });
 
     // Delete
     builder
-      .addCase(deleteExpense.fulfilled, (state, action) => {
-        const deletedExpense = state.items.find(
+      .addCase(deleteCommission.fulfilled, (state, action) => {
+        const deletedCommission = state.items.find(
           (item) => item.id === action.payload
         );
-        if (deletedExpense) {
-          state.totalAmount -= Number(deletedExpense.amount);
+        if (deletedCommission) {
+          state.totalAmount -= Number(deletedCommission.amount);
         }
         state.items = state.items.filter((item) => item.id !== action.payload);
-        if (state.selectedExpense?.id === action.payload) {
-          state.selectedExpense = null;
+        if (state.selectedCommission?.id === action.payload) {
+          state.selectedCommission = null;
         }
       })
-      .addCase(deleteExpense.rejected, (state, action) => {
+      .addCase(deleteCommission.rejected, (state, action) => {
         state.error = action.payload as string;
       });
   },
 });
 
-export const { clearError, setFilters, clearFilters, clearSelectedExpense } =
-  expensesSlice.actions;
-export default expensesSlice.reducer;
+export const { clearError, setFilters, clearFilters, clearSelectedCommission } =
+  commissionsSlice.actions;
+export default commissionsSlice.reducer;
