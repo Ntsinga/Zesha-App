@@ -14,7 +14,6 @@ import { LoadingSpinner } from "../components/LoadingSpinner";
 import { formatCurrency, formatDate } from "../utils/formatters";
 import { ActionModal, AddBalanceForm } from "../components/ActionModal";
 import type { AppDispatch, RootState } from "../store";
-import type { BalanceHistoryEntry } from "../types";
 
 export default function BalanceHistory() {
   const navigation = useNavigation();

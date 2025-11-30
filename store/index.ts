@@ -5,6 +5,12 @@ import transactionsReducer from "./slices/transactionsSlice";
 import balanceHistoryReducer from "./slices/balanceHistorySlice";
 import expensesReducer from "./slices/expensesSlice";
 import uiReducer from "./slices/uiSlice";
+// New slices for FastAPI integration
+import balancesReducer from "./slices/balancesSlice";
+import commissionsReducer from "./slices/commissionsSlice";
+import reconciliationsReducer from "./slices/reconciliationsSlice";
+import companyInfoReducer from "./slices/companyInfoSlice";
+import cashCountReducer from "./slices/cashCountSlice";
 
 export const store = configureStore({
   reducer: {
@@ -14,6 +20,12 @@ export const store = configureStore({
     balanceHistory: balanceHistoryReducer,
     expenses: expensesReducer,
     ui: uiReducer,
+    // New reducers for FastAPI integration
+    balances: balancesReducer,
+    commissions: commissionsReducer,
+    reconciliations: reconciliationsReducer,
+    companyInfo: companyInfoReducer,
+    cashCount: cashCountReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

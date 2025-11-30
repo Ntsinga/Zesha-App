@@ -6,14 +6,9 @@ import {
   TouchableOpacity,
   RefreshControl,
 } from "react-native";
-import { Plus, Wallet, Camera, Menu } from "lucide-react-native";
-import { useNavigation } from "expo-router";
+import { Wallet, Camera, Menu } from "lucide-react-native";
+import { useNavigation, useRouter } from "expo-router";
 import { useDispatch, useSelector } from "react-redux";
-import {
-  ActionModal,
-  AddTransactionForm,
-  AddBalanceForm,
-} from "../components/ActionModal";
 import {
   fetchDashboard,
   DashboardState,
@@ -26,10 +21,8 @@ import type { AppDispatch, RootState } from "../store";
 
 export default function Dashboard() {
   const navigation = useNavigation();
+  const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
-  const [modalType, setModalType] = useState<
-    "none" | "transaction" | "balance"
-  >("none");
 
   const { summary, accounts, isLoading, error } = useSelector(
     (state: RootState) => state.dashboard
@@ -45,11 +38,6 @@ export default function Dashboard() {
     setRefreshing(true);
     await dispatch(fetchDashboard());
     setRefreshing(false);
-  };
-
-  const handleFormSuccess = () => {
-    // Refresh dashboard data after successful form submission
-    dispatch(fetchDashboard());
   };
 
   if (isLoading && !refreshing) {
@@ -74,7 +62,7 @@ export default function Dashboard() {
         {/* Header */}
         <View className="flex-row justify-between items-center mb-8 mt-4">
           <View>
-            <Text className="text-3xl font-bold text-gray-800">Zeshan App</Text>
+            <Text className="text-3xl font-bold text-gray-800">Zesha App</Text>
             <Text className="text-gray-500 mt-1">Hi: Company Name</Text>
           </View>
           <TouchableOpacity
@@ -145,7 +133,7 @@ export default function Dashboard() {
               >
                 <View className="flex-1">
                   <Text className="font-semibold text-gray-700">
-                    {account.name}
+                    {account.account}
                   </Text>
                 </View>
                 <View className="w-24 flex-row justify-center space-x-2">
@@ -163,52 +151,20 @@ export default function Dashboard() {
             ))}
           </View>
 
-          {/* Action Buttons */}
-          <View className="flex-col space-y-3 mt-4">
+          {/* Action Button */}
+          <View className="mt-4">
             <TouchableOpacity
-              onPress={() => setModalType("transaction")}
+              onPress={() => router.push("/balance")}
               className="bg-brand-red py-4 rounded-xl shadow-md flex-row items-center justify-center space-x-2"
             >
-              <Plus color="white" size={20} />
+              <Wallet color="white" size={20} />
               <Text className="text-white font-bold text-base ml-2">
-                Add Transaction
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={() => setModalType("balance")}
-              className="bg-white border-2 border-brand-red py-4 rounded-xl shadow-sm flex-row items-center justify-center space-x-2"
-            >
-              <Wallet color="#C62828" size={20} />
-              <Text className="text-brand-red font-bold text-base ml-2">
                 Balance
               </Text>
             </TouchableOpacity>
           </View>
         </View>
       </ScrollView>
-
-      <ActionModal
-        visible={modalType === "transaction"}
-        onClose={() => setModalType("none")}
-        title="Add Transaction"
-      >
-        <AddTransactionForm
-          onSuccess={handleFormSuccess}
-          onClose={() => setModalType("none")}
-        />
-      </ActionModal>
-
-      <ActionModal
-        visible={modalType === "balance"}
-        onClose={() => setModalType("none")}
-        title="Add Balance"
-      >
-        <AddBalanceForm
-          onSuccess={handleFormSuccess}
-          onClose={() => setModalType("none")}
-        />
-      </ActionModal>
     </View>
   );
 }
