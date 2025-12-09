@@ -13,7 +13,7 @@ import {
 } from "react-native";
 import { X, Camera, ChevronDown, Check } from "lucide-react-native";
 import { useDispatch } from "react-redux";
-import { formatCurrency } from "../utils/formatters";
+import { useCurrencyFormatter } from "../hooks/useCurrency";
 import { TransactionCategory } from "../types";
 import { createTransaction } from "../store/slices/transactionsSlice";
 import { addBalanceEntry } from "../store/slices/balanceHistorySlice";
@@ -91,6 +91,7 @@ export const AddBalanceForm: React.FC<AddBalanceFormProps> = ({
   onClose,
 }) => {
   const dispatch = useDispatch<AppDispatch>();
+  const { formatCurrency } = useCurrencyFormatter();
   const [account, setAccount] = useState("");
   const [amount, setAmount] = useState("");
   const [showAccountDropdown, setShowAccountDropdown] = useState(false);
@@ -276,6 +277,7 @@ export const AddTransactionForm: React.FC<AddTransactionFormProps> = ({
   selectedAccount = "AURTEZ",
 }) => {
   const dispatch = useDispatch<AppDispatch>();
+  const { formatCurrency } = useCurrencyFormatter();
   const [transactionType, setTransactionType] =
     useState<TransactionType>("expense");
   const [amount, setAmount] = useState("");

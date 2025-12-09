@@ -1,7 +1,7 @@
 // API Configuration
 // Update this to match your FastAPI backend URL
 export const API_BASE_URL =
-  process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
+  process.env.EXPO_PUBLIC_API_URL || "https://7110bc7defc3.ngrok-free.app";
 
 // API Endpoints
 export const API_ENDPOINTS = {
@@ -59,6 +59,19 @@ export const API_ENDPOINTS = {
     get: (id: number) => `/company-info/${id}`,
     update: (id: number) => `/company-info/${id}`,
     delete: (id: number) => `/company-info/${id}`,
+    snapshot: (id: number) => `/company-info/${id}/snapshot`,
+  },
+
+  // Accounts
+  accounts: {
+    list: "/accounts/",
+    create: "/accounts/create",
+    bulk: "/accounts/bulk",
+    get: (id: number) => `/accounts/${id}`,
+    update: (id: number) => `/accounts/${id}`,
+    delete: (id: number) => `/accounts/${id}`,
+    deactivate: (id: number) => `/accounts/${id}/deactivate`,
+    activate: (id: number) => `/accounts/${id}/activate`,
   },
 } as const;
 

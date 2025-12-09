@@ -5,16 +5,18 @@
  * @param locale - Locale for formatting (default: en-US)
  */
 export function formatCurrency(
-  amount: number,
+  amount: number | string | null | undefined,
   currency: string = "USD",
   locale: string = "en-US"
 ): string {
+  const num = typeof amount === "string" ? parseFloat(amount) : amount ?? 0;
+  const safeNum = isNaN(num) ? 0 : num;
   return new Intl.NumberFormat(locale, {
     style: "currency",
     currency,
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  }).format(amount);
+  }).format(safeNum);
 }
 
 /**
@@ -23,16 +25,19 @@ export function formatCurrency(
  * @param currency - Currency symbol (default: $)
  */
 export function formatCompactCurrency(
-  amount: number,
+  amount: number | string | null | undefined,
   currencySymbol: string = "$"
 ): string {
-  if (Math.abs(amount) >= 1000000) {
-    return `${currencySymbol}${(amount / 1000000).toFixed(1)}m`;
+  const num = typeof amount === "string" ? parseFloat(amount) : amount ?? 0;
+  const safeNum = isNaN(num) ? 0 : num;
+
+  if (Math.abs(safeNum) >= 1000000) {
+    return `${currencySymbol}${(safeNum / 1000000).toFixed(1)}m`;
   }
-  if (Math.abs(amount) >= 1000) {
-    return `${currencySymbol}${(amount / 1000).toFixed(1)}k`;
+  if (Math.abs(safeNum) >= 1000) {
+    return `${currencySymbol}${(safeNum / 1000).toFixed(1)}k`;
   }
-  return `${currencySymbol}${amount.toFixed(2)}`;
+  return `${currencySymbol}${safeNum.toFixed(2)}`;
 }
 
 /**

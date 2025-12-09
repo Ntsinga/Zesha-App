@@ -7,25 +7,26 @@ import {
   RefreshControl,
 } from "react-native";
 import { CheckCircle2, Clock, Menu, Plus } from "lucide-react-native";
-import { useNavigation } from "expo-router";
+import { useNavigation, useRouter } from "expo-router";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchBalanceHistory } from "../store/slices/balanceHistorySlice";
 import { LoadingSpinner } from "../components/LoadingSpinner";
-import { formatCurrency, formatDate } from "../utils/formatters";
-import { ActionModal, AddBalanceForm } from "../components/ActionModal";
+import { useCurrencyFormatter } from "../hooks/useCurrency";
+import { formatDate } from "../utils/formatters";
 import type { AppDispatch, RootState } from "../store";
 import type { BalanceHistoryEntry } from "../types";
 
 export default function BalanceHistory() {
   const navigation = useNavigation();
+  const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
+  const { formatCurrency } = useCurrencyFormatter();
   const {
     entries: history,
     isLoading,
     error,
   } = useSelector((state: RootState) => state.balanceHistory);
   const [refreshing, setRefreshing] = useState(false);
-  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     dispatch(fetchBalanceHistory());
@@ -35,10 +36,6 @@ export default function BalanceHistory() {
     setRefreshing(true);
     await dispatch(fetchBalanceHistory());
     setRefreshing(false);
-  };
-
-  const handleFormSuccess = () => {
-    dispatch(fetchBalanceHistory());
   };
 
   if (isLoading && !refreshing) {
@@ -68,10 +65,13 @@ export default function BalanceHistory() {
             <Text className="text-white font-bold text-xs uppercase flex-1">
               Date
             </Text>
-            <Text className="text-white font-bold text-xs uppercase w-20 text-right">
+            <Text className="text-white font-bold text-xs uppercase w-24 text-center">
+              Float
+            </Text>
+            <Text className="text-white font-bold text-xs uppercase w-24 text-center">
               Cash
             </Text>
-            <Text className="text-white font-bold text-xs uppercase w-24 text-right">
+            <Text className="text-white font-bold text-xs uppercase w-20 text-right">
               Status
             </Text>
           </View>
@@ -92,19 +92,18 @@ export default function BalanceHistory() {
                   <Text className="font-medium text-gray-800">
                     {formatDate(record.date, "short")}
                   </Text>
-                  <Text className="text-xs text-gray-500 mt-1">
-                    Cap: {formatCurrency(record.capital)}
+                </View>
+                <View className="w-24 items-center">
+                  <Text className="font-semibold text-gray-700">
+                    {formatCurrency(record.amount)}
                   </Text>
                 </View>
-                <View className="w-20 items-end">
+                <View className="w-24 items-center">
                   <Text className="font-semibold text-gray-700">
                     {formatCurrency(record.totalCash)}
                   </Text>
-                  <Text className="text-xs text-gray-500 mt-1">
-                    Amt: {formatCurrency(record.amount)}
-                  </Text>
                 </View>
-                <View className="w-24 items-end pl-2">
+                <View className="w-20 items-end">
                   {record.status === "Balanced" ? (
                     <View className="flex-row items-center px-2 py-1 rounded-full bg-green-100">
                       <CheckCircle2 size={12} color="#15803d" />
@@ -127,24 +126,13 @@ export default function BalanceHistory() {
         </View>
 
         <TouchableOpacity
-          onPress={() => setIsModalOpen(true)}
+          onPress={() => router.push("/balance")}
           className="bg-brand-red py-3 rounded-lg shadow-md items-center flex-row justify-center"
         >
           <Plus size={18} color="white" />
           <Text className="text-white font-bold ml-2">Add New Record</Text>
         </TouchableOpacity>
       </ScrollView>
-
-      <ActionModal
-        visible={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        title="Add Balance"
-      >
-        <AddBalanceForm
-          onSuccess={handleFormSuccess}
-          onClose={() => setIsModalOpen(false)}
-        />
-      </ActionModal>
     </View>
   );
 }

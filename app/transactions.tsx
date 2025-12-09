@@ -12,13 +12,15 @@ import { useDispatch, useSelector } from "react-redux";
 import { ActionModal, AddTransactionForm } from "../components/ActionModal";
 import { fetchTransactions } from "../store/slices/transactionsSlice";
 import { LoadingSpinner } from "../components/LoadingSpinner";
-import { formatCurrency, formatDate } from "../utils/formatters";
+import { formatDate } from "../utils/formatters";
+import { useCurrencyFormatter } from "../hooks/useCurrency";
 import type { AppDispatch, RootState } from "../store";
 import type { Transaction } from "../types";
 
 export default function Transactions() {
   const navigation = useNavigation();
   const dispatch = useDispatch<AppDispatch>();
+  const { formatCurrency } = useCurrencyFormatter();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const {
     items: transactions,
