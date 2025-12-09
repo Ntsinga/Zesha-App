@@ -20,16 +20,16 @@ import type { ShiftEnum, CashCountCreate } from "../types";
 // Denomination values in cents
 // 10000 = R100, 5000 = R50, 2000 = R20, 1000 = R10, 500 = R5, 200 = R2, 100 = R1
 const DENOMINATIONS = [
-  { value: 50000, label: "R500", displayValue: 500 },
-  { value: 20000, label: "R200", displayValue: 200 },
-  { value: 10000, label: "R100", displayValue: 100 },
-  { value: 5000, label: "R50", displayValue: 50 },
-  { value: 2000, label: "R20", displayValue: 20 },
-  { value: 1000, label: "R10 (Note)", displayValue: 10, isNote: true },
-  { value: 1000, label: "R10 (Coin)", displayValue: 10, isCoin: true },
-  { value: 500, label: "R5", displayValue: 5 },
-  { value: 200, label: "R2", displayValue: 2 },
-  { value: 100, label: "R1", displayValue: 1 },
+  { value: 50000, label: "50,000", displayValue: 50000 },
+  { value: 20000, label: "20,000", displayValue: 20000 },
+  { value: 10000, label: "10,000", displayValue: 10000 },
+  { value: 5000, label: "5,000", displayValue: 5000 },
+  { value: 2000, label: "2,000", displayValue: 2000 },
+  { value: 1000, label: "1,000 (Note)", displayValue: 1000, isNote: true },
+  { value: 1000, label: "1,000 (Coin)", displayValue: 1000, isCoin: true },
+  { value: 500, label: "500", displayValue: 500 },
+  { value: 200, label: "200", displayValue: 200 },
+  { value: 100, label: "100", displayValue: 100 },
 ];
 
 interface DenominationEntry {
@@ -132,7 +132,7 @@ export default function AddCashCountPage() {
       await dispatch(createManyCashCounts(cashCountData)).unwrap();
 
       // Refresh dashboard after adding cash counts
-      dispatch(fetchDashboard());
+      dispatch(fetchDashboard({}));
 
       Alert.alert(
         "Success",

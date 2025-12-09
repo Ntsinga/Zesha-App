@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -10,6 +10,8 @@ import {
   Alert,
   Dimensions,
   Image,
+  Modal,
+  FlatList,
 } from "react-native";
 import { useRouter } from "expo-router";
 import {
@@ -19,17 +21,21 @@ import {
   Plus,
   X,
   Image as ImageIcon,
+  ChevronDown,
+  Check,
 } from "lucide-react-native";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import * as ImagePicker from "expo-image-picker";
 import { createBalance } from "../store/slices/balancesSlice";
 import { fetchDashboard } from "../store/slices/dashboardSlice";
-import type { AppDispatch } from "../store";
-import type { ShiftEnum, BalanceCreate } from "../types";
+import { fetchAccounts } from "../store/slices/accountsSlice";
+import type { AppDispatch, RootState } from "../store";
+import type { ShiftEnum, BalanceCreate, Account } from "../types";
 
 interface BalanceEntry {
   id: string;
-  account: string;
+  accountId: number | null;
+  accountName: string;
   shift: ShiftEnum;
   amount: string;
   imageUrl: string;
@@ -37,7 +43,8 @@ interface BalanceEntry {
 
 const createEmptyEntry = (): BalanceEntry => ({
   id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-  account: "",
+  accountId: null,
+  accountName: "",
   shift: "AM",
   amount: "",
   imageUrl: "",
@@ -49,11 +56,24 @@ export default function AddBalancePage() {
   const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
 
+  // Get accounts from Redux store
+  const { items: accounts, isLoading: accountsLoading } = useSelector(
+    (state: RootState) => state.accounts
+  );
+
   const [entries, setEntries] = useState<BalanceEntry[]>([createEmptyEntry()]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, Record<string, string>>>(
     {}
   );
+  const [accountPickerVisible, setAccountPickerVisible] = useState<
+    string | null
+  >(null);
+
+  // Fetch accounts on mount
+  useEffect(() => {
+    dispatch(fetchAccounts({ is_active: true }));
+  }, [dispatch]);
 
   // Request camera permissions
   const requestCameraPermission = async (): Promise<boolean> => {
@@ -142,7 +162,7 @@ export default function AddBalancePage() {
   const updateEntry = (
     id: string,
     field: keyof BalanceEntry,
-    value: string
+    value: string | number | null
   ) => {
     setEntries((prev) =>
       prev.map((entry) =>
@@ -150,15 +170,37 @@ export default function AddBalancePage() {
       )
     );
     // Clear error for this field
-    if (errors[id]?.[field]) {
+    const errorField = field === "accountId" ? "account" : field;
+    if (errors[id]?.[errorField]) {
       setErrors((prev) => {
         const newErrors = { ...prev };
         if (newErrors[id]) {
-          delete newErrors[id][field];
+          delete newErrors[id][errorField];
         }
         return newErrors;
       });
     }
+  };
+
+  const selectAccount = (entryId: string, account: Account) => {
+    setEntries((prev) =>
+      prev.map((entry) =>
+        entry.id === entryId
+          ? { ...entry, accountId: account.id, accountName: account.name }
+          : entry
+      )
+    );
+    // Clear account error
+    if (errors[entryId]?.account) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        if (newErrors[entryId]) {
+          delete newErrors[entryId].account;
+        }
+        return newErrors;
+      });
+    }
+    setAccountPickerVisible(null);
   };
 
   const addEntry = () => {
@@ -183,7 +225,7 @@ export default function AddBalancePage() {
     entries.forEach((entry) => {
       const entryErrors: Record<string, string> = {};
 
-      if (!entry.account.trim()) {
+      if (!entry.accountId) {
         entryErrors.account = "Required";
         isValid = false;
       }
@@ -216,7 +258,7 @@ export default function AddBalancePage() {
     try {
       const promises = entries.map((entry) => {
         const balanceData: BalanceCreate = {
-          account: entry.account.trim(),
+          account: entry.accountName.trim(),
           shift: entry.shift,
           amount: parseFloat(entry.amount),
           image_url: entry.imageUrl || "",
@@ -232,7 +274,7 @@ export default function AddBalancePage() {
       await Promise.all(promises);
 
       // Refresh dashboard after adding balances
-      dispatch(fetchDashboard());
+      dispatch(fetchDashboard({}));
 
       Alert.alert(
         "Success",
@@ -313,23 +355,28 @@ export default function AddBalancePage() {
                 )}
               </View>
 
-              {/* Account Name */}
+              {/* Account Selection */}
               <View className="mb-4">
                 <Text className="text-gray-700 font-semibold mb-1 text-sm">
                   Account *
                 </Text>
-                <TextInput
-                  value={entry.account}
-                  onChangeText={(value) =>
-                    updateEntry(entry.id, "account", value)
-                  }
-                  placeholder="Account name"
-                  className={`bg-gray-50 rounded-xl px-3 py-2.5 text-gray-800 ${
+                <TouchableOpacity
+                  onPress={() => setAccountPickerVisible(entry.id)}
+                  className={`bg-gray-50 rounded-xl px-3 py-2.5 flex-row justify-between items-center ${
                     errors[entry.id]?.account
                       ? "border-2 border-red-500"
                       : "border border-gray-200"
                   }`}
-                />
+                >
+                  <Text
+                    className={`${
+                      entry.accountName ? "text-gray-800" : "text-gray-400"
+                    }`}
+                  >
+                    {entry.accountName || "Select account"}
+                  </Text>
+                  <ChevronDown color="#6B7280" size={20} />
+                </TouchableOpacity>
                 {errors[entry.id]?.account && (
                   <Text className="text-red-500 text-xs mt-1">
                     {errors[entry.id].account}
@@ -484,6 +531,87 @@ export default function AddBalancePage() {
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* Account Picker Modal */}
+      <Modal
+        visible={accountPickerVisible !== null}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setAccountPickerVisible(null)}
+      >
+        <TouchableOpacity
+          style={{ flex: 1 }}
+          activeOpacity={1}
+          onPress={() => setAccountPickerVisible(null)}
+          className="bg-black/50 justify-end"
+        >
+          <TouchableOpacity activeOpacity={1} onPress={() => {}}>
+            <View className="bg-white rounded-t-3xl max-h-96">
+              <View className="flex-row justify-between items-center p-4 border-b border-gray-200">
+                <Text className="text-lg font-bold text-gray-800">
+                  Select Account
+                </Text>
+                <TouchableOpacity onPress={() => setAccountPickerVisible(null)}>
+                  <X color="#6B7280" size={24} />
+                </TouchableOpacity>
+              </View>
+
+              {accountsLoading ? (
+                <View className="p-8 items-center">
+                  <Text className="text-gray-500">Loading accounts...</Text>
+                </View>
+              ) : accounts.length === 0 ? (
+                <View className="p-8 items-center">
+                  <Text className="text-gray-500">No accounts available</Text>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setAccountPickerVisible(null);
+                      router.push("/accounts");
+                    }}
+                    className="mt-4 bg-brand-red px-6 py-2 rounded-xl"
+                  >
+                    <Text className="text-white font-semibold">
+                      Add Account
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <FlatList
+                  data={accounts}
+                  keyExtractor={(item) => item.id.toString()}
+                  renderItem={({ item }) => {
+                    const currentEntry = entries.find(
+                      (e) => e.id === accountPickerVisible
+                    );
+                    const isSelected = currentEntry?.accountId === item.id;
+                    return (
+                      <TouchableOpacity
+                        onPress={() =>
+                          accountPickerVisible &&
+                          selectAccount(accountPickerVisible, item)
+                        }
+                        className={`flex-row items-center justify-between p-4 border-b border-gray-100 ${
+                          isSelected ? "bg-red-50" : ""
+                        }`}
+                      >
+                        <View>
+                          <Text className="text-gray-800 font-semibold">
+                            {item.name}
+                          </Text>
+                          <Text className="text-gray-500 text-sm">
+                            {item.account_type}
+                          </Text>
+                        </View>
+                        {isSelected && <Check color="#DC2626" size={20} />}
+                      </TouchableOpacity>
+                    );
+                  }}
+                />
+              )}
+            </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
     </KeyboardAvoidingView>
   );
 }

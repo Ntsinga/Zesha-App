@@ -12,6 +12,8 @@ import {
   ArrowRightLeft,
   CreditCard,
   PieChart,
+  Building2,
+  Settings,
 } from "lucide-react-native";
 import type { DrawerContentComponentProps } from "@react-navigation/drawer";
 
@@ -46,6 +48,18 @@ const CustomDrawerContent = (props: DrawerContentComponentProps) => {
       routeName: "expenses",
       label: "Expenses",
       icon: PieChart,
+    },
+    {
+      route: "/accounts",
+      routeName: "accounts",
+      label: "Accounts",
+      icon: Building2,
+    },
+    {
+      route: "/settings",
+      routeName: "settings",
+      label: "Settings",
+      icon: Settings,
     },
   ];
 

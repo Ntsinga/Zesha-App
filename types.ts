@@ -41,6 +41,12 @@ export interface BalanceUpdate {
 }
 
 // ============= EXPENSES =============
+export interface ExpenseCategory {
+  id: string;
+  name: string;
+  icon?: string;
+}
+
 export interface Expense extends BaseModel {
   name: string;
   amount: number;
@@ -207,6 +213,7 @@ export interface CompanyInfo extends BaseModel {
   emails: string[] | null;
   total_working_capital: number;
   outstanding_balance: number;
+  currency: string;
   description: string | null;
 }
 
@@ -215,6 +222,7 @@ export interface CompanyInfoCreate {
   emails?: string[];
   total_working_capital?: number;
   outstanding_balance?: number;
+  currency?: string;
   description?: string;
 }
 
@@ -223,17 +231,32 @@ export interface CompanyInfoUpdate {
   emails?: string[];
   total_working_capital?: number;
   outstanding_balance?: number;
+  currency?: string;
   description?: string;
 }
 
 // ============= DASHBOARD TYPES =============
+export interface CompanySnapshot {
+  company: CompanyInfo;
+  snapshot_date: string;
+  shift: ShiftEnum;
+  total_float: number;
+  total_cash: number;
+  grand_total: number;
+  total_expenses: number;
+  expected_grand_total: number;
+  capital_variance: number;
+}
+
 export interface DashboardSummary {
   totalWorkingCapital: number;
   outstandingBalance: number;
   totalFloat: number;
   totalCash: number;
   grandTotal: number;
+  expectedGrandTotal: number;
   totalExpenses: number;
+  capitalVariance: number;
 }
 
 export interface AccountSummary {
@@ -355,4 +378,49 @@ export interface BalanceHistoryEntry {
   amount: number;
   capital: number;
   status: "Balanced" | "Pending" | "Discrepancy";
+}
+
+// ============= ACCOUNTS =============
+export type AccountTypeEnum = "BANK" | "TELECOM";
+
+export interface Account extends BaseModel {
+  name: string;
+  description: string | null;
+  account_type: AccountTypeEnum;
+  is_active: boolean;
+}
+
+export interface AccountCreate {
+  name: string;
+  description?: string;
+  account_type: AccountTypeEnum;
+  is_active?: boolean;
+}
+
+export interface AccountUpdate {
+  name?: string;
+  description?: string;
+  account_type?: AccountTypeEnum;
+  is_active?: boolean;
+}
+
+export interface AccountFilters {
+  account_type?: AccountTypeEnum;
+  is_active?: boolean;
+  search?: string;
+  skip?: number;
+  limit?: number;
+  [key: string]: string | number | boolean | undefined;
+}
+
+export interface BulkAccountCreate {
+  accounts: AccountCreate[];
+}
+
+export interface BulkAccountResponse {
+  created: Account[];
+  failed: { index: number; name: string; error: string }[];
+  total_submitted: number;
+  total_created: number;
+  total_failed: number;
 }

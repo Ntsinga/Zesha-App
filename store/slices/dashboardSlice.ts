@@ -1,60 +1,152 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
-import { AccountSummary } from "../../types";
+import {
+  AccountSummary,
+  CompanySnapshot,
+  DashboardSummary,
+  ShiftEnum,
+  Balance,
+  CompanyInfo,
+} from "../../types";
+import {
+  API_BASE_URL,
+  API_ENDPOINTS,
+  buildQueryString,
+} from "../../config/api";
 
 // Types
-export interface DashboardSummary {
-  totalBalance: number;
-  monthlyIncome: number;
-  monthlyExpenses: number;
-  savingsRate: number;
-  lastUpdated: string;
-}
-
 export interface DashboardState {
+  companyInfo: CompanyInfo | null;
   summary: DashboardSummary | null;
   accounts: AccountSummary[];
+  currentShift: ShiftEnum;
+  snapshotDate: string;
   isLoading: boolean;
   error: string | null;
   lastFetched: number | null;
 }
 
+// Get current shift based on time of day (AM before 12:00, PM after)
+const getCurrentShift = (): ShiftEnum => {
+  const hour = new Date().getHours();
+  return hour < 12 ? "AM" : "PM";
+};
+
+// Get today's date in YYYY-MM-DD format
+const getTodayDate = (): string => {
+  return new Date().toISOString().split("T")[0];
+};
+
 const initialState: DashboardState = {
+  companyInfo: null,
   summary: null,
   accounts: [],
+  currentShift: getCurrentShift(),
+  snapshotDate: getTodayDate(),
   isLoading: false,
   error: null,
   lastFetched: null,
 };
 
-// Mock data for development
-const mockSummary: DashboardSummary = {
-  totalBalance: 125750.0,
-  monthlyIncome: 45000.0,
-  monthlyExpenses: 32500.0,
-  savingsRate: 27.8,
-  lastUpdated: new Date().toISOString(),
-};
+// API helper
+async function apiRequest<T>(
+  endpoint: string,
+  options?: RequestInit
+): Promise<T> {
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    headers: {
+      "Content-Type": "application/json",
+      ...options?.headers,
+    },
+    ...options,
+  });
 
-const mockAccounts: AccountSummary[] = [
-  { name: "Main Account", balance: 85000, lastAmount: 5000 },
-  { name: "Savings", balance: 35000, lastAmount: 2000 },
-  { name: "Business", balance: 5750, lastAmount: -1500 },
-];
+  if (!response.ok) {
+    const error = await response
+      .json()
+      .catch(() => ({ detail: "Request failed" }));
+    throw new Error(error.detail || `HTTP ${response.status}`);
+  }
+
+  return response.json();
+}
+
+// Thunk params interface
+interface FetchDashboardParams {
+  companyId?: number;
+  date?: string;
+  shift?: ShiftEnum;
+  source?: "whatsapp" | "mobile_app";
+}
 
 // Async thunks
 export const fetchDashboard = createAsyncThunk(
   "dashboard/fetch",
-  async (_, { rejectWithValue }) => {
+  async (params: FetchDashboardParams = {}, { getState, rejectWithValue }) => {
     try {
-      // TODO: Replace with actual API call
-      await new Promise((resolve) => setTimeout(resolve, 800));
+      const state = getState() as { dashboard: DashboardState };
+      const companyId = params.companyId || 1; // Default to company ID 1
+      const snapshotDate = params.date || state.dashboard.snapshotDate;
+      const shift = params.shift || state.dashboard.currentShift;
+
+      // Build query string
+      const queryParams: Record<string, string> = {
+        snapshot_date: snapshotDate,
+        shift: shift,
+      };
+      if (params.source) {
+        queryParams.source = params.source;
+      }
+
+      const query = buildQueryString(queryParams);
+      const snapshotEndpoint = `${API_ENDPOINTS.companyInfo.snapshot(
+        companyId
+      )}${query}`;
+
+      // Fetch snapshot data
+      const snapshot = await apiRequest<CompanySnapshot>(snapshotEndpoint);
+
+      // Fetch today's balances for the account list
+      const balanceQuery = buildQueryString({
+        date: snapshotDate,
+        shift: shift,
+      });
+      const balances = await apiRequest<Balance[]>(
+        `${API_ENDPOINTS.balances.list}${balanceQuery}`
+      );
+
+      // Transform balances to AccountSummary format
+      const accounts: AccountSummary[] = balances.map((b) => ({
+        account: b.account,
+        balance: b.amount,
+        shift: b.shift,
+        imageUrl: b.image_url,
+      }));
+
+      // Build summary from snapshot
+      const summary: DashboardSummary = {
+        totalWorkingCapital: snapshot.company.total_working_capital,
+        outstandingBalance: snapshot.company.outstanding_balance,
+        totalFloat: snapshot.total_float,
+        totalCash: snapshot.total_cash,
+        grandTotal: snapshot.grand_total,
+        expectedGrandTotal: snapshot.expected_grand_total,
+        totalExpenses: snapshot.total_expenses,
+        capitalVariance: snapshot.capital_variance,
+      };
 
       return {
-        summary: mockSummary,
-        accounts: mockAccounts,
+        companyInfo: snapshot.company,
+        summary,
+        accounts,
+        snapshotDate,
+        shift,
       };
     } catch (error) {
-      return rejectWithValue("Failed to fetch dashboard data");
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : "Failed to fetch dashboard data"
+      );
     }
   }
 );
@@ -62,7 +154,7 @@ export const fetchDashboard = createAsyncThunk(
 export const refreshDashboard = createAsyncThunk(
   "dashboard/refresh",
   async (_, { dispatch }) => {
-    return dispatch(fetchDashboard()).unwrap();
+    return dispatch(fetchDashboard({})).unwrap();
   }
 );
 
@@ -74,17 +166,11 @@ const dashboardSlice = createSlice({
     clearError: (state) => {
       state.error = null;
     },
-    updateAccount: (
-      state,
-      action: PayloadAction<{ name: string; balance: number }>
-    ) => {
-      const account = state.accounts.find(
-        (a) => a.name === action.payload.name
-      );
-      if (account) {
-        account.lastAmount = action.payload.balance - account.balance;
-        account.balance = action.payload.balance;
-      }
+    setShift: (state, action: PayloadAction<ShiftEnum>) => {
+      state.currentShift = action.payload;
+    },
+    setSnapshotDate: (state, action: PayloadAction<string>) => {
+      state.snapshotDate = action.payload;
     },
   },
   extraReducers: (builder) => {
@@ -95,8 +181,11 @@ const dashboardSlice = createSlice({
       })
       .addCase(fetchDashboard.fulfilled, (state, action) => {
         state.isLoading = false;
+        state.companyInfo = action.payload.companyInfo;
         state.summary = action.payload.summary;
         state.accounts = action.payload.accounts;
+        state.snapshotDate = action.payload.snapshotDate;
+        state.currentShift = action.payload.shift;
         state.lastFetched = Date.now();
         state.error = null;
       })
@@ -107,5 +196,5 @@ const dashboardSlice = createSlice({
   },
 });
 
-export const { clearError, updateAccount } = dashboardSlice.actions;
+export const { clearError, setShift, setSnapshotDate } = dashboardSlice.actions;
 export default dashboardSlice.reducer;

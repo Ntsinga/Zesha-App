@@ -11,6 +11,7 @@ import commissionsReducer from "./slices/commissionsSlice";
 import reconciliationsReducer from "./slices/reconciliationsSlice";
 import companyInfoReducer from "./slices/companyInfoSlice";
 import cashCountReducer from "./slices/cashCountSlice";
+import accountsReducer from "./slices/accountsSlice";
 
 export const store = configureStore({
   reducer: {
@@ -26,6 +27,7 @@ export const store = configureStore({
     reconciliations: reconciliationsReducer,
     companyInfo: companyInfoReducer,
     cashCount: cashCountReducer,
+    accounts: accountsReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

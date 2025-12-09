@@ -6,17 +6,20 @@ import {
   TouchableOpacity,
   RefreshControl,
 } from "react-native";
-import { Wallet, Camera, Menu } from "lucide-react-native";
+import {
+  Wallet,
+  Camera,
+  Menu,
+  TrendingUp,
+  TrendingDown,
+  AlertCircle,
+} from "lucide-react-native";
 import { useNavigation, useRouter } from "expo-router";
 import { useDispatch, useSelector } from "react-redux";
-import {
-  fetchDashboard,
-  DashboardState,
-  DashboardSummary,
-} from "../store/slices/dashboardSlice";
+import { fetchDashboard, setShift } from "../store/slices/dashboardSlice";
 import { LoadingSpinner } from "../components/LoadingSpinner";
-import { formatCurrency, formatCompactCurrency } from "../utils/formatters";
-import type { AccountSummary } from "../types";
+import { useCurrencyFormatter } from "../hooks/useCurrency";
+import type { AccountSummary, ShiftEnum } from "../types";
 import type { AppDispatch, RootState } from "../store";
 
 export default function Dashboard() {
@@ -24,20 +27,34 @@ export default function Dashboard() {
   const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
 
-  const { summary, accounts, isLoading, error } = useSelector(
-    (state: RootState) => state.dashboard
-  );
+  const {
+    companyInfo,
+    summary,
+    accounts,
+    currentShift,
+    snapshotDate,
+    isLoading,
+    error,
+  } = useSelector((state: RootState) => state.dashboard);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Get currency formatter from company info
+  const { formatCurrency, formatCompactCurrency } = useCurrencyFormatter();
 
   // Fetch dashboard data on mount
   useEffect(() => {
-    dispatch(fetchDashboard());
+    dispatch(fetchDashboard({}));
   }, [dispatch]);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await dispatch(fetchDashboard());
+    await dispatch(fetchDashboard({}));
     setRefreshing(false);
+  };
+
+  const handleShiftChange = (shift: ShiftEnum) => {
+    dispatch(setShift(shift));
+    dispatch(fetchDashboard({ shift }));
   };
 
   if (isLoading && !refreshing) {
@@ -45,10 +62,14 @@ export default function Dashboard() {
   }
 
   // Use dashboard data from Redux store
-  const totalCapital = summary?.totalBalance ?? 0;
-  const float = summary?.monthlyIncome ?? 0;
-  const cash = summary?.monthlyExpenses ?? 0;
-  const outstanding = summary?.savingsRate ?? 0;
+  const totalFloat = summary?.totalFloat ?? 0;
+  const totalCash = summary?.totalCash ?? 0;
+  const grandTotal = summary?.grandTotal ?? 0;
+  const expectedGrandTotal = summary?.expectedGrandTotal ?? 0;
+  const capitalVariance = summary?.capitalVariance ?? 0;
+  const totalExpenses = summary?.totalExpenses ?? 0;
+  const outstandingBalance = summary?.outstandingBalance ?? 0;
+  const companyName = companyInfo?.name ?? "Company";
 
   return (
     <View className="flex-1 bg-gray-50">
@@ -63,7 +84,7 @@ export default function Dashboard() {
         <View className="flex-row justify-between items-center mb-8 mt-4">
           <View>
             <Text className="text-3xl font-bold text-gray-800">Zesha App</Text>
-            <Text className="text-gray-500 mt-1">Hi: Company Name</Text>
+            <Text className="text-gray-500 mt-1">Hi: {companyName}</Text>
           </View>
           <TouchableOpacity
             onPress={() => (navigation as any).openDrawer()}
@@ -73,16 +94,49 @@ export default function Dashboard() {
           </TouchableOpacity>
         </View>
 
+        {/* Shift Toggle */}
+        <View className="flex-row mb-4 bg-white rounded-xl p-1 shadow-sm">
+          <TouchableOpacity
+            onPress={() => handleShiftChange("AM")}
+            className={`flex-1 py-2 rounded-lg ${
+              currentShift === "AM" ? "bg-brand-red" : "bg-transparent"
+            }`}
+          >
+            <Text
+              className={`text-center font-bold ${
+                currentShift === "AM" ? "text-white" : "text-gray-600"
+              }`}
+            >
+              AM Shift
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => handleShiftChange("PM")}
+            className={`flex-1 py-2 rounded-lg ${
+              currentShift === "PM" ? "bg-brand-red" : "bg-transparent"
+            }`}
+          >
+            <Text
+              className={`text-center font-bold ${
+                currentShift === "PM" ? "text-white" : "text-gray-600"
+              }`}
+            >
+              PM Shift
+            </Text>
+          </TouchableOpacity>
+        </View>
+
         {/* Main Stats Card */}
-        <View className="relative overflow-hidden rounded-3xl bg-brand-gold shadow-lg p-6 mb-8">
+        <View className="relative overflow-hidden rounded-3xl bg-brand-gold shadow-lg p-6 mb-4">
           <View className="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-white opacity-20 rounded-full" />
 
+          {/* Grand Total */}
           <View className="border-b border-brand-darkGold/30 pb-4 mb-4">
             <Text className="text-red-900/70 font-semibold text-lg">
-              Total Capital
+              Grand Total
             </Text>
             <Text className="text-4xl font-bold text-red-900">
-              {formatCurrency(totalCapital)}
+              {formatCurrency(grandTotal)}
             </Text>
           </View>
 
@@ -90,22 +144,70 @@ export default function Dashboard() {
             <View className="mb-4 w-1/2">
               <Text className="text-red-900/80 font-bold text-xl">Float</Text>
               <Text className="text-2xl font-bold text-red-900">
-                {formatCurrency(float)}
+                {formatCurrency(totalFloat)}
               </Text>
             </View>
             <View className="w-1/2 pl-4 justify-center space-y-2">
               <View className="flex-row justify-between">
                 <Text className="text-red-900 font-semibold">Cash</Text>
                 <Text className="text-red-900 font-bold">
-                  {formatCompactCurrency(cash)}
+                  {formatCompactCurrency(totalCash)}
                 </Text>
               </View>
               <View className="flex-row justify-between">
                 <Text className="text-red-900 font-semibold">Outst.</Text>
                 <Text className="text-red-900 font-bold">
-                  {formatCompactCurrency(outstanding)}
+                  {formatCompactCurrency(outstandingBalance)}
                 </Text>
               </View>
+            </View>
+          </View>
+        </View>
+
+        {/* Expected vs Actual Card */}
+        <View className="bg-white rounded-3xl shadow-sm p-4 mb-4 border border-gray-100">
+          <View className="flex-row justify-between items-center mb-3">
+            <Text className="text-lg font-bold text-gray-800">Comparison</Text>
+            <Text className="text-xs text-gray-500">{snapshotDate}</Text>
+          </View>
+
+          <View className="flex-row justify-between mb-2">
+            <Text className="text-gray-600">Expected Total</Text>
+            <Text className="font-bold text-gray-800">
+              {formatCurrency(expectedGrandTotal)}
+            </Text>
+          </View>
+
+          <View className="flex-row justify-between mb-2">
+            <Text className="text-gray-600">Actual Total</Text>
+            <Text className="font-bold text-gray-800">
+              {formatCurrency(grandTotal)}
+            </Text>
+          </View>
+
+          <View className="flex-row justify-between mb-2">
+            <Text className="text-gray-600">Total Expenses</Text>
+            <Text className="font-bold text-red-600">
+              -{formatCurrency(totalExpenses)}
+            </Text>
+          </View>
+
+          <View className="border-t border-gray-100 pt-2 mt-2 flex-row justify-between items-center">
+            <Text className="text-gray-700 font-semibold">Variance</Text>
+            <View className="flex-row items-center">
+              {capitalVariance >= 0 ? (
+                <TrendingUp color="#16A34A" size={16} />
+              ) : (
+                <TrendingDown color="#DC2626" size={16} />
+              )}
+              <Text
+                className={`font-bold ml-1 ${
+                  capitalVariance >= 0 ? "text-green-600" : "text-red-600"
+                }`}
+              >
+                {capitalVariance >= 0 ? "+" : ""}
+                {formatCurrency(capitalVariance)}
+              </Text>
             </View>
           </View>
         </View>
