@@ -1,7 +1,14 @@
 // API Configuration
 // Update this to match your FastAPI backend URL
 export const API_BASE_URL =
-  process.env.EXPO_PUBLIC_API_URL || "https://7110bc7defc3.ngrok-free.app";
+  process.env.EXPO_PUBLIC_API_URL || "https://e64b81947350.ngrok-free.app";
+
+// Default headers for API requests
+// The ngrok-skip-browser-warning header bypasses the ngrok interstitial page
+export const API_HEADERS = {
+  "Content-Type": "application/json",
+  "ngrok-skip-browser-warning": "true",
+};
 
 // API Endpoints
 export const API_ENDPOINTS = {
@@ -34,11 +41,13 @@ export const API_ENDPOINTS = {
 
   // Cash Count (Denominations)
   cashCount: {
-    list: "/cash-count/",
-    create: "/cash-count/",
-    get: (id: number) => `/cash-count/${id}`,
-    update: (id: number) => `/cash-count/${id}`,
-    delete: (id: number) => `/cash-count/${id}`,
+    list: "/cash-counts/",
+    create: "/cash-counts/create",
+    bulk: "/cash-counts/bulk",
+    summary: "/cash-counts/summary",
+    get: (id: number) => `/cash-counts/${id}`,
+    update: (id: number) => `/cash-counts/${id}`,
+    delete: (id: number) => `/cash-counts/${id}`,
   },
 
   // Reconciliations

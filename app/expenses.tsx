@@ -30,6 +30,7 @@ import {
   updateExpense,
   deleteExpense,
 } from "../store/slices/expensesSlice";
+import { fetchDashboard } from "../store/slices/dashboardSlice";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { useCurrencyFormatter } from "../hooks/useCurrency";
 import type { AppDispatch, RootState } from "../store";
@@ -45,14 +46,17 @@ const CATEGORIES = [
   "Maintenance",
   "Marketing",
   "Other",
+  "Shortage",
 ];
 
 export default function Expenses() {
   const navigation = useNavigation();
   const dispatch = useDispatch<AppDispatch>();
-  const { items: expenses, isLoading } = useSelector(
-    (state: RootState) => state.expenses
-  );
+  const {
+    items: expenses,
+    isLoading,
+    totalAmount,
+  } = useSelector((state: RootState) => state.expenses);
 
   // Get currency formatter from company info
   const { formatCurrency } = useCurrencyFormatter();
@@ -153,6 +157,8 @@ export default function Expenses() {
       }
       closeModal();
       dispatch(fetchExpenses({}));
+      // Refresh dashboard to update totals
+      dispatch(fetchDashboard({}));
     } catch (error) {
       Alert.alert("Error", error as string);
     }
@@ -164,13 +170,12 @@ export default function Expenses() {
       Alert.alert("Success", "Expense deleted successfully!");
       setDeleteConfirmId(null);
       dispatch(fetchExpenses({}));
+      // Refresh dashboard to update totals
+      dispatch(fetchDashboard({}));
     } catch (error) {
       Alert.alert("Error", error as string);
     }
   };
-
-  // Calculate total from current expenses list
-  const calculatedTotal = expenses.reduce((sum, exp) => sum + exp.amount, 0);
 
   if (isLoading && !refreshing && expenses.length === 0) {
     return <LoadingSpinner message="Loading expenses..." />;
@@ -201,7 +206,7 @@ export default function Expenses() {
             Total Expenses
           </Text>
           <Text className="text-white text-3xl font-bold mt-1">
-            {formatCurrency(calculatedTotal)}
+            {formatCurrency(totalAmount)}
           </Text>
           <Text className="text-white/60 text-xs mt-2">
             {expenses.length} expense{expenses.length !== 1 ? "s" : ""} recorded

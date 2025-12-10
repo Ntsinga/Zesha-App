@@ -141,6 +141,26 @@ export interface CashCountUpdate {
   shift?: ShiftEnum;
 }
 
+export interface BulkCashCountCreate {
+  cash_counts: CashCountCreate[];
+}
+
+export interface BulkCashCountResponse {
+  created: CashCount[];
+  failed: { index: number; denomination: number; error: string }[];
+  total_submitted: number;
+  total_created: number;
+  total_failed: number;
+}
+
+export interface CashCountSummary {
+  date: string;
+  shift: ShiftEnum;
+  total_amount: number;
+  denomination_count: number;
+  denominations: CashCount[];
+}
+
 // ============= RECONCILIATIONS =============
 export type ReconciliationStatus = "PASSED" | "FAILED";
 

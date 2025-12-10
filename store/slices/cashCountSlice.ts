@@ -40,6 +40,7 @@ async function apiRequest<T>(
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     headers: {
       "Content-Type": "application/json",
+      "ngrok-skip-browser-warning": "true",
       ...options?.headers,
     },
     ...options,
@@ -117,14 +118,22 @@ export const createManyCashCounts = createAsyncThunk(
   "cashCount/createMany",
   async (data: CashCountCreate[], { rejectWithValue }) => {
     try {
-      const promises = data.map((item) =>
-        apiRequest<CashCount>(API_ENDPOINTS.cashCount.create, {
-          method: "POST",
-          body: JSON.stringify(item),
-        })
-      );
-      const cashCounts = await Promise.all(promises);
-      return cashCounts;
+      const response = await apiRequest<{
+        created: CashCount[];
+        failed: { index: number; denomination: number; error: string }[];
+        total_submitted: number;
+        total_created: number;
+        total_failed: number;
+      }>(API_ENDPOINTS.cashCount.bulk, {
+        method: "POST",
+        body: JSON.stringify({ cash_counts: data }),
+      });
+
+      if (response.total_failed > 0) {
+        console.warn(`${response.total_failed} cash counts failed to create`);
+      }
+
+      return response.created;
     } catch (error) {
       return rejectWithValue(
         error instanceof Error ? error.message : "Failed to create cash counts"
