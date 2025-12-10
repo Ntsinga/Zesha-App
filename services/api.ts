@@ -35,6 +35,7 @@ async function fetchApi<T>(
 
   const defaultHeaders: HeadersInit = {
     "Content-Type": "application/json",
+    "ngrok-skip-browser-warning": "true",
   };
 
   try {
