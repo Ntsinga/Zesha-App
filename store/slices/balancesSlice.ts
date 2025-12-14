@@ -4,6 +4,8 @@ import {
   BalanceCreate,
   BalanceUpdate,
   BalanceFilters,
+  BulkBalanceCreate,
+  BulkBalanceResponse,
 } from "../../types";
 import {
   API_BASE_URL,
@@ -19,6 +21,7 @@ export interface BalancesState {
   error: string | null;
   lastFetched: number | null;
   filters: BalanceFilters;
+  draftEntries: any[]; // Draft balance entries being created
 }
 
 const initialState: BalancesState = {
@@ -28,6 +31,7 @@ const initialState: BalancesState = {
   error: null,
   lastFetched: null,
   filters: {},
+  draftEntries: [],
 };
 
 // API helper
@@ -107,6 +111,26 @@ export const createBalance = createAsyncThunk(
   }
 );
 
+export const createBalancesBulk = createAsyncThunk(
+  "balances/createBulk",
+  async (data: BulkBalanceCreate, { rejectWithValue }) => {
+    try {
+      const response = await apiRequest<BulkBalanceResponse>(
+        API_ENDPOINTS.balances.bulk,
+        {
+          method: "POST",
+          body: JSON.stringify(data),
+        }
+      );
+      return response;
+    } catch (error) {
+      return rejectWithValue(
+        error instanceof Error ? error.message : "Failed to create balances"
+      );
+    }
+  }
+);
+
 export const updateBalance = createAsyncThunk(
   "balances/update",
   async (
@@ -163,6 +187,12 @@ const balancesSlice = createSlice({
     clearSelectedBalance: (state) => {
       state.selectedBalance = null;
     },
+    saveDraftEntries: (state, action: PayloadAction<any[]>) => {
+      state.draftEntries = action.payload;
+    },
+    clearDraftEntries: (state) => {
+      state.draftEntries = [];
+    },
   },
   extraReducers: (builder) => {
     // Fetch all
@@ -211,6 +241,26 @@ const balancesSlice = createSlice({
         state.error = action.payload as string;
       });
 
+    // Bulk Create
+    builder
+      .addCase(createBalancesBulk.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(createBalancesBulk.fulfilled, (state, action) => {
+        state.isLoading = false;
+        // Add all successfully created balances to the beginning of the list
+        state.items.unshift(...action.payload.created);
+        // Set error if some failed
+        if (action.payload.total_failed > 0) {
+          state.error = `${action.payload.total_failed} of ${action.payload.total_submitted} balances failed to create`;
+        }
+      })
+      .addCase(createBalancesBulk.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
+      });
+
     // Update
     builder
       .addCase(updateBalance.fulfilled, (state, action) => {
@@ -242,6 +292,12 @@ const balancesSlice = createSlice({
   },
 });
 
-export const { clearError, setFilters, clearFilters, clearSelectedBalance } =
-  balancesSlice.actions;
+export const {
+  clearError,
+  setFilters,
+  clearFilters,
+  clearSelectedBalance,
+  saveDraftEntries,
+  clearDraftEntries,
+} = balancesSlice.actions;
 export default balancesSlice.reducer;

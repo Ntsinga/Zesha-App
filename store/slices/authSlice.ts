@@ -2,35 +2,57 @@ import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
 
-// Types
+// Types - aligned with backend User model
 export interface User {
-  id: string;
+  id: number;
+  clerk_user_id: string;
   email: string;
-  name: string;
-  avatar?: string;
+  first_name?: string | null;
+  last_name?: string | null;
+  profile_image_url?: string | null;
+  phone_number?: string | null;
+  role: string;
+  is_active: boolean;
+  last_login_at?: string | null;
+  created_at: string;
+  updated_at?: string | null;
+  metadata?: string | null;
+}
+
+// Request types for syncing with backend
+export interface UserSyncRequest {
+  clerk_user_id: string;
+  email: string;
+  first_name?: string | null;
+  last_name?: string | null;
+  profile_image_url?: string | null;
+  phone_number?: string | null;
+  metadata?: string | null;
 }
 
 export interface AuthState {
   user: User | null;
-  token: string | null;
+  clerkUserId: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  isSyncing: boolean;
   isInitialized: boolean;
   error: string | null;
 }
 
 const initialState: AuthState = {
   user: null,
-  token: null,
+  clerkUserId: null,
   isAuthenticated: false,
   isLoading: false,
+  isSyncing: false,
   isInitialized: false,
   error: null,
 };
 
 // Secure storage helpers (with web fallback)
-const TOKEN_KEY = "auth_token";
-const USER_KEY = "auth_user";
+const USER_KEY = "backend_user";
+const CLERK_USER_ID_KEY = "clerk_user_id";
 
 async function getSecureItem(key: string): Promise<string | null> {
   if (Platform.OS === "web") {
@@ -60,12 +82,12 @@ export const initializeAuth = createAsyncThunk(
   "auth/initialize",
   async (_, { rejectWithValue }) => {
     try {
-      const token = await getSecureItem(TOKEN_KEY);
+      const clerkUserId = await getSecureItem(CLERK_USER_ID_KEY);
       const userJson = await getSecureItem(USER_KEY);
 
-      if (token && userJson) {
+      if (clerkUserId && userJson) {
         const user = JSON.parse(userJson) as User;
-        return { token, user };
+        return { clerkUserId, user };
       }
       return null;
     } catch (error) {
@@ -74,98 +96,139 @@ export const initializeAuth = createAsyncThunk(
   }
 );
 
-export const login = createAsyncThunk(
-  "auth/login",
-  async (
-    credentials: { email: string; password: string },
-    { rejectWithValue }
-  ) => {
+// Sync user with backend after Clerk authentication
+export const syncUserWithBackend = createAsyncThunk(
+  "auth/syncUser",
+  async (syncData: UserSyncRequest, { rejectWithValue }) => {
     try {
-      // TODO: Replace with actual API call
-      // Simulating API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const API_BASE_URL =
+        process.env.EXPO_PUBLIC_API_URL || "https://api.example.com";
 
-      // Mock successful login
-      if (
-        credentials.email === "demo@example.com" &&
-        credentials.password === "password"
-      ) {
-        const user: User = {
-          id: "1",
-          email: credentials.email,
-          name: "Demo User",
-        };
-        const token = "mock_jwt_token_" + Date.now();
+      const response = await fetch(`${API_BASE_URL}/users/sync`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "ngrok-skip-browser-warning": "true",
+        },
+        body: JSON.stringify(syncData),
+      });
 
-        // Store credentials securely
-        await setSecureItem(TOKEN_KEY, token);
-        await setSecureItem(USER_KEY, JSON.stringify(user));
-
-        return { user, token };
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.detail || `Sync failed with status ${response.status}`
+        );
       }
 
-      return rejectWithValue("Invalid email or password");
+      const user: User = await response.json();
+
+      // Store user data locally
+      await setSecureItem(USER_KEY, JSON.stringify(user));
+      await setSecureItem(CLERK_USER_ID_KEY, syncData.clerk_user_id);
+
+      return user;
     } catch (error) {
-      return rejectWithValue("Login failed. Please try again.");
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : "Failed to sync user with backend"
+      );
     }
   }
 );
 
-export const register = createAsyncThunk(
-  "auth/register",
+// Get user from backend by Clerk ID
+export const fetchUserByClerkId = createAsyncThunk(
+  "auth/fetchUser",
+  async (clerkUserId: string, { rejectWithValue }) => {
+    try {
+      const API_BASE_URL =
+        process.env.EXPO_PUBLIC_API_URL || "https://api.example.com";
+
+      const response = await fetch(
+        `${API_BASE_URL}/users/clerk/${clerkUserId}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            "ngrok-skip-browser-warning": "true",
+          },
+        }
+      );
+
+      if (response.status === 404) {
+        // User doesn't exist in backend yet
+        return null;
+      }
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.detail || `Fetch failed with status ${response.status}`
+        );
+      }
+
+      const user: User = await response.json();
+
+      // Store user data locally
+      await setSecureItem(USER_KEY, JSON.stringify(user));
+      await setSecureItem(CLERK_USER_ID_KEY, clerkUserId);
+
+      return user;
+    } catch (error) {
+      return rejectWithValue(
+        error instanceof Error ? error.message : "Failed to fetch user"
+      );
+    }
+  }
+);
+
+// Update user profile on backend
+export const updateUserProfile = createAsyncThunk(
+  "auth/updateProfile",
   async (
-    data: { email: string; password: string; name: string },
+    { userId, data }: { userId: number; data: Partial<User> },
     { rejectWithValue }
   ) => {
     try {
-      // TODO: Replace with actual API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const API_BASE_URL =
+        process.env.EXPO_PUBLIC_API_URL || "https://api.example.com";
 
-      const user: User = {
-        id: Date.now().toString(),
-        email: data.email,
-        name: data.name,
-      };
-      const token = "mock_jwt_token_" + Date.now();
+      const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "ngrok-skip-browser-warning": "true",
+        },
+        body: JSON.stringify(data),
+      });
 
-      await setSecureItem(TOKEN_KEY, token);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.detail || `Update failed with status ${response.status}`
+        );
+      }
+
+      const user: User = await response.json();
+
+      // Store updated user data locally
       await setSecureItem(USER_KEY, JSON.stringify(user));
 
-      return { user, token };
+      return user;
     } catch (error) {
-      return rejectWithValue("Registration failed. Please try again.");
+      return rejectWithValue(
+        error instanceof Error ? error.message : "Failed to update profile"
+      );
     }
   }
 );
 
-export const logout = createAsyncThunk("auth/logout", async () => {
-  await deleteSecureItem(TOKEN_KEY);
+// Clear local auth data (used when Clerk signs out)
+export const clearLocalAuth = createAsyncThunk("auth/clearLocal", async () => {
+  await deleteSecureItem(CLERK_USER_ID_KEY);
   await deleteSecureItem(USER_KEY);
 });
-
-export const updateProfile = createAsyncThunk(
-  "auth/updateProfile",
-  async (data: Partial<User>, { getState, rejectWithValue }) => {
-    try {
-      const state = getState() as { auth: AuthState };
-      const currentUser = state.auth.user;
-
-      if (!currentUser) {
-        return rejectWithValue("No user logged in");
-      }
-
-      // TODO: Replace with actual API call
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      const updatedUser: User = { ...currentUser, ...data };
-      await setSecureItem(USER_KEY, JSON.stringify(updatedUser));
-
-      return updatedUser;
-    } catch (error) {
-      return rejectWithValue("Failed to update profile");
-    }
-  }
-);
 
 // Slice
 const authSlice = createSlice({
@@ -179,6 +242,9 @@ const authSlice = createSlice({
       state.user = action.payload;
       state.isAuthenticated = action.payload !== null;
     },
+    setClerkUserId: (state, action: PayloadAction<string | null>) => {
+      state.clerkUserId = action.payload;
+    },
   },
   extraReducers: (builder) => {
     // Initialize auth
@@ -191,7 +257,7 @@ const authSlice = createSlice({
         state.isInitialized = true;
         if (action.payload) {
           state.user = action.payload.user;
-          state.token = action.payload.token;
+          state.clerkUserId = action.payload.clerkUserId;
           state.isAuthenticated = true;
         }
       })
@@ -200,65 +266,67 @@ const authSlice = createSlice({
         state.isInitialized = true;
       });
 
-    // Login
+    // Sync user with backend
     builder
-      .addCase(login.pending, (state) => {
-        state.isLoading = true;
+      .addCase(syncUserWithBackend.pending, (state) => {
+        state.isSyncing = true;
         state.error = null;
       })
-      .addCase(login.fulfilled, (state, action) => {
-        state.isLoading = false;
-        state.user = action.payload.user;
-        state.token = action.payload.token;
+      .addCase(syncUserWithBackend.fulfilled, (state, action) => {
+        state.isSyncing = false;
+        state.user = action.payload;
+        state.clerkUserId = action.payload.clerk_user_id;
         state.isAuthenticated = true;
         state.error = null;
       })
-      .addCase(login.rejected, (state, action) => {
+      .addCase(syncUserWithBackend.rejected, (state, action) => {
+        state.isSyncing = false;
+        state.error = action.payload as string;
+      });
+
+    // Fetch user by Clerk ID
+    builder
+      .addCase(fetchUserByClerkId.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(fetchUserByClerkId.fulfilled, (state, action) => {
+        state.isLoading = false;
+        if (action.payload) {
+          state.user = action.payload;
+          state.clerkUserId = action.payload.clerk_user_id;
+          state.isAuthenticated = true;
+        }
+        state.error = null;
+      })
+      .addCase(fetchUserByClerkId.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
       });
 
-    // Register
+    // Update user profile
     builder
-      .addCase(register.pending, (state) => {
-        state.isLoading = true;
-        state.error = null;
-      })
-      .addCase(register.fulfilled, (state, action) => {
-        state.isLoading = false;
-        state.user = action.payload.user;
-        state.token = action.payload.token;
-        state.isAuthenticated = true;
-        state.error = null;
-      })
-      .addCase(register.rejected, (state, action) => {
-        state.isLoading = false;
-        state.error = action.payload as string;
-      });
-
-    // Logout
-    builder.addCase(logout.fulfilled, (state) => {
-      state.user = null;
-      state.token = null;
-      state.isAuthenticated = false;
-      state.error = null;
-    });
-
-    // Update profile
-    builder
-      .addCase(updateProfile.pending, (state) => {
+      .addCase(updateUserProfile.pending, (state) => {
         state.isLoading = true;
       })
-      .addCase(updateProfile.fulfilled, (state, action) => {
+      .addCase(updateUserProfile.fulfilled, (state, action) => {
         state.isLoading = false;
         state.user = action.payload;
       })
-      .addCase(updateProfile.rejected, (state, action) => {
+      .addCase(updateUserProfile.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
       });
+
+    // Clear local auth
+    builder.addCase(clearLocalAuth.fulfilled, (state) => {
+      state.user = null;
+      state.clerkUserId = null;
+      state.isAuthenticated = false;
+      state.error = null;
+    });
   },
 });
 
-export const { clearError, setUser } = authSlice.actions;
+export const { clearError, setUser, setClerkUserId } = authSlice.actions;
 export default authSlice.reducer;

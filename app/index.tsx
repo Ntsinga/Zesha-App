@@ -70,6 +70,9 @@ export default function Dashboard() {
   const totalExpenses = summary?.totalExpenses ?? 0;
   const outstandingBalance = summary?.outstandingBalance ?? 0;
   const companyName = companyInfo?.name ?? "Company";
+  // Commission data
+  const totalCommission = summary?.totalCommission ?? 0;
+  const dailyCommission = summary?.dailyCommission ?? 0;
 
   return (
     <View className="flex-1 bg-gray-50">
@@ -192,6 +195,20 @@ export default function Dashboard() {
             </Text>
           </View>
 
+          <View className="flex-row justify-between mb-2">
+            <Text className="text-gray-600">Daily Commission</Text>
+            <Text className="font-bold text-green-600">
+              +{formatCurrency(dailyCommission)}
+            </Text>
+          </View>
+
+          <View className="flex-row justify-between mb-2">
+            <Text className="text-gray-600">Total Commission</Text>
+            <Text className="font-bold text-gray-800">
+              {formatCurrency(totalCommission)}
+            </Text>
+          </View>
+
           <View className="border-t border-gray-100 pt-2 mt-2 flex-row justify-between items-center">
             <Text className="text-gray-700 font-semibold">Variance</Text>
             <View className="flex-row items-center">
@@ -235,8 +252,9 @@ export default function Dashboard() {
               >
                 <View className="flex-1">
                   <Text className="font-semibold text-gray-700">
-                    {account.account}
+                    {account.account_name}
                   </Text>
+                  <Text className="text-xs text-gray-400">{account.shift}</Text>
                 </View>
                 <View className="w-24 flex-row justify-center space-x-2">
                   <Text className="text-gray-600 font-medium">

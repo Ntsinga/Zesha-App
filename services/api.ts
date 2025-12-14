@@ -159,3 +159,94 @@ export const authApi = {
   refreshToken: () =>
     fetchApi<{ token: string }>("/auth/refresh", { method: "POST" }),
 };
+
+// User types for API
+export interface UserResponse {
+  id: number;
+  clerk_user_id: string;
+  email: string;
+  first_name?: string | null;
+  last_name?: string | null;
+  profile_image_url?: string | null;
+  phone_number?: string | null;
+  role: string;
+  is_active: boolean;
+  last_login_at?: string | null;
+  created_at: string;
+  updated_at?: string | null;
+  metadata?: string | null;
+}
+
+export interface UserSyncRequest {
+  clerk_user_id: string;
+  email: string;
+  first_name?: string | null;
+  last_name?: string | null;
+  profile_image_url?: string | null;
+  phone_number?: string | null;
+  metadata?: string | null;
+}
+
+export interface UserUpdateRequest {
+  email?: string;
+  first_name?: string | null;
+  last_name?: string | null;
+  profile_image_url?: string | null;
+  phone_number?: string | null;
+  role?: string;
+  is_active?: boolean;
+  metadata?: string | null;
+}
+
+// Users API - syncs with Clerk user data
+export const usersApi = {
+  // Sync user from Clerk (upsert - create or update)
+  sync: (data: UserSyncRequest) =>
+    fetchApi<UserResponse>("/users/sync", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  // Get user by Clerk user ID
+  getByClerkId: (clerkUserId: string) =>
+    fetchApi<UserResponse>(`/users/clerk/${clerkUserId}`),
+
+  // Get user by internal ID
+  getById: (userId: number) => fetchApi<UserResponse>(`/users/${userId}`),
+
+  // List all users with optional filters
+  list: (params?: {
+    skip?: number;
+    limit?: number;
+    is_active?: boolean;
+    role?: string;
+  }) =>
+    fetchApi<UserResponse[]>(
+      `/users?${new URLSearchParams(params as Record<string, string>)}`
+    ),
+
+  // Update user by internal ID
+  update: (userId: number, data: UserUpdateRequest) =>
+    fetchApi<UserResponse>(`/users/${userId}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+
+  // Deactivate user (soft delete)
+  deactivate: (userId: number) =>
+    fetchApi<UserResponse>(`/users/${userId}/deactivate`, {
+      method: "POST",
+    }),
+
+  // Reactivate user
+  activate: (userId: number) =>
+    fetchApi<UserResponse>(`/users/${userId}/activate`, {
+      method: "POST",
+    }),
+
+  // Delete user permanently
+  delete: (userId: number) =>
+    fetchApi<void>(`/users/${userId}`, {
+      method: "DELETE",
+    }),
+};

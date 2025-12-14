@@ -6,6 +6,7 @@ import {
   ShiftEnum,
   Balance,
   CompanyInfo,
+  CommissionBreakdown,
 } from "../../types";
 import {
   API_BASE_URL,
@@ -108,7 +109,8 @@ export const fetchDashboard = createAsyncThunk(
 
       // Fetch today's balances for the account list
       const balanceQuery = buildQueryString({
-        date: snapshotDate,
+        date_from: snapshotDate,
+        date_to: snapshotDate,
         shift: shift,
       });
       const balances = await apiRequest<Balance[]>(
@@ -117,13 +119,14 @@ export const fetchDashboard = createAsyncThunk(
 
       // Transform balances to AccountSummary format
       const accounts: AccountSummary[] = balances.map((b) => ({
-        account: b.account,
+        account_id: b.account_id,
+        account_name: b.account?.name || `Account ${b.account_id}`,
         balance: b.amount,
         shift: b.shift,
         imageUrl: b.image_url,
       }));
 
-      // Build summary from snapshot
+      // Build summary from snapshot (including commission data)
       const summary: DashboardSummary = {
         totalWorkingCapital: snapshot.company.total_working_capital,
         outstandingBalance: snapshot.company.outstanding_balance,
@@ -133,6 +136,10 @@ export const fetchDashboard = createAsyncThunk(
         expectedGrandTotal: snapshot.expected_grand_total,
         totalExpenses: snapshot.total_expenses,
         capitalVariance: snapshot.capital_variance,
+        // Commission data from backend
+        totalCommission: snapshot.total_commission || 0,
+        dailyCommission: snapshot.daily_commission || 0,
+        commissionBreakdown: snapshot.commission_breakdown || [],
       };
 
       return {

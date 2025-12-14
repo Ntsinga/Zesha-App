@@ -1,7 +1,7 @@
 // API Configuration
 // Update this to match your FastAPI backend URL
-export const API_BASE_URL =
-  process.env.EXPO_PUBLIC_API_URL || "https://e64b81947350.ngrok-free.app";
+export const API_BASE_URL = "https://63dc091a6d03.ngrok-free.app";
+// process.env.EXPO_PUBLIC_API_URL || "https://048d74d27099.ngrok-free.app";
 
 // Default headers for API requests
 // The ngrok-skip-browser-warning header bypasses the ngrok interstitial page
@@ -16,6 +16,7 @@ export const API_ENDPOINTS = {
   balances: {
     list: "/balances/",
     create: "/balances/create",
+    bulk: "/balances/bulk",
     get: (id: number) => `/balances/${id}`,
     update: (id: number) => `/balances/${id}`,
     delete: (id: number) => `/balances/${id}`,
@@ -34,6 +35,7 @@ export const API_ENDPOINTS = {
   commissions: {
     list: "/commissions/",
     create: "/commissions/",
+    bulk: "/commissions/bulk",
     get: (id: number) => `/commissions/${id}`,
     update: (id: number) => `/commissions/${id}`,
     delete: (id: number) => `/commissions/${id}`,
