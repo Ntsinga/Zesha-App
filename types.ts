@@ -1,5 +1,6 @@
 // Enums matching FastAPI backend
 export type ShiftEnum = "AM" | "PM";
+export type SourceEnum = "whatsapp" | "mobile_app" | "manual";
 
 // Base model fields (from BaseModel)
 export interface BaseModel {
@@ -10,34 +11,58 @@ export interface BaseModel {
 
 // ============= BALANCES =============
 export interface Balance extends BaseModel {
-  account: string;
+  account_id: number;
+  account?: Account; // Optional relationship data from backend
   shift: ShiftEnum;
   amount: number;
-  image_url: string;
-  media_id: string;
-  message_id: string;
-  source: string;
-  sha256: string;
+  image_url: string; // Required in response
+  media_id?: string | null; // WhatsApp only
+  message_id?: string | null; // WhatsApp only
+  source: SourceEnum;
+  sha256?: string | null; // Can be null before processing
   date: string;
+  image_data?: string | null; // Base64 encoded image for mobile app
 }
 
 export interface BalanceCreate {
-  account: string;
+  account_id: number;
   shift: ShiftEnum;
   amount: number;
-  image_url: string;
-  media_id: string;
-  message_id: string;
-  source: string;
-  sha256: string;
+  image_url?: string | null; // Optional for mobile app
+  media_id?: string | null; // WhatsApp only
+  message_id?: string | null; // WhatsApp only
+  source?: SourceEnum; // Defaults to mobile_app
+  sha256?: string | null; // Optional for mobile app (calculated server-side)
   date: string;
+  image_data?: string | null; // Base64 encoded image from mobile app
 }
 
 export interface BalanceUpdate {
-  account?: string;
+  account_id?: number;
   shift?: ShiftEnum;
   amount?: number;
   image_url?: string;
+  media_id?: string | null;
+  message_id?: string | null;
+  source?: SourceEnum;
+  sha256?: string | null;
+  date?: string;
+}
+
+export interface BulkBalanceCreate {
+  balances: BalanceCreate[];
+}
+
+export interface BulkBalanceResponse {
+  created: Balance[];
+  failed: Array<{
+    index: number;
+    account_id: number;
+    error: string;
+  }>;
+  total_submitted: number;
+  total_created: number;
+  total_failed: number;
 }
 
 // ============= EXPENSES =============
@@ -73,20 +98,41 @@ export interface ExpenseUpdate {
 
 // ============= COMMISSIONS =============
 export interface Commission extends BaseModel {
-  account: string;
+  account_id: number;
+  account?: Account; // Optional relationship data from backend
+  shift: ShiftEnum;
   amount: number;
+  image_url: string;
+  media_id?: string | null;
+  message_id?: string | null;
+  source: SourceEnum;
+  sha256?: string | null;
   date: string;
+  image_data?: string | null;
 }
 
 export interface CommissionCreate {
-  account: string;
+  account_id: number;
+  shift: ShiftEnum;
   amount: number;
+  image_url?: string | null;
+  media_id?: string | null;
+  message_id?: string | null;
+  source?: SourceEnum;
+  sha256?: string | null;
   date: string;
+  image_data?: string | null;
 }
 
 export interface CommissionUpdate {
-  account?: string;
+  account_id?: number;
+  shift?: ShiftEnum;
   amount?: number;
+  image_url?: string;
+  media_id?: string | null;
+  message_id?: string | null;
+  source?: SourceEnum;
+  sha256?: string | null;
   date?: string;
 }
 
@@ -256,6 +302,14 @@ export interface CompanyInfoUpdate {
 }
 
 // ============= DASHBOARD TYPES =============
+export interface CommissionBreakdown {
+  account_id: number;
+  account_name: string;
+  total_commission: number;
+  daily_commission: number;
+  record_count?: number;
+}
+
 export interface CompanySnapshot {
   company: CompanyInfo;
   snapshot_date: string;
@@ -263,9 +317,19 @@ export interface CompanySnapshot {
   total_float: number;
   total_cash: number;
   grand_total: number;
+  // Commission data
+  total_commission: number;
+  daily_commission: number;
+  commission_count?: number;
+  accounts_with_commission?: number;
+  commission_breakdown: CommissionBreakdown[];
+  // Financial calculations
   total_expenses: number;
   expected_grand_total: number;
   capital_variance: number;
+  // Data counts
+  balance_count?: number;
+  cash_count_records?: number;
 }
 
 export interface DashboardSummary {
@@ -277,10 +341,15 @@ export interface DashboardSummary {
   expectedGrandTotal: number;
   totalExpenses: number;
   capitalVariance: number;
+  // Commission data
+  totalCommission: number;
+  dailyCommission: number;
+  commissionBreakdown: CommissionBreakdown[];
 }
 
 export interface AccountSummary {
-  account: string;
+  account_id: number;
+  account_name: string; // Display name from account relationship
   balance: number;
   shift: ShiftEnum;
   imageUrl?: string;
@@ -297,7 +366,7 @@ export enum ViewState {
 
 // ============= API FILTER TYPES =============
 export interface BalanceFilters {
-  account?: string;
+  account_id?: number;
   shift?: ShiftEnum;
   date_from?: string;
   date_to?: string;
@@ -325,7 +394,8 @@ export interface ReconciliationFilters {
 }
 
 export interface CommissionFilters {
-  account?: string;
+  account_id?: number;
+  shift?: ShiftEnum;
   date_from?: string;
   date_to?: string;
   skip?: number;
@@ -394,9 +464,15 @@ export interface Transaction {
 export interface BalanceHistoryEntry {
   id: string;
   date: string;
+  shift: ShiftEnum;
   totalCash: number;
-  amount: number;
+  amount: number; // total float
   capital: number;
+  variance: number;
+  dailyCommission: number;
+  totalCommission: number;
+  balanceCount: number;
+  cashCountRecords: number;
   status: "Balanced" | "Pending" | "Discrepancy";
 }
 

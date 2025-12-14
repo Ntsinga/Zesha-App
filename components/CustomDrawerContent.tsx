@@ -14,6 +14,7 @@ import {
   PieChart,
   Building2,
   Settings,
+  Banknote,
 } from "lucide-react-native";
 import type { DrawerContentComponentProps } from "@react-navigation/drawer";
 
@@ -36,6 +37,12 @@ const CustomDrawerContent = (props: DrawerContentComponentProps) => {
       routeName: "history",
       label: "Balance History",
       icon: History,
+    },
+    {
+      route: "/commissions",
+      routeName: "commissions",
+      label: "Commissions",
+      icon: Banknote,
     },
     {
       route: "/transactions",

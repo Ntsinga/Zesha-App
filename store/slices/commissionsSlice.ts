@@ -114,6 +114,26 @@ export const createCommission = createAsyncThunk(
   }
 );
 
+export const createCommissionsBulk = createAsyncThunk(
+  "commissions/createBulk",
+  async (data: CommissionCreate[], { rejectWithValue }) => {
+    try {
+      const response = await apiRequest<{ commissions: Commission[] }>(
+        API_ENDPOINTS.commissions.bulk,
+        {
+          method: "POST",
+          body: JSON.stringify({ commissions: data }),
+        }
+      );
+      return response.commissions;
+    } catch (error) {
+      return rejectWithValue(
+        error instanceof Error ? error.message : "Failed to create commissions"
+      );
+    }
+  }
+);
+
 export const updateCommission = createAsyncThunk(
   "commissions/update",
   async (
@@ -219,6 +239,26 @@ const commissionsSlice = createSlice({
         state.totalAmount += Number(action.payload.amount);
       })
       .addCase(createCommission.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
+      });
+
+    // Create Bulk
+    builder
+      .addCase(createCommissionsBulk.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(createCommissionsBulk.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.items = [...action.payload, ...state.items];
+        const bulkTotal = action.payload.reduce(
+          (sum, commission) => sum + Number(commission.amount),
+          0
+        );
+        state.totalAmount += bulkTotal;
+      })
+      .addCase(createCommissionsBulk.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
       });

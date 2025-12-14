@@ -6,7 +6,14 @@ import {
   TouchableOpacity,
   RefreshControl,
 } from "react-native";
-import { CheckCircle2, Clock, Menu, Plus } from "lucide-react-native";
+import {
+  CheckCircle2,
+  Clock,
+  Menu,
+  Plus,
+  ChevronRight,
+  AlertTriangle,
+} from "lucide-react-native";
 import { useNavigation, useRouter } from "expo-router";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchBalanceHistory } from "../store/slices/balanceHistorySlice";
@@ -65,15 +72,16 @@ export default function BalanceHistory() {
             <Text className="text-white font-bold text-xs uppercase flex-1">
               Date
             </Text>
-            <Text className="text-white font-bold text-xs uppercase w-24 text-center">
+            <Text className="text-white font-bold text-xs uppercase w-20 text-center">
               Float
             </Text>
-            <Text className="text-white font-bold text-xs uppercase w-24 text-center">
+            <Text className="text-white font-bold text-xs uppercase w-20 text-center">
               Cash
             </Text>
-            <Text className="text-white font-bold text-xs uppercase w-20 text-right">
+            <Text className="text-white font-bold text-xs uppercase w-16 text-center">
               Status
             </Text>
+            <View className="w-6" />
           </View>
 
           {history.length === 0 ? (
@@ -82,8 +90,14 @@ export default function BalanceHistory() {
             </View>
           ) : (
             history.map((record: BalanceHistoryEntry, index: number) => (
-              <View
+              <TouchableOpacity
                 key={record.id || `history-${index}`}
+                onPress={() =>
+                  router.push({
+                    pathname: "/balance-detail",
+                    params: { date: record.date, shift: record.shift },
+                  })
+                }
                 className={`flex-row items-center p-4 border-b border-yellow-100 ${
                   index % 2 === 0 ? "bg-white" : "bg-yellow-50/30"
                 }`}
@@ -92,35 +106,62 @@ export default function BalanceHistory() {
                   <Text className="font-medium text-gray-800">
                     {formatDate(record.date, "short")}
                   </Text>
+                  <View className="flex-row items-center mt-1">
+                    <View
+                      className={`px-2 py-0.5 rounded-full ${
+                        record.shift === "AM" ? "bg-blue-100" : "bg-red-100"
+                      }`}
+                    >
+                      <Text
+                        className={`text-[10px] font-bold ${
+                          record.shift === "AM"
+                            ? "text-blue-700"
+                            : "text-red-700"
+                        }`}
+                      >
+                        {record.shift}
+                      </Text>
+                    </View>
+                  </View>
                 </View>
-                <View className="w-24 items-center">
-                  <Text className="font-semibold text-gray-700">
+                <View className="w-20 items-center">
+                  <Text className="font-semibold text-gray-700 text-sm">
                     {formatCurrency(record.amount)}
                   </Text>
                 </View>
-                <View className="w-24 items-center">
-                  <Text className="font-semibold text-gray-700">
+                <View className="w-20 items-center">
+                  <Text className="font-semibold text-gray-700 text-sm">
                     {formatCurrency(record.totalCash)}
                   </Text>
                 </View>
-                <View className="w-20 items-end">
+                <View className="w-16 items-center">
                   {record.status === "Balanced" ? (
                     <View className="flex-row items-center px-2 py-1 rounded-full bg-green-100">
-                      <CheckCircle2 size={12} color="#15803d" />
-                      <Text className="text-[10px] font-bold text-green-700 ml-1">
+                      <CheckCircle2 size={10} color="#15803d" />
+                      <Text className="text-[9px] font-bold text-green-700 ml-0.5">
                         OK
+                      </Text>
+                    </View>
+                  ) : record.status === "Discrepancy" ? (
+                    <View className="flex-row items-center px-2 py-1 rounded-full bg-red-100">
+                      <AlertTriangle size={10} color="#dc2626" />
+                      <Text className="text-[9px] font-bold text-red-700 ml-0.5">
+                        Var
                       </Text>
                     </View>
                   ) : (
                     <View className="flex-row items-center px-2 py-1 rounded-full bg-yellow-100">
-                      <Clock size={12} color="#a16207" />
-                      <Text className="text-[10px] font-bold text-yellow-700 ml-1">
+                      <Clock size={10} color="#a16207" />
+                      <Text className="text-[9px] font-bold text-yellow-700 ml-0.5">
                         Pend
                       </Text>
                     </View>
                   )}
                 </View>
-              </View>
+                <View className="w-6 items-end">
+                  <ChevronRight size={16} color="#9CA3AF" />
+                </View>
+              </TouchableOpacity>
             ))
           )}
         </View>
