@@ -8,16 +8,16 @@
     "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.zeshan.agentbanking"
+      "bundleIdentifier": "com.zesha.agentbanking"
     },
     "android": {
-      "package": "com.zeshan.agentbanking"
+      "package": "com.zesha.agentbanking"
     },
     "web": {
       "bundler": "metro"
     },
     "plugins": ["expo-router"],
-    "scheme": "zeshan-app",
+    "scheme": "zesha",
     "extra": {
       "router": {},
       "eas": {

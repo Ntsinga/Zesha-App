@@ -208,7 +208,33 @@ export interface CashCountSummary {
 }
 
 // ============= RECONCILIATIONS =============
-export type ReconciliationStatus = "PASSED" | "FAILED";
+export type ReconciliationStatus = "PASSED" | "FAILED" | "FLAGGED";
+
+// Simplified view for history list (matches backend ReconciliationHistory)
+export interface ReconciliationHistory {
+  id: number;
+  date: string;
+  shift: ShiftEnum;
+  total_float: number;
+  total_cash: number;
+  total_commissions: number;
+  expected_closing: number;
+  actual_closing: number;
+  variance: number;
+  status: ReconciliationStatus;
+  is_finalized: boolean;
+  reconciled_by: number | null;
+  reconciled_at: string | null;
+  created_at: string | null;
+}
+
+// Full reconciliation detail with related records
+export interface ReconciliationDetail {
+  reconciliation: ReconciliationHistory;
+  balances: Balance[];
+  commissions: Commission[];
+  cash_counts: CashCount[];
+}
 
 export interface Reconciliation extends BaseModel {
   date: string;
@@ -465,15 +491,16 @@ export interface BalanceHistoryEntry {
   id: string;
   date: string;
   shift: ShiftEnum;
+  totalFloat: number;
   totalCash: number;
-  amount: number; // total float
-  capital: number;
+  totalCommissions: number;
+  expectedClosing: number;
+  actualClosing: number;
   variance: number;
-  dailyCommission: number;
-  totalCommission: number;
-  balanceCount: number;
-  cashCountRecords: number;
-  status: "Balanced" | "Pending" | "Discrepancy";
+  status: "PASSED" | "FAILED" | "FLAGGED";
+  isFinalized: boolean;
+  reconciledBy: number | null;
+  reconciledAt: string | null;
 }
 
 // ============= ACCOUNTS =============

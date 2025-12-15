@@ -29,12 +29,12 @@ import {
   createExpense,
   updateExpense,
   deleteExpense,
-} from "../store/slices/expensesSlice";
-import { fetchDashboard } from "../store/slices/dashboardSlice";
-import { LoadingSpinner } from "../components/LoadingSpinner";
-import { useCurrencyFormatter } from "../hooks/useCurrency";
-import type { AppDispatch, RootState } from "../store";
-import type { Expense } from "../types";
+} from "../../store/slices/expensesSlice";
+import { fetchDashboard } from "../../store/slices/dashboardSlice";
+import { LoadingSpinner } from "../../components/LoadingSpinner";
+import { useCurrencyFormatter } from "../../hooks/useCurrency";
+import type { AppDispatch, RootState } from "../../store";
+import type { Expense } from "../../types";
 
 // Common expense categories
 const CATEGORIES = [

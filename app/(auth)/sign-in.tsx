@@ -12,11 +12,13 @@ import {
 import { useSignIn, useOAuth } from "@clerk/clerk-expo";
 import { useRouter, Link } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
+import * as Linking from "expo-linking";
 
 WebBrowser.maybeCompleteAuthSession();
 
 export default function SignInPage() {
   const { signIn, setActive, isLoaded } = useSignIn();
+  const redirectUrl = Linking.createURL("/");
   const { startOAuthFlow } = useOAuth({ strategy: "oauth_google" });
   const router = useRouter();
   const [emailOrPhone, setEmailOrPhone] = useState("");
@@ -36,7 +38,7 @@ export default function SignInPage() {
 
       if (signInAttempt.status === "complete") {
         await setActive({ session: signInAttempt.createdSessionId });
-        router.replace("/");
+        router.replace("/(app)");
       } else {
         console.error(JSON.stringify(signInAttempt, null, 2));
         Alert.alert("Error", "Sign in failed. Please try again.");
@@ -51,16 +53,34 @@ export default function SignInPage() {
 
   const onGoogleSignIn = async () => {
     try {
-      const { createdSessionId, setActive: oAuthSetActive } =
-        await startOAuthFlow();
+      console.log("OAuth Redirect URL:", redirectUrl);
+      const oAuthResponse = await startOAuthFlow({ redirectUrl });
+
+      console.log(
+        "Full OAuth Response:",
+        JSON.stringify(oAuthResponse, null, 2)
+      );
+
+      const { createdSessionId, signIn, signUp, setActive } = oAuthResponse;
 
       if (createdSessionId) {
-        await oAuthSetActive!({ session: createdSessionId });
-        router.replace("/");
+        console.log("Setting active session...");
+        await setActive!({ session: createdSessionId });
+        console.log("Session set, navigating to home...");
+        router.replace("/(app)");
+      } else {
+        console.log("No session created - checking signIn/signUp status");
+        console.log("SignIn status:", signIn?.status);
+        console.log("SignUp status:", signUp?.status);
+        Alert.alert(
+          "Error",
+          "Authentication was not completed. Please try again."
+        );
       }
     } catch (err: any) {
-      console.error("OAuth error", err);
-      Alert.alert("Error", "Google sign in failed");
+      console.error("OAuth error:", err);
+      console.error("OAuth error details:", JSON.stringify(err, null, 2));
+      Alert.alert("Error", err.message || "Google sign in failed");
     }
   };
 

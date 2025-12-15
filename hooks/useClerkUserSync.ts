@@ -28,7 +28,12 @@ export function useClerkUserSync() {
   } = useAppSelector((state) => state.auth);
 
   const syncUser = useCallback(async () => {
-    if (!clerkUser) return;
+    if (!clerkUser) {
+      console.log("[UserSync] No Clerk user available");
+      return;
+    }
+
+    console.log("[UserSync] Starting sync for Clerk user:", clerkUser.id);
 
     // Build sync request from Clerk user data
     const syncData: UserSyncRequest = {
@@ -41,24 +46,48 @@ export function useClerkUserSync() {
       metadata: null, // Can store additional Clerk metadata as JSON string
     };
 
+    console.log("[UserSync] Sync data:", JSON.stringify(syncData, null, 2));
+
     // Only sync if we have required data
     if (syncData.email && syncData.clerk_user_id) {
-      await dispatch(syncUserWithBackend(syncData));
+      console.log("[UserSync] Dispatching syncUserWithBackend...");
+      const result = await dispatch(syncUserWithBackend(syncData));
+      console.log("[UserSync] Sync result:", result);
+    } else {
+      console.log("[UserSync] Missing required data - email or clerk_user_id");
     }
   }, [clerkUser, dispatch]);
 
   useEffect(() => {
     // Wait for Clerk to load
-    if (!isAuthLoaded || !isUserLoaded) return;
+    if (!isAuthLoaded || !isUserLoaded) {
+      console.log("[UserSync] Waiting for Clerk to load...", {
+        isAuthLoaded,
+        isUserLoaded,
+      });
+      return;
+    }
+
+    console.log("[UserSync] Clerk loaded. Checking auth state...", {
+      isSignedIn,
+      hasClerkUser: !!clerkUser,
+      hasBackendUser: !!backendUser,
+    });
 
     if (isSignedIn && clerkUser) {
       // User is signed in, sync with backend
       // Only sync if we don't have a backend user or if Clerk user has changed
       if (!backendUser || backendUser.clerk_user_id !== clerkUser.id) {
+        console.log(
+          "[UserSync] Triggering sync - no backend user or user changed"
+        );
         syncUser();
+      } else {
+        console.log("[UserSync] Backend user already synced");
       }
     } else if (!isSignedIn && backendUser) {
       // User signed out, clear local auth data
+      console.log("[UserSync] User signed out, clearing local auth");
       dispatch(clearLocalAuth());
     }
   }, [

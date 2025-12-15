@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
+import { API_BASE_URL, API_HEADERS } from "../../config/api";
 
 // Types - aligned with backend User model
 export interface User {
@@ -101,26 +102,27 @@ export const syncUserWithBackend = createAsyncThunk(
   "auth/syncUser",
   async (syncData: UserSyncRequest, { rejectWithValue }) => {
     try {
-      const API_BASE_URL =
-        process.env.EXPO_PUBLIC_API_URL || "https://api.example.com";
+      console.log("[Auth Sync] Syncing to:", `${API_BASE_URL}/users/sync`);
+      console.log("[Auth Sync] Sync data:", syncData);
 
       const response = await fetch(`${API_BASE_URL}/users/sync`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "ngrok-skip-browser-warning": "true",
-        },
+        headers: API_HEADERS,
         body: JSON.stringify(syncData),
       });
 
+      console.log("[Auth Sync] Response status:", response.status);
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        console.log("[Auth Sync] Error response:", errorData);
         throw new Error(
           errorData.detail || `Sync failed with status ${response.status}`
         );
       }
 
       const user: User = await response.json();
+      console.log("[Auth Sync] User synced successfully:", user.id);
 
       // Store user data locally
       await setSecureItem(USER_KEY, JSON.stringify(user));
@@ -128,6 +130,7 @@ export const syncUserWithBackend = createAsyncThunk(
 
       return user;
     } catch (error) {
+      console.error("[Auth Sync] Error:", error);
       return rejectWithValue(
         error instanceof Error
           ? error.message
@@ -142,17 +145,10 @@ export const fetchUserByClerkId = createAsyncThunk(
   "auth/fetchUser",
   async (clerkUserId: string, { rejectWithValue }) => {
     try {
-      const API_BASE_URL =
-        process.env.EXPO_PUBLIC_API_URL || "https://api.example.com";
-
       const response = await fetch(
         `${API_BASE_URL}/users/clerk/${clerkUserId}`,
         {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            "ngrok-skip-browser-warning": "true",
-          },
+          headers: API_HEADERS,
         }
       );
 
@@ -191,15 +187,9 @@ export const updateUserProfile = createAsyncThunk(
     { rejectWithValue }
   ) => {
     try {
-      const API_BASE_URL =
-        process.env.EXPO_PUBLIC_API_URL || "https://api.example.com";
-
       const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          "ngrok-skip-browser-warning": "true",
-        },
+        headers: API_HEADERS,
         body: JSON.stringify(data),
       });
 

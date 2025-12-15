@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
-import { BalanceHistoryEntry } from "../../types";
+import { BalanceHistoryEntry, ReconciliationHistory } from "../../types";
+import { API_BASE_URL, API_ENDPOINTS } from "../../config/api";
 
 // Types
 export interface BalanceHistoryState {
@@ -16,105 +17,75 @@ const initialState: BalanceHistoryState = {
   lastFetched: null,
 };
 
-// Mock data for development
-const mockBalanceHistory: BalanceHistoryEntry[] = [
-  {
-    id: "1",
-    date: "2024-11-25",
-    totalCash: 125750,
-    amount: 5000,
-    capital: 100000,
-    status: "Balanced",
-  },
-  {
-    id: "2",
-    date: "2024-11-24",
-    totalCash: 120750,
-    amount: 3500,
-    capital: 100000,
-    status: "Balanced",
-  },
-  {
-    id: "3",
-    date: "2024-11-23",
-    totalCash: 117250,
-    amount: -2000,
-    capital: 100000,
-    status: "Pending",
-  },
-  {
-    id: "4",
-    date: "2024-11-22",
-    totalCash: 119250,
-    amount: 1500,
-    capital: 100000,
-    status: "Balanced",
-  },
-  {
-    id: "5",
-    date: "2024-11-21",
-    totalCash: 117750,
-    amount: -500,
-    capital: 100000,
-    status: "Discrepancy",
-  },
-];
+// API helper
+async function apiRequest<T>(
+  endpoint: string,
+  options?: RequestInit
+): Promise<T> {
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    headers: {
+      "Content-Type": "application/json",
+      "ngrok-skip-browser-warning": "true",
+      ...options?.headers,
+    },
+    ...options,
+  });
+
+  if (!response.ok) {
+    const error = await response
+      .json()
+      .catch(() => ({ detail: "Request failed" }));
+    throw new Error(error.detail || `HTTP ${response.status}`);
+  }
+
+  if (response.status === 204) {
+    return undefined as T;
+  }
+
+  return response.json();
+}
+
+// Helper function to transform ReconciliationHistory to BalanceHistoryEntry
+function transformReconciliationHistory(
+  data: ReconciliationHistory[]
+): BalanceHistoryEntry[] {
+  return data.map((item) => ({
+    id: item.id.toString(),
+    date: item.date,
+    shift: item.shift,
+    totalFloat: item.total_float,
+    totalCash: item.total_cash,
+    totalCommissions: item.total_commissions,
+    expectedClosing: item.expected_closing,
+    actualClosing: item.actual_closing,
+    variance: item.variance,
+    status: item.status,
+    isFinalized: item.is_finalized,
+    reconciledBy: item.reconciled_by,
+    reconciledAt: item.reconciled_at,
+  }));
+}
 
 // Async thunks
 export const fetchBalanceHistory = createAsyncThunk(
   "balanceHistory/fetch",
   async (_, { rejectWithValue }) => {
     try {
-      // TODO: Replace with actual API call
-      await new Promise((resolve) => setTimeout(resolve, 600));
-      return mockBalanceHistory;
+      // Fetch reconciliation history from the API
+      const data = await apiRequest<ReconciliationHistory[]>(
+        API_ENDPOINTS.reconciliations.history
+      );
+
+      // Transform to BalanceHistoryEntry format
+      const history = transformReconciliationHistory(data);
+
+      return history;
     } catch (error) {
-      return rejectWithValue("Failed to fetch balance history");
-    }
-  }
-);
-
-export const addBalanceEntry = createAsyncThunk(
-  "balanceHistory/addEntry",
-  async (data: Omit<BalanceHistoryEntry, "id">, { rejectWithValue }) => {
-    try {
-      // TODO: Replace with actual API call
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      const newEntry: BalanceHistoryEntry = {
-        ...data,
-        id: Date.now().toString(),
-      };
-
-      return newEntry;
-    } catch (error) {
-      return rejectWithValue("Failed to add balance entry");
-    }
-  }
-);
-
-export const updateBalanceEntry = createAsyncThunk(
-  "balanceHistory/updateEntry",
-  async (data: BalanceHistoryEntry, { rejectWithValue }) => {
-    try {
-      // TODO: Replace with actual API call
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      return data;
-    } catch (error) {
-      return rejectWithValue("Failed to update balance entry");
-    }
-  }
-);
-
-export const deleteBalanceEntry = createAsyncThunk(
-  "balanceHistory/deleteEntry",
-  async (id: string, { rejectWithValue }) => {
-    try {
-      // TODO: Replace with actual API call
-      await new Promise((resolve) => setTimeout(resolve, 300));
-      return id;
-    } catch (error) {
-      return rejectWithValue("Failed to delete balance entry");
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : "Failed to fetch balance history"
+      );
     }
   }
 );
@@ -129,7 +100,6 @@ const balanceHistorySlice = createSlice({
     },
   },
   extraReducers: (builder) => {
-    // Fetch
     builder
       .addCase(fetchBalanceHistory.pending, (state) => {
         state.isLoading = true;
@@ -144,38 +114,6 @@ const balanceHistorySlice = createSlice({
         state.isLoading = false;
         state.error = action.payload as string;
       });
-
-    // Add entry
-    builder
-      .addCase(addBalanceEntry.pending, (state) => {
-        state.isLoading = true;
-        state.error = null;
-      })
-      .addCase(addBalanceEntry.fulfilled, (state, action) => {
-        state.isLoading = false;
-        state.entries.unshift(action.payload);
-      })
-      .addCase(addBalanceEntry.rejected, (state, action) => {
-        state.isLoading = false;
-        state.error = action.payload as string;
-      });
-
-    // Update entry
-    builder.addCase(updateBalanceEntry.fulfilled, (state, action) => {
-      const index = state.entries.findIndex(
-        (entry) => entry.id === action.payload.id
-      );
-      if (index !== -1) {
-        state.entries[index] = action.payload;
-      }
-    });
-
-    // Delete entry
-    builder.addCase(deleteBalanceEntry.fulfilled, (state, action) => {
-      state.entries = state.entries.filter(
-        (entry) => entry.id !== action.payload
-      );
-    });
   },
 });
 

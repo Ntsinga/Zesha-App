@@ -36,17 +36,17 @@ import {
   clearDraftEntries,
   createBalancesBulk,
   fetchBalances,
-} from "../store/slices/balancesSlice";
-import { fetchDashboard } from "../store/slices/dashboardSlice";
-import { fetchAccounts } from "../store/slices/accountsSlice";
+} from "../../store/slices/balancesSlice";
+import { fetchDashboard } from "../../store/slices/dashboardSlice";
+import { fetchAccounts } from "../../store/slices/accountsSlice";
 import {
   extractBalanceFromImage,
   validateBalance,
   BalanceValidationResult,
-} from "../services/balanceExtractor";
+} from "../../services/balanceExtractor";
 import * as FileSystem from "expo-file-system/legacy";
-import type { AppDispatch, RootState } from "../store";
-import type { ShiftEnum, BalanceCreate, Account } from "../types";
+import type { AppDispatch, RootState } from "../../store";
+import type { ShiftEnum, BalanceCreate, Account } from "../../types";
 
 interface BalanceEntry {
   id: string;

@@ -16,12 +16,12 @@ import {
 } from "lucide-react-native";
 import { useNavigation, useRouter } from "expo-router";
 import { useDispatch, useSelector } from "react-redux";
-import { fetchBalanceHistory } from "../store/slices/balanceHistorySlice";
-import { LoadingSpinner } from "../components/LoadingSpinner";
-import { useCurrencyFormatter } from "../hooks/useCurrency";
-import { formatDate } from "../utils/formatters";
-import type { AppDispatch, RootState } from "../store";
-import type { BalanceHistoryEntry } from "../types";
+import { fetchBalanceHistory } from "../../store/slices/balanceHistorySlice";
+import { LoadingSpinner } from "../../components/LoadingSpinner";
+import { useCurrencyFormatter } from "../../hooks/useCurrency";
+import { formatDate } from "../../utils/formatters";
+import type { AppDispatch, RootState } from "../../store";
+import type { BalanceHistoryEntry } from "../../types";
 
 export default function BalanceHistory() {
   const navigation = useNavigation();
@@ -126,7 +126,7 @@ export default function BalanceHistory() {
                 </View>
                 <View className="w-20 items-center">
                   <Text className="font-semibold text-gray-700 text-sm">
-                    {formatCurrency(record.amount)}
+                    {formatCurrency(record.totalFloat)}
                   </Text>
                 </View>
                 <View className="w-20 items-center">
@@ -135,25 +135,25 @@ export default function BalanceHistory() {
                   </Text>
                 </View>
                 <View className="w-16 items-center">
-                  {record.status === "Balanced" ? (
+                  {record.status === "PASSED" ? (
                     <View className="flex-row items-center px-2 py-1 rounded-full bg-green-100">
                       <CheckCircle2 size={10} color="#15803d" />
                       <Text className="text-[9px] font-bold text-green-700 ml-0.5">
                         OK
                       </Text>
                     </View>
-                  ) : record.status === "Discrepancy" ? (
+                  ) : record.status === "FAILED" ? (
                     <View className="flex-row items-center px-2 py-1 rounded-full bg-red-100">
                       <AlertTriangle size={10} color="#dc2626" />
                       <Text className="text-[9px] font-bold text-red-700 ml-0.5">
-                        Var
+                        Fail
                       </Text>
                     </View>
                   ) : (
                     <View className="flex-row items-center px-2 py-1 rounded-full bg-yellow-100">
                       <Clock size={10} color="#a16207" />
                       <Text className="text-[9px] font-bold text-yellow-700 ml-0.5">
-                        Pend
+                        Flag
                       </Text>
                     </View>
                   )}
