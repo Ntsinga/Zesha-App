@@ -9,13 +9,13 @@ import {
 import { Camera, Plus, Filter, Menu } from "lucide-react-native";
 import { useNavigation } from "expo-router";
 import { useDispatch, useSelector } from "react-redux";
-import { ActionModal, AddTransactionForm } from "../components/ActionModal";
-import { fetchTransactions } from "../store/slices/transactionsSlice";
-import { LoadingSpinner } from "../components/LoadingSpinner";
-import { formatDate } from "../utils/formatters";
-import { useCurrencyFormatter } from "../hooks/useCurrency";
-import type { AppDispatch, RootState } from "../store";
-import type { Transaction } from "../types";
+import { ActionModal, AddTransactionForm } from "../../components/ActionModal";
+import { fetchTransactions } from "../../store/slices/transactionsSlice";
+import { LoadingSpinner } from "../../components/LoadingSpinner";
+import { formatDate } from "../../utils/formatters";
+import { useCurrencyFormatter } from "../../hooks/useCurrency";
+import type { AppDispatch, RootState } from "../../store";
+import type { Transaction } from "../../types";
 
 export default function Transactions() {
   const navigation = useNavigation();

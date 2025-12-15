@@ -29,10 +29,10 @@ import {
   createAccount,
   updateAccount,
   deleteAccount,
-} from "../store/slices/accountsSlice";
-import { LoadingSpinner } from "../components/LoadingSpinner";
-import type { AppDispatch, RootState } from "../store";
-import type { Account, AccountTypeEnum } from "../types";
+} from "../../store/slices/accountsSlice";
+import { LoadingSpinner } from "../../components/LoadingSpinner";
+import type { AppDispatch, RootState } from "../../store";
+import type { Account, AccountTypeEnum } from "../../types";
 
 const ACCOUNT_TYPES: { value: AccountTypeEnum; label: string }[] = [
   { value: "BANK", label: "Bank" },

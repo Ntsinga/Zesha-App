@@ -118,6 +118,10 @@ export const createCommissionsBulk = createAsyncThunk(
   "commissions/createBulk",
   async (data: CommissionCreate[], { rejectWithValue }) => {
     try {
+      console.log(
+        "[CommissionsSlice] Bulk create payload:",
+        JSON.stringify({ commissions: data }, null, 2)
+      );
       const response = await apiRequest<{ commissions: Commission[] }>(
         API_ENDPOINTS.commissions.bulk,
         {
@@ -125,8 +129,19 @@ export const createCommissionsBulk = createAsyncThunk(
           body: JSON.stringify({ commissions: data }),
         }
       );
+      console.log("[CommissionsSlice] Bulk create response:", response);
+
+      if (!response || !response.commissions) {
+        console.error(
+          "[CommissionsSlice] Invalid response structure:",
+          response
+        );
+        throw new Error("Invalid response from server");
+      }
+
       return response.commissions;
     } catch (error) {
+      console.error("[CommissionsSlice] Bulk create error:", error);
       return rejectWithValue(
         error instanceof Error ? error.message : "Failed to create commissions"
       );

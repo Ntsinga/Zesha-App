@@ -12,11 +12,13 @@ import {
 import { useSignUp, useOAuth } from "@clerk/clerk-expo";
 import { useRouter, Link } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
+import * as Linking from "expo-linking";
 
 WebBrowser.maybeCompleteAuthSession();
 
 export default function SignUpPage() {
   const { signUp, setActive, isLoaded } = useSignUp();
+  const redirectUrl = Linking.createURL("/");
   const { startOAuthFlow } = useOAuth({ strategy: "oauth_google" });
   const router = useRouter();
   const [emailOrPhone, setEmailOrPhone] = useState("");
@@ -69,7 +71,7 @@ export default function SignUpPage() {
 
       if (signUpAttempt.status === "complete") {
         await setActive({ session: signUpAttempt.createdSessionId });
-        router.replace("/");
+        router.replace("/(app)");
       } else {
         console.error(JSON.stringify(signUpAttempt, null, 2));
         Alert.alert("Error", "Verification failed");
@@ -84,16 +86,25 @@ export default function SignUpPage() {
 
   const onGoogleSignUp = async () => {
     try {
+      console.log("OAuth Redirect URL:", redirectUrl);
       const { createdSessionId, setActive: oAuthSetActive } =
-        await startOAuthFlow();
+        await startOAuthFlow({ redirectUrl });
+
+      console.log("OAuth Response:", { createdSessionId });
 
       if (createdSessionId) {
+        console.log("Setting active session...");
         await oAuthSetActive!({ session: createdSessionId });
-        router.replace("/");
+        console.log("Session set, navigating to home...");
+        router.replace("/(app)");
+      } else {
+        console.log("No session created");
+        Alert.alert("Error", "No session was created. Please try again.");
       }
     } catch (err: any) {
-      console.error("OAuth error", err);
-      Alert.alert("Error", "Google sign up failed");
+      console.error("OAuth error:", err);
+      console.error("OAuth error details:", JSON.stringify(err, null, 2));
+      Alert.alert("Error", err.message || "Google sign up failed");
     }
   };
 

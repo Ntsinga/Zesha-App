@@ -27,11 +27,11 @@ import {
   fetchCompanyInfoList,
   updateCompanyInfo,
   createCompanyInfo,
-} from "../store/slices/companyInfoSlice";
-import { LoadingSpinner } from "../components/LoadingSpinner";
-import { formatCurrency } from "../utils/formatters";
-import type { AppDispatch, RootState } from "../store";
-import type { CompanyInfo } from "../types";
+} from "../../store/slices/companyInfoSlice";
+import { LoadingSpinner } from "../../components/LoadingSpinner";
+import { formatCurrency } from "../../utils/formatters";
+import type { AppDispatch, RootState } from "../../store";
+import type { CompanyInfo } from "../../types";
 
 // Common currency codes
 const CURRENCIES = [

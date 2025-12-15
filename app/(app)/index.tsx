@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   RefreshControl,
 } from "react-native";
+import Constants from "expo-constants";
 import {
   Wallet,
   Camera,
@@ -16,11 +17,11 @@ import {
 } from "lucide-react-native";
 import { useNavigation, useRouter } from "expo-router";
 import { useDispatch, useSelector } from "react-redux";
-import { fetchDashboard, setShift } from "../store/slices/dashboardSlice";
-import { LoadingSpinner } from "../components/LoadingSpinner";
-import { useCurrencyFormatter } from "../hooks/useCurrency";
-import type { AccountSummary, ShiftEnum } from "../types";
-import type { AppDispatch, RootState } from "../store";
+import { fetchDashboard, setShift } from "../../store/slices/dashboardSlice";
+import { LoadingSpinner } from "../../components/LoadingSpinner";
+import { useCurrencyFormatter } from "../../hooks/useCurrency";
+import type { AccountSummary, ShiftEnum } from "../../types";
+import type { AppDispatch, RootState } from "../../store";
 
 export default function Dashboard() {
   const navigation = useNavigation();
@@ -40,6 +41,22 @@ export default function Dashboard() {
 
   // Get currency formatter from company info
   const { formatCurrency, formatCompactCurrency } = useCurrencyFormatter();
+
+  // Verify API keys are loaded (run once on mount)
+  useEffect(() => {
+    const geminiKey = Constants.expoConfig?.extra?.geminiApiKey;
+    const openaiKey = Constants.expoConfig?.extra?.openaiApiKey;
+
+    console.log("[Dashboard] API Keys Check:");
+    console.log(
+      "  - Gemini:",
+      geminiKey ? `${geminiKey.substring(0, 10)}...` : "NOT SET"
+    );
+    console.log(
+      "  - OpenAI:",
+      openaiKey ? `${openaiKey.substring(0, 10)}...` : "NOT SET"
+    );
+  }, []);
 
   // Fetch dashboard data on mount
   useEffect(() => {

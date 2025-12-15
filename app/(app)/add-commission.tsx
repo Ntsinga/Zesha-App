@@ -33,17 +33,17 @@ import * as ImagePicker from "expo-image-picker";
 import {
   createCommissionsBulk,
   fetchCommissions,
-} from "../store/slices/commissionsSlice";
-import { fetchDashboard } from "../store/slices/dashboardSlice";
-import { fetchAccounts } from "../store/slices/accountsSlice";
+} from "../../store/slices/commissionsSlice";
+import { fetchDashboard } from "../../store/slices/dashboardSlice";
+import { fetchAccounts } from "../../store/slices/accountsSlice";
 import {
   extractBalanceFromImage,
   validateBalance,
   BalanceValidationResult,
-} from "../services/balanceExtractor";
+} from "../../services/balanceExtractor";
 import * as FileSystem from "expo-file-system/legacy";
-import type { AppDispatch, RootState } from "../store";
-import type { ShiftEnum, CommissionCreate, Account } from "../types";
+import type { AppDispatch, RootState } from "../../store";
+import type { ShiftEnum, CommissionCreate, Account } from "../../types";
 
 interface CommissionEntry {
   id: string;
@@ -194,6 +194,20 @@ export default function AddCommissionPage() {
     accounts,
   ]);
 
+  // Request media library permissions
+  const requestMediaLibraryPermission = async (): Promise<boolean> => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert(
+        "Permission Required",
+        "Gallery permission is needed to choose photos. Please enable it in your device settings.",
+        [{ text: "OK" }]
+      );
+      return false;
+    }
+    return true;
+  };
+
   const handleTakePicture = async (entryId: string) => {
     try {
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
@@ -268,6 +282,86 @@ export default function AddCommissionPage() {
       console.error("Error taking picture:", error);
       Alert.alert("Error", "Failed to take picture");
     }
+  };
+
+  // Pick image from library
+  const pickImage = async (entryId: string) => {
+    const hasPermission = await requestMediaLibraryPermission();
+    if (!hasPermission) return;
+
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        const imageUri = result.assets[0].uri;
+
+        setEntries((prev) =>
+          prev.map((entry) =>
+            entry.id === entryId
+              ? {
+                  ...entry,
+                  imageUrl: imageUri,
+                  isExtracting: true,
+                  validationResult: null,
+                }
+              : entry
+          )
+        );
+
+        try {
+          const result = await extractBalanceFromImage(imageUri, "commission");
+
+          if (result.success && result.balance !== null) {
+            setEntries((prev) =>
+              prev.map((entry) =>
+                entry.id === entryId
+                  ? {
+                      ...entry,
+                      amount: result.balance!.toFixed(2),
+                      extractedBalance: result.balance,
+                      isExtracting: false,
+                    }
+                  : entry
+              )
+            );
+          } else {
+            setEntries((prev) =>
+              prev.map((entry) =>
+                entry.id === entryId
+                  ? { ...entry, isExtracting: false, extractedBalance: null }
+                  : entry
+              )
+            );
+          }
+        } catch (error) {
+          console.error("Balance extraction failed:", error);
+          setEntries((prev) =>
+            prev.map((entry) =>
+              entry.id === entryId
+                ? { ...entry, isExtracting: false, extractedBalance: null }
+                : entry
+            )
+          );
+        }
+      }
+    } catch (error) {
+      console.error("Error picking image:", error);
+      Alert.alert("Error", "Failed to pick image. Please try again.");
+    }
+  };
+
+  // Show image picker options
+  const showImageOptions = (entryId: string) => {
+    Alert.alert("Add Image", "Choose an option", [
+      { text: "Take Photo", onPress: () => handleTakePicture(entryId) },
+      { text: "Choose from Library", onPress: () => pickImage(entryId) },
+      { text: "Cancel", style: "cancel" },
+    ]);
   };
 
   const handleAmountChange = async (entryId: string, value: string) => {
@@ -440,7 +534,7 @@ export default function AddCommissionPage() {
             amount: parseFloat(entry.amount),
             date: new Date().toISOString().split("T")[0],
             image_data: imageData,
-            source: "mobile_app",
+            // source defaults to "mobile_app" on backend
           };
 
           return commission;
@@ -448,10 +542,20 @@ export default function AddCommissionPage() {
       );
 
       // Use bulk create endpoint
-      await dispatch(createCommissionsBulk(commissionsWithImages)).unwrap();
+      console.log(
+        "[AddCommission] Submitting commissions:",
+        JSON.stringify(commissionsWithImages, null, 2)
+      );
+
+      const result = await dispatch(
+        createCommissionsBulk(commissionsWithImages)
+      ).unwrap();
+      console.log("[AddCommission] Commission creation result:", result);
 
       // Refresh dashboard
-      await dispatch(fetchDashboard({}));
+      console.log("[AddCommission] Refreshing dashboard...");
+      await dispatch(fetchDashboard({})).unwrap();
+      console.log("[AddCommission] Dashboard refreshed");
 
       Alert.alert("Success", "Commissions saved successfully", [
         {
@@ -460,7 +564,8 @@ export default function AddCommissionPage() {
         },
       ]);
     } catch (error: any) {
-      console.error("Error saving commissions:", error);
+      console.error("[AddCommission] Error saving commissions:", error);
+      console.error("[AddCommission] Error stack:", error?.stack);
       Alert.alert(
         "Error",
         error?.message || "Failed to save commissions. Please try again."
@@ -671,7 +776,7 @@ export default function AddCommissionPage() {
 
                       {/* Retake Button */}
                       <TouchableOpacity
-                        onPress={() => handleTakePicture(entry.id)}
+                        onPress={() => showImageOptions(entry.id)}
                         className="absolute top-2 right-2 bg-white/90 p-2 rounded-full"
                       >
                         <Camera color="#000" size={20} />
@@ -679,7 +784,7 @@ export default function AddCommissionPage() {
                     </View>
                   ) : (
                     <TouchableOpacity
-                      onPress={() => handleTakePicture(entry.id)}
+                      onPress={() => showImageOptions(entry.id)}
                       className={`items-center justify-center p-8 rounded-xl border-2 border-dashed ${
                         errors[entry.id]?.imageUrl
                           ? "border-red-300 bg-red-50"
@@ -699,7 +804,7 @@ export default function AddCommissionPage() {
                             : "text-gray-500"
                         }`}
                       >
-                        Take Picture
+                        Add Picture
                       </Text>
                     </TouchableOpacity>
                   )}

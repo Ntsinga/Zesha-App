@@ -8,16 +8,6 @@ export default ({ config }) => {
   const openaiKey =
     process.env.EXPO_PUBLIC_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
 
-  console.log(
-    "[App Config] Gemini API Key loaded:",
-    geminiKey ? `${geminiKey.substring(0, 10)}...` : "NOT SET"
-  );
-
-  console.log(
-    "[App Config] OpenAI API Key loaded:",
-    openaiKey ? `${openaiKey.substring(0, 10)}...` : "NOT SET"
-  );
-
   return {
     ...config,
     extra: {

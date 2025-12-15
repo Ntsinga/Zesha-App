@@ -9,12 +9,12 @@ import {
   CheckCircle2,
 } from "lucide-react-native";
 import { useDispatch, useSelector } from "react-redux";
-import { fetchCashCounts } from "../store/slices/cashCountSlice";
-import { fetchBalances } from "../store/slices/balancesSlice";
-import { fetchAccounts } from "../store/slices/accountsSlice";
-import { useCurrencyFormatter } from "../hooks/useCurrency";
-import type { AppDispatch, RootState } from "../store";
-import type { ShiftEnum } from "../types";
+import { fetchCashCounts } from "../../store/slices/cashCountSlice";
+import { fetchBalances } from "../../store/slices/balancesSlice";
+import { fetchAccounts } from "../../store/slices/accountsSlice";
+import { useCurrencyFormatter } from "../../hooks/useCurrency";
+import type { AppDispatch, RootState } from "../../store";
+import type { ShiftEnum } from "../../types";
 
 export default function BalancePage() {
   const router = useRouter();

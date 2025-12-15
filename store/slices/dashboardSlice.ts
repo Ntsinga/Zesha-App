@@ -87,8 +87,11 @@ export const fetchDashboard = createAsyncThunk(
     try {
       const state = getState() as { dashboard: DashboardState };
       const companyId = params.companyId || 1; // Default to company ID 1
-      const snapshotDate = params.date || state.dashboard.snapshotDate;
-      const shift = params.shift || state.dashboard.currentShift;
+
+      // IMPORTANT: Always default to TODAY if no date is explicitly provided
+      // This prevents using stale persisted dates from Redux state
+      const snapshotDate = params.date || getTodayDate();
+      const shift = params.shift || getCurrentShift();
 
       // Build query string
       const queryParams: Record<string, string> = {
@@ -118,13 +121,16 @@ export const fetchDashboard = createAsyncThunk(
       );
 
       // Transform balances to AccountSummary format
-      const accounts: AccountSummary[] = balances.map((b) => ({
-        account_id: b.account_id,
-        account_name: b.account?.name || `Account ${b.account_id}`,
-        balance: b.amount,
-        shift: b.shift,
-        imageUrl: b.image_url,
-      }));
+      const accounts: AccountSummary[] = balances.map((b) => {
+        console.log("[DashboardSlice] Processing balance:", b);
+        return {
+          account_id: b.account_id,
+          account_name: b.account?.name || `Account ${b.account_id}`,
+          balance: b.amount,
+          shift: b.shift,
+          imageUrl: b.image_url,
+        };
+      });
 
       // Build summary from snapshot (including commission data)
       const summary: DashboardSummary = {

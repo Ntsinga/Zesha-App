@@ -21,80 +21,80 @@ import {
   Clock,
 } from "lucide-react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { useDispatch, useSelector } from "react-redux";
-import { fetchBalances } from "../store/slices/balancesSlice";
-import { fetchCashCounts } from "../store/slices/cashCountSlice";
-import { fetchCommissions } from "../store/slices/commissionsSlice";
-import { fetchDashboard } from "../store/slices/dashboardSlice";
-import { LoadingSpinner } from "../components/LoadingSpinner";
-import { useCurrencyFormatter } from "../hooks/useCurrency";
-import { formatDate } from "../utils/formatters";
-import type { AppDispatch, RootState } from "../store";
-import type { Balance, CashCount, Commission, ShiftEnum } from "../types";
+import { LoadingSpinner } from "../../components/LoadingSpinner";
+import { useCurrencyFormatter } from "../../hooks/useCurrency";
+import { formatDate } from "../../utils/formatters";
+import { API_BASE_URL, API_ENDPOINTS } from "../../config/api";
+import type {
+  Balance,
+  CashCount,
+  Commission,
+  ShiftEnum,
+  ReconciliationDetail,
+} from "../../types";
 
 export default function BalanceDetailPage() {
   const router = useRouter();
   const params = useLocalSearchParams<{ date: string; shift: string }>();
-  const dispatch = useDispatch<AppDispatch>();
   const { formatCurrency } = useCurrencyFormatter();
 
   const [refreshing, setRefreshing] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
-
-  const { items: allBalances, isLoading: balancesLoading } = useSelector(
-    (state: RootState) => state.balances
-  );
-  const { items: allCashCounts, isLoading: cashCountsLoading } = useSelector(
-    (state: RootState) => state.cashCount
-  );
-  const { items: allCommissions, isLoading: commissionsLoading } = useSelector(
-    (state: RootState) => state.commissions
-  );
-  const { summary } = useSelector((state: RootState) => state.dashboard);
+  const [data, setData] = useState<ReconciliationDetail | null>(null);
 
   const date = params.date || new Date().toISOString().split("T")[0];
   const shift = (params.shift as ShiftEnum) || "AM";
 
-  // Filter data for this date/shift
-  const balances = allBalances.filter(
-    (b) => b.date.startsWith(date) && b.shift === shift
-  );
-  const cashCounts = allCashCounts.filter(
-    (c) => c.date === date && c.shift === shift
-  );
-  const commissions = allCommissions.filter(
-    (c) => c.date.startsWith(date) && c.shift === shift
-  );
+  // Extract data from reconciliation detail
+  const balances = data?.balances || [];
+  const cashCounts = data?.cash_counts || [];
+  const commissions = data?.commissions || [];
+  const reconciliation = data?.reconciliation;
 
-  // Calculate totals
-  const totalFloat = balances.reduce((sum, b) => sum + b.amount, 0);
-  const totalCash = cashCounts.reduce((sum, c) => sum + c.amount, 0);
-  const grandTotal = totalFloat + totalCash;
-  const totalCommission = commissions.reduce((sum, c) => sum + c.amount, 0);
-
-  // Get expected total from dashboard summary if available
-  const expectedGrandTotal = summary?.expectedGrandTotal ?? grandTotal;
-  const variance = grandTotal - expectedGrandTotal;
-
-  // Determine status based on variance
-  const getStatus = () => {
-    if (balances.length === 0 && cashCounts.length === 0) return "Pending";
-    if (Math.abs(variance) <= 1) return "Balanced";
-    return "Discrepancy";
-  };
-  const status = getStatus();
+  // Use reconciliation totals (pre-calculated on backend)
+  const totalFloat = reconciliation?.total_float || 0;
+  const totalCash = reconciliation?.total_cash || 0;
+  const totalCommission = reconciliation?.total_commissions || 0;
+  const expectedClosing = reconciliation?.expected_closing || 0;
+  const actualClosing = reconciliation?.actual_closing || 0;
+  const variance = reconciliation?.variance || 0;
+  const status = reconciliation?.status || "FLAGGED";
 
   useEffect(() => {
     loadData();
   }, [date, shift]);
 
   const loadData = async () => {
-    await Promise.all([
-      dispatch(fetchBalances({ date_from: date, date_to: date, shift })),
-      dispatch(fetchCashCounts({ date_from: date, date_to: date, shift })),
-      dispatch(fetchCommissions({ date_from: date, date_to: date, shift })),
-      dispatch(fetchDashboard({ date, shift })),
-    ]);
+    try {
+      setError(null);
+      const endpoint = API_ENDPOINTS.reconciliations.details(date, shift);
+      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+        headers: {
+          "Content-Type": "application/json",
+          "ngrok-skip-browser-warning": "true",
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response
+          .json()
+          .catch(() => ({ detail: "Failed to load" }));
+        throw new Error(errorData.detail || `HTTP ${response.status}`);
+      }
+
+      const detail: ReconciliationDetail = await response.json();
+      setData(detail);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to load reconciliation details"
+      );
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const onRefresh = async () => {
@@ -102,8 +102,6 @@ export default function BalanceDetailPage() {
     await loadData();
     setRefreshing(false);
   };
-
-  const isLoading = balancesLoading || cashCountsLoading || commissionsLoading;
 
   if (isLoading && !refreshing) {
     return <LoadingSpinner message="Loading balance details..." />;
@@ -157,34 +155,34 @@ export default function BalanceDetailPage() {
         <View className="bg-brand-gold rounded-2xl p-5 mb-4 shadow-md">
           <View className="flex-row justify-between items-center mb-4">
             <Text className="text-red-900/80 font-semibold text-lg">
-              Grand Total
+              Actual Closing
             </Text>
-            {status === "Balanced" ? (
+            {status === "PASSED" ? (
               <View className="flex-row items-center px-3 py-1 rounded-full bg-green-500">
                 <CheckCircle2 size={14} color="#fff" />
                 <Text className="text-white font-bold text-xs ml-1">
-                  Balanced
+                  Passed
                 </Text>
               </View>
-            ) : status === "Discrepancy" ? (
+            ) : status === "FAILED" ? (
               <View className="flex-row items-center px-3 py-1 rounded-full bg-red-500">
                 <AlertTriangle size={14} color="#fff" />
                 <Text className="text-white font-bold text-xs ml-1">
-                  Variance
+                  Failed
                 </Text>
               </View>
             ) : (
               <View className="flex-row items-center px-3 py-1 rounded-full bg-yellow-500">
                 <Clock size={14} color="#fff" />
                 <Text className="text-white font-bold text-xs ml-1">
-                  Pending
+                  Flagged
                 </Text>
               </View>
             )}
           </View>
 
           <Text className="text-4xl font-bold text-red-900 mb-4">
-            {formatCurrency(grandTotal)}
+            {formatCurrency(actualClosing)}
           </Text>
 
           <View className="flex-row justify-between">
@@ -210,16 +208,23 @@ export default function BalanceDetailPage() {
           </Text>
 
           <View className="flex-row justify-between mb-2">
-            <Text className="text-gray-600">Expected Total</Text>
+            <Text className="text-gray-600">Expected Closing</Text>
             <Text className="font-bold text-gray-800">
-              {formatCurrency(expectedGrandTotal)}
+              {formatCurrency(expectedClosing)}
             </Text>
           </View>
 
           <View className="flex-row justify-between mb-2">
-            <Text className="text-gray-600">Actual Total</Text>
+            <Text className="text-gray-600">Actual Closing</Text>
             <Text className="font-bold text-gray-800">
-              {formatCurrency(grandTotal)}
+              {formatCurrency(actualClosing)}
+            </Text>
+          </View>
+
+          <View className="flex-row justify-between mb-2">
+            <Text className="text-gray-600">Total Commissions</Text>
+            <Text className="font-bold text-gray-800">
+              {formatCurrency(totalCommission)}
             </Text>
           </View>
 

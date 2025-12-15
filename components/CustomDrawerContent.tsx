@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   ScrollView,
   StyleSheet,
+  Alert,
 } from "react-native";
 import {
   LayoutDashboard,
@@ -15,11 +16,19 @@ import {
   Building2,
   Settings,
   Banknote,
+  LogOut,
 } from "lucide-react-native";
 import type { DrawerContentComponentProps } from "@react-navigation/drawer";
+import { useAuth } from "@clerk/clerk-expo";
+import { useRouter } from "expo-router";
+import { useAppDispatch } from "../store/hooks";
+import { clearLocalAuth } from "../store/slices/authSlice";
 
 const CustomDrawerContent = (props: DrawerContentComponentProps) => {
   const { state, navigation } = props;
+  const { signOut } = useAuth();
+  const router = useRouter();
+  const dispatch = useAppDispatch();
 
   // Get current route name from drawer state
   const currentRoute = state.routes[state.index]?.name || "index";
@@ -70,6 +79,29 @@ const CustomDrawerContent = (props: DrawerContentComponentProps) => {
     },
   ];
 
+  const handleSignOut = async () => {
+    Alert.alert("Sign Out", "Are you sure you want to sign out?", [
+      {
+        text: "Cancel",
+        style: "cancel",
+      },
+      {
+        text: "Sign Out",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await dispatch(clearLocalAuth());
+            await signOut();
+            router.replace("/(auth)/sign-in");
+          } catch (error) {
+            console.error("Sign out error:", error);
+            Alert.alert("Error", "Failed to sign out. Please try again.");
+          }
+        },
+      },
+    ]);
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -103,6 +135,15 @@ const CustomDrawerContent = (props: DrawerContentComponentProps) => {
               </TouchableOpacity>
             );
           })}
+
+          {/* Sign Out Button */}
+          <TouchableOpacity
+            onPress={handleSignOut}
+            style={[styles.menuItem, styles.signOutButton]}
+          >
+            <LogOut size={20} color="#FECACA" />
+            <Text style={styles.menuItemText}>Sign Out</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
 
@@ -163,6 +204,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
+  },
+  signOutButton: {
+    marginTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: "#991B1B",
+    paddingTop: 24,
   },
   menuItemText: {
     marginLeft: 12,
