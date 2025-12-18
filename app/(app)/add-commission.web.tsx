@@ -332,6 +332,19 @@ export default function AddCommissionWeb() {
                             alt="Commission screenshot"
                             className="image-preview"
                           />
+                          {entry.isExtracting && (
+                            <div className="image-extracting-overlay">
+                              <Loader2 size={32} className="spinner" />
+                              <span>Extracting commission...</span>
+                            </div>
+                          )}
+                          {!entry.isExtracting &&
+                            entry.extractedBalance !== null && (
+                              <div className="image-extracted-badge">
+                                <Check size={14} />R
+                                {entry.extractedBalance.toLocaleString()}
+                              </div>
+                            )}
                           <div className="image-preview-overlay">
                             <button
                               className="btn-preview-action"

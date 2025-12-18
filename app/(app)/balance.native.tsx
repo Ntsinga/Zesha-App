@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo } from "react";
-import { View, Text, TouchableOpacity, ScrollView } from "react-native";
+import React, { useEffect, useMemo, useState } from "react";
+import { View, Text, TouchableOpacity, ScrollView, Alert } from "react-native";
 import { useRouter } from "expo-router";
 import {
   ArrowLeft,
@@ -7,11 +7,13 @@ import {
   Wallet,
   ChevronRight,
   CheckCircle2,
+  Calculator,
 } from "lucide-react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchCashCounts } from "../../store/slices/cashCountSlice";
 import { fetchBalances } from "../../store/slices/balancesSlice";
 import { fetchAccounts } from "../../store/slices/accountsSlice";
+import { calculateReconciliation } from "../../store/slices/reconciliationsSlice";
 import { useCurrencyFormatter } from "../../hooks/useCurrency";
 import type { AppDispatch, RootState } from "../../store";
 import type { ShiftEnum } from "../../types";
@@ -20,6 +22,7 @@ export default function BalancePage() {
   const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
   const { formatCurrency } = useCurrencyFormatter();
+  const [selectedShift, setSelectedShift] = useState<ShiftEnum>("AM");
 
   // Get today's date
   const today = new Date().toISOString().split("T")[0];
@@ -32,6 +35,12 @@ export default function BalancePage() {
   const { items: balances } = useSelector((state: RootState) => state.balances);
 
   const { items: accounts } = useSelector((state: RootState) => state.accounts);
+
+  const { isCalculating } = useSelector(
+    (state: RootState) => state.reconciliations
+  );
+
+  const { user: backendUser } = useSelector((state: RootState) => state.auth);
 
   // Fetch data on mount
   useEffect(() => {
@@ -155,7 +164,9 @@ export default function BalancePage() {
             <ArrowLeft color="#C62828" size={24} />
           </TouchableOpacity>
           <View>
-            <Text className="text-2xl font-bold text-gray-800">Balance</Text>
+            <Text className="text-2xl font-bold text-gray-800">
+              Daily Reconciliation
+            </Text>
             <Text className="text-gray-500 text-sm">
               Choose an option to continue
             </Text>
@@ -252,7 +263,7 @@ export default function BalancePage() {
                       hasTodayBalances ? "text-green-700" : "text-gray-800"
                     }`}
                   >
-                    Add Balances
+                    Add Float Balances
                   </Text>
                   {hasAMBalances && (
                     <View className="ml-2 px-2 py-0.5 bg-green-500 rounded-full">
@@ -302,6 +313,87 @@ export default function BalancePage() {
               <ChevronRight color="#9CA3AF" size={24} />
             </View>
           </TouchableOpacity>
+
+          {/* Calculate Reconciliation Button */}
+          <View className="mt-6 pt-6 border-t border-gray-200">
+            {/* Shift Selector */}
+            <Text className="text-sm font-medium text-gray-700 mb-3">
+              Select Shift to Reconcile
+            </Text>
+            <View className="flex-row mb-4 bg-white rounded-xl p-1 shadow-sm border border-gray-200">
+              <TouchableOpacity
+                onPress={() => setSelectedShift("AM")}
+                className={`flex-1 py-3 rounded-lg ${
+                  selectedShift === "AM" ? "bg-brand-red" : "bg-transparent"
+                }`}
+              >
+                <Text
+                  className={`text-center font-bold ${
+                    selectedShift === "AM" ? "text-white" : "text-gray-600"
+                  }`}
+                >
+                  AM Shift
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setSelectedShift("PM")}
+                className={`flex-1 py-3 rounded-lg ${
+                  selectedShift === "PM" ? "bg-brand-red" : "bg-transparent"
+                }`}
+              >
+                <Text
+                  className={`text-center font-bold ${
+                    selectedShift === "PM" ? "text-white" : "text-gray-600"
+                  }`}
+                >
+                  PM Shift
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity
+              onPress={async () => {
+                try {
+                  const result = await dispatch(
+                    calculateReconciliation({
+                      date: today,
+                      shift: selectedShift,
+                      user_id: backendUser?.id,
+                    })
+                  ).unwrap();
+
+                  // Navigate to review screen with results
+                  router.push({
+                    pathname: "/reconcile-review",
+                    params: {
+                      date: today,
+                      shift: selectedShift,
+                    },
+                  });
+                } catch (error) {
+                  Alert.alert(
+                    "Calculation Failed",
+                    error instanceof Error
+                      ? error.message
+                      : "Failed to calculate reconciliation. Please try again."
+                  );
+                }
+              }}
+              disabled={isCalculating}
+              className={`bg-brand-red rounded-2xl p-5 shadow-lg ${
+                isCalculating ? "opacity-50" : ""
+              }`}
+            >
+              <View className="flex-row items-center justify-center">
+                <Calculator color="white" size={24} />
+                <Text className="text-white text-lg font-bold ml-3">
+                  {isCalculating
+                    ? "Calculating..."
+                    : `Calculate ${selectedShift} Reconciliation`}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          </View>
         </View>
       </ScrollView>
     </View>

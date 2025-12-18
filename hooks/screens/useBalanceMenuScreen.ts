@@ -1,9 +1,10 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useRouter } from "expo-router";
 import { fetchCashCounts } from "../../store/slices/cashCountSlice";
 import { fetchBalances } from "../../store/slices/balancesSlice";
 import { fetchAccounts } from "../../store/slices/accountsSlice";
+import { calculateReconciliation } from "../../store/slices/reconciliationsSlice";
 import { useCurrencyFormatter } from "../useCurrency";
 import type { AppDispatch, RootState } from "../../store";
 import type { ShiftEnum } from "../../types";
@@ -12,6 +13,7 @@ export function useBalanceMenuScreen() {
   const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
   const { formatCurrency } = useCurrencyFormatter();
+  const [selectedShift, setSelectedShift] = useState<ShiftEnum>("AM");
 
   // Get today's date
   const today = new Date().toISOString().split("T")[0];
@@ -28,6 +30,12 @@ export function useBalanceMenuScreen() {
   const { items: accounts, isLoading: accountsLoading } = useSelector(
     (state: RootState) => state.accounts
   );
+
+  const { isCalculating } = useSelector(
+    (state: RootState) => state.reconciliations
+  );
+
+  const { user: backendUser } = useSelector((state: RootState) => state.auth);
 
   const isLoading = cashCountLoading || balancesLoading || accountsLoading;
 

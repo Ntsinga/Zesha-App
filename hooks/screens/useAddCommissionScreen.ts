@@ -6,6 +6,10 @@ import {
 } from "../../store/slices/commissionsSlice";
 import { fetchDashboard } from "../../store/slices/dashboardSlice";
 import { fetchAccounts } from "../../store/slices/accountsSlice";
+import {
+  extractBalanceFromImage,
+  validateBalance,
+} from "../../services/balanceExtractor";
 import type { AppDispatch, RootState } from "../../store";
 import type { ShiftEnum, Account } from "../../types";
 
@@ -299,7 +303,8 @@ export function useAddCommissionScreen() {
 
   // Handle image upload (web)
   const handleImageUpload = useCallback(
-    (entryId: string, file: File, previewUrl: string) => {
+    async (entryId: string, file: File, previewUrl: string) => {
+      // Set image and extracting state
       setEntries((prev) =>
         prev.map((entry) =>
           entry.id === entryId
@@ -307,11 +312,64 @@ export function useAddCommissionScreen() {
                 ...entry,
                 imageUrl: previewUrl,
                 imageFile: file,
-                isExtracting: false,
+                isExtracting: true,
+                validationResult: null,
               }
             : entry
         )
       );
+
+      try {
+        // Extract commission from the image
+        const result = await extractBalanceFromImage(previewUrl, "commission");
+
+        setEntries((prev) =>
+          prev.map((entry) => {
+            if (entry.id !== entryId) return entry;
+
+            const extractedBalance = result.balance;
+
+            // If user has already entered an amount, validate it
+            let validationResult: BalanceValidationResult | null = null;
+            if (
+              entry.amount.trim() &&
+              result.success &&
+              extractedBalance !== null
+            ) {
+              const inputBalance = parseFloat(entry.amount);
+              if (!isNaN(inputBalance)) {
+                validationResult = validateBalance(
+                  extractedBalance,
+                  inputBalance
+                );
+              }
+            }
+
+            return {
+              ...entry,
+              extractedBalance,
+              isExtracting: false,
+              validationResult,
+            };
+          })
+        );
+
+        if (!result.success) {
+          console.warn(
+            "[Web Commission] Extraction unsuccessful:",
+            result.error
+          );
+        }
+      } catch (error) {
+        console.error("[Web Commission] Exception during extraction:", error);
+        setEntries((prev) =>
+          prev.map((entry) =>
+            entry.id === entryId
+              ? { ...entry, isExtracting: false, extractedBalance: null }
+              : entry
+          )
+        );
+      }
     },
     []
   );

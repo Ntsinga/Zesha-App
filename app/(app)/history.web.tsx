@@ -51,7 +51,7 @@ export default function BalanceHistoryWeb() {
       {/* Header Bar */}
       <header className="header-bar">
         <div className="header-left">
-          <h1 className="header-title">Balance History</h1>
+          <h1 className="header-title">Reconciliation History</h1>
           <span className="header-date">{totalRecords} records</span>
         </div>
         <div className="header-right">
