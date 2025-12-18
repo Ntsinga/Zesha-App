@@ -676,7 +676,7 @@ export default function AddBalancePage() {
               </TouchableOpacity>
               <View>
                 <Text className="text-2xl font-bold text-gray-800">
-                  Add Balances
+                  Add Float Balances
                 </Text>
                 <Text className="text-gray-500 text-sm">
                   {entries.length} of{" "}

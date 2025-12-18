@@ -42,9 +42,15 @@ const CustomDrawerContent = (props: DrawerContentComponentProps) => {
       icon: LayoutDashboard,
     },
     {
+      route: "/balance",
+      routeName: "balance",
+      label: "Daily Reconciliation",
+      icon: CreditCard,
+    },
+    {
       route: "/history",
       routeName: "history",
-      label: "Balance History",
+      label: "Reconciliation History",
       icon: History,
     },
     {
@@ -52,12 +58,6 @@ const CustomDrawerContent = (props: DrawerContentComponentProps) => {
       routeName: "commissions",
       label: "Commissions",
       icon: Banknote,
-    },
-    {
-      route: "/transactions",
-      routeName: "transactions",
-      label: "Transactions",
-      icon: ArrowRightLeft,
     },
     {
       route: "/expenses",

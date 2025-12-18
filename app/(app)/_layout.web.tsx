@@ -34,14 +34,28 @@ export default function AppLayoutWeb() {
 
   const navItems: NavItem[] = [
     { href: "/", label: "Dashboard", icon: <LayoutDashboard size={20} /> },
-    { href: "/history", label: "Balance History", icon: <History size={20} /> },
+    {
+      href: "/balance",
+      label: "Daily Reconciliation",
+      icon: <Wallet size={20} />,
+    },
+
+    {
+      href: "/history",
+      label: "Reconciliation History",
+      icon: <History size={20} />,
+    },
     {
       href: "/commissions",
       label: "Commissions",
       icon: <DollarSign size={20} />,
     },
     { href: "/expenses", label: "Expenses", icon: <Receipt size={20} /> },
-    { href: "/balance", label: "Add Balance", icon: <Wallet size={20} /> },
+    {
+      href: "/accounts",
+      label: "Accounts",
+      icon: <Receipt size={20} />,
+    },
   ];
 
   const isActive = (href: string) => {

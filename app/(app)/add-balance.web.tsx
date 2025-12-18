@@ -109,7 +109,7 @@ export default function AddBalanceWeb() {
             <ArrowLeft size={20} />
           </button>
           <div>
-            <h1 className="header-title">Add Balances</h1>
+            <h1 className="header-title">Add Float Balances</h1>
             <span className="header-date">
               {completeCount} of {activeAccounts.length} accounts
             </span>
@@ -344,6 +344,19 @@ export default function AddBalanceWeb() {
                             alt="Balance screenshot"
                             className="image-preview"
                           />
+                          {entry.isExtracting && (
+                            <div className="image-extracting-overlay">
+                              <Loader2 size={32} className="spinner" />
+                              <span>Extracting balance...</span>
+                            </div>
+                          )}
+                          {!entry.isExtracting &&
+                            entry.extractedBalance !== null && (
+                              <div className="image-extracted-badge">
+                                <Check size={14} />R
+                                {entry.extractedBalance.toLocaleString()}
+                              </div>
+                            )}
                           <div className="image-preview-overlay">
                             <button
                               className="btn-preview-action"

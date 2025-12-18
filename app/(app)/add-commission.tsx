@@ -245,36 +245,58 @@ export default function AddCommissionPage() {
         try {
           const result = await extractBalanceFromImage(imageUri, "commission");
 
-          if (result.success && result.balance !== null) {
-            setEntries((prev) =>
-              prev.map((entry) =>
-                entry.id === entryId
-                  ? {
-                      ...entry,
-                      amount: result.balance!.toFixed(2),
-                      extractedBalance: result.balance,
-                      isExtracting: false,
-                    }
-                  : entry
-              )
-            );
-          } else {
-            setEntries((prev) =>
-              prev.map((entry) =>
-                entry.id === entryId
-                  ? { ...entry, isExtracting: false, extractedBalance: null }
-                  : entry
-              )
+          setEntries((prev) =>
+            prev.map((entry) => {
+              if (entry.id !== entryId) return entry;
+
+              const extractedBalance = result.balance;
+
+              // If user has already entered an amount, validate it
+              let validationResult: BalanceValidationResult | null = null;
+              if (
+                entry.amount.trim() &&
+                result.success &&
+                extractedBalance !== null
+              ) {
+                const inputBalance = parseFloat(entry.amount);
+                if (!isNaN(inputBalance)) {
+                  validationResult = validateBalance(
+                    extractedBalance,
+                    inputBalance
+                  );
+                }
+              }
+
+              return {
+                ...entry,
+                extractedBalance,
+                isExtracting: false,
+                validationResult,
+              };
+            })
+          );
+
+          if (!result.success) {
+            Alert.alert(
+              "Extraction Notice",
+              result.error ||
+                "Could not extract commission from image. Please verify manually."
             );
           }
         } catch (error) {
-          console.error("Balance extraction failed:", error);
+          console.error("Commission extraction failed:", error);
           setEntries((prev) =>
             prev.map((entry) =>
               entry.id === entryId
                 ? { ...entry, isExtracting: false, extractedBalance: null }
                 : entry
             )
+          );
+          Alert.alert(
+            "Extraction Error",
+            `Failed to extract commission: ${
+              error instanceof Error ? error.message : "Unknown error"
+            }`
           );
         }
       }
@@ -316,36 +338,58 @@ export default function AddCommissionPage() {
         try {
           const result = await extractBalanceFromImage(imageUri, "commission");
 
-          if (result.success && result.balance !== null) {
-            setEntries((prev) =>
-              prev.map((entry) =>
-                entry.id === entryId
-                  ? {
-                      ...entry,
-                      amount: result.balance!.toFixed(2),
-                      extractedBalance: result.balance,
-                      isExtracting: false,
-                    }
-                  : entry
-              )
-            );
-          } else {
-            setEntries((prev) =>
-              prev.map((entry) =>
-                entry.id === entryId
-                  ? { ...entry, isExtracting: false, extractedBalance: null }
-                  : entry
-              )
+          setEntries((prev) =>
+            prev.map((entry) => {
+              if (entry.id !== entryId) return entry;
+
+              const extractedBalance = result.balance;
+
+              // If user has already entered an amount, validate it
+              let validationResult: BalanceValidationResult | null = null;
+              if (
+                entry.amount.trim() &&
+                result.success &&
+                extractedBalance !== null
+              ) {
+                const inputBalance = parseFloat(entry.amount);
+                if (!isNaN(inputBalance)) {
+                  validationResult = validateBalance(
+                    extractedBalance,
+                    inputBalance
+                  );
+                }
+              }
+
+              return {
+                ...entry,
+                extractedBalance,
+                isExtracting: false,
+                validationResult,
+              };
+            })
+          );
+
+          if (!result.success) {
+            Alert.alert(
+              "Extraction Notice",
+              result.error ||
+                "Could not extract commission from image. Please verify manually."
             );
           }
         } catch (error) {
-          console.error("Balance extraction failed:", error);
+          console.error("Commission extraction failed:", error);
           setEntries((prev) =>
             prev.map((entry) =>
               entry.id === entryId
                 ? { ...entry, isExtracting: false, extractedBalance: null }
                 : entry
             )
+          );
+          Alert.alert(
+            "Extraction Error",
+            `Failed to extract commission: ${
+              error instanceof Error ? error.message : "Unknown error"
+            }`
           );
         }
       }

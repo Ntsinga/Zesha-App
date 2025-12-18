@@ -17,8 +17,12 @@ export interface ReconciliationsState {
   items: Reconciliation[];
   selectedReconciliation: Reconciliation | null;
   summary: ReconciliationSummary | null;
+  calculatedResult: any | null; // Result from calculate endpoint
+  reconciliationDetails: any | null; // Details for review screen
   isLoading: boolean;
   isPerforming: boolean;
+  isCalculating: boolean;
+  isFinalizing: boolean;
   error: string | null;
   lastFetched: number | null;
   filters: ReconciliationFilters;
@@ -28,8 +32,12 @@ const initialState: ReconciliationsState = {
   items: [],
   selectedReconciliation: null,
   summary: null,
+  calculatedResult: null,
+  reconciliationDetails: null,
   isLoading: false,
   isPerforming: false,
+  isCalculating: false,
+  isFinalizing: false,
   error: null,
   lastFetched: null,
   filters: {},
@@ -214,6 +222,89 @@ export const fetchReconciliationSummary = createAsyncThunk(
   }
 );
 
+// Calculate reconciliation for a date/shift
+export const calculateReconciliation = createAsyncThunk(
+  "reconciliations/calculate",
+  async (
+    params: { date: string; shift: "AM" | "PM"; user_id?: number },
+    { rejectWithValue }
+  ) => {
+    try {
+      const query = params.user_id ? `?user_id=${params.user_id}` : "";
+      const result = await apiRequest<any>(
+        `${API_ENDPOINTS.reconciliations.calculate(
+          params.date,
+          params.shift
+        )}${query}`,
+        {
+          method: "POST",
+        }
+      );
+      return result;
+    } catch (error) {
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : "Failed to calculate reconciliation"
+      );
+    }
+  }
+);
+
+// Finalize reconciliation
+export const finalizeReconciliation = createAsyncThunk(
+  "reconciliations/finalize",
+  async (
+    params: {
+      date: string;
+      shift: "AM" | "PM";
+      reconciled_by?: number;
+      notes?: string;
+    },
+    { rejectWithValue }
+  ) => {
+    try {
+      const body = {
+        reconciled_by: params.reconciled_by,
+        notes: params.notes,
+      };
+      const result = await apiRequest<any>(
+        API_ENDPOINTS.reconciliations.finalize(params.date, params.shift),
+        {
+          method: "POST",
+          body: JSON.stringify(body),
+        }
+      );
+      return result;
+    } catch (error) {
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : "Failed to finalize reconciliation"
+      );
+    }
+  }
+);
+
+// Fetch reconciliation details (for review screen)
+export const fetchReconciliationDetails = createAsyncThunk(
+  "reconciliations/fetchDetails",
+  async (params: { date: string; shift: "AM" | "PM" }, { rejectWithValue }) => {
+    try {
+      const details = await apiRequest<any>(
+        API_ENDPOINTS.reconciliations.details(params.date, params.shift)
+      );
+      return details;
+    } catch (error) {
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : "Failed to fetch reconciliation details"
+      );
+    }
+  }
+);
+
 // Slice
 const reconciliationsSlice = createSlice({
   name: "reconciliations",
@@ -233,6 +324,12 @@ const reconciliationsSlice = createSlice({
     },
     clearSummary: (state) => {
       state.summary = null;
+    },
+    clearCalculatedResult: (state) => {
+      state.calculatedResult = null;
+    },
+    clearReconciliationDetails: (state) => {
+      state.reconciliationDetails = null;
     },
   },
   extraReducers: (builder) => {
@@ -341,6 +438,60 @@ const reconciliationsSlice = createSlice({
         state.isLoading = false;
         state.error = action.payload as string;
       });
+
+    // Calculate reconciliation
+    builder
+      .addCase(calculateReconciliation.pending, (state) => {
+        state.isCalculating = true;
+        state.error = null;
+      })
+      .addCase(calculateReconciliation.fulfilled, (state, action) => {
+        state.isCalculating = false;
+        state.calculatedResult = action.payload;
+      })
+      .addCase(calculateReconciliation.rejected, (state, action) => {
+        state.isCalculating = false;
+        state.error = action.payload as string;
+      });
+
+    // Finalize reconciliation
+    builder
+      .addCase(finalizeReconciliation.pending, (state) => {
+        state.isFinalizing = true;
+        state.error = null;
+      })
+      .addCase(finalizeReconciliation.fulfilled, (state, action) => {
+        state.isFinalizing = false;
+        // Update calculatedResult if exists
+        if (state.calculatedResult) {
+          state.calculatedResult = {
+            ...state.calculatedResult,
+            data: {
+              ...state.calculatedResult.data,
+              is_finalized: true,
+            },
+          };
+        }
+      })
+      .addCase(finalizeReconciliation.rejected, (state, action) => {
+        state.isFinalizing = false;
+        state.error = action.payload as string;
+      });
+
+    // Fetch details
+    builder
+      .addCase(fetchReconciliationDetails.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(fetchReconciliationDetails.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.reconciliationDetails = action.payload;
+      })
+      .addCase(fetchReconciliationDetails.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
+      });
   },
 });
 
@@ -350,5 +501,7 @@ export const {
   clearFilters,
   clearSelectedReconciliation,
   clearSummary,
+  clearCalculatedResult,
+  clearReconciliationDetails,
 } = reconciliationsSlice.actions;
 export default reconciliationsSlice.reducer;

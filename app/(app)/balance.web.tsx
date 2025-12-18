@@ -34,7 +34,7 @@ export default function BalancePage() {
       {/* Header Bar */}
       <header className="header-bar">
         <div className="header-left">
-          <h1 className="header-title">Balance</h1>
+          <h1 className="header-title">Daily Reconciliation</h1>
           <span className="header-date">Choose an option to continue</span>
         </div>
         <div className="header-right">
@@ -130,7 +130,7 @@ export default function BalancePage() {
                     hasTodayBalances ? "completed" : ""
                   }`}
                 >
-                  Add Balances
+                  Add Float Balances
                 </h3>
                 <div className="shift-badges">
                   {hasAMBalances && (

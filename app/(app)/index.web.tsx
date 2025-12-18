@@ -96,7 +96,7 @@ export default function DashboardWeb() {
             <div className="gt-content">
               <div className="gt-header">
                 <Banknote size={22} />
-                <span>Grand Total</span>
+                <span>Total Operating Capital</span>
               </div>
               <p className="gt-amount">{formatCurrency(grandTotal)}</p>
               <div className="gt-breakdown">
@@ -201,7 +201,7 @@ export default function DashboardWeb() {
                 className="btn-add"
               >
                 <Wallet size={16} />
-                Add Balance
+                Add Float Balance
               </button>
             </div>
             <table className="data-table">
@@ -257,7 +257,7 @@ export default function DashboardWeb() {
                 className="action-btn primary"
               >
                 <Wallet size={20} />
-                <span>Add Balance</span>
+                <span>Daily Reconciliation</span>
               </button>
               <button
                 onClick={() => router.push("/add-cash-count")}

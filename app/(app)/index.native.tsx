@@ -113,7 +113,7 @@ export default function DashboardNative() {
           {/* Grand Total */}
           <View className="border-b border-brand-darkGold/30 pb-4 mb-4">
             <Text className="text-red-900/70 font-semibold text-lg">
-              Grand Total
+              Total Operating Capital
             </Text>
             <Text className="text-4xl font-bold text-red-900">
               {formatCurrency(grandTotal)}
@@ -209,7 +209,7 @@ export default function DashboardNative() {
         {/* Accounts List */}
         <View className="bg-white rounded-3xl shadow-sm p-6 border border-gray-100">
           <Text className="text-xl font-bold text-brand-red mb-6">
-            Current Balances
+            Current Float Balances
           </Text>
 
           <View className="mb-4">
@@ -256,7 +256,7 @@ export default function DashboardNative() {
             >
               <Wallet color="white" size={20} />
               <Text className="text-white font-bold text-base ml-2">
-                Balance
+                Reconcile
               </Text>
             </TouchableOpacity>
           </View>
