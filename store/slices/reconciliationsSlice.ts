@@ -4,7 +4,6 @@ import {
   ReconciliationCreate,
   ReconciliationUpdate,
   ReconciliationFilters,
-  ReconciliationSummary,
 } from "../../types";
 import {
   API_BASE_URL,
@@ -15,12 +14,11 @@ import {
 // Types
 export interface ReconciliationsState {
   items: Reconciliation[];
+  history: any[]; // History list for the history screen
   selectedReconciliation: Reconciliation | null;
-  summary: ReconciliationSummary | null;
   calculatedResult: any | null; // Result from calculate endpoint
-  reconciliationDetails: any | null; // Details for review screen
+  reconciliationDetails: any | null; // Details for review/detail screens
   isLoading: boolean;
-  isPerforming: boolean;
   isCalculating: boolean;
   isFinalizing: boolean;
   error: string | null;
@@ -30,12 +28,11 @@ export interface ReconciliationsState {
 
 const initialState: ReconciliationsState = {
   items: [],
+  history: [],
   selectedReconciliation: null,
-  summary: null,
   calculatedResult: null,
   reconciliationDetails: null,
   isLoading: false,
-  isPerforming: false,
   isCalculating: false,
   isFinalizing: false,
   error: null,
@@ -174,49 +171,31 @@ export const deleteReconciliation = createAsyncThunk(
   }
 );
 
-// Special reconciliation endpoints
-export const performReconciliation = createAsyncThunk(
-  "reconciliations/perform",
+// Fetch reconciliation history (for history list screen)
+export const fetchReconciliationHistory = createAsyncThunk(
+  "reconciliations/fetchHistory",
   async (
-    params: { shift: "AM" | "PM"; date?: string },
+    params: {
+      skip?: number;
+      limit?: number;
+      date_from?: string;
+      date_to?: string;
+      shift?: "AM" | "PM";
+      finalized_only?: boolean;
+    } = {},
     { rejectWithValue }
   ) => {
     try {
       const query = buildQueryString(params);
-      const reconciliation = await apiRequest<Reconciliation>(
-        `${API_ENDPOINTS.reconciliations.perform}${query}`,
-        {
-          method: "POST",
-        }
+      const history = await apiRequest<any[]>(
+        `${API_ENDPOINTS.reconciliations.history}${query}`
       );
-      return reconciliation;
+      return history;
     } catch (error) {
       return rejectWithValue(
         error instanceof Error
           ? error.message
-          : "Failed to perform reconciliation"
-      );
-    }
-  }
-);
-
-export const fetchReconciliationSummary = createAsyncThunk(
-  "reconciliations/fetchSummary",
-  async (
-    params: { date_from?: string; date_to?: string } = {},
-    { rejectWithValue }
-  ) => {
-    try {
-      const query = buildQueryString(params);
-      const summary = await apiRequest<ReconciliationSummary>(
-        `${API_ENDPOINTS.reconciliations.summary}${query}`
-      );
-      return summary;
-    } catch (error) {
-      return rejectWithValue(
-        error instanceof Error
-          ? error.message
-          : "Failed to fetch reconciliation summary"
+          : "Failed to fetch reconciliation history"
       );
     }
   }
@@ -286,6 +265,49 @@ export const finalizeReconciliation = createAsyncThunk(
   }
 );
 
+// Approve/reject reconciliation - supervisor/admin only
+export const approveReconciliation = createAsyncThunk(
+  "reconciliations/approve",
+  async (
+    params: {
+      date: string;
+      shift: "AM" | "PM";
+      action: "APPROVED" | "REJECTED";
+      approved_by: number;
+      rejection_reason?: string;
+    },
+    { rejectWithValue }
+  ) => {
+    try {
+      const body: {
+        action: "APPROVED" | "REJECTED";
+        approved_by: number;
+        rejection_reason?: string;
+      } = {
+        action: params.action,
+        approved_by: params.approved_by,
+      };
+      if (params.action === "REJECTED" && params.rejection_reason) {
+        body.rejection_reason = params.rejection_reason;
+      }
+      const result = await apiRequest<any>(
+        API_ENDPOINTS.reconciliations.approve(params.date, params.shift),
+        {
+          method: "POST",
+          body: JSON.stringify(body),
+        }
+      );
+      return { ...result, action: params.action };
+    } catch (error) {
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : `Failed to ${params.action.toLowerCase()} reconciliation`
+      );
+    }
+  }
+);
+
 // Fetch reconciliation details (for review screen)
 export const fetchReconciliationDetails = createAsyncThunk(
   "reconciliations/fetchDetails",
@@ -322,14 +344,14 @@ const reconciliationsSlice = createSlice({
     clearSelectedReconciliation: (state) => {
       state.selectedReconciliation = null;
     },
-    clearSummary: (state) => {
-      state.summary = null;
-    },
     clearCalculatedResult: (state) => {
       state.calculatedResult = null;
     },
     clearReconciliationDetails: (state) => {
       state.reconciliationDetails = null;
+    },
+    clearHistory: (state) => {
+      state.history = [];
     },
   },
   extraReducers: (builder) => {
@@ -408,33 +430,18 @@ const reconciliationsSlice = createSlice({
         state.error = action.payload as string;
       });
 
-    // Perform reconciliation
+    // Fetch history
     builder
-      .addCase(performReconciliation.pending, (state) => {
-        state.isPerforming = true;
-        state.error = null;
-      })
-      .addCase(performReconciliation.fulfilled, (state, action) => {
-        state.isPerforming = false;
-        state.items.unshift(action.payload);
-        state.selectedReconciliation = action.payload;
-      })
-      .addCase(performReconciliation.rejected, (state, action) => {
-        state.isPerforming = false;
-        state.error = action.payload as string;
-      });
-
-    // Fetch summary
-    builder
-      .addCase(fetchReconciliationSummary.pending, (state) => {
+      .addCase(fetchReconciliationHistory.pending, (state) => {
         state.isLoading = true;
         state.error = null;
       })
-      .addCase(fetchReconciliationSummary.fulfilled, (state, action) => {
+      .addCase(fetchReconciliationHistory.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.summary = action.payload;
+        state.history = action.payload;
+        state.lastFetched = Date.now();
       })
-      .addCase(fetchReconciliationSummary.rejected, (state, action) => {
+      .addCase(fetchReconciliationHistory.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
       });
@@ -472,8 +479,36 @@ const reconciliationsSlice = createSlice({
             },
           };
         }
+        // Update reconciliationDetails if exists
+        if (state.reconciliationDetails?.reconciliation) {
+          state.reconciliationDetails.reconciliation.is_finalized = true;
+        }
       })
       .addCase(finalizeReconciliation.rejected, (state, action) => {
+        state.isFinalizing = false;
+        state.error = action.payload as string;
+      });
+
+    // Approve/reject reconciliation
+    builder
+      .addCase(approveReconciliation.pending, (state) => {
+        state.isFinalizing = true;
+        state.error = null;
+      })
+      .addCase(approveReconciliation.fulfilled, (state, action) => {
+        state.isFinalizing = false;
+        // Update reconciliationDetails if exists
+        if (state.reconciliationDetails?.reconciliation) {
+          if (action.payload.action === "APPROVED") {
+            state.reconciliationDetails.reconciliation.is_approved = true;
+            state.reconciliationDetails.reconciliation.approval_status = "APPROVED";
+          } else {
+            state.reconciliationDetails.reconciliation.is_finalized = false;
+            state.reconciliationDetails.reconciliation.approval_status = "REJECTED";
+          }
+        }
+      })
+      .addCase(approveReconciliation.rejected, (state, action) => {
         state.isFinalizing = false;
         state.error = action.payload as string;
       });
@@ -500,8 +535,8 @@ export const {
   setFilters,
   clearFilters,
   clearSelectedReconciliation,
-  clearSummary,
   clearCalculatedResult,
   clearReconciliationDetails,
+  clearHistory,
 } = reconciliationsSlice.actions;
 export default reconciliationsSlice.reducer;

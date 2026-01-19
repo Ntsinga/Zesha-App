@@ -67,8 +67,9 @@
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-    "Helvetica Neue", Arial, sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+    Arial, sans-serif;
   background-color: var(--color-bg);
   color: var(--color-text);
   line-height: 1.5;
@@ -1590,14 +1591,29 @@ body {
   font-weight: 600;
 }
 
-.shift-badge.am {
+.shift-badge.am,
+.shift-badge.shift-am {
   background: var(--color-info-light);
   color: var(--color-info);
 }
 
-.shift-badge.pm {
+.shift-badge.pm,
+.shift-badge.shift-pm {
   background: #ede9fe;
   color: #7c3aed;
+}
+
+/* Status Badge Styles */
+.status-passed {
+  background: #22c55e;
+}
+
+.status-flagged {
+  background: #f59e0b;
+}
+
+.status-failed {
+  background: #ef4444;
 }
 
 .btn-view {
@@ -2233,6 +2249,26 @@ body {
 
 .btn-danger:hover {
   background: #b91c1c;
+}
+
+.btn-warning {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: #f59e0b;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-warning:hover {
+  background: #d97706;
 }
 
 /* ============================================
@@ -3127,7 +3163,9 @@ body {
   border-radius: var(--radius-lg);
   border: 1px solid var(--color-border);
   overflow: hidden;
-  transition: box-shadow 0.2s, border-color 0.2s;
+  transition:
+    box-shadow 0.2s,
+    border-color 0.2s;
 }
 
 .entry-card:hover {
@@ -3772,7 +3810,10 @@ body {
   font-size: 36px;
   font-weight: 700;
   color: white;
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
 }
 
 .auth-brand-title {
@@ -4502,14 +4543,19 @@ body {
 .stat-card.highlight .stat-breakdown {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
+  gap: 24px;
   margin-top: var(--space-lg);
   padding-top: var(--space-lg);
   border-top: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .stat-card.highlight .stat-breakdown > div {
-  flex: 1;
+  flex: 0 0 auto;
+}
+
+.stat-card.highlight .stat-breakdown > div:last-child {
+  text-align: right;
 }
 
 .stat-card.highlight .stat-breakdown .text-xs {
@@ -4517,12 +4563,14 @@ body {
   color: rgba(255, 255, 255, 0.7);
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  display: block;
 }
 
 .stat-card.highlight .stat-breakdown .font-bold {
   font-size: 20px;
   font-weight: 700;
   margin-top: 4px;
+  white-space: nowrap;
 }
 
 .stat-header {
@@ -4628,4 +4676,156 @@ body {
   .stat-card.highlight .stat-number.large {
     font-size: 32px;
   }
+}
+
+/* ============================================
+   RECONCILE REVIEW SPECIFIC STYLES
+   ============================================ */
+
+.header-subtitle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+  margin-top: var(--space-xs);
+}
+
+.badge-locked {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: var(--color-border);
+  color: var(--color-text-secondary);
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.notes-section {
+  margin-top: var(--space-lg);
+}
+
+.notes-textarea {
+  width: 100%;
+  padding: var(--space-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 100px;
+  background: var(--color-bg);
+  transition: border-color 0.2s;
+}
+
+.notes-textarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.notes-text {
+  padding: var(--space-md) var(--space-lg);
+  color: var(--color-text);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.table-card.info {
+  background: var(--color-info-light);
+  border-color: var(--color-info);
+}
+
+.table-card.info .card-header {
+  background: transparent;
+  border-color: rgba(37, 99, 235, 0.2);
+}
+
+.table-card.info .card-header h3 {
+  color: var(--color-info);
+}
+
+.action-buttons-row {
+  display: flex;
+  gap: var(--space-md);
+  margin-top: var(--space-xl);
+  justify-content: flex-end;
+}
+
+.action-buttons-row .btn-secondary,
+.action-buttons-row .btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-lg);
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.action-buttons-row .btn-secondary {
+  background: white;
+  border: 2px solid var(--color-primary);
+  color: var(--color-primary);
+}
+
+.action-buttons-row .btn-secondary:hover:not(:disabled) {
+  background: var(--color-primary-light);
+}
+
+.action-buttons-row .btn-primary {
+  background: var(--color-primary);
+  border: 2px solid var(--color-primary);
+  color: white;
+}
+
+.action-buttons-row .btn-primary:hover:not(:disabled) {
+  background: var(--color-primary-dark);
+  border-color: var(--color-primary-dark);
+}
+
+.action-buttons-row button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Image Modal Overlay */
+.image-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-close-btn {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  border-radius: 50%;
+  padding: 10px;
+  cursor: pointer;
+  z-index: 1001;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.modal-close-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.modal-image {
+  max-width: 90%;
+  max-height: 90%;
+  object-fit: contain;
 }

@@ -7,6 +7,8 @@ import {
   RefreshControl,
   Image,
   Modal,
+  TextInput,
+  Alert,
 } from "react-native";
 import {
   ArrowLeft,
@@ -19,10 +21,14 @@ import {
   CheckCircle2,
   AlertTriangle,
   Clock,
+  Lock,
+  RefreshCw,
+  Check,
+  XCircle,
 } from "lucide-react-native";
 import { useLocalSearchParams } from "expo-router";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
-import { useBalanceDetailScreen } from "../../hooks/screens/useBalanceDetailScreen";
+import { useReconciliationScreen } from "../../hooks/screens/useReconciliationScreen";
 import type { ShiftEnum } from "../../types";
 
 export default function BalanceDetailPage() {
@@ -51,7 +57,19 @@ export default function BalanceDetailPage() {
     getImageUri,
     formatCurrency,
     formatDate,
-  } = useBalanceDetailScreen({ date, shift });
+    // New reconciliation functionality
+    notes,
+    setNotes,
+    canReview,
+    isCalculating,
+    isFinalizing,
+    isFinalized,
+    isApproved,
+    handleCalculate,
+    handleFinalize,
+    handleApprove,
+    handleReject,
+  } = useReconciliationScreen({ date, shift });
 
   if (isLoading && !refreshing) {
     return <LoadingSpinner message="Loading balance details..." />;
@@ -330,6 +348,100 @@ export default function BalanceDetailPage() {
             <Text className="text-gray-400 text-center py-2">
               No cash count recorded
             </Text>
+          )}
+        </View>
+
+        {/* Notes Section */}
+        <View className="bg-white rounded-2xl p-4 mb-4 shadow-sm border border-gray-100">
+          <View className="flex-row items-center mb-3">
+            <AlertTriangle color="#D97706" size={20} />
+            <Text className="text-gray-700 font-semibold ml-2">
+              Notes & Comments
+            </Text>
+          </View>
+
+          <TextInput
+            value={notes}
+            onChangeText={setNotes}
+            placeholder="Add notes about this reconciliation..."
+            placeholderTextColor="#9CA3AF"
+            multiline
+            numberOfLines={4}
+            editable={!isFinalized || canReview}
+            className={`bg-gray-50 border border-gray-200 rounded-xl p-3 text-gray-700 min-h-[100px] ${
+              isFinalized && !canReview ? "opacity-50" : ""
+            }`}
+            textAlignVertical="top"
+          />
+        </View>
+
+        {/* Action Buttons */}
+        <View className="mb-8">
+          {/* Status Badge */}
+          {isFinalized && (
+            <View className={`flex-row items-center justify-center mb-4 px-4 py-2 rounded-full ${
+              isApproved ? "bg-green-100" : "bg-yellow-100"
+            }`}>
+              {isApproved ? (
+                <>
+                  <Check color="#16A34A" size={18} />
+                  <Text className="text-green-700 font-semibold ml-2">Approved</Text>
+                </>
+              ) : (
+                <>
+                  <Lock color="#D97706" size={18} />
+                  <Text className="text-yellow-700 font-semibold ml-2">Finalized - Awaiting Review</Text>
+                </>
+              )}
+            </View>
+          )}
+
+          {/* Clerk Actions - Calculate and Finalize */}
+          {!isFinalized && (
+            <View className="flex-row gap-3">
+              <TouchableOpacity
+                onPress={handleCalculate}
+                disabled={isCalculating}
+                className="flex-1 flex-row items-center justify-center bg-blue-500 py-4 rounded-xl"
+              >
+                <RefreshCw color="#fff" size={20} />
+                <Text className="text-white font-semibold ml-2">
+                  {isCalculating ? "Calculating..." : "Calculate"}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={handleFinalize}
+                disabled={isFinalizing}
+                className="flex-1 flex-row items-center justify-center bg-amber-500 py-4 rounded-xl"
+              >
+                <Lock color="#fff" size={20} />
+                <Text className="text-white font-semibold ml-2">
+                  {isFinalizing ? "Finalizing..." : "Finalize & Lock"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* Supervisor/Admin Actions - Approve and Reject */}
+          {isFinalized && canReview && !isApproved && (
+            <View className="flex-row gap-3">
+              <TouchableOpacity
+                onPress={handleApprove}
+                className="flex-1 flex-row items-center justify-center bg-green-500 py-4 rounded-xl"
+              >
+                <Check color="#fff" size={20} />
+                <Text className="text-white font-semibold ml-2">Approve</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={handleReject}
+                className="flex-1 flex-row items-center justify-center bg-red-500 py-4 rounded-xl"
+              >
+                <XCircle color="#fff" size={20} />
+                <Text className="text-white font-semibold ml-2">Reject</Text>
+              </TouchableOpacity>
+            </View>
           )}
         </View>
       </ScrollView>

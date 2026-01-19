@@ -42,7 +42,7 @@ export default function AppLayout() {
           }}
         />
         <Drawer.Screen
-          name="balance-detail"
+          name="reconciliation"
           options={{
             title: "Balance Detail",
             drawerItemStyle: { display: "none" },
