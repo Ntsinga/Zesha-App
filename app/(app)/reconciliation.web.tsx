@@ -1,4 +1,5 @@
 import React from "react";
+import { useLocalSearchParams } from "expo-router";
 import {
   ArrowLeft,
   TrendingUp,
@@ -11,18 +12,19 @@ import {
   AlertTriangle,
   Clock,
   RefreshCw,
+  Lock,
+  Check,
+  XCircle,
 } from "lucide-react";
-import { useBalanceDetailScreen } from "../../hooks/screens/useBalanceDetailScreen";
+import { useReconciliationScreen } from "../../hooks/screens/useReconciliationScreen";
 import type { ShiftEnum } from "../../types";
 import "../../styles/web.css";
 
 export default function BalanceDetailWeb() {
-  // Get params from URL
-  const urlParams = new URLSearchParams(
-    typeof window !== "undefined" ? window.location.search : ""
-  );
-  const date = urlParams.get("date") || new Date().toISOString().split("T")[0];
-  const shift = (urlParams.get("shift") as ShiftEnum) || "AM";
+  // Get params from Expo Router (reactive, works with router.push)
+  const params = useLocalSearchParams<{ date: string; shift: string }>();
+  const date = params.date || "";
+  const shift = (params.shift as ShiftEnum) || "AM";
 
   const {
     refreshing,
@@ -45,7 +47,31 @@ export default function BalanceDetailWeb() {
     getImageUri,
     formatCurrency,
     formatDate,
-  } = useBalanceDetailScreen({ date, shift });
+    // New reconciliation functionality
+    notes,
+    setNotes,
+    canReview,
+    isCalculating,
+    isFinalizing,
+    isFinalized,
+    isApproved,
+    handleCalculate,
+    handleFinalize,
+    handleApprove,
+    handleReject,
+  } = useReconciliationScreen({ date, shift });
+
+  // Show loading while params are being resolved
+  if (!date) {
+    return (
+      <div className="page-wrapper">
+        <div className="loading-container">
+          <div className="spinner"></div>
+          <p>Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (isLoading && !refreshing) {
     return (
@@ -326,6 +352,113 @@ export default function BalanceDetailWeb() {
                 )}
               </tbody>
             </table>
+          </div>
+
+          {/* Notes Section */}
+          <div className="table-card full-width">
+            <div className="card-header">
+              <AlertTriangle size={18} color="#D97706" />
+              <h3>Notes & Comments</h3>
+            </div>
+            <div style={{ padding: "1rem" }}>
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Add notes about this reconciliation..."
+                disabled={isFinalized && !canReview}
+                style={{
+                  width: "100%",
+                  minHeight: "100px",
+                  padding: "12px",
+                  borderRadius: "8px",
+                  border: "1px solid #e5e7eb",
+                  backgroundColor: isFinalized && !canReview ? "#f3f4f6" : "#fff",
+                  resize: "vertical",
+                  fontFamily: "inherit",
+                  fontSize: "14px",
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="table-card full-width">
+            {/* Status Badge */}
+            {isFinalized && (
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  padding: "12px 24px",
+                  borderRadius: "24px",
+                  backgroundColor: isApproved ? "#dcfce7" : "#fef3c7",
+                  margin: "1rem",
+                }}
+              >
+                {isApproved ? (
+                  <>
+                    <Check size={18} color="#16A34A" />
+                    <span style={{ color: "#16A34A", fontWeight: 600, marginLeft: 8 }}>
+                      Approved
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <Lock size={18} color="#D97706" />
+                    <span style={{ color: "#D97706", fontWeight: 600, marginLeft: 8 }}>
+                      Finalized - Awaiting Review
+                    </span>
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* Clerk Actions - Calculate and Finalize */}
+            {!isFinalized && (
+              <div style={{ display: "flex", gap: "12px", padding: "1rem" }}>
+                <button
+                  onClick={handleCalculate}
+                  disabled={isCalculating}
+                  className="btn-primary"
+                  style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
+                >
+                  <RefreshCw size={18} />
+                  {isCalculating ? "Calculating..." : "Calculate"}
+                </button>
+                <button
+                  onClick={handleFinalize}
+                  disabled={isFinalizing}
+                  className="btn-warning"
+                  style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
+                >
+                  <Lock size={18} />
+                  {isFinalizing ? "Finalizing..." : "Finalize & Lock"}
+                </button>
+              </div>
+            )}
+
+            {/* Supervisor/Admin Actions - Approve and Reject */}
+            {isFinalized && canReview && !isApproved && (
+              <div style={{ display: "flex", gap: "12px", padding: "1rem" }}>
+                <button
+                  onClick={handleApprove}
+                  className="btn-success"
+                  style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
+                >
+                  <Check size={18} />
+                  Approve
+                </button>
+                <button
+                  onClick={handleReject}
+                  className="btn-danger"
+                  style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
+                >
+                  <XCircle size={18} />
+                  Reject
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>

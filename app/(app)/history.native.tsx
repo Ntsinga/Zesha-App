@@ -79,10 +79,7 @@ export default function BalanceHistory() {
               <TouchableOpacity
                 key={record.id || `history-${index}`}
                 onPress={() => {
-                  const route = record.isFinalized
-                    ? `/balance-detail?date=${record.date}&shift=${record.shift}`
-                    : `/reconcile-review?date=${record.date}&shift=${record.shift}`;
-                  router.push(route as any);
+                  router.push(`/reconciliation?date=${record.date}&shift=${record.shift}` as any);
                 }}
                 className={`flex-row items-center p-4 border-b border-yellow-100 ${
                   index % 2 === 0 ? "bg-white" : "bg-yellow-50/30"

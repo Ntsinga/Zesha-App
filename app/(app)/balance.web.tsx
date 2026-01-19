@@ -42,7 +42,7 @@ export default function BalancePage() {
     const result = await handleCalculate();
     if (result?.success) {
       router.push(
-        `/reconcile-review?date=${today}&shift=${selectedShift}` as any
+        `/reconciliation?date=${today}&shift=${selectedShift}` as any
       );
     } else {
       alert(result?.error || "Failed to calculate reconciliation");
