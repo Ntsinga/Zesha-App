@@ -5,14 +5,22 @@ import {
   ChevronRight,
   CheckCircle,
   RefreshCw,
+  Calculator,
 } from "lucide-react";
+import { useRouter } from "expo-router";
 import { useBalanceMenuScreen } from "../../hooks/screens/useBalanceMenuScreen";
 import "../../styles/web.css";
 
 export default function BalancePage() {
+  const router = useRouter();
+
   const {
     isLoading,
+    isCalculating,
+    today,
     formatCurrency,
+    selectedShift,
+    setSelectedShift,
     hasAMShift,
     hasPMShift,
     latestShift,
@@ -27,7 +35,19 @@ export default function BalancePage() {
     handleNavigateCommissions,
     handleBack,
     handleRefresh,
+    handleCalculate,
   } = useBalanceMenuScreen();
+
+  const handleCalculatePress = async () => {
+    const result = await handleCalculate();
+    if (result?.success) {
+      router.push(
+        `/reconcile-review?date=${today}&shift=${selectedShift}` as any
+      );
+    } else {
+      alert(result?.error || "Failed to calculate reconciliation");
+    }
+  };
 
   return (
     <div className="page-wrapper">
@@ -175,6 +195,51 @@ export default function BalancePage() {
             </div>
             <ChevronRight size={24} className="balance-menu-arrow" />
           </div>
+        </div>
+
+        {/* Calculate Reconciliation Section */}
+        <div className="reconciliation-section-centered">
+          <h3 className="section-title-centered">Calculate Reconciliation</h3>
+          <p className="section-description-centered">
+            Select a shift and calculate the reconciliation to review
+            discrepancies
+          </p>
+
+          {/* Shift Selector */}
+          <div className="shift-selector-centered">
+            <button
+              onClick={() => setSelectedShift("AM")}
+              className={`shift-selector-btn ${
+                selectedShift === "AM" ? "active" : ""
+              }`}
+            >
+              AM Shift
+            </button>
+            <button
+              onClick={() => setSelectedShift("PM")}
+              className={`shift-selector-btn ${
+                selectedShift === "PM" ? "active" : ""
+              }`}
+            >
+              PM Shift
+            </button>
+          </div>
+
+          {/* Calculate Button */}
+          <button
+            onClick={handleCalculatePress}
+            disabled={isCalculating}
+            className={`btn-calculate-centered ${
+              isCalculating ? "loading" : ""
+            }`}
+          >
+            <Calculator size={24} />
+            <span>
+              {isCalculating
+                ? "Calculating..."
+                : `Calculate ${selectedShift} Reconciliation`}
+            </span>
+          </button>
         </div>
       </div>
     </div>

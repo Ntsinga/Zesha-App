@@ -12,6 +12,7 @@ import reconciliationsReducer from "./slices/reconciliationsSlice";
 import companyInfoReducer from "./slices/companyInfoSlice";
 import cashCountReducer from "./slices/cashCountSlice";
 import accountsReducer from "./slices/accountsSlice";
+import usersReducer from "./slices/usersSlice";
 
 export const store = configureStore({
   reducer: {
@@ -28,6 +29,7 @@ export const store = configureStore({
     companyInfo: companyInfoReducer,
     cashCount: cashCountReducer,
     accounts: accountsReducer,
+    users: usersReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

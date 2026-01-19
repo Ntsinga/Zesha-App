@@ -200,12 +200,12 @@ export default function BalanceHistoryWeb() {
                     </td>
                     <td>
                       <button
-                        onClick={() =>
-                          router.push({
-                            pathname: "/balance-detail",
-                            params: { date: record.date, shift: record.shift },
-                          })
-                        }
+                        onClick={() => {
+                          const route = record.isFinalized
+                            ? `/balance-detail?date=${record.date}&shift=${record.shift}`
+                            : `/reconcile-review?date=${record.date}&shift=${record.shift}`;
+                          router.push(route);
+                        }}
                         className="btn-view"
                       >
                         View <ChevronRight size={14} />

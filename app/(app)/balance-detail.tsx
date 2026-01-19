@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import {
   View,
   Text,
@@ -20,106 +20,49 @@ import {
   AlertTriangle,
   Clock,
 } from "lucide-react-native";
-import { useRouter, useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
-import { useCurrencyFormatter } from "../../hooks/useCurrency";
-import { formatDate } from "../../utils/formatters";
-import { API_BASE_URL, API_ENDPOINTS } from "../../config/api";
-import type {
-  Balance,
-  CashCount,
-  Commission,
-  ShiftEnum,
-  ReconciliationDetail,
-} from "../../types";
+import { useBalanceDetailScreen } from "../../hooks/screens/useBalanceDetailScreen";
+import type { ShiftEnum } from "../../types";
 
 export default function BalanceDetailPage() {
-  const router = useRouter();
   const params = useLocalSearchParams<{ date: string; shift: string }>();
-  const { formatCurrency } = useCurrencyFormatter();
-
-  const [refreshing, setRefreshing] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [data, setData] = useState<ReconciliationDetail | null>(null);
-
   const date = params.date || new Date().toISOString().split("T")[0];
   const shift = (params.shift as ShiftEnum) || "AM";
 
-  // Extract data from reconciliation detail
-  const balances = data?.balances || [];
-  const cashCounts = data?.cash_counts || [];
-  const commissions = data?.commissions || [];
-  const reconciliation = data?.reconciliation;
-
-  // Use reconciliation totals (pre-calculated on backend)
-  const totalFloat = reconciliation?.total_float || 0;
-  const totalCash = reconciliation?.total_cash || 0;
-  const totalCommission = reconciliation?.total_commissions || 0;
-  const expectedClosing = reconciliation?.expected_closing || 0;
-  const actualClosing = reconciliation?.actual_closing || 0;
-  const variance = reconciliation?.variance || 0;
-  const status = reconciliation?.status || "FLAGGED";
-
-  useEffect(() => {
-    loadData();
-  }, [date, shift]);
-
-  const loadData = async () => {
-    try {
-      setError(null);
-      const endpoint = API_ENDPOINTS.reconciliations.details(date, shift);
-      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-        headers: {
-          "Content-Type": "application/json",
-          "ngrok-skip-browser-warning": "true",
-        },
-      });
-
-      if (!response.ok) {
-        const errorData = await response
-          .json()
-          .catch(() => ({ detail: "Failed to load" }));
-        throw new Error(errorData.detail || `HTTP ${response.status}`);
-      }
-
-      const detail: ReconciliationDetail = await response.json();
-      setData(detail);
-    } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Failed to load reconciliation details"
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await loadData();
-    setRefreshing(false);
-  };
+  const {
+    refreshing,
+    isLoading,
+    error,
+    selectedImage,
+    setSelectedImage,
+    balances,
+    cashCounts,
+    commissions,
+    totalFloat,
+    totalCash,
+    totalCommission,
+    expectedClosing,
+    actualClosing,
+    variance,
+    status,
+    onRefresh,
+    handleBack,
+    getImageUri,
+    formatCurrency,
+    formatDate,
+  } = useBalanceDetailScreen({ date, shift });
 
   if (isLoading && !refreshing) {
     return <LoadingSpinner message="Loading balance details..." />;
   }
-
-  const getImageUri = (item: Balance | Commission) => {
-    if (item.image_data) {
-      return `data:image/jpeg;base64,${item.image_data}`;
-    }
-    return item.image_url;
-  };
 
   return (
     <View className="flex-1 bg-gray-50">
       {/* Header */}
       <View className="bg-white border-b border-gray-100 px-4 pt-14 pb-4">
         <View className="flex-row items-center justify-between">
-          <TouchableOpacity onPress={() => router.back()} className="p-2">
+          <TouchableOpacity onPress={handleBack} className="p-2">
             <ArrowLeft color="#000" size={24} />
           </TouchableOpacity>
           <View className="items-center">

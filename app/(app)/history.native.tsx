@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import {
   View,
   Text,
@@ -15,35 +15,21 @@ import {
   AlertTriangle,
 } from "lucide-react-native";
 import { useNavigation, useRouter } from "expo-router";
-import { useDispatch, useSelector } from "react-redux";
-import { fetchBalanceHistory } from "../../store/slices/balanceHistorySlice";
+import { useBalanceHistoryScreen } from "../../hooks/screens/useBalanceHistoryScreen";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
-import { useCurrencyFormatter } from "../../hooks/useCurrency";
-import { formatDate } from "../../utils/formatters";
-import type { AppDispatch, RootState } from "../../store";
 import type { BalanceHistoryEntry } from "../../types";
 
 export default function BalanceHistory() {
   const navigation = useNavigation();
   const router = useRouter();
-  const dispatch = useDispatch<AppDispatch>();
-  const { formatCurrency } = useCurrencyFormatter();
   const {
-    entries: history,
     isLoading,
-    error,
-  } = useSelector((state: RootState) => state.balanceHistory);
-  const [refreshing, setRefreshing] = useState(false);
-
-  useEffect(() => {
-    dispatch(fetchBalanceHistory());
-  }, [dispatch]);
-
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await dispatch(fetchBalanceHistory());
-    setRefreshing(false);
-  };
+    refreshing,
+    history,
+    onRefresh,
+    formatCurrency,
+    formatDate,
+  } = useBalanceHistoryScreen();
 
   if (isLoading && !refreshing) {
     return <LoadingSpinner message="Loading history..." />;
@@ -92,12 +78,12 @@ export default function BalanceHistory() {
             history.map((record: BalanceHistoryEntry, index: number) => (
               <TouchableOpacity
                 key={record.id || `history-${index}`}
-                onPress={() =>
-                  router.push({
-                    pathname: "/balance-detail",
-                    params: { date: record.date, shift: record.shift },
-                  })
-                }
+                onPress={() => {
+                  const route = record.isFinalized
+                    ? `/balance-detail?date=${record.date}&shift=${record.shift}`
+                    : `/reconcile-review?date=${record.date}&shift=${record.shift}`;
+                  router.push(route as any);
+                }}
                 className={`flex-row items-center p-4 border-b border-yellow-100 ${
                   index % 2 === 0 ? "bg-white" : "bg-yellow-50/30"
                 }`}

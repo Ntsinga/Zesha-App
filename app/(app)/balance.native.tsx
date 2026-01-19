@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React from "react";
 import { View, Text, TouchableOpacity, ScrollView, Alert } from "react-native";
 import { useRouter } from "expo-router";
 import {
@@ -9,148 +9,48 @@ import {
   CheckCircle2,
   Calculator,
 } from "lucide-react-native";
-import { useDispatch, useSelector } from "react-redux";
-import { fetchCashCounts } from "../../store/slices/cashCountSlice";
-import { fetchBalances } from "../../store/slices/balancesSlice";
-import { fetchAccounts } from "../../store/slices/accountsSlice";
-import { calculateReconciliation } from "../../store/slices/reconciliationsSlice";
-import { useCurrencyFormatter } from "../../hooks/useCurrency";
-import type { AppDispatch, RootState } from "../../store";
-import type { ShiftEnum } from "../../types";
+import { useBalanceMenuScreen } from "../../hooks/screens/useBalanceMenuScreen";
 
 export default function BalancePage() {
   const router = useRouter();
-  const dispatch = useDispatch<AppDispatch>();
-  const { formatCurrency } = useCurrencyFormatter();
-  const [selectedShift, setSelectedShift] = useState<ShiftEnum>("AM");
 
-  // Get today's date
-  const today = new Date().toISOString().split("T")[0];
-
-  // Get cash counts, balances, and accounts from Redux
-  const { items: cashCounts, isLoading } = useSelector(
-    (state: RootState) => state.cashCount
-  );
-
-  const { items: balances } = useSelector((state: RootState) => state.balances);
-
-  const { items: accounts } = useSelector((state: RootState) => state.accounts);
-
-  const { isCalculating } = useSelector(
-    (state: RootState) => state.reconciliations
-  );
-
-  const { user: backendUser } = useSelector((state: RootState) => state.auth);
-
-  // Fetch data on mount
-  useEffect(() => {
-    dispatch(fetchCashCounts({ count_date: today }));
-    dispatch(fetchBalances({ date_from: today, date_to: today }));
-    dispatch(fetchAccounts({ is_active: true }));
-  }, [dispatch, today]);
-
-  // Calculate shift completion status and totals
   const {
+    isLoading,
+    isCalculating,
+    today,
+    formatCurrency,
+    selectedShift,
+    setSelectedShift,
     hasAMShift,
     hasPMShift,
     latestShift,
     latestShiftTotal,
     hasTodayCashCount,
-  } = useMemo(() => {
-    const todayCounts = cashCounts.filter((cc) => cc.date === today);
+    hasAMBalances,
+    hasPMBalances,
+    latestBalanceShift,
+    hasTodayBalances,
+    handleNavigateCashCount,
+    handleNavigateAddBalance,
+    handleNavigateCommissions,
+    handleBack,
+    handleRefresh,
+    handleCalculate,
+  } = useBalanceMenuScreen();
 
-    const amCounts = todayCounts.filter((cc) => cc.shift === "AM");
-    const pmCounts = todayCounts.filter((cc) => cc.shift === "PM");
-
-    const hasAM = amCounts.length > 0;
-    const hasPM = pmCounts.length > 0;
-
-    // PM is considered "latest" if it exists, otherwise AM
-    let latest: ShiftEnum | null = null;
-    let total = 0;
-
-    if (hasPM) {
-      latest = "PM";
-      total = pmCounts.reduce(
-        (sum, cc) => sum + parseFloat(String(cc.amount)),
-        0
+  const handleCalculatePress = async () => {
+    const result = await handleCalculate();
+    if (result?.success) {
+      router.push(
+        `/reconcile-review?date=${today}&shift=${selectedShift}` as any
       );
-    } else if (hasAM) {
-      latest = "AM";
-      total = amCounts.reduce(
-        (sum, cc) => sum + parseFloat(String(cc.amount)),
-        0
+    } else {
+      Alert.alert(
+        "Error",
+        result?.error || "Failed to calculate reconciliation"
       );
     }
-
-    return {
-      hasAMShift: hasAM,
-      hasPMShift: hasPM,
-      latestShift: latest,
-      latestShiftTotal: total,
-      hasTodayCashCount: hasAM || hasPM,
-    };
-  }, [cashCounts, today]);
-
-  // Calculate balance completion status
-  const { hasAMBalances, hasPMBalances, latestBalanceShift, hasTodayBalances } =
-    useMemo(() => {
-      const activeAccounts = accounts.filter((acc) => acc.is_active);
-      const todayBalances = balances.filter((bal) =>
-        bal.date.startsWith(today)
-      );
-
-      console.log("[Balance] Completion check:", {
-        today,
-        activeAccountsCount: activeAccounts.length,
-        activeAccounts: activeAccounts.map((a) => ({ id: a.id, name: a.name })),
-        todayBalancesCount: todayBalances.length,
-        todayBalances: todayBalances.map((b) => ({
-          account_id: b.account_id,
-          shift: b.shift,
-        })),
-      });
-
-      const amBalances = todayBalances.filter((bal) => bal.shift === "AM");
-      const pmBalances = todayBalances.filter((bal) => bal.shift === "PM");
-
-      console.log("[Balance] Shift balances:", {
-        amCount: amBalances.length,
-        pmCount: pmBalances.length,
-        amAccounts: amBalances.map((b) => b.account_id),
-        pmAccounts: pmBalances.map((b) => b.account_id),
-      });
-
-      // Check if all active accounts have balances for each shift
-      const hasAM =
-        activeAccounts.length > 0 &&
-        activeAccounts.every((acc) =>
-          amBalances.some((bal) => bal.account_id === acc.id)
-        );
-
-      const hasPM =
-        activeAccounts.length > 0 &&
-        activeAccounts.every((acc) =>
-          pmBalances.some((bal) => bal.account_id === acc.id)
-        );
-
-      console.log("[Balance] Completion status:", { hasAM, hasPM });
-
-      // PM is considered "latest" if it exists, otherwise AM
-      let latest: ShiftEnum | null = null;
-      if (hasPM) {
-        latest = "PM";
-      } else if (hasAM) {
-        latest = "AM";
-      }
-
-      return {
-        hasAMBalances: hasAM,
-        hasPMBalances: hasPM,
-        latestBalanceShift: latest,
-        hasTodayBalances: hasAM || hasPM,
-      };
-    }, [balances, accounts, today]);
+  };
 
   return (
     <View className="flex-1 bg-gray-50">
@@ -158,7 +58,7 @@ export default function BalancePage() {
         {/* Header */}
         <View className="flex-row items-center mb-8 mt-4">
           <TouchableOpacity
-            onPress={() => router.back()}
+            onPress={handleBack}
             className="p-2 bg-white rounded-full shadow-sm mr-4"
           >
             <ArrowLeft color="#C62828" size={24} />
@@ -177,7 +77,7 @@ export default function BalancePage() {
         <View className="space-y-4">
           {/* Cash Count Option */}
           <TouchableOpacity
-            onPress={() => router.push("/add-cash-count")}
+            onPress={handleNavigateCashCount}
             className={`rounded-2xl p-5 shadow-sm ${
               hasTodayCashCount
                 ? "bg-green-50 border-2 border-green-500"
@@ -237,7 +137,7 @@ export default function BalancePage() {
 
           {/* Add Balances Option */}
           <TouchableOpacity
-            onPress={() => router.push("/add-balance")}
+            onPress={handleNavigateAddBalance}
             className={`rounded-2xl p-5 shadow-sm ${
               hasTodayBalances
                 ? "bg-green-50 border-2 border-green-500"
@@ -295,7 +195,7 @@ export default function BalancePage() {
 
           {/* Add Commissions Option */}
           <TouchableOpacity
-            onPress={() => router.push("/add-commission")}
+            onPress={handleNavigateCommissions}
             className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm"
           >
             <View className="flex-row items-center">
@@ -352,33 +252,7 @@ export default function BalancePage() {
             </View>
 
             <TouchableOpacity
-              onPress={async () => {
-                try {
-                  const result = await dispatch(
-                    calculateReconciliation({
-                      date: today,
-                      shift: selectedShift,
-                      user_id: backendUser?.id,
-                    })
-                  ).unwrap();
-
-                  // Navigate to review screen with results
-                  router.push({
-                    pathname: "/reconcile-review",
-                    params: {
-                      date: today,
-                      shift: selectedShift,
-                    },
-                  });
-                } catch (error) {
-                  Alert.alert(
-                    "Calculation Failed",
-                    error instanceof Error
-                      ? error.message
-                      : "Failed to calculate reconciliation. Please try again."
-                  );
-                }
-              }}
+              onPress={handleCalculatePress}
               disabled={isCalculating}
               className={`bg-brand-red rounded-2xl p-5 shadow-lg ${
                 isCalculating ? "opacity-50" : ""

@@ -1,6 +1,6 @@
 // API Configuration
 // Update this to match your FastAPI backend URL
-export const API_BASE_URL = "https://76d69666c829.ngrok-free.app";
+export const API_BASE_URL = "https://10a2001a0de5.ngrok-free.app";
 // process.env.EXPO_PUBLIC_API_URL || "https://048d74d27099.ngrok-free.app";
 
 // Default headers for API requests
@@ -62,9 +62,12 @@ export const API_ENDPOINTS = {
     delete: (id: number) => `/reconciliations/${id}`,
     perform: "/reconciliations/perform",
     summary: "/reconciliations/summary",
-    details: (date: string, shift: string) => `/reconciliations/${date}/${shift}/details`,
-    calculate: (date: string, shift: string) => `/reconciliations/${date}/${shift}/calculate`,
-    finalize: (date: string, shift: string) => `/reconciliations/${date}/${shift}/finalize`,
+    details: (date: string, shift: string) =>
+      `/reconciliations/${date}/${shift}/details`,
+    calculate: (date: string, shift: string) =>
+      `/reconciliations/${date}/${shift}/calculate`,
+    finalize: (date: string, shift: string) =>
+      `/reconciliations/${date}/${shift}/finalize`,
   },
 
   // Company Info

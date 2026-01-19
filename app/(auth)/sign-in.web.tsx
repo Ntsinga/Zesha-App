@@ -65,18 +65,22 @@ export default function SignInWeb() {
                   card: "clerk-card-split",
                   headerTitle: "clerk-header-title",
                   headerSubtitle: "clerk-header-subtitle",
-                  socialButtonsBlockButton: "clerk-social-button-split",
+                  socialButtonsBlockButton: "hide-element",
+                  socialButtonsBlockButtonText: "hide-element",
+                  socialButtons: "hide-element",
+                  dividerRow: "hide-element",
                   formFieldInput: "clerk-input-split",
                   formButtonPrimary: "clerk-primary-button-split",
                   footerActionLink: "clerk-link",
                   identifierInputField: "clerk-input-split",
                   formFieldLabel: "clerk-label-split",
-                  dividerLine: "clerk-divider",
-                  dividerText: "clerk-divider-text",
+                  dividerLine: "hide-element",
+                  dividerText: "hide-element",
                   footer: "clerk-footer-split",
                   formFieldInputShowPasswordButton: "clerk-password-button",
                   formFieldAction: "clerk-field-action-split",
                   otpCodeFieldInput: "clerk-input-split",
+                  socialButtonsBlockButton__google: "hide-element",
                 },
                 variables: {
                   colorPrimary: "#dc2626",
@@ -88,18 +92,8 @@ export default function SignInWeb() {
                 },
               }}
               routing="hash"
-              signUpUrl="/sign-up"
               fallbackRedirectUrl="/"
             />
-          </div>
-
-          <div className="auth-form-footer">
-            <p>
-              Don't have an account?{" "}
-              <a href="/sign-up" className="auth-signup-link">
-                Sign Up
-              </a>
-            </p>
           </div>
         </div>
       </div>

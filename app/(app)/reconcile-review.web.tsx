@@ -1,5 +1,4 @@
-import React, { useEffect, useState } from "react";
-import { useRouter } from "expo-router";
+import React from "react";
 import {
   ArrowLeft,
   CheckCircle,
@@ -8,22 +7,10 @@ import {
   RefreshCw,
   Lock,
 } from "lucide-react";
-import { useDispatch, useSelector } from "react-redux";
-import {
-  fetchReconciliationDetails,
-  calculateReconciliation,
-  finalizeReconciliation,
-  clearCalculatedResult,
-} from "../../store/slices/reconciliationsSlice";
-import { useCurrencyFormatter } from "../../hooks/useCurrency";
-import type { AppDispatch, RootState } from "../../store";
+import { useReconcileReviewScreen } from "../../hooks/screens/useReconcileReviewScreen";
 import "../../styles/web.css";
 
 export default function ReconcileReviewWeb() {
-  const router = useRouter();
-  const dispatch = useDispatch<AppDispatch>();
-  const { formatCurrency } = useCurrencyFormatter();
-
   // Get params from URL
   const urlParams = new URLSearchParams(
     typeof window !== "undefined" ? window.location.search : ""
@@ -31,55 +18,30 @@ export default function ReconcileReviewWeb() {
   const date = urlParams.get("date") || "";
   const shift = (urlParams.get("shift") as "AM" | "PM") || "AM";
 
-  const [notes, setNotes] = useState("");
-
   const {
-    calculatedResult,
-    reconciliationDetails,
+    notes,
+    setNotes,
+    reconciliation,
     isLoading,
     isCalculating,
     isFinalizing,
     error,
-  } = useSelector((state: RootState) => state.reconciliations);
+    formatCurrency,
+    handleRecalculate,
+    handleFinalize,
+    handleBack,
+  } = useReconcileReviewScreen({ date, shift });
 
-  const { user: backendUser } = useSelector((state: RootState) => state.auth);
-
-  // Fetch details on mount
-  useEffect(() => {
-    if (date && shift) {
-      dispatch(fetchReconciliationDetails({ date, shift }));
-    }
-
-    return () => {
-      dispatch(clearCalculatedResult());
-    };
-  }, [dispatch, date, shift]);
-
-  // Get reconciliation data
-  const reconciliation =
-    calculatedResult?.data || reconciliationDetails?.reconciliation;
-
-  const handleRecalculate = async () => {
-    if (!date || !shift) return;
-
-    try {
-      await dispatch(
-        calculateReconciliation({
-          date,
-          shift,
-          user_id: backendUser?.id,
-        })
-      ).unwrap();
-
+  const handleRecalculatePress = async () => {
+    const result = await handleRecalculate();
+    if (result?.success) {
       alert("Reconciliation recalculated successfully");
-    } catch (error) {
-      alert(error instanceof Error ? error.message : "Failed to recalculate");
+    } else {
+      alert(result?.error || "Failed to recalculate");
     }
   };
 
-  const handleFinalize = async () => {
-    if (!date || !shift) return;
-
+  const handleFinalizePress = async () => {
     if (reconciliation?.is_finalized) {
       alert("This reconciliation is already locked");
       return;
@@ -93,20 +55,12 @@ export default function ReconcileReviewWeb() {
       return;
     }
 
-    try {
-      await dispatch(
-        finalizeReconciliation({
-          date,
-          shift,
-          reconciled_by: backendUser?.id,
-          notes: notes || undefined,
-        })
-      ).unwrap();
-
+    const result = await handleFinalize();
+    if (result?.success) {
       alert("Reconciliation finalized and notifications sent!");
-      router.back();
-    } catch (error) {
-      alert(error instanceof Error ? error.message : "Failed to finalize");
+      handleBack();
+    } else {
+      alert(result?.error || "Failed to finalize");
     }
   };
 
@@ -159,7 +113,7 @@ export default function ReconcileReviewWeb() {
           <XCircle size={48} color="#EF4444" />
           <h2>Error Loading Reconciliation</h2>
           <p>{error}</p>
-          <button onClick={() => router.back()} className="btn-primary">
+          <button onClick={handleBack} className="btn-primary">
             Go Back
           </button>
         </div>
@@ -172,7 +126,7 @@ export default function ReconcileReviewWeb() {
       <div className="page-wrapper">
         <div className="error-container">
           <p>No reconciliation found</p>
-          <button onClick={() => router.back()} className="btn-primary">
+          <button onClick={handleBack} className="btn-primary">
             Go Back
           </button>
         </div>
@@ -187,11 +141,7 @@ export default function ReconcileReviewWeb() {
       {/* Header */}
       <header className="header-bar">
         <div className="header-left">
-          <button
-            onClick={() => router.back()}
-            className="btn-icon"
-            title="Go back"
-          >
+          <button onClick={handleBack} className="btn-icon" title="Go back">
             <ArrowLeft size={20} />
           </button>
           <div>
@@ -296,7 +246,7 @@ export default function ReconcileReviewWeb() {
           {!reconciliation.is_finalized && (
             <div className="action-buttons">
               <button
-                onClick={handleRecalculate}
+                onClick={handleRecalculatePress}
                 disabled={isCalculating}
                 className="btn-secondary"
               >
@@ -305,7 +255,7 @@ export default function ReconcileReviewWeb() {
               </button>
 
               <button
-                onClick={handleFinalize}
+                onClick={handleFinalizePress}
                 disabled={isFinalizing}
                 className="btn-primary"
               >

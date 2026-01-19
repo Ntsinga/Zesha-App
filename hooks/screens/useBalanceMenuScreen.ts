@@ -139,11 +139,40 @@ export function useBalanceMenuScreen() {
     dispatch(fetchAccounts({ is_active: true }));
   };
 
+  const handleCalculate = async () => {
+    if (!backendUser?.id) {
+      return {
+        success: false,
+        error: "User not authenticated",
+      };
+    }
+
+    try {
+      await dispatch(
+        calculateReconciliation({
+          date: today,
+          shift: selectedShift,
+          user_id: backendUser.id,
+        })
+      ).unwrap();
+
+      return { success: true };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message || "Failed to calculate reconciliation",
+      };
+    }
+  };
+
   return {
     // State
     isLoading,
+    isCalculating,
     today,
     formatCurrency,
+    selectedShift,
+    setSelectedShift,
 
     // Cash count status
     ...cashCountStatus,
@@ -157,5 +186,6 @@ export function useBalanceMenuScreen() {
     handleNavigateCommissions,
     handleBack,
     handleRefresh,
+    handleCalculate,
   };
 }
