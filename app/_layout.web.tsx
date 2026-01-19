@@ -24,8 +24,17 @@ function AppContent() {
     if (!isLoaded) return;
 
     const currentPath = window.location.pathname;
+    const hasInviteTicket = window.location.search.includes("__clerk_ticket");
+
     const inAuthGroup =
-      currentPath.includes("/sign-in") || currentPath.includes("/sign-up");
+      currentPath.includes("/sign-in") ||
+      currentPath.includes("/sign-up") ||
+      currentPath.includes("/welcome");
+
+    // Don't redirect if user has an invite ticket - let them complete signup
+    if (hasInviteTicket) {
+      return;
+    }
 
     if (!isSignedIn && !inAuthGroup) {
       // Redirect to sign-in if not authenticated and not in auth group

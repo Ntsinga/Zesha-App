@@ -13,6 +13,7 @@ import {
   useSettingsScreen,
   CURRENCIES,
 } from "../../hooks/screens/useSettingsScreen";
+import UserManagement from "../../components/UserManagement";
 import "../../styles/web.css";
 
 export default function Settings() {
@@ -265,6 +266,9 @@ export default function Settings() {
               </div>
             )}
           </div>
+
+          {/* User Management Card */}
+          <UserManagement />
         </div>
 
         {/* Save Button */}

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import {
   View,
   Text,
@@ -7,7 +7,7 @@ import {
   Alert,
   TextInput,
 } from "react-native";
-import { useRouter, useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 import {
   ArrowLeft,
   CheckCircle,
@@ -16,81 +16,39 @@ import {
   RefreshCw,
   Lock,
 } from "lucide-react-native";
-import { useDispatch, useSelector } from "react-redux";
-import {
-  fetchReconciliationDetails,
-  calculateReconciliation,
-  finalizeReconciliation,
-  clearCalculatedResult,
-} from "../../store/slices/reconciliationsSlice";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
-import { useCurrencyFormatter } from "../../hooks/useCurrency";
-import type { AppDispatch, RootState } from "../../store";
+import { useReconcileReviewScreen } from "../../hooks/screens/useReconcileReviewScreen";
 
 export default function ReconcileReviewScreen() {
-  const router = useRouter();
-  const dispatch = useDispatch<AppDispatch>();
-  const { formatCurrency } = useCurrencyFormatter();
   const params = useLocalSearchParams<{ date: string; shift: "AM" | "PM" }>();
 
-  const [notes, setNotes] = useState("");
-  const [showNotes, setShowNotes] = useState(false);
-
   const {
-    calculatedResult,
-    reconciliationDetails,
+    notes,
+    setNotes,
+    reconciliation,
     isLoading,
     isCalculating,
     isFinalizing,
     error,
-  } = useSelector((state: RootState) => state.reconciliations);
+    formatCurrency,
+    handleRecalculate,
+    handleFinalize,
+    handleBack,
+  } = useReconcileReviewScreen({
+    date: params.date || "",
+    shift: params.shift || "AM",
+  });
 
-  const { user: backendUser } = useSelector((state: RootState) => state.auth);
-
-  // Fetch details on mount
-  useEffect(() => {
-    if (params.date && params.shift) {
-      dispatch(
-        fetchReconciliationDetails({
-          date: params.date,
-          shift: params.shift,
-        })
-      );
-    }
-
-    return () => {
-      dispatch(clearCalculatedResult());
-    };
-  }, [dispatch, params.date, params.shift]);
-
-  // Get reconciliation data
-  const reconciliation =
-    calculatedResult?.data || reconciliationDetails?.reconciliation;
-
-  const handleRecalculate = async () => {
-    if (!params.date || !params.shift) return;
-
-    try {
-      await dispatch(
-        calculateReconciliation({
-          date: params.date,
-          shift: params.shift,
-          user_id: backendUser?.id,
-        })
-      ).unwrap();
-
+  const handleRecalculatePress = async () => {
+    const result = await handleRecalculate();
+    if (result?.success) {
       Alert.alert("Success", "Reconciliation recalculated successfully");
-    } catch (error) {
-      Alert.alert(
-        "Error",
-        error instanceof Error ? error.message : "Failed to recalculate"
-      );
+    } else {
+      Alert.alert("Error", result?.error || "Failed to recalculate");
     }
   };
 
-  const handleFinalize = async () => {
-    if (!params.date || !params.shift) return;
-
+  const handleFinalizePress = () => {
     if (reconciliation?.is_finalized) {
       Alert.alert("Already Finalized", "This reconciliation is already locked");
       return;
@@ -105,31 +63,15 @@ export default function ReconcileReviewScreen() {
           text: "Finalize",
           style: "destructive",
           onPress: async () => {
-            try {
-              await dispatch(
-                finalizeReconciliation({
-                  date: params.date!,
-                  shift: params.shift!,
-                  reconciled_by: backendUser?.id,
-                  notes: notes || undefined,
-                })
-              ).unwrap();
-
+            const result = await handleFinalize();
+            if (result?.success) {
               Alert.alert(
                 "Success",
                 "Reconciliation finalized and notifications sent!",
-                [
-                  {
-                    text: "OK",
-                    onPress: () => router.back(),
-                  },
-                ]
+                [{ text: "OK", onPress: handleBack }]
               );
-            } catch (error) {
-              Alert.alert(
-                "Error",
-                error instanceof Error ? error.message : "Failed to finalize"
-              );
+            } else {
+              Alert.alert("Error", result?.error || "Failed to finalize");
             }
           },
         },
@@ -150,7 +92,7 @@ export default function ReconcileReviewScreen() {
         </Text>
         <Text className="text-gray-600 text-center mt-2">{error}</Text>
         <TouchableOpacity
-          onPress={() => router.back()}
+          onPress={handleBack}
           className="mt-6 bg-brand-red px-6 py-3 rounded-xl"
         >
           <Text className="text-white font-bold">Go Back</Text>
@@ -166,7 +108,7 @@ export default function ReconcileReviewScreen() {
           No reconciliation found
         </Text>
         <TouchableOpacity
-          onPress={() => router.back()}
+          onPress={handleBack}
           className="mt-6 bg-brand-red px-6 py-3 rounded-xl"
         >
           <Text className="text-white font-bold">Go Back</Text>
@@ -223,7 +165,7 @@ export default function ReconcileReviewScreen() {
         <View className="flex-row items-center justify-between">
           <View className="flex-row items-center">
             <TouchableOpacity
-              onPress={() => router.back()}
+              onPress={handleBack}
               className="p-2 bg-gray-100 rounded-full mr-4"
             >
               <ArrowLeft color="#C62828" size={24} />
@@ -348,7 +290,7 @@ export default function ReconcileReviewScreen() {
         {!reconciliation.is_finalized && (
           <View className="space-y-3 mb-6">
             <TouchableOpacity
-              onPress={handleRecalculate}
+              onPress={handleRecalculatePress}
               disabled={isCalculating}
               className={`bg-white border-2 border-brand-red rounded-xl p-4 flex-row items-center justify-center ${
                 isCalculating ? "opacity-50" : ""
@@ -361,7 +303,7 @@ export default function ReconcileReviewScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity
-              onPress={handleFinalize}
+              onPress={handleFinalizePress}
               disabled={isFinalizing}
               className={`bg-brand-red rounded-xl p-4 flex-row items-center justify-center shadow-lg ${
                 isFinalizing ? "opacity-50" : ""

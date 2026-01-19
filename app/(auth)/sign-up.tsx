@@ -12,7 +12,7 @@ import {
   StatusBar,
 } from "react-native";
 import { useSignUp, useOAuth } from "@clerk/clerk-expo";
-import { useRouter, Link } from "expo-router";
+import { useRouter, Link, useLocalSearchParams } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import * as Linking from "expo-linking";
 import { Ionicons } from "@expo/vector-icons";
@@ -48,6 +48,7 @@ export default function SignUpPage() {
   const redirectUrl = Linking.createURL("/");
   const { startOAuthFlow } = useOAuth({ strategy: "oauth_google" });
   const router = useRouter();
+  const params = useLocalSearchParams();
   const [emailOrPhone, setEmailOrPhone] = useState("");
   const [password, setPassword] = useState("");
   const [pendingVerification, setPendingVerification] = useState(false);
@@ -55,6 +56,17 @@ export default function SignUpPage() {
   const [loading, setLoading] = useState(false);
   const [usePhone, setUsePhone] = useState(false);
   const [step, setStep] = useState<"identifier" | "password">("identifier");
+
+  // Check if this is an invite flow
+  React.useEffect(() => {
+    if (!isLoaded) return;
+
+    // If email is pre-populated from invite, show it
+    if (signUp?.emailAddress) {
+      setEmailOrPhone(signUp.emailAddress);
+      setStep("password");
+    }
+  }, [isLoaded, signUp]);
 
   const onContinuePress = async () => {
     if (!emailOrPhone.trim()) {
@@ -79,6 +91,35 @@ export default function SignUpPage() {
 
     setLoading(true);
     try {
+      // Check if this is an invite flow (email is pre-populated from ticket)
+      const isInviteFlow =
+        signUp?.emailAddress && emailOrPhone === signUp.emailAddress;
+
+      if (isInviteFlow) {
+        // For invites, just update with password - Clerk handles the ticket automatically
+        const result = await signUp.update({
+          password,
+        });
+
+        if (result.status === "complete") {
+          await setActive({ session: result.createdSessionId });
+          router.replace("/(app)");
+          return;
+        }
+
+        // If update didn't complete, try standard verification
+        const verifyResult = await signUp.attemptEmailAddressVerification({
+          code: "",
+        });
+
+        if (verifyResult.status === "complete") {
+          await setActive({ session: verifyResult.createdSessionId });
+          router.replace("/(app)");
+          return;
+        }
+      }
+
+      // Regular signup flow
       if (usePhone) {
         // Phone number signup
         await signUp.create({
