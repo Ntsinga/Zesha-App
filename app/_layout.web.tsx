@@ -6,13 +6,14 @@ import ErrorBoundary from "../components/ErrorBoundary";
 import { store } from "../store";
 import { useAppDispatch } from "../store/hooks";
 import { initializeAuth } from "../store/slices/authSlice";
-import { ClerkProvider, useAuth } from "@clerk/clerk-react";
+import { ClerkProvider, useAuth, useUser } from "@clerk/clerk-react";
 import { useRouter } from "expo-router";
 
 // Inner component that uses Redux hooks
 function AppContent() {
   const dispatch = useAppDispatch();
   const { isSignedIn, isLoaded } = useAuth();
+  const { user } = useUser();
   const router = useRouter();
 
   useEffect(() => {
@@ -29,21 +30,31 @@ function AppContent() {
     const inAuthGroup =
       currentPath.includes("/sign-in") ||
       currentPath.includes("/sign-up") ||
-      currentPath.includes("/welcome");
+      currentPath.includes("/welcome") ||
+      currentPath.includes("/set-password");
 
     // Don't redirect if user has an invite ticket - let them complete signup
     if (hasInviteTicket) {
       return;
     }
 
+    // Check if authenticated user needs to set password
+    if (isSignedIn && user && !user.passwordEnabled) {
+      // Force password setup for users without passwords
+      if (!currentPath.includes("/set-password")) {
+        router.replace("/set-password");
+      }
+      return;
+    }
+
     if (!isSignedIn && !inAuthGroup) {
       // Redirect to sign-in if not authenticated and not in auth group
       router.replace("/sign-in");
-    } else if (isSignedIn && inAuthGroup) {
-      // Redirect to app if authenticated and in auth group
+    } else if (isSignedIn && user?.passwordEnabled && inAuthGroup) {
+      // Redirect to app if authenticated with password and in auth group
       router.replace("/");
     }
-  }, [isSignedIn, isLoaded, router]);
+  }, [isSignedIn, isLoaded, user, router]);
 
   // Show loading while Clerk is loading
   if (!isLoaded) {
@@ -74,7 +85,7 @@ export default function RootLayoutWeb() {
 
   if (!publishableKey) {
     throw new Error(
-      "Missing Publishable Key. Please set EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY in your .env"
+      "Missing Publishable Key. Please set EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY in your .env",
     );
   }
 
