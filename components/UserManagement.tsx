@@ -129,6 +129,25 @@ export default function UserManagement() {
           </div>
         </div>
 
+        <div className="form-group">
+          <label className="form-label">
+            Role <span className="text-red-500">*</span>
+          </label>
+          <div className="input-with-icon">
+            <User size={18} className="input-icon" />
+            <select
+              value={formData.role}
+              onChange={(e) => handleInputChange("role", e.target.value)}
+              className="form-input"
+              required
+            >
+              <option value="Agent">Agent</option>
+              <option value="Agent Supervisor">Agent Supervisor</option>
+              <option value="Administrator">Administrator</option>
+            </select>
+          </div>
+        </div>
+
         <div className="form-actions">
           <button
             type="button"

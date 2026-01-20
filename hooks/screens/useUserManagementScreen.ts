@@ -11,6 +11,7 @@ interface FormData {
   first_name: string;
   last_name: string;
   phone_number: string;
+  role: string;
 }
 
 export const useUserManagementScreen = () => {
@@ -23,6 +24,7 @@ export const useUserManagementScreen = () => {
     first_name: "",
     last_name: "",
     phone_number: "",
+    role: "Agent",
   });
 
   const [validationError, setValidationError] = useState<string | null>(null);
@@ -71,11 +73,18 @@ export const useUserManagementScreen = () => {
       return;
     }
 
+    // Get the frontend URL from window location or construct it
+    const frontendUrl = typeof window !== 'undefined' 
+      ? `${window.location.protocol}//${window.location.host}`
+      : undefined;
+
     const inviteData: UserInviteRequest = {
       email: formData.email,
       first_name: formData.first_name,
       last_name: formData.last_name,
       phone_number: formData.phone_number || undefined,
+      role: formData.role,
+      redirect_url: frontendUrl ? `${frontendUrl}/welcome` : undefined,
     };
 
     const result = await dispatch(inviteUser(inviteData));
@@ -92,6 +101,7 @@ export const useUserManagementScreen = () => {
       first_name: "",
       last_name: "",
       phone_number: "",
+      role: "Agent",
     });
     setValidationError(null);
   };

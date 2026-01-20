@@ -7,7 +7,7 @@ import ErrorBoundary from "../components/ErrorBoundary";
 import { store } from "../store";
 import { useAppDispatch } from "../store/hooks";
 import { initializeAuth } from "../store/slices/authSlice";
-import { ClerkProvider, useAuth } from "@clerk/clerk-expo";
+import { ClerkProvider, useAuth, useUser } from "@clerk/clerk-expo";
 import { tokenCache } from "@clerk/clerk-expo/token-cache";
 import { useRouter, useSegments } from "expo-router";
 import { ActivityIndicator, View } from "react-native";
@@ -17,6 +17,7 @@ import { useClerkUserSync } from "../hooks/useClerkUserSync";
 function AppContent() {
   const dispatch = useAppDispatch();
   const { isSignedIn, isLoaded } = useAuth();
+  const { user } = useUser();
   const router = useRouter();
   const segments = useSegments();
 
@@ -32,15 +33,27 @@ function AppContent() {
     if (!isLoaded) return;
 
     const inAuthGroup = segments[0] === "(auth)";
+    // Type assertion to handle segments array properly
+    const authSegments = segments as string[];
+    const isOnSetPassword = authSegments[1] === "set-password";
+
+    // Check if authenticated user needs to set password
+    if (isSignedIn && user && !user.passwordEnabled) {
+      // Force password setup for users without passwords
+      if (!inAuthGroup || !isOnSetPassword) {
+        router.replace("/(auth)/set-password");
+      }
+      return;
+    }
 
     if (!isSignedIn && !inAuthGroup) {
       // Redirect to sign-in if not authenticated and not in auth group
       router.replace("/(auth)/sign-in");
-    } else if (isSignedIn && inAuthGroup) {
-      // Redirect to app if authenticated and in auth group
+    } else if (isSignedIn && user?.passwordEnabled && inAuthGroup) {
+      // Redirect to app if authenticated with password and in auth group
       router.replace("/(app)");
     }
-  }, [isSignedIn, isLoaded, segments]);
+  }, [isSignedIn, isLoaded, user, segments]);
 
   // Show loading spinner while Clerk is loading or syncing user
   if (!isLoaded || isSyncing) {

@@ -7,6 +7,7 @@ export interface UserInviteRequest {
   first_name: string;
   last_name: string;
   phone_number?: string;
+  role: string;
   redirect_url?: string;
 }
 

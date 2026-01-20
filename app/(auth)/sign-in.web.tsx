@@ -81,6 +81,7 @@ export default function SignInWeb() {
                   formFieldAction: "clerk-field-action-split",
                   otpCodeFieldInput: "clerk-input-split",
                   socialButtonsBlockButton__google: "hide-element",
+                  alternativeMethodsBlockButton: "hide-element",
                 },
                 variables: {
                   colorPrimary: "#dc2626",
@@ -93,6 +94,7 @@ export default function SignInWeb() {
               }}
               routing="hash"
               fallbackRedirectUrl="/"
+              forceRedirectUrl="/"
             />
           </div>
         </div>
