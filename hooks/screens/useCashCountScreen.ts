@@ -7,6 +7,7 @@ import {
   deleteCashCount,
 } from "../../store/slices/cashCountSlice";
 import { fetchDashboard } from "../../store/slices/dashboardSlice";
+import { selectCompanyId } from "../../store/slices/authSlice";
 import { useCurrencyFormatter } from "../useCurrency";
 import type { AppDispatch, RootState } from "../../store";
 import type { ShiftEnum, CashCountCreate } from "../../types";
@@ -38,6 +39,7 @@ export function useCashCountScreen() {
   const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
   const { formatCurrency } = useCurrencyFormatter();
+  const companyId = useSelector(selectCompanyId);
 
   // Get today's date
   const today = new Date().toISOString().split("T")[0];
@@ -57,12 +59,12 @@ export function useCashCountScreen() {
       quantity: "",
       isCoin: d.isCoin,
       isNote: d.isNote,
-    }))
+    })),
   );
 
   // Get cash counts from Redux
   const { items: cashCounts, isLoading } = useSelector(
-    (state: RootState) => state.cashCount
+    (state: RootState) => state.cashCount,
   );
 
   // Fetch cash counts on mount
@@ -73,7 +75,7 @@ export function useCashCountScreen() {
   // Pre-populate entries when shift changes or cash counts are loaded
   useEffect(() => {
     const shiftCounts = cashCounts.filter(
-      (cc) => cc.date === today && cc.shift === shift
+      (cc) => cc.date === today && cc.shift === shift,
     );
 
     if (shiftCounts.length > 0) {
@@ -97,7 +99,7 @@ export function useCashCountScreen() {
             return { ...entry, quantity: String(match.quantity) };
           }
           return { ...entry, quantity: "" };
-        })
+        }),
       );
     } else {
       setIsEditing(false);
@@ -110,8 +112,8 @@ export function useCashCountScreen() {
 
     setEntries((prev) =>
       prev.map((entry, i) =>
-        i === index ? { ...entry, quantity: value } : entry
-      )
+        i === index ? { ...entry, quantity: value } : entry,
+      ),
     );
   };
 
@@ -120,8 +122,8 @@ export function useCashCountScreen() {
       prev.map((entry, i) =>
         i === index
           ? { ...entry, quantity: String(parseInt(entry.quantity || "0") + 1) }
-          : entry
-      )
+          : entry,
+      ),
     );
   };
 
@@ -131,7 +133,7 @@ export function useCashCountScreen() {
         if (i !== index) return entry;
         const current = parseInt(entry.quantity || "0");
         return { ...entry, quantity: current > 0 ? String(current - 1) : "" };
-      })
+      }),
     );
   };
 
@@ -162,7 +164,7 @@ export function useCashCountScreen() {
     message: string;
   }> => {
     const validEntries = entries.filter(
-      (entry) => parseInt(entry.quantity || "0") > 0
+      (entry) => parseInt(entry.quantity || "0") > 0,
     );
 
     if (validEntries.length === 0) {
@@ -172,21 +174,29 @@ export function useCashCountScreen() {
       };
     }
 
+    if (!companyId) {
+      return {
+        success: false,
+        message: "Company not found. Please log in again.",
+      };
+    }
+
     setIsSubmitting(true);
 
     try {
       // If editing, delete existing cash counts for this shift first
       if (isEditing) {
         const existingCounts = cashCounts.filter(
-          (cc) => cc.date === today && cc.shift === shift
+          (cc) => cc.date === today && cc.shift === shift,
         );
 
         await Promise.all(
-          existingCounts.map((cc) => dispatch(deleteCashCount(cc.id)).unwrap())
+          existingCounts.map((cc) => dispatch(deleteCashCount(cc.id)).unwrap()),
         );
       }
 
       const cashCountData: CashCountCreate[] = validEntries.map((entry) => ({
+        company_id: companyId,
         denomination: entry.denomination,
         quantity: parseInt(entry.quantity),
         amount: entry.displayValue * parseInt(entry.quantity),

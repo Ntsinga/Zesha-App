@@ -43,7 +43,7 @@ const initialState: ReconciliationsState = {
 // API helper
 async function apiRequest<T>(
   endpoint: string,
-  options?: RequestInit
+  options?: RequestInit,
 ): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     headers: {
@@ -75,17 +75,17 @@ export const fetchReconciliations = createAsyncThunk(
     try {
       const query = buildQueryString(filters);
       const reconciliations = await apiRequest<Reconciliation[]>(
-        `${API_ENDPOINTS.reconciliations.list}${query}`
+        `${API_ENDPOINTS.reconciliations.list}${query}`,
       );
       return reconciliations;
     } catch (error) {
       return rejectWithValue(
         error instanceof Error
           ? error.message
-          : "Failed to fetch reconciliations"
+          : "Failed to fetch reconciliations",
       );
     }
-  }
+  },
 );
 
 export const fetchReconciliationById = createAsyncThunk(
@@ -93,17 +93,17 @@ export const fetchReconciliationById = createAsyncThunk(
   async (id: number, { rejectWithValue }) => {
     try {
       const reconciliation = await apiRequest<Reconciliation>(
-        API_ENDPOINTS.reconciliations.get(id)
+        API_ENDPOINTS.reconciliations.get(id),
       );
       return reconciliation;
     } catch (error) {
       return rejectWithValue(
         error instanceof Error
           ? error.message
-          : "Failed to fetch reconciliation"
+          : "Failed to fetch reconciliation",
       );
     }
-  }
+  },
 );
 
 export const createReconciliation = createAsyncThunk(
@@ -115,24 +115,24 @@ export const createReconciliation = createAsyncThunk(
         {
           method: "POST",
           body: JSON.stringify(data),
-        }
+        },
       );
       return reconciliation;
     } catch (error) {
       return rejectWithValue(
         error instanceof Error
           ? error.message
-          : "Failed to create reconciliation"
+          : "Failed to create reconciliation",
       );
     }
-  }
+  },
 );
 
 export const updateReconciliation = createAsyncThunk(
   "reconciliations/update",
   async (
     { id, data }: { id: number; data: ReconciliationUpdate },
-    { rejectWithValue }
+    { rejectWithValue },
   ) => {
     try {
       const reconciliation = await apiRequest<Reconciliation>(
@@ -140,17 +140,17 @@ export const updateReconciliation = createAsyncThunk(
         {
           method: "PATCH",
           body: JSON.stringify(data),
-        }
+        },
       );
       return reconciliation;
     } catch (error) {
       return rejectWithValue(
         error instanceof Error
           ? error.message
-          : "Failed to update reconciliation"
+          : "Failed to update reconciliation",
       );
     }
-  }
+  },
 );
 
 export const deleteReconciliation = createAsyncThunk(
@@ -165,10 +165,10 @@ export const deleteReconciliation = createAsyncThunk(
       return rejectWithValue(
         error instanceof Error
           ? error.message
-          : "Failed to delete reconciliation"
+          : "Failed to delete reconciliation",
       );
     }
-  }
+  },
 );
 
 // Fetch reconciliation history (for history list screen)
@@ -183,22 +183,22 @@ export const fetchReconciliationHistory = createAsyncThunk(
       shift?: "AM" | "PM";
       finalized_only?: boolean;
     } = {},
-    { rejectWithValue }
+    { rejectWithValue },
   ) => {
     try {
       const query = buildQueryString(params);
       const history = await apiRequest<any[]>(
-        `${API_ENDPOINTS.reconciliations.history}${query}`
+        `${API_ENDPOINTS.reconciliations.history}${query}`,
       );
       return history;
     } catch (error) {
       return rejectWithValue(
         error instanceof Error
           ? error.message
-          : "Failed to fetch reconciliation history"
+          : "Failed to fetch reconciliation history",
       );
     }
-  }
+  },
 );
 
 // Calculate reconciliation for a date/shift
@@ -206,28 +206,28 @@ export const calculateReconciliation = createAsyncThunk(
   "reconciliations/calculate",
   async (
     params: { date: string; shift: "AM" | "PM"; user_id?: number },
-    { rejectWithValue }
+    { rejectWithValue },
   ) => {
     try {
       const query = params.user_id ? `?user_id=${params.user_id}` : "";
       const result = await apiRequest<any>(
         `${API_ENDPOINTS.reconciliations.calculate(
           params.date,
-          params.shift
+          params.shift,
         )}${query}`,
         {
           method: "POST",
-        }
+        },
       );
       return result;
     } catch (error) {
       return rejectWithValue(
         error instanceof Error
           ? error.message
-          : "Failed to calculate reconciliation"
+          : "Failed to calculate reconciliation",
       );
     }
-  }
+  },
 );
 
 // Finalize reconciliation
@@ -240,7 +240,7 @@ export const finalizeReconciliation = createAsyncThunk(
       reconciled_by?: number;
       notes?: string;
     },
-    { rejectWithValue }
+    { rejectWithValue },
   ) => {
     try {
       const body = {
@@ -252,17 +252,17 @@ export const finalizeReconciliation = createAsyncThunk(
         {
           method: "POST",
           body: JSON.stringify(body),
-        }
+        },
       );
       return result;
     } catch (error) {
       return rejectWithValue(
         error instanceof Error
           ? error.message
-          : "Failed to finalize reconciliation"
+          : "Failed to finalize reconciliation",
       );
     }
-  }
+  },
 );
 
 // Approve/reject reconciliation - supervisor/admin only
@@ -276,7 +276,7 @@ export const approveReconciliation = createAsyncThunk(
       approved_by: number;
       rejection_reason?: string;
     },
-    { rejectWithValue }
+    { rejectWithValue },
   ) => {
     try {
       const body: {
@@ -295,17 +295,17 @@ export const approveReconciliation = createAsyncThunk(
         {
           method: "POST",
           body: JSON.stringify(body),
-        }
+        },
       );
       return { ...result, action: params.action };
     } catch (error) {
       return rejectWithValue(
         error instanceof Error
           ? error.message
-          : `Failed to ${params.action.toLowerCase()} reconciliation`
+          : `Failed to ${params.action.toLowerCase()} reconciliation`,
       );
     }
-  }
+  },
 );
 
 // Fetch reconciliation details (for review screen)
@@ -314,17 +314,17 @@ export const fetchReconciliationDetails = createAsyncThunk(
   async (params: { date: string; shift: "AM" | "PM" }, { rejectWithValue }) => {
     try {
       const details = await apiRequest<any>(
-        API_ENDPOINTS.reconciliations.details(params.date, params.shift)
+        API_ENDPOINTS.reconciliations.details(params.date, params.shift),
       );
       return details;
     } catch (error) {
       return rejectWithValue(
         error instanceof Error
           ? error.message
-          : "Failed to fetch reconciliation details"
+          : "Failed to fetch reconciliation details",
       );
     }
-  }
+  },
 );
 
 // Slice
@@ -405,7 +405,7 @@ const reconciliationsSlice = createSlice({
     builder
       .addCase(updateReconciliation.fulfilled, (state, action) => {
         const index = state.items.findIndex(
-          (item) => item.id === action.payload.id
+          (item) => item.id === action.payload.id,
         );
         if (index !== -1) {
           state.items[index] = action.payload;
@@ -501,10 +501,12 @@ const reconciliationsSlice = createSlice({
         if (state.reconciliationDetails?.reconciliation) {
           if (action.payload.action === "APPROVED") {
             state.reconciliationDetails.reconciliation.is_approved = true;
-            state.reconciliationDetails.reconciliation.approval_status = "APPROVED";
+            state.reconciliationDetails.reconciliation.approval_status =
+              "APPROVED";
           } else {
             state.reconciliationDetails.reconciliation.is_finalized = false;
-            state.reconciliationDetails.reconciliation.approval_status = "REJECTED";
+            state.reconciliationDetails.reconciliation.approval_status =
+              "REJECTED";
           }
         }
       })
@@ -539,4 +541,27 @@ export const {
   clearReconciliationDetails,
   clearHistory,
 } = reconciliationsSlice.actions;
+
+// Selectors
+// Transform reconciliation history into UI-friendly balance history format
+export const selectBalanceHistory = (state: {
+  reconciliations: ReconciliationsState;
+}) => {
+  return state.reconciliations.history.map((item: any) => ({
+    id: item.id?.toString() || "",
+    date: item.date,
+    shift: item.shift,
+    totalFloat: item.total_float,
+    totalCash: item.total_cash,
+    totalCommissions: item.total_commissions,
+    expectedClosing: item.expected_closing,
+    actualClosing: item.actual_closing,
+    variance: item.variance,
+    status: item.status,
+    isFinalized: item.is_finalized,
+    reconciledBy: item.reconciled_by,
+    reconciledAt: item.reconciled_at,
+  }));
+};
+
 export default reconciliationsSlice.reducer;

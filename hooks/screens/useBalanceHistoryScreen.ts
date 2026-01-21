@@ -1,6 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { fetchBalanceHistory } from "../../store/slices/balanceHistorySlice";
+import {
+  fetchReconciliationHistory,
+  selectBalanceHistory,
+} from "../../store/slices/reconciliationsSlice";
 import { useCurrencyFormatter } from "../useCurrency";
 import { formatDate } from "../../utils/formatters";
 import type { AppDispatch, RootState } from "../../store";
@@ -13,11 +16,10 @@ export function useBalanceHistoryScreen() {
   const dispatch = useDispatch<AppDispatch>();
   const { formatCurrency } = useCurrencyFormatter();
 
-  const {
-    entries: history,
-    isLoading,
-    error,
-  } = useSelector((state: RootState) => state.balanceHistory);
+  const history = useSelector(selectBalanceHistory);
+  const { isLoading, error } = useSelector(
+    (state: RootState) => state.reconciliations,
+  );
 
   const [refreshing, setRefreshing] = useState(false);
   const [filterShift, setFilterShift] = useState<"ALL" | "AM" | "PM">("ALL");
@@ -25,13 +27,13 @@ export function useBalanceHistoryScreen() {
 
   // Load history on mount
   useEffect(() => {
-    dispatch(fetchBalanceHistory());
+    dispatch(fetchReconciliationHistory({}));
   }, [dispatch]);
 
   // Refresh handler
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await dispatch(fetchBalanceHistory());
+    await dispatch(fetchReconciliationHistory({}));
     setRefreshing(false);
   }, [dispatch]);
 
@@ -45,13 +47,13 @@ export function useBalanceHistoryScreen() {
   // Calculate summary stats
   const totalRecords = filteredHistory.length;
   const passedCount = filteredHistory.filter(
-    (r) => r.status === "PASSED"
+    (r) => r.status === "PASSED",
   ).length;
   const failedCount = filteredHistory.filter(
-    (r) => r.status === "FAILED"
+    (r) => r.status === "FAILED",
   ).length;
   const flaggedCount = filteredHistory.filter(
-    (r) => r.status === "FLAGGED"
+    (r) => r.status === "FLAGGED",
   ).length;
 
   return {

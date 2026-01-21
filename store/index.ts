@@ -2,9 +2,7 @@ import { configureStore } from "@reduxjs/toolkit";
 import authReducer from "./slices/authSlice";
 import dashboardReducer from "./slices/dashboardSlice";
 import transactionsReducer from "./slices/transactionsSlice";
-import balanceHistoryReducer from "./slices/balanceHistorySlice";
 import expensesReducer from "./slices/expensesSlice";
-import uiReducer from "./slices/uiSlice";
 // New slices for FastAPI integration
 import balancesReducer from "./slices/balancesSlice";
 import commissionsReducer from "./slices/commissionsSlice";
@@ -19,9 +17,7 @@ export const store = configureStore({
     auth: authReducer,
     dashboard: dashboardReducer,
     transactions: transactionsReducer,
-    balanceHistory: balanceHistoryReducer,
     expenses: expensesReducer,
-    ui: uiReducer,
     // New reducers for FastAPI integration
     balances: balancesReducer,
     commissions: commissionsReducer,

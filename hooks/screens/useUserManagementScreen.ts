@@ -1,10 +1,8 @@
 import { useState, useEffect } from "react";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
-import {
-  inviteUser,
-  clearInviteState,
-  UserInviteRequest,
-} from "../../store/slices/usersSlice";
+import { inviteUser, clearInviteState } from "../../store/slices/usersSlice";
+import { selectCompanyId } from "../../store/slices/authSlice";
+import { UserInviteRequest } from "../../types";
 
 interface FormData {
   email: string;
@@ -16,6 +14,7 @@ interface FormData {
 
 export const useUserManagementScreen = () => {
   const dispatch = useAppDispatch();
+  const companyId = useAppSelector(selectCompanyId);
   const { isInviting, inviteSuccess, inviteError, lastInvitedEmail } =
     useAppSelector((state) => state.users);
 
@@ -53,7 +52,7 @@ export const useUserManagementScreen = () => {
   const validateForm = (): boolean => {
     if (!formData.email || !formData.first_name || !formData.last_name) {
       setValidationError(
-        "Please fill in all required fields (email, first name, last name)"
+        "Please fill in all required fields (email, first name, last name)",
       );
       return false;
     }
@@ -73,17 +72,24 @@ export const useUserManagementScreen = () => {
       return;
     }
 
+    if (!companyId) {
+      setValidationError("Company not found. Please log in again.");
+      return;
+    }
+
     // Get the frontend URL from window location or construct it
-    const frontendUrl = typeof window !== 'undefined' 
-      ? `${window.location.protocol}//${window.location.host}`
-      : undefined;
+    const frontendUrl =
+      typeof window !== "undefined"
+        ? `${window.location.protocol}//${window.location.host}`
+        : undefined;
 
     const inviteData: UserInviteRequest = {
       email: formData.email,
       first_name: formData.first_name,
       last_name: formData.last_name,
       phone_number: formData.phone_number || undefined,
-      role: formData.role,
+      role: formData.role as any,
+      company_id: companyId,
       redirect_url: frontendUrl ? `${frontendUrl}/welcome` : undefined,
     };
 

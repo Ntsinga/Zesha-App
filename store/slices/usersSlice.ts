@@ -1,23 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import { API_BASE_URL } from "../../config/api";
-
-// Types
-export interface UserInviteRequest {
-  email: string;
-  first_name: string;
-  last_name: string;
-  phone_number?: string;
-  role: string;
-  redirect_url?: string;
-}
-
-export interface UserInviteResponse {
-  success: boolean;
-  message: string;
-  clerk_user_id?: string;
-  invitation_id?: string;
-  email: string;
-}
+import { UserInviteRequest, UserInviteResponse } from "../../types";
 
 export interface UsersState {
   isInviting: boolean;

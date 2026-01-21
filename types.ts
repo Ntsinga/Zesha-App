@@ -1,6 +1,12 @@
 // Enums matching FastAPI backend
 export type ShiftEnum = "AM" | "PM";
 export type SourceEnum = "whatsapp" | "mobile_app" | "manual";
+export type AccountTypeEnum = "BANK" | "TELECOM";
+export type RoleEnum = "admin" | "manager" | "agent";
+export type StatusEnum = "PASSED" | "FAILED" | "FLAGGED";
+export type ApprovalStatusEnum = "PENDING" | "APPROVED" | "REJECTED";
+export type ReconciliationStatusEnum = "DRAFT" | "CALCULATED" | "FINALIZED";
+export type ReconciliationTypeEnum = "WHATSAPP" | "MOBILE_APP" | "MANUAL";
 
 // Base model fields (from BaseModel)
 export interface BaseModel {
@@ -9,10 +15,83 @@ export interface BaseModel {
   updated_at: string | null;
 }
 
+// ============= USERS =============
+export interface User extends BaseModel {
+  clerk_user_id: string;
+  email: string;
+  first_name: string | null;
+  last_name: string | null;
+  profile_image_url: string | null;
+  phone_number: string | null;
+  role: RoleEnum;
+  company_id: number | null;
+  is_active: boolean;
+  last_login_at: string | null;
+  user_metadata: string | null;
+}
+
+export interface UserCreate {
+  clerk_user_id: string;
+  email: string;
+  first_name?: string | null;
+  last_name?: string | null;
+  profile_image_url?: string | null;
+  phone_number?: string | null;
+  role?: RoleEnum;
+  company_id?: number | null;
+  is_active?: boolean;
+  user_metadata?: string | null;
+}
+
+export interface UserUpdate {
+  email?: string;
+  first_name?: string | null;
+  last_name?: string | null;
+  profile_image_url?: string | null;
+  phone_number?: string | null;
+  role?: RoleEnum;
+  company_id?: number | null;
+  is_active?: boolean;
+  last_login_at?: string | null;
+  user_metadata?: string | null;
+}
+
+export interface UserSyncRequest {
+  clerk_user_id: string;
+  email: string;
+  first_name?: string | null;
+  last_name?: string | null;
+  profile_image_url?: string | null;
+  phone_number?: string | null;
+  user_metadata?: string | null;
+  company_id?: number | null;
+  role?: RoleEnum | null;
+}
+
+export interface UserInviteRequest {
+  email: string;
+  first_name?: string | null;
+  last_name?: string | null;
+  phone_number?: string | null;
+  role?: RoleEnum;
+  company_id?: number | null;
+  redirect_url?: string | null;
+}
+
+export interface UserInviteResponse {
+  success: boolean;
+  message: string;
+  clerk_user_id?: string;
+  invitation_id?: string;
+  email: string;
+}
+
 // ============= BALANCES =============
 export interface Balance extends BaseModel {
+  company_id: number;
   account_id: number;
   account?: Account; // Optional relationship data from backend
+  reconciliation_id?: number | null;
   shift: ShiftEnum;
   amount: number;
   image_url: string; // Required in response
@@ -25,6 +104,7 @@ export interface Balance extends BaseModel {
 }
 
 export interface BalanceCreate {
+  company_id: number;
   account_id: number;
   shift: ShiftEnum;
   amount: number;
@@ -35,6 +115,7 @@ export interface BalanceCreate {
   sha256?: string | null; // Optional for mobile app (calculated server-side)
   date: string;
   image_data?: string | null; // Base64 encoded image from mobile app
+  reconciliation_id?: number | null;
 }
 
 export interface BalanceUpdate {
@@ -73,6 +154,7 @@ export interface ExpenseCategory {
 }
 
 export interface Expense extends BaseModel {
+  company_id: number;
   name: string;
   amount: number;
   description: string | null;
@@ -81,6 +163,7 @@ export interface Expense extends BaseModel {
 }
 
 export interface ExpenseCreate {
+  company_id: number;
   name: string;
   amount: number;
   description?: string;
@@ -98,8 +181,10 @@ export interface ExpenseUpdate {
 
 // ============= COMMISSIONS =============
 export interface Commission extends BaseModel {
+  company_id: number;
   account_id: number;
   account?: Account; // Optional relationship data from backend
+  reconciliation_id?: number | null;
   shift: ShiftEnum;
   amount: number;
   image_url: string;
@@ -112,6 +197,7 @@ export interface Commission extends BaseModel {
 }
 
 export interface CommissionCreate {
+  company_id: number;
   account_id: number;
   shift: ShiftEnum;
   amount: number;
@@ -122,6 +208,7 @@ export interface CommissionCreate {
   sha256?: string | null;
   date: string;
   image_data?: string | null;
+  reconciliation_id?: number | null;
 }
 
 export interface CommissionUpdate {
@@ -164,6 +251,8 @@ export const DENOMINATIONS: { value: DenominationType; label: string }[] = [
 ];
 
 export interface CashCount extends BaseModel {
+  company_id: number;
+  reconciliation_id?: number | null;
   denomination: number;
   quantity: number;
   amount: number;
@@ -172,11 +261,13 @@ export interface CashCount extends BaseModel {
 }
 
 export interface CashCountCreate {
+  company_id: number;
   denomination: number;
   quantity: number;
   amount: number;
   date: string;
   shift: ShiftEnum;
+  reconciliation_id?: number | null;
 }
 
 export interface CashCountUpdate {
@@ -221,10 +312,14 @@ export interface ReconciliationHistory {
   expected_closing: number;
   actual_closing: number;
   variance: number;
-  status: ReconciliationStatus;
+  status: StatusEnum;
+  approval_status: ApprovalStatusEnum;
+  reconciliation_status?: ReconciliationStatusEnum;
   is_finalized: boolean;
   reconciled_by: number | null;
   reconciled_at: string | null;
+  approved_by: number | null;
+  approved_at: string | null;
   created_at: string | null;
 }
 
@@ -239,6 +334,7 @@ export interface ReconciliationDetail {
 export interface Reconciliation extends BaseModel {
   date: string;
   shift: ShiftEnum;
+  company_id: number;
   calc_total_float: number;
   calc_total_cash: number;
   calc_grand_total: number;
@@ -254,6 +350,14 @@ export interface Reconciliation extends BaseModel {
   expected_grand_total: number;
   capital_variance: number;
   status: ReconciliationStatus;
+  reconciliation_status: ReconciliationStatusEnum;
+  approval_status: ApprovalStatusEnum;
+  is_finalized: boolean;
+  reconciled_by: number | null;
+  reconciled_at: string | null;
+  approved_by: number | null;
+  approved_at: string | null;
+  rejection_reason: string | null;
   reviewer: string | null;
   reviewed_at: string | null;
   run_key: string;
@@ -504,13 +608,12 @@ export interface BalanceHistoryEntry {
 }
 
 // ============= ACCOUNTS =============
-export type AccountTypeEnum = "BANK" | "TELECOM";
-
 export interface Account extends BaseModel {
   name: string;
   description: string | null;
   account_type: AccountTypeEnum;
   is_active: boolean;
+  company_id: number;
 }
 
 export interface AccountCreate {
@@ -518,6 +621,7 @@ export interface AccountCreate {
   description?: string;
   account_type: AccountTypeEnum;
   is_active?: boolean;
+  company_id: number;
 }
 
 export interface AccountUpdate {
@@ -525,6 +629,7 @@ export interface AccountUpdate {
   description?: string;
   account_type?: AccountTypeEnum;
   is_active?: boolean;
+  company_id?: number;
 }
 
 export interface AccountFilters {
