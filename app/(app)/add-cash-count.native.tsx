@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React from "react";
 import {
   View,
   Text,
@@ -9,255 +9,50 @@ import {
   Platform,
   Alert,
 } from "react-native";
-import { useRouter } from "expo-router";
 import { ArrowLeft, Save, Plus, Minus, Banknote } from "lucide-react-native";
-import { useDispatch, useSelector } from "react-redux";
-import {
-  createManyCashCounts,
-  fetchCashCounts,
-  deleteCashCount,
-} from "../../store/slices/cashCountSlice";
-import { fetchDashboard } from "../../store/slices/dashboardSlice";
-import { useCurrencyFormatter } from "../../hooks/useCurrency";
-import type { AppDispatch, RootState } from "../../store";
-import type { ShiftEnum, CashCountCreate } from "../../types";
-
-// Denomination values in cents
-// 10000 = R100, 5000 = R50, 2000 = R20, 1000 = R10, 500 = R5, 200 = R2, 100 = R1
-const DENOMINATIONS = [
-  { value: 50000, label: "50,000", displayValue: 50000 },
-  { value: 20000, label: "20,000", displayValue: 20000 },
-  { value: 10000, label: "10,000", displayValue: 10000 },
-  { value: 5000, label: "5,000", displayValue: 5000 },
-  { value: 2000, label: "2,000", displayValue: 2000 },
-  { value: 1000, label: "1,000 (Note)", displayValue: 1000, isNote: true },
-  { value: 1000, label: "1,000 (Coin)", displayValue: 1000, isCoin: true },
-  { value: 500, label: "500", displayValue: 500 },
-  { value: 200, label: "200", displayValue: 200 },
-  { value: 100, label: "100", displayValue: 100 },
-];
-
-interface DenominationEntry {
-  denomination: number;
-  label: string;
-  displayValue: number;
-  quantity: string;
-  isCoin?: boolean;
-  isNote?: boolean;
-}
+import { useCashCountScreen } from "../../hooks/screens/useCashCountScreen";
+import type { ShiftEnum } from "../../types";
 
 export default function AddCashCountPage() {
-  const router = useRouter();
-  const dispatch = useDispatch<AppDispatch>();
-  const { formatCurrency } = useCurrencyFormatter();
+  const {
+    shift,
+    setShift,
+    entries,
+    isSubmitting,
+    isEditing,
+    today,
+    formatCurrency,
+    totalAmount,
+    totalNotes,
+    filledEntries,
+    updateQuantity,
+    incrementQuantity,
+    decrementQuantity,
+    hasDataForShift,
+    handleSubmit,
+    clearAll,
+    handleBack,
+  } = useCashCountScreen();
 
-  // Get today's date
-  const today = new Date().toISOString().split("T")[0];
-
-  // Determine initial shift based on time (PM if after noon)
-  const currentHour = new Date().getHours();
-  const initialShift: ShiftEnum = currentHour >= 12 ? "PM" : "AM";
-
-  const [shift, setShift] = useState<ShiftEnum>(initialShift);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [entries, setEntries] = useState<DenominationEntry[]>(
-    DENOMINATIONS.map((d) => ({
-      denomination: d.value,
-      label: d.label,
-      displayValue: d.displayValue,
-      quantity: "",
-      isCoin: d.isCoin,
-      isNote: d.isNote,
-    }))
-  );
-
-  // Get cash counts from Redux
-  const { items: cashCounts, isLoading } = useSelector(
-    (state: RootState) => state.cashCount
-  );
-
-  // Fetch all cash counts first (for debugging), then fetch for today
-  useEffect(() => {
-    const fetchData = async () => {
-      // First, fetch all cash counts without filter
-      const allCounts = await dispatch(fetchCashCounts({})).unwrap();
-      console.log("ALL cash counts (no filter):", allCounts);
-
-      // Then fetch for today
-      const todayCounts = await dispatch(
-        fetchCashCounts({ count_date: today })
-      ).unwrap();
-      console.log("Today's cash counts:", todayCounts);
-    };
-    fetchData();
-  }, [dispatch, today]);
-
-  // Pre-populate entries when shift changes or cash counts are loaded
-  useEffect(() => {
-    const shiftCounts = cashCounts.filter(
-      (cc) => cc.date === today && cc.shift === shift
-    );
-
-    console.log("Cash counts for shift:", shift, shiftCounts);
-    console.log("Today:", today);
-
-    if (shiftCounts.length > 0) {
-      setIsEditing(true);
-
-      // Create a copy of shiftCounts to track used entries
-      const usedCounts = new Set<number>();
-
-      setEntries((prev) =>
-        prev.map((entry, index) => {
-          // Find matching cash count for this denomination
-          const match = shiftCounts.find((cc, ccIndex) => {
-            // Skip if already used
-            if (usedCounts.has(cc.id)) return false;
-
-            // Match by denomination value - API returns string "50000.00", we have number 50000
-            const ccDenom = parseFloat(String(cc.denomination));
-            if (ccDenom === entry.denomination) {
-              usedCounts.add(cc.id);
-              return true;
-            }
-            return false;
-          });
-
-          if (match) {
-            console.log(
-              `Matched entry ${entry.label} with quantity ${match.quantity}`
-            );
-            return { ...entry, quantity: String(match.quantity) };
-          }
-          return { ...entry, quantity: "" };
-        })
-      );
-    } else {
-      setIsEditing(false);
-      // Clear entries when no data exists for this shift
-      setEntries((prev) => prev.map((e) => ({ ...e, quantity: "" })));
-    }
-  }, [cashCounts, shift, today]);
-
-  const updateQuantity = (index: number, value: string) => {
-    // Only allow numeric input
-    if (value !== "" && !/^\d+$/.test(value)) return;
-
-    setEntries((prev) =>
-      prev.map((entry, i) =>
-        i === index ? { ...entry, quantity: value } : entry
-      )
-    );
-  };
-
-  const incrementQuantity = (index: number) => {
-    setEntries((prev) =>
-      prev.map((entry, i) =>
-        i === index
-          ? { ...entry, quantity: String(parseInt(entry.quantity || "0") + 1) }
-          : entry
-      )
-    );
-  };
-
-  const decrementQuantity = (index: number) => {
-    setEntries((prev) =>
-      prev.map((entry, i) => {
-        if (i !== index) return entry;
-        const current = parseInt(entry.quantity || "0");
-        return { ...entry, quantity: current > 0 ? String(current - 1) : "" };
-      })
-    );
-  };
-
-  // Calculate totals
-  const { totalAmount, totalNotes, filledEntries } = useMemo(() => {
-    let amount = 0;
-    let notes = 0;
-    let filled = 0;
-
-    entries.forEach((entry) => {
-      const qty = parseInt(entry.quantity || "0");
-      if (qty > 0) {
-        amount += entry.displayValue * qty;
-        notes += qty;
-        filled++;
-      }
-    });
-
-    return { totalAmount: amount, totalNotes: notes, filledEntries: filled };
-  }, [entries]);
-
-  const handleSubmit = async () => {
-    const validEntries = entries.filter(
-      (entry) => parseInt(entry.quantity || "0") > 0
-    );
-
-    if (validEntries.length === 0) {
-      Alert.alert("Error", "Please enter at least one denomination quantity.");
-      return;
-    }
-
-    setIsSubmitting(true);
-
-    try {
-      // If editing, delete existing cash counts for this shift first
-      if (isEditing) {
-        const existingCounts = cashCounts.filter(
-          (cc) => cc.date === today && cc.shift === shift
-        );
-
-        // Delete all existing entries for this shift
-        await Promise.all(
-          existingCounts.map((cc) => dispatch(deleteCashCount(cc.id)).unwrap())
-        );
-      }
-
-      const cashCountData: CashCountCreate[] = validEntries.map((entry) => ({
-        denomination: entry.denomination,
-        quantity: parseInt(entry.quantity),
-        amount: entry.displayValue * parseInt(entry.quantity),
-        date: today,
-        shift,
-      }));
-
-      await dispatch(createManyCashCounts(cashCountData)).unwrap();
-
-      // Refresh dashboard and cash counts
-      dispatch(fetchDashboard({}));
-      dispatch(fetchCashCounts({ count_date: today }));
-
-      // Navigate back immediately and show success
-      router.back();
-
-      // Show success alert after navigation
+  const onSubmit = async () => {
+    const result = await handleSubmit();
+    if (result.success) {
+      handleBack();
       setTimeout(() => {
-        Alert.alert(
-          "Success",
-          `Cash count ${
-            isEditing ? "updated" : "saved"
-          }! Total: ${formatCurrency(totalAmount)}`
-        );
+        Alert.alert("Success", result.message);
       }, 100);
-    } catch (error) {
-      Alert.alert(
-        "Error",
-        error instanceof Error ? error.message : "Failed to save cash count"
-      );
-    } finally {
-      setIsSubmitting(false);
+    } else {
+      Alert.alert("Error", result.message);
     }
   };
 
-  const clearAll = () => {
+  const onClearAll = () => {
     Alert.alert("Clear All", "Are you sure you want to clear all entries?", [
       { text: "Cancel", style: "cancel" },
       {
         text: "Clear",
         style: "destructive",
-        onPress: () =>
-          setEntries((prev) => prev.map((e) => ({ ...e, quantity: "" }))),
+        onPress: clearAll,
       },
     ]);
   };
@@ -273,7 +68,7 @@ export default function AddCashCountPage() {
           <View className="flex-row items-center justify-between mb-4">
             <View className="flex-row items-center">
               <TouchableOpacity
-                onPress={() => router.back()}
+                onPress={handleBack}
                 className="p-2 bg-gray-50 rounded-full mr-4"
               >
                 <ArrowLeft color="#C62828" size={24} />
@@ -287,7 +82,7 @@ export default function AddCashCountPage() {
                 </Text>
               </View>
             </View>
-            <TouchableOpacity onPress={clearAll}>
+            <TouchableOpacity onPress={onClearAll}>
               <Text className="text-brand-red font-semibold">Clear</Text>
             </TouchableOpacity>
           </View>
@@ -295,9 +90,7 @@ export default function AddCashCountPage() {
           {/* Shift Selection */}
           <View className="flex-row space-x-3">
             {(["AM", "PM"] as ShiftEnum[]).map((s) => {
-              const hasData = cashCounts.some(
-                (cc) => cc.date === today && cc.shift === s
-              );
+              const hasData = hasDataForShift(s);
               const isSelected = shift === s;
 
               return (
@@ -425,7 +218,7 @@ export default function AddCashCountPage() {
 
           {/* Submit Button */}
           <TouchableOpacity
-            onPress={handleSubmit}
+            onPress={onSubmit}
             disabled={isSubmitting || filledEntries === 0}
             className={`py-4 rounded-xl flex-row items-center justify-center space-x-2 ${
               isSubmitting || filledEntries === 0

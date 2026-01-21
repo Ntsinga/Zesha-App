@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -23,158 +23,66 @@ import {
   FileText,
 } from "lucide-react-native";
 import { useNavigation } from "expo-router";
-import { useDispatch, useSelector } from "react-redux";
 import {
-  fetchExpenses,
-  createExpense,
-  updateExpense,
-  deleteExpense,
-} from "../../store/slices/expensesSlice";
-import { fetchDashboard } from "../../store/slices/dashboardSlice";
+  useExpensesScreen,
+  EXPENSE_CATEGORIES,
+} from "../../hooks/screens/useExpensesScreen";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
-import { useCurrencyFormatter } from "../../hooks/useCurrency";
-import type { AppDispatch, RootState } from "../../store";
-import type { Expense } from "../../types";
-
-// Common expense categories
-const CATEGORIES = [
-  "Utilities",
-  "Rent",
-  "Salaries",
-  "Transport",
-  "Supplies",
-  "Maintenance",
-  "Marketing",
-  "Other",
-  "Shortage",
-];
 
 export default function Expenses() {
   const navigation = useNavigation();
-  const dispatch = useDispatch<AppDispatch>();
   const {
-    items: expenses,
+    expenses,
     isLoading,
+    refreshing,
+    isModalOpen,
+    editingExpense,
+    deleteConfirmId,
     totalAmount,
-  } = useSelector((state: RootState) => state.expenses);
+    name,
+    amount,
+    description,
+    expenseDate,
+    category,
+    setName,
+    setAmount,
+    setDescription,
+    setExpenseDate,
+    setCategory,
+    setDeleteConfirmId,
+    onRefresh,
+    openAddModal,
+    openEditModal,
+    closeModal,
+    handleSubmit,
+    handleDelete,
+    formatCurrency,
+  } = useExpensesScreen();
 
-  // Get currency formatter from company info
-  const { formatCurrency } = useCurrencyFormatter();
-
-  const [refreshing, setRefreshing] = useState(false);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
-  const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
 
-  // Form state
-  const [name, setName] = useState("");
-  const [amount, setAmount] = useState("");
-  const [description, setDescription] = useState("");
-  const [expenseDate, setExpenseDate] = useState(
-    new Date().toISOString().split("T")[0]
-  );
-  const [category, setCategory] = useState("");
-
-  useEffect(() => {
-    dispatch(fetchExpenses({}));
-  }, [dispatch]);
-
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await dispatch(fetchExpenses({}));
-    setRefreshing(false);
-  };
-
-  const resetForm = () => {
-    setName("");
-    setAmount("");
-    setDescription("");
-    setExpenseDate(new Date().toISOString().split("T")[0]);
-    setCategory("");
-    setEditingExpense(null);
-  };
-
-  const openAddModal = () => {
-    resetForm();
-    setIsModalOpen(true);
-  };
-
-  const openEditModal = (expense: Expense) => {
-    setEditingExpense(expense);
-    setName(expense.name);
-    setAmount(expense.amount.toString());
-    setDescription(expense.description || "");
-    setExpenseDate(expense.expense_date);
-    setCategory(expense.category || "");
-    setIsModalOpen(true);
-  };
-
-  const closeModal = () => {
-    setIsModalOpen(false);
-    resetForm();
-    setShowCategoryPicker(false);
-  };
-
-  const handleSubmit = async () => {
-    if (!name.trim()) {
-      Alert.alert("Error", "Expense name is required.");
-      return;
-    }
-
-    const amountNum = parseFloat(amount);
-    if (isNaN(amountNum) || amountNum <= 0) {
-      Alert.alert("Error", "Please enter a valid amount.");
-      return;
-    }
-
-    try {
-      if (editingExpense) {
-        await dispatch(
-          updateExpense({
-            id: editingExpense.id,
-            data: {
-              name: name.trim(),
-              amount: amountNum,
-              description: description.trim() || undefined,
-              expense_date: expenseDate,
-              category: category || undefined,
-            },
-          })
-        ).unwrap();
-        Alert.alert("Success", "Expense updated successfully!");
-      } else {
-        await dispatch(
-          createExpense({
-            name: name.trim(),
-            amount: amountNum,
-            description: description.trim() || undefined,
-            expense_date: expenseDate,
-            category: category || undefined,
-          })
-        ).unwrap();
-        Alert.alert("Success", "Expense added successfully!");
-      }
-      closeModal();
-      dispatch(fetchExpenses({}));
-      // Refresh dashboard to update totals
-      dispatch(fetchDashboard({}));
-    } catch (error) {
-      Alert.alert("Error", error as string);
+  const onSubmit = async () => {
+    const result = await handleSubmit();
+    if (result.success) {
+      Alert.alert("Success", editingExpense ? "Expense updated successfully!" : "Expense added successfully!");
+      setShowCategoryPicker(false);
+    } else {
+      Alert.alert("Error", result.error || "An error occurred");
     }
   };
 
-  const handleDelete = async (id: number) => {
-    try {
-      await dispatch(deleteExpense(id)).unwrap();
+  const onDelete = async (id: number) => {
+    const result = await handleDelete(id);
+    if (result.success) {
       Alert.alert("Success", "Expense deleted successfully!");
-      setDeleteConfirmId(null);
-      dispatch(fetchExpenses({}));
-      // Refresh dashboard to update totals
-      dispatch(fetchDashboard({}));
-    } catch (error) {
-      Alert.alert("Error", error as string);
+    } else {
+      Alert.alert("Error", result.error || "An error occurred");
     }
+  };
+
+  const onCloseModal = () => {
+    closeModal();
+    setShowCategoryPicker(false);
   };
 
   if (isLoading && !refreshing && expenses.length === 0) {
@@ -292,7 +200,7 @@ export default function Expenses() {
         visible={isModalOpen}
         transparent
         animationType="slide"
-        onRequestClose={closeModal}
+        onRequestClose={onCloseModal}
       >
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -301,7 +209,7 @@ export default function Expenses() {
           <TouchableOpacity
             style={{ flex: 1 }}
             activeOpacity={1}
-            onPress={closeModal}
+            onPress={onCloseModal}
             className="bg-black/50 justify-end"
           >
             <TouchableOpacity activeOpacity={1} onPress={() => {}}>
@@ -311,7 +219,7 @@ export default function Expenses() {
                   <Text className="text-xl font-bold text-gray-800">
                     {editingExpense ? "Edit Expense" : "Add Expense"}
                   </Text>
-                  <TouchableOpacity onPress={closeModal}>
+                  <TouchableOpacity onPress={onCloseModal}>
                     <X color="#6B7280" size={24} />
                   </TouchableOpacity>
                 </View>
@@ -384,7 +292,7 @@ export default function Expenses() {
 
                     {showCategoryPicker && (
                       <View className="bg-white border border-gray-200 rounded-xl mt-2">
-                        {CATEGORIES.map((cat) => (
+                        {EXPENSE_CATEGORIES.map((cat) => (
                           <TouchableOpacity
                             key={cat}
                             onPress={() => {
@@ -431,7 +339,7 @@ export default function Expenses() {
 
                   {/* Submit Button */}
                   <TouchableOpacity
-                    onPress={handleSubmit}
+                    onPress={onSubmit}
                     className="bg-brand-red py-4 rounded-xl items-center mb-4"
                   >
                     <Text className="text-white font-bold text-base">
@@ -470,7 +378,7 @@ export default function Expenses() {
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                onPress={() => deleteConfirmId && handleDelete(deleteConfirmId)}
+                onPress={() => deleteConfirmId && onDelete(deleteConfirmId)}
                 className="flex-1 py-3 rounded-xl bg-red-500"
               >
                 <Text className="text-center font-semibold text-white">
