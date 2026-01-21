@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { useSelector } from "react-redux";
 import type { RootState } from "../../store";
+import TopBarWeb from "../../components/TopBar.web";
 import "../../styles/web.css";
 
 interface NavItem {
@@ -29,7 +30,7 @@ export default function AppLayoutWeb() {
   const pathname = usePathname();
   const { signOut } = useAuth();
   const companyName = useSelector(
-    (state: RootState) => state.dashboard.companyInfo?.name ?? "Company"
+    (state: RootState) => state.dashboard.companyInfo?.name ?? "Company",
   );
 
   const navItems: NavItem[] = [
@@ -117,6 +118,7 @@ export default function AppLayoutWeb() {
 
       {/* Main Content - takes remaining space */}
       <main className="content-area">
+        <TopBarWeb />
         <Slot />
       </main>
     </div>
