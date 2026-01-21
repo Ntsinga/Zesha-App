@@ -35,6 +35,13 @@ export function useClerkUserSync() {
 
     console.log("[UserSync] Starting sync for Clerk user:", clerkUser.id);
 
+    // Extract company_id and role from Clerk public metadata (set during invite)
+    const publicMetadata = clerkUser.publicMetadata as
+      | { company_id?: number; role?: string }
+      | undefined;
+    const companyId = publicMetadata?.company_id || null;
+    const role = (publicMetadata?.role as any) || null;
+
     // Build sync request from Clerk user data
     const syncData: UserSyncRequest = {
       clerk_user_id: clerkUser.id,
@@ -43,7 +50,11 @@ export function useClerkUserSync() {
       last_name: clerkUser.lastName,
       profile_image_url: clerkUser.imageUrl,
       phone_number: clerkUser.primaryPhoneNumber?.phoneNumber || null,
-      metadata: null, // Can store additional Clerk metadata as JSON string
+      user_metadata: clerkUser.publicMetadata
+        ? JSON.stringify(clerkUser.publicMetadata)
+        : null,
+      company_id: companyId,
+      role: role,
     };
 
     console.log("[UserSync] Sync data:", JSON.stringify(syncData, null, 2));
@@ -79,7 +90,7 @@ export function useClerkUserSync() {
       // Only sync if we don't have a backend user or if Clerk user has changed
       if (!backendUser || backendUser.clerk_user_id !== clerkUser.id) {
         console.log(
-          "[UserSync] Triggering sync - no backend user or user changed"
+          "[UserSync] Triggering sync - no backend user or user changed",
         );
         syncUser();
       } else {

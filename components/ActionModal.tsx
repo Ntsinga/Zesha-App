@@ -16,7 +16,6 @@ import { useDispatch } from "react-redux";
 import { useCurrencyFormatter } from "../hooks/useCurrency";
 import { TransactionCategory } from "../types";
 import { createTransaction } from "../store/slices/transactionsSlice";
-import { addBalanceEntry } from "../store/slices/balanceHistorySlice";
 import type { AppDispatch } from "../store";
 
 type TransactionType = "income" | "expense";
@@ -66,9 +65,6 @@ export const ActionModal: React.FC<ActionModalProps> = ({
   );
 };
 
-// Available accounts for selection
-const ACCOUNTS = ["AURTEZ", "Main Savings", "Emergency Fund", "Investment"];
-
 // Available categories
 const CATEGORIES: TransactionCategory[] = [
   "Food & Dining",
@@ -80,190 +76,6 @@ const CATEGORIES: TransactionCategory[] = [
   "Education",
   "Other",
 ];
-
-interface AddBalanceFormProps {
-  onSuccess?: () => void;
-  onClose?: () => void;
-}
-
-export const AddBalanceForm: React.FC<AddBalanceFormProps> = ({
-  onSuccess,
-  onClose,
-}) => {
-  const dispatch = useDispatch<AppDispatch>();
-  const { formatCurrency } = useCurrencyFormatter();
-  const [account, setAccount] = useState("");
-  const [amount, setAmount] = useState("");
-  const [showAccountDropdown, setShowAccountDropdown] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errors, setErrors] = useState<FormErrors>({});
-
-  const handleAmountChange = (text: string) => {
-    const cleanedText = text.replace(/[^0-9.]/g, "");
-    const parts = cleanedText.split(".");
-    if (parts.length > 2) return;
-    if (parts[1]?.length > 2) return;
-    setAmount(cleanedText);
-    if (errors.amount) {
-      setErrors((prev: FormErrors) => {
-        const newErrors = { ...prev };
-        delete newErrors.amount;
-        return newErrors;
-      });
-    }
-  };
-
-  const handleSelectAccount = (selectedAccount: string) => {
-    setAccount(selectedAccount);
-    setShowAccountDropdown(false);
-    if (errors.account) {
-      setErrors((prev: FormErrors) => {
-        const newErrors = { ...prev };
-        delete newErrors.account;
-        return newErrors;
-      });
-    }
-  };
-
-  const validateForm = (): boolean => {
-    const newErrors: FormErrors = {};
-    if (!account) newErrors.account = "Please select an account";
-    if (!amount || parseFloat(amount) <= 0)
-      newErrors.amount = "Please enter a valid amount";
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = useCallback(async () => {
-    if (!validateForm()) return;
-
-    setIsSubmitting(true);
-
-    try {
-      const parsedAmount = parseFloat(amount);
-      await dispatch(
-        addBalanceEntry({
-          date: new Date().toISOString().split("T")[0],
-          totalCash: parsedAmount,
-          amount: parsedAmount,
-          capital: 100000, // Default capital
-          status: "Balanced",
-        })
-      ).unwrap();
-
-      Alert.alert(
-        "Success",
-        `${formatCurrency(parsedAmount)} added to ${account}`,
-        [
-          {
-            text: "OK",
-            onPress: () => {
-              setAccount("");
-              setAmount("");
-              onSuccess?.();
-              onClose?.();
-            },
-          },
-        ]
-      );
-    } catch (error) {
-      Alert.alert("Error", "Failed to add balance. Please try again.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  }, [dispatch, account, amount, onSuccess, onClose]);
-
-  return (
-    <View className="space-y-5">
-      <View className="space-y-2">
-        <Text className="text-sm font-bold text-brand-red">Account</Text>
-        <TouchableOpacity
-          onPress={() => setShowAccountDropdown(!showAccountDropdown)}
-          className={`bg-gray-50 border ${
-            errors.account ? "border-red-500" : "border-brand-red/30"
-          } rounded-lg p-4 flex-row justify-between items-center`}
-        >
-          <Text className={account ? "text-gray-700" : "text-gray-400"}>
-            {account || "Select account"}
-          </Text>
-          <ChevronDown size={20} color="#9CA3AF" />
-        </TouchableOpacity>
-        {errors.account && (
-          <Text className="text-red-500 text-xs">{errors.account}</Text>
-        )}
-
-        {showAccountDropdown && (
-          <View className="bg-white border border-gray-200 rounded-lg shadow-lg">
-            {ACCOUNTS.map((acc) => (
-              <TouchableOpacity
-                key={acc}
-                onPress={() => handleSelectAccount(acc)}
-                className="p-4 border-b border-gray-100 flex-row justify-between items-center"
-              >
-                <Text className="text-gray-700">{acc}</Text>
-                {account === acc && <Check size={16} color="#C62828" />}
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
-      </View>
-
-      <View className="space-y-2">
-        <Text className="text-sm font-bold text-brand-red">Amount</Text>
-        <View className="relative">
-          <TextInput
-            placeholder="0.00"
-            keyboardType="numeric"
-            value={amount}
-            onChangeText={handleAmountChange}
-            className={`w-full p-4 bg-white border ${
-              errors.amount ? "border-red-500" : "border-brand-red/30"
-            } rounded-lg text-gray-700 font-medium`}
-          />
-        </View>
-        {errors.amount && (
-          <Text className="text-red-500 text-xs">{errors.amount}</Text>
-        )}
-      </View>
-
-      <View className="space-y-2">
-        <Text className="text-sm font-bold text-brand-red">Confirm Amount</Text>
-        <View className="flex-row items-center p-4 bg-gray-50 border border-brand-red rounded-lg">
-          <Text className="text-gray-500 mr-2">$</Text>
-          <Text className="text-gray-800 font-medium">
-            {amount ? parseFloat(amount || "0").toFixed(2) : "0.00"}
-          </Text>
-        </View>
-      </View>
-
-      <View className="space-y-2">
-        <Text className="text-sm font-bold text-brand-red">
-          Picture (Optional)
-        </Text>
-        <TouchableOpacity className="w-full p-3 border border-brand-red rounded-lg flex-row items-center space-x-3">
-          <View className="bg-brand-red p-2 rounded">
-            <Camera size={16} color="white" />
-          </View>
-          <Text className="text-gray-600">Upload or take photo</Text>
-        </TouchableOpacity>
-      </View>
-
-      <TouchableOpacity
-        onPress={handleSubmit}
-        disabled={isSubmitting}
-        className={`w-full mt-4 ${
-          isSubmitting ? "bg-gray-400" : "bg-brand-red"
-        } py-4 rounded-lg shadow-md items-center flex-row justify-center`}
-      >
-        {isSubmitting ? (
-          <ActivityIndicator color="white" />
-        ) : (
-          <Text className="text-white font-bold text-base">Save Entry</Text>
-        )}
-      </TouchableOpacity>
-    </View>
-  );
-};
 
 interface AddTransactionFormProps {
   onSuccess?: () => void;
@@ -343,7 +155,7 @@ export const AddTransactionForm: React.FC<AddTransactionFormProps> = ({
           type: transactionType,
           hasReceipt: false,
           account: selectedAccount,
-        })
+        }),
       ).unwrap();
 
       const typeLabel = transactionType === "expense" ? "Expense" : "Income";
@@ -362,7 +174,7 @@ export const AddTransactionForm: React.FC<AddTransactionFormProps> = ({
               onClose?.();
             },
           },
-        ]
+        ],
       );
     } catch (error) {
       Alert.alert("Error", "Failed to save transaction. Please try again.");

@@ -7,6 +7,7 @@ import {
   deleteExpense,
 } from "../../store/slices/expensesSlice";
 import { fetchDashboard } from "../../store/slices/dashboardSlice";
+import { selectCompanyId } from "../../store/slices/authSlice";
 import { useCurrencyFormatter } from "../useCurrency";
 import type { AppDispatch, RootState } from "../../store";
 import type { Expense } from "../../types";
@@ -31,6 +32,7 @@ export const EXPENSE_CATEGORIES = [
 export function useExpensesScreen() {
   const dispatch = useDispatch<AppDispatch>();
   const { formatCurrency } = useCurrencyFormatter();
+  const companyId = useSelector(selectCompanyId);
 
   const {
     items: expenses,
@@ -48,7 +50,7 @@ export function useExpensesScreen() {
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
   const [expenseDate, setExpenseDate] = useState(
-    new Date().toISOString().split("T")[0]
+    new Date().toISOString().split("T")[0],
   );
   const [category, setCategory] = useState("");
 
@@ -122,6 +124,13 @@ export function useExpensesScreen() {
       return { success: false, error: validationError };
     }
 
+    if (!companyId) {
+      return {
+        success: false,
+        error: "Company not found. Please log in again.",
+      };
+    }
+
     const amountNum = parseFloat(amount);
 
     try {
@@ -136,17 +145,18 @@ export function useExpensesScreen() {
               expense_date: expenseDate,
               category: category || undefined,
             },
-          })
+          }),
         ).unwrap();
       } else {
         await dispatch(
           createExpense({
+            company_id: companyId,
             name: name.trim(),
             amount: amountNum,
             description: description.trim() || undefined,
             expense_date: expenseDate,
             category: category || undefined,
-          })
+          }),
         ).unwrap();
       }
 
@@ -163,6 +173,7 @@ export function useExpensesScreen() {
     description,
     expenseDate,
     category,
+    companyId,
     editingExpense,
     dispatch,
     closeModal,
@@ -182,7 +193,7 @@ export function useExpensesScreen() {
         return { success: false, error: error as string };
       }
     },
-    [dispatch]
+    [dispatch],
   );
 
   // Filter expenses by category

@@ -6,6 +6,7 @@ import {
 } from "../../store/slices/commissionsSlice";
 import { fetchDashboard } from "../../store/slices/dashboardSlice";
 import { fetchAccounts } from "../../store/slices/accountsSlice";
+import { selectCompanyId } from "../../store/slices/authSlice";
 import {
   extractBalanceFromImage,
   validateBalance,
@@ -50,6 +51,7 @@ export function useAddCommissionScreen() {
   const dispatch = useDispatch<AppDispatch>();
 
   // Selectors
+  const companyId = useSelector(selectCompanyId);
   const { items: accounts, isLoading: accountsLoading } = useSelector(
     (state: RootState) => state.accounts
   );
@@ -425,6 +427,10 @@ export function useAddCommissionScreen() {
       return { success: false, message: "Please fix validation errors" };
     }
 
+    if (!companyId) {
+      return { success: false, message: "Company not found. Please log in again." };
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -450,6 +456,7 @@ export function useAddCommissionScreen() {
           }
 
           return {
+            company_id: companyId,
             account_id: entry.accountId!,
             shift: currentShift,
             amount: parseFloat(entry.amount),
@@ -476,7 +483,7 @@ export function useAddCommissionScreen() {
     } finally {
       setIsSubmitting(false);
     }
-  }, [entries, currentShift, today, dispatch, validateEntries]);
+  }, [entries, currentShift, today, companyId, dispatch, validateEntries]);
 
   return {
     // State

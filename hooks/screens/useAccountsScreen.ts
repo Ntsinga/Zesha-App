@@ -6,6 +6,7 @@ import {
   updateAccount,
   deleteAccount,
 } from "../../store/slices/accountsSlice";
+import { selectCompanyId } from "../../store/slices/authSlice";
 import type { AppDispatch, RootState } from "../../store";
 import type { Account, AccountTypeEnum } from "../../types";
 
@@ -16,8 +17,9 @@ export const ACCOUNT_TYPES: { value: AccountTypeEnum; label: string }[] = [
 
 export function useAccountsScreen() {
   const dispatch = useDispatch<AppDispatch>();
+  const companyId = useSelector(selectCompanyId);
   const { items: accounts, isLoading } = useSelector(
-    (state: RootState) => state.accounts
+    (state: RootState) => state.accounts,
   );
 
   const [refreshing, setRefreshing] = useState(false);
@@ -79,6 +81,13 @@ export function useAccountsScreen() {
       return { success: false, message: "Account name is required" };
     }
 
+    if (!companyId) {
+      return {
+        success: false,
+        message: "Company not found. Please log in again.",
+      };
+    }
+
     try {
       if (editingAccount) {
         await dispatch(
@@ -89,7 +98,7 @@ export function useAccountsScreen() {
               account_type: accountType,
               is_active: isActive,
             },
-          })
+          }),
         ).unwrap();
 
         closeModal();
@@ -97,10 +106,11 @@ export function useAccountsScreen() {
       } else {
         await dispatch(
           createAccount({
+            company_id: companyId,
             name: name.trim(),
             account_type: accountType,
             is_active: isActive,
-          })
+          }),
         ).unwrap();
 
         closeModal();

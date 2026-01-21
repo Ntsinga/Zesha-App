@@ -2,34 +2,10 @@ import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
 import { API_BASE_URL, API_HEADERS } from "../../config/api";
+import { User, UserSyncRequest, RoleEnum } from "../../types";
 
-// Types - aligned with backend User model
-export interface User {
-  id: number;
-  clerk_user_id: string;
-  email: string;
-  first_name?: string | null;
-  last_name?: string | null;
-  profile_image_url?: string | null;
-  phone_number?: string | null;
-  role: string;
-  is_active: boolean;
-  last_login_at?: string | null;
-  created_at: string;
-  updated_at?: string | null;
-  metadata?: string | null;
-}
-
-// Request types for syncing with backend
-export interface UserSyncRequest {
-  clerk_user_id: string;
-  email: string;
-  first_name?: string | null;
-  last_name?: string | null;
-  profile_image_url?: string | null;
-  phone_number?: string | null;
-  metadata?: string | null;
-}
+// Re-export for convenience (use types from types.ts)
+export type { User, UserSyncRequest };
 
 export interface AuthState {
   user: User | null;
@@ -94,7 +70,7 @@ export const initializeAuth = createAsyncThunk(
     } catch (error) {
       return rejectWithValue("Failed to initialize auth");
     }
-  }
+  },
 );
 
 // Sync user with backend after Clerk authentication
@@ -117,7 +93,7 @@ export const syncUserWithBackend = createAsyncThunk(
         const errorData = await response.json().catch(() => ({}));
         console.log("[Auth Sync] Error response:", errorData);
         throw new Error(
-          errorData.detail || `Sync failed with status ${response.status}`
+          errorData.detail || `Sync failed with status ${response.status}`,
         );
       }
 
@@ -134,10 +110,10 @@ export const syncUserWithBackend = createAsyncThunk(
       return rejectWithValue(
         error instanceof Error
           ? error.message
-          : "Failed to sync user with backend"
+          : "Failed to sync user with backend",
       );
     }
-  }
+  },
 );
 
 // Get user from backend by Clerk ID
@@ -149,7 +125,7 @@ export const fetchUserByClerkId = createAsyncThunk(
         `${API_BASE_URL}/users/clerk/${clerkUserId}`,
         {
           headers: API_HEADERS,
-        }
+        },
       );
 
       if (response.status === 404) {
@@ -160,7 +136,7 @@ export const fetchUserByClerkId = createAsyncThunk(
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(
-          errorData.detail || `Fetch failed with status ${response.status}`
+          errorData.detail || `Fetch failed with status ${response.status}`,
         );
       }
 
@@ -173,10 +149,10 @@ export const fetchUserByClerkId = createAsyncThunk(
       return user;
     } catch (error) {
       return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to fetch user"
+        error instanceof Error ? error.message : "Failed to fetch user",
       );
     }
-  }
+  },
 );
 
 // Update user profile on backend
@@ -184,7 +160,7 @@ export const updateUserProfile = createAsyncThunk(
   "auth/updateProfile",
   async (
     { userId, data }: { userId: number; data: Partial<User> },
-    { rejectWithValue }
+    { rejectWithValue },
   ) => {
     try {
       const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
@@ -196,7 +172,7 @@ export const updateUserProfile = createAsyncThunk(
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(
-          errorData.detail || `Update failed with status ${response.status}`
+          errorData.detail || `Update failed with status ${response.status}`,
         );
       }
 
@@ -208,10 +184,10 @@ export const updateUserProfile = createAsyncThunk(
       return user;
     } catch (error) {
       return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to update profile"
+        error instanceof Error ? error.message : "Failed to update profile",
       );
     }
-  }
+  },
 );
 
 // Clear local auth data (used when Clerk signs out)
@@ -317,6 +293,15 @@ const authSlice = createSlice({
     });
   },
 });
+
+// Selectors
+export const selectUser = (state: { auth: AuthState }) => state.auth.user;
+export const selectCompanyId = (state: { auth: AuthState }) =>
+  state.auth.user?.company_id ?? null;
+export const selectIsAuthenticated = (state: { auth: AuthState }) =>
+  state.auth.isAuthenticated;
+export const selectUserRole = (state: { auth: AuthState }) =>
+  state.auth.user?.role ?? null;
 
 export const { clearError, setUser, setClerkUserId } = authSlice.actions;
 export default authSlice.reducer;
