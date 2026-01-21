@@ -64,7 +64,12 @@ export default function Expenses() {
   const onSubmit = async () => {
     const result = await handleSubmit();
     if (result.success) {
-      Alert.alert("Success", editingExpense ? "Expense updated successfully!" : "Expense added successfully!");
+      Alert.alert(
+        "Success",
+        editingExpense
+          ? "Expense updated successfully!"
+          : "Expense added successfully!",
+      );
       setShowCategoryPicker(false);
     } else {
       Alert.alert("Error", result.error || "An error occurred");

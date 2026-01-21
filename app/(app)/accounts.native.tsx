@@ -74,7 +74,7 @@ export default function Accounts() {
           style: "destructive",
           onPress: () => confirmDelete(account),
         },
-      ]
+      ],
     );
   };
 

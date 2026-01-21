@@ -103,8 +103,8 @@ export default function AddCashCountPage() {
                         ? "bg-green-600"
                         : "bg-brand-red"
                       : hasData
-                      ? "bg-green-50 border-2 border-green-500"
-                      : "bg-gray-100 border border-gray-200"
+                        ? "bg-green-50 border-2 border-green-500"
+                        : "bg-gray-100 border border-gray-200"
                   }`}
                 >
                   {hasData && !isSelected && (
@@ -115,8 +115,8 @@ export default function AddCashCountPage() {
                       isSelected
                         ? "text-white"
                         : hasData
-                        ? "text-green-700"
-                        : "text-gray-600"
+                          ? "text-green-700"
+                          : "text-gray-600"
                     }`}
                   >
                     {s} Shift {hasData && !isSelected ? "✓" : ""}
@@ -224,8 +224,8 @@ export default function AddCashCountPage() {
               isSubmitting || filledEntries === 0
                 ? "bg-gray-300"
                 : isEditing
-                ? "bg-green-600"
-                : "bg-brand-red"
+                  ? "bg-green-600"
+                  : "bg-brand-red"
             }`}
           >
             <Save color="white" size={20} />
@@ -233,8 +233,8 @@ export default function AddCashCountPage() {
               {isSubmitting
                 ? "Saving..."
                 : isEditing
-                ? "Update Cash Count"
-                : "Save Cash Count"}
+                  ? "Update Cash Count"
+                  : "Save Cash Count"}
             </Text>
           </TouchableOpacity>
         </View>
