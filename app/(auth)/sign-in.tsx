@@ -21,9 +21,12 @@ export default function SignInPage() {
   const router = useRouter();
   const [emailOrPhone, setEmailOrPhone] = useState("");
   const [password, setPassword] = useState("");
+  const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [usePhone, setUsePhone] = useState(false);
-  const [step, setStep] = useState<"identifier" | "password">("identifier");
+  const [step, setStep] = useState<"identifier" | "password" | "2fa">(
+    "identifier",
+  );
 
   const onContinuePress = async () => {
     if (!emailOrPhone.trim()) {
@@ -31,7 +34,7 @@ export default function SignInPage() {
         "Error",
         usePhone
           ? "Please enter your phone number"
-          : "Please enter your email address"
+          : "Please enter your email address",
       );
       return;
     }
@@ -51,6 +54,12 @@ export default function SignInPage() {
       if (signInAttempt.status === "complete") {
         await setActive({ session: signInAttempt.createdSessionId });
         router.replace("/(app)");
+      } else if (signInAttempt.status === "needs_second_factor") {
+        // Prepare 2FA - send email code
+        await signInAttempt.prepareSecondFactor({
+          strategy: "email_code",
+        });
+        setStep("2fa");
       } else {
         console.error(JSON.stringify(signInAttempt, null, 2));
         Alert.alert("Error", "Sign in failed. Please try again.");
@@ -58,6 +67,34 @@ export default function SignInPage() {
     } catch (err: any) {
       console.error(JSON.stringify(err, null, 2));
       Alert.alert("Error", err.errors?.[0]?.message || "Sign in failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const onVerify2FAPress = async () => {
+    if (!isLoaded || !code.trim()) {
+      Alert.alert("Error", "Please enter the verification code");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const signInAttempt = await signIn.attemptSecondFactor({
+        strategy: "email_code",
+        code: code.trim(),
+      });
+
+      if (signInAttempt.status === "complete") {
+        await setActive({ session: signInAttempt.createdSessionId });
+        router.replace("/(app)");
+      } else {
+        console.error(JSON.stringify(signInAttempt, null, 2));
+        Alert.alert("Error", "Verification failed. Please try again.");
+      }
+    } catch (err: any) {
+      console.error(JSON.stringify(err, null, 2));
+      Alert.alert("Error", err.errors?.[0]?.message || "Verification failed");
     } finally {
       setLoading(false);
     }
@@ -157,7 +194,7 @@ export default function SignInPage() {
                   .
                 </Text>
               </>
-            ) : (
+            ) : step === "password" ? (
               <>
                 {/* Back Button */}
                 <TouchableOpacity
@@ -223,7 +260,98 @@ export default function SignInPage() {
                   </Text>
                 </TouchableOpacity>
               </>
-            )}
+            ) : step === "2fa" ? (
+              <>
+                {/* Back Button */}
+                <TouchableOpacity
+                  onPress={() => setStep("password")}
+                  className="flex-row items-center mb-6"
+                >
+                  <Ionicons name="chevron-back" size={24} color="#DC2626" />
+                  <Text className="text-red-600 font-semibold ml-1">Back</Text>
+                </TouchableOpacity>
+
+                {/* 2FA Instructions */}
+                <View className="mb-6">
+                  <Text className="text-2xl font-bold text-gray-800 mb-2">
+                    Verify your identity
+                  </Text>
+                  <Text className="text-gray-600">
+                    We've sent a verification code to{" "}
+                    <Text className="font-semibold">{emailOrPhone}</Text>
+                  </Text>
+                </View>
+
+                {/* Code Label */}
+                <Text className="text-sm font-semibold text-gray-800 mb-3">
+                  Verification Code
+                </Text>
+
+                {/* Code Input */}
+                <View className="bg-gray-50 border border-gray-200 rounded-2xl px-4 py-1 mb-6 flex-row items-center">
+                  <Ionicons
+                    name="shield-checkmark-outline"
+                    size={20}
+                    color="#9CA3AF"
+                    style={{ marginRight: 12 }}
+                  />
+                  <TextInput
+                    value={code}
+                    onChangeText={setCode}
+                    placeholder="Enter 6-digit code"
+                    placeholderTextColor="#9CA3AF"
+                    keyboardType="number-pad"
+                    maxLength={6}
+                    className="flex-1 py-3 text-base text-gray-800"
+                  />
+                </View>
+
+                {/* Verify Button */}
+                <TouchableOpacity
+                  onPress={onVerify2FAPress}
+                  disabled={loading}
+                  className={`bg-red-600 rounded-2xl py-4 mb-6 flex-row items-center justify-center ${
+                    loading ? "opacity-50" : ""
+                  }`}
+                  activeOpacity={0.8}
+                >
+                  {loading ? (
+                    <ActivityIndicator color="white" />
+                  ) : (
+                    <>
+                      <Text className="text-white font-bold text-lg mr-2">
+                        Verify
+                      </Text>
+                      <Ionicons
+                        name="checkmark-circle"
+                        size={20}
+                        color="white"
+                      />
+                    </>
+                  )}
+                </TouchableOpacity>
+
+                {/* Resend Code */}
+                <TouchableOpacity
+                  className="items-center"
+                  onPress={async () => {
+                    if (!signIn) return;
+                    try {
+                      await signIn.prepareSecondFactor({
+                        strategy: "email_code",
+                      });
+                      Alert.alert("Success", "Verification code sent!");
+                    } catch (err: any) {
+                      Alert.alert("Error", "Failed to resend code");
+                    }
+                  }}
+                >
+                  <Text className="text-red-500 font-medium text-sm">
+                    Resend code
+                  </Text>
+                </TouchableOpacity>
+              </>
+            ) : null}
 
             {/* Spacer */}
             <View className="flex-1" />
