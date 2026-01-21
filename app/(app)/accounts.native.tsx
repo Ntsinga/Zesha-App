@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import {
   View,
   Text,
@@ -23,106 +23,43 @@ import {
   ChevronDown,
 } from "lucide-react-native";
 import { useNavigation } from "expo-router";
-import { useDispatch, useSelector } from "react-redux";
 import {
-  fetchAccounts,
-  createAccount,
-  updateAccount,
-  deleteAccount,
-} from "../../store/slices/accountsSlice";
+  useAccountsScreen,
+  ACCOUNT_TYPES,
+} from "../../hooks/screens/useAccountsScreen";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
-import type { AppDispatch, RootState } from "../../store";
-import type { Account, AccountTypeEnum } from "../../types";
-
-const ACCOUNT_TYPES: { value: AccountTypeEnum; label: string }[] = [
-  { value: "BANK", label: "Bank" },
-  { value: "TELECOM", label: "Telecom" },
-];
+import type { Account } from "../../types";
 
 export default function Accounts() {
   const navigation = useNavigation();
-  const dispatch = useDispatch<AppDispatch>();
-  const { items: accounts, isLoading } = useSelector(
-    (state: RootState) => state.accounts
-  );
-  const [refreshing, setRefreshing] = useState(false);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingAccount, setEditingAccount] = useState<Account | null>(null);
-  const [showTypeDropdown, setShowTypeDropdown] = useState(false);
+  const {
+    accounts,
+    isLoading,
+    refreshing,
+    isModalOpen,
+    editingAccount,
+    showTypeDropdown,
+    setShowTypeDropdown,
+    name,
+    setName,
+    accountType,
+    setAccountType,
+    isActive,
+    setIsActive,
+    onRefresh,
+    openAddModal,
+    openEditModal,
+    closeModal,
+    handleSubmit,
+    confirmDelete,
+  } = useAccountsScreen();
 
-  // Form state
-  const [name, setName] = useState("");
-  const [accountType, setAccountType] = useState<AccountTypeEnum>("BANK");
-  const [isActive, setIsActive] = useState(true);
-
-  useEffect(() => {
-    dispatch(fetchAccounts({}));
-  }, [dispatch]);
-
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await dispatch(fetchAccounts({}));
-    setRefreshing(false);
-  };
-
-  const resetForm = () => {
-    setName("");
-    setAccountType("BANK");
-    setIsActive(true);
-    setEditingAccount(null);
-  };
-
-  const openAddModal = () => {
-    resetForm();
-    setIsModalOpen(true);
-  };
-
-  const openEditModal = (account: Account) => {
-    setEditingAccount(account);
-    setName(account.name);
-    setAccountType(account.account_type);
-    setIsActive(account.is_active);
-    setIsModalOpen(true);
-  };
-
-  const closeModal = () => {
-    setIsModalOpen(false);
-    resetForm();
-  };
-
-  const handleSubmit = async () => {
-    if (!name.trim()) {
-      Alert.alert("Error", "Account name is required");
-      return;
-    }
-
-    try {
-      if (editingAccount) {
-        await dispatch(
-          updateAccount({
-            id: editingAccount.id,
-            data: {
-              name: name.trim(),
-              account_type: accountType,
-              is_active: isActive,
-            },
-          })
-        ).unwrap();
-        Alert.alert("Success", "Account updated successfully");
-      } else {
-        await dispatch(
-          createAccount({
-            name: name.trim(),
-            account_type: accountType,
-            is_active: isActive,
-          })
-        ).unwrap();
-        Alert.alert("Success", "Account created successfully");
-      }
-      closeModal();
-      dispatch(fetchAccounts({}));
-    } catch (error) {
-      Alert.alert("Error", error as string);
+  const onSubmit = async () => {
+    const result = await handleSubmit();
+    if (result.success) {
+      Alert.alert("Success", result.message);
+    } else {
+      Alert.alert("Error", result.message);
     }
   };
 
@@ -135,14 +72,7 @@ export default function Accounts() {
         {
           text: "Delete",
           style: "destructive",
-          onPress: async () => {
-            try {
-              await dispatch(deleteAccount(account.id)).unwrap();
-              Alert.alert("Success", "Account deleted successfully");
-            } catch (error) {
-              Alert.alert("Error", error as string);
-            }
-          },
+          onPress: () => confirmDelete(account),
         },
       ]
     );
@@ -382,7 +312,7 @@ export default function Accounts() {
 
             {/* Submit Button */}
             <TouchableOpacity
-              onPress={handleSubmit}
+              onPress={onSubmit}
               className="bg-brand-red py-4 rounded-xl items-center"
             >
               <Text className="text-white font-bold text-lg">
