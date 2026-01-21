@@ -89,11 +89,143 @@ body {
 .content-area {
   flex: 1;
   margin-left: var(--sidebar-width);
-  min-height: 100vh;
+  height: 100vh;
   display: flex;
   flex-direction: column;
+  position: relative;
   overflow-y: auto;
   overflow-x: hidden;
+}
+
+/* ============================================
+   TOP BAR STYLES
+   ============================================ */
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background-color: #ffffff;
+  border-bottom: 1px solid var(--color-border);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.topbar-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 24px;
+  max-width: 100%;
+}
+
+.topbar-left {
+  flex: 1;
+}
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.topbar-user-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.topbar-user-details {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.topbar-user-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+  line-height: 1.2;
+}
+
+.topbar-user-role {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-primary);
+  background-color: #fee2e2;
+  padding: 2px 8px;
+  border-radius: 12px;
+  text-transform: capitalize;
+}
+
+.topbar-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(
+    135deg,
+    var(--color-primary) 0%,
+    var(--color-primary-dark) 100%
+  );
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 700;
+  font-size: 15px;
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.2);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.topbar-avatar:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+}
+
+.topbar-avatar:focus {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Ensure proper text truncation */
+.topbar-user-name {
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.topbar-user-role {
+  display: inline-block;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Responsive adjustments for smaller screens */
+@media (max-width: 768px) {
+  .topbar-container {
+    padding: 8px 16px;
+  }
+
+  .topbar-user-name {
+    font-size: 13px;
+    max-width: 140px;
+  }
+
+  .topbar-user-role {
+    font-size: 10px;
+    padding: 1px 6px;
+  }
+
+  .topbar-avatar {
+    width: 36px;
+    height: 36px;
+    font-size: 13px;
+  }
 }
 
 /* Sidebar */
@@ -1194,7 +1326,7 @@ body {
 
 /* Page Wrapper - fills all available space */
 .page-wrapper {
-  min-height: 100vh;
+  flex: 1;
   display: flex;
   flex-direction: column;
   background-color: var(--color-bg);
