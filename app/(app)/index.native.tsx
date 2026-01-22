@@ -6,23 +6,16 @@ import {
   TouchableOpacity,
   RefreshControl,
 } from "react-native";
-import {
-  Wallet,
-  Camera,
-  Menu,
-  TrendingUp,
-  TrendingDown,
-} from "lucide-react-native";
-import { useNavigation, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { useDashboardScreen } from "../../hooks/screens/useDashboardScreen";
 import type { AccountSummary } from "../../types";
 
 /**
- * Native Dashboard - optimized for mobile devices
+ * Native Dashboard - redesigned to match modern UI
  */
 export default function DashboardNative() {
-  const navigation = useNavigation();
   const router = useRouter();
 
   const {
@@ -55,210 +48,188 @@ export default function DashboardNative() {
     <View className="flex-1 bg-gray-50">
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
+        contentContainerStyle={{ paddingBottom: 100 }}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        {/* Header */}
-        <View className="flex-row justify-between items-center mb-8 mt-4">
-          <View>
-            <Text className="text-3xl font-bold text-gray-800">Zesha App</Text>
-            <Text className="text-gray-500 mt-1">Hi: {companyName}</Text>
-          </View>
-          <TouchableOpacity
-            onPress={() => (navigation as any).openDrawer()}
-            className="p-2 bg-brand-red rounded-md shadow-sm"
-          >
-            <Menu color="white" size={24} />
-          </TouchableOpacity>
+        {/* Header Section */}
+        <View className="px-5 pt-6 pb-4 bg-white">
+          <Text className="text-3xl font-bold text-gray-900">Zesha App</Text>
+          <Text className="text-base text-gray-500 mt-1">
+            Hi, {companyName}
+          </Text>
         </View>
 
         {/* Shift Toggle */}
-        <View className="flex-row mb-4 bg-white rounded-xl p-1 shadow-sm">
-          <TouchableOpacity
-            onPress={() => handleShiftChange("AM")}
-            className={`flex-1 py-2 rounded-lg ${
-              currentShift === "AM" ? "bg-brand-red" : "bg-transparent"
-            }`}
-          >
-            <Text
-              className={`text-center font-bold ${
-                currentShift === "AM" ? "text-white" : "text-gray-600"
+        <View className="px-5 py-4 bg-white">
+          <View className="flex-row bg-gray-100 rounded-2xl p-1">
+            <TouchableOpacity
+              onPress={() => handleShiftChange("AM")}
+              className={`flex-1 py-3 rounded-xl ${
+                currentShift === "AM" ? "bg-red-600" : "bg-transparent"
               }`}
             >
-              AM Shift
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => handleShiftChange("PM")}
-            className={`flex-1 py-2 rounded-lg ${
-              currentShift === "PM" ? "bg-brand-red" : "bg-transparent"
-            }`}
-          >
-            <Text
-              className={`text-center font-bold ${
-                currentShift === "PM" ? "text-white" : "text-gray-600"
-              }`}
-            >
-              PM Shift
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Main Stats Card */}
-        <View className="relative overflow-hidden rounded-3xl bg-brand-gold shadow-lg p-6 mb-4">
-          <View className="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-white opacity-20 rounded-full" />
-
-          {/* Grand Total */}
-          <View className="border-b border-brand-darkGold/30 pb-4 mb-4">
-            <Text className="text-red-900/70 font-semibold text-lg">
-              Total Operating Capital
-            </Text>
-            <Text className="text-4xl font-bold text-red-900">
-              {formatCurrency(grandTotal)}
-            </Text>
-          </View>
-
-          <View className="flex-row flex-wrap justify-between">
-            <View className="mb-4 w-1/2">
-              <Text className="text-red-900/80 font-bold text-xl">Float</Text>
-              <Text className="text-2xl font-bold text-red-900">
-                {formatCurrency(totalFloat)}
-              </Text>
-            </View>
-            <View className="w-1/2 pl-4 justify-center space-y-2">
-              <View className="flex-row justify-between">
-                <Text className="text-red-900 font-semibold">Cash</Text>
-                <Text className="text-red-900 font-bold">
-                  {formatCompactCurrency(totalCash)}
-                </Text>
-              </View>
-              <View className="flex-row justify-between">
-                <Text className="text-red-900 font-semibold">Outst.</Text>
-                <Text className="text-red-900 font-bold">
-                  {formatCompactCurrency(outstandingBalance)}
-                </Text>
-              </View>
-            </View>
-          </View>
-        </View>
-
-        {/* Expected vs Actual Card */}
-        <View className="bg-white rounded-3xl shadow-sm p-4 mb-4 border border-gray-100">
-          <View className="flex-row justify-between items-center mb-3">
-            <Text className="text-lg font-bold text-gray-800">Comparison</Text>
-            <Text className="text-xs text-gray-500">{snapshotDate}</Text>
-          </View>
-
-          <View className="flex-row justify-between mb-2">
-            <Text className="text-gray-600">Expected Total</Text>
-            <Text className="font-bold text-gray-800">
-              {formatCurrency(expectedGrandTotal)}
-            </Text>
-          </View>
-
-          <View className="flex-row justify-between mb-2">
-            <Text className="text-gray-600">Actual Total</Text>
-            <Text className="font-bold text-gray-800">
-              {formatCurrency(grandTotal)}
-            </Text>
-          </View>
-
-          <View className="flex-row justify-between mb-2">
-            <Text className="text-gray-600">Total Expenses</Text>
-            <Text className="font-bold text-red-600">
-              -{formatCurrency(totalExpenses)}
-            </Text>
-          </View>
-
-          <View className="flex-row justify-between mb-2">
-            <Text className="text-gray-600">Daily Commission</Text>
-            <Text className="font-bold text-green-600">
-              +{formatCurrency(dailyCommission)}
-            </Text>
-          </View>
-
-          <View className="flex-row justify-between mb-2">
-            <Text className="text-gray-600">Total Commission</Text>
-            <Text className="font-bold text-gray-800">
-              {formatCurrency(totalCommission)}
-            </Text>
-          </View>
-
-          <View className="border-t border-gray-100 pt-2 mt-2 flex-row justify-between items-center">
-            <Text className="text-gray-700 font-semibold">Variance</Text>
-            <View className="flex-row items-center">
-              {capitalVariance >= 0 ? (
-                <TrendingUp color="#16A34A" size={16} />
-              ) : (
-                <TrendingDown color="#DC2626" size={16} />
-              )}
               <Text
-                className={`font-bold ml-1 ${
-                  capitalVariance >= 0 ? "text-green-600" : "text-red-600"
+                className={`text-center font-bold text-base ${
+                  currentShift === "AM" ? "text-white" : "text-gray-600"
                 }`}
               >
-                {capitalVariance >= 0 ? "+" : ""}
-                {formatCurrency(capitalVariance)}
+                AM Shift
               </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => handleShiftChange("PM")}
+              className={`flex-1 py-3 rounded-xl ${
+                currentShift === "PM" ? "bg-red-600" : "bg-transparent"
+              }`}
+            >
+              <Text
+                className={`text-center font-bold text-base ${
+                  currentShift === "PM" ? "text-white" : "text-gray-600"
+                }`}
+              >
+                PM Shift
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Total Operating Capital Card */}
+        <View className="px-5 py-4">
+          <View className="bg-yellow-400 rounded-3xl p-6 shadow-md">
+            {/* Title */}
+            <Text className="text-yellow-800 font-semibold text-sm uppercase tracking-wide mb-2">
+              Total Operating Capital
+            </Text>
+
+            {/* Grand Total */}
+            <Text className="text-4xl font-bold text-yellow-900 mb-6">
+              {formatCurrency(grandTotal)}
+            </Text>
+
+            {/* Float and Cash Row */}
+            <View className="flex-row">
+              {/* Float Section */}
+              <View className="flex-1">
+                <Text className="text-yellow-800 font-semibold text-sm uppercase mb-1">
+                  Float
+                </Text>
+                <Text className="text-2xl font-bold text-yellow-900">
+                  {formatCurrency(totalFloat)}
+                </Text>
+              </View>
+
+              {/* Divider */}
+              <View className="w-px bg-yellow-600 mx-4" />
+
+              {/* Cash Section */}
+              <View className="flex-1">
+                <View className="flex-row justify-between mb-2">
+                  <Text className="text-yellow-800 font-semibold text-xs">
+                    Cash
+                  </Text>
+                  <Text className="text-yellow-900 font-bold text-sm">
+                    {formatCompactCurrency(totalCash)}
+                  </Text>
+                </View>
+                <View className="flex-row justify-between">
+                  <Text className="text-yellow-800 font-semibold text-xs">
+                    OUTST.
+                  </Text>
+                  <Text className="text-yellow-900 font-bold text-sm">
+                    {formatCompactCurrency(outstandingBalance)}
+                  </Text>
+                </View>
+              </View>
             </View>
           </View>
         </View>
 
-        {/* Accounts List */}
-        <View className="bg-white rounded-3xl shadow-sm p-6 border border-gray-100">
-          <Text className="text-xl font-bold text-brand-red mb-6">
-            Current Float Balances
-          </Text>
-
-          <View className="mb-4">
-            <View className="flex-row justify-between pb-2 border-b border-gray-100 mb-2">
-              <Text className="font-bold text-gray-800 flex-1">Account</Text>
-              <Text className="font-bold text-gray-800 w-24 text-center">
-                Amount
+        {/* Comparison Section */}
+        <View className="px-5 py-4">
+          <View className="bg-white rounded-3xl p-6 shadow-sm">
+            {/* Header */}
+            <View className="flex-row justify-between items-center mb-6">
+              <Text className="text-xl font-bold text-gray-900">
+                Comparison
               </Text>
-              <Text className="font-bold text-gray-800 w-20 text-right">
-                Pic
-              </Text>
+              <View className="flex-row items-center bg-gray-50 px-3 py-2 rounded-lg">
+                <Ionicons name="calendar-outline" size={16} color="#6B7280" />
+                <Text className="text-sm text-gray-600 ml-2">
+                  {snapshotDate}
+                </Text>
+              </View>
             </View>
-            {accounts.map((account: AccountSummary, idx: number) => (
-              <View
-                key={`account-${idx}`}
-                className="flex-row items-center py-4 border-b border-gray-50"
-              >
-                <View className="flex-1">
-                  <Text className="font-semibold text-gray-700">
-                    {account.account_name}
+
+            {/* Comparison Items */}
+            <View className="space-y-4">
+              {/* Expected Total */}
+              <View className="flex-row justify-between items-center py-3">
+                <Text className="text-gray-600 text-base">Expected Total</Text>
+                <Text className="font-bold text-gray-900 text-base">
+                  {formatCurrency(expectedGrandTotal)}
+                </Text>
+              </View>
+
+              {/* Actual Total */}
+              <View className="flex-row justify-between items-center py-3">
+                <Text className="text-gray-600 text-base">Actual Total</Text>
+                <Text className="font-bold text-gray-900 text-base">
+                  {formatCurrency(grandTotal)}
+                </Text>
+              </View>
+
+              {/* Total Expenses */}
+              <View className="flex-row justify-between items-center py-3">
+                <Text className="text-gray-600 text-base">Total Expenses</Text>
+                <Text className="font-bold text-red-600 text-base">
+                  -{formatCurrency(totalExpenses)}
+                </Text>
+              </View>
+
+              {/* Daily Commission */}
+              <View className="flex-row justify-between items-center py-3">
+                <Text className="text-gray-600 text-base">
+                  Daily Commission
+                </Text>
+                <Text className="font-bold text-green-600 text-base">
+                  +{formatCurrency(dailyCommission)}
+                </Text>
+              </View>
+
+              {/* Total Commission */}
+              <View className="flex-row justify-between items-center py-3">
+                <Text className="text-gray-600 text-base">
+                  Total Commission
+                </Text>
+                <Text className="font-bold text-gray-900 text-base">
+                  {formatCurrency(totalCommission)}
+                </Text>
+              </View>
+
+              {/* Variance */}
+              <View className="border-t border-gray-100 pt-4 mt-2">
+                <View className="bg-red-50 rounded-2xl p-4 flex-row justify-between items-center">
+                  <Text className="text-red-600 font-bold text-lg">
+                    Variance
                   </Text>
-                  <Text className="text-xs text-gray-400">{account.shift}</Text>
-                </View>
-                <View className="w-24 flex-row justify-center space-x-2">
-                  <Text className="text-gray-600 font-medium">
-                    {formatCurrency(account.balance || 0)}
-                  </Text>
-                </View>
-                <View className="w-20 items-end">
-                  <View className="flex-row items-center space-x-1">
-                    <Camera size={14} color="#9CA3AF" />
-                    <Text className="text-xs text-gray-400">View</Text>
+                  <View className="flex-row items-center">
+                    <Ionicons
+                      name={
+                        capitalVariance >= 0 ? "trending-up" : "trending-down"
+                      }
+                      size={20}
+                      color="#DC2626"
+                    />
+                    <Text className="font-bold text-red-600 text-lg ml-2">
+                      {capitalVariance >= 0 ? "" : "-"}
+                      {formatCurrency(Math.abs(capitalVariance))}
+                    </Text>
                   </View>
                 </View>
               </View>
-            ))}
-          </View>
-
-          {/* Action Button */}
-          <View className="mt-4">
-            <TouchableOpacity
-              onPress={() => router.push("/balance")}
-              className="bg-brand-red py-4 rounded-xl shadow-md flex-row items-center justify-center space-x-2"
-            >
-              <Wallet color="white" size={20} />
-              <Text className="text-white font-bold text-base ml-2">
-                Reconcile
-              </Text>
-            </TouchableOpacity>
+            </View>
           </View>
         </View>
       </ScrollView>

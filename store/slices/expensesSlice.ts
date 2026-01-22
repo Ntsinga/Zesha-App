@@ -35,7 +35,7 @@ const initialState: ExpensesState = {
 // API helper
 async function apiRequest<T>(
   endpoint: string,
-  options?: RequestInit
+  options?: RequestInit,
 ): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     headers: {
@@ -63,19 +63,33 @@ async function apiRequest<T>(
 // Async thunks
 export const fetchExpenses = createAsyncThunk(
   "expenses/fetchAll",
-  async (filters: ExpenseFilters = {}, { rejectWithValue }) => {
+  async (filters: ExpenseFilters = {}, { getState, rejectWithValue }) => {
     try {
-      const query = buildQueryString(filters);
+      // Get company_id from auth state
+      const state = getState() as any;
+      const companyId = state.auth?.user?.company_id;
+
+      if (!companyId) {
+        return rejectWithValue("No company_id found. Please log in again.");
+      }
+
+      // Add company_id to filters
+      const filtersWithCompany = {
+        ...filters,
+        company_id: companyId,
+      };
+
+      const query = buildQueryString(filtersWithCompany);
       const expenses = await apiRequest<Expense[]>(
-        `${API_ENDPOINTS.expenses.list}${query}`
+        `${API_ENDPOINTS.expenses.list}${query}`,
       );
       return expenses;
     } catch (error) {
       return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to fetch expenses"
+        error instanceof Error ? error.message : "Failed to fetch expenses",
       );
     }
-  }
+  },
 );
 
 export const fetchExpenseById = createAsyncThunk(
@@ -86,10 +100,10 @@ export const fetchExpenseById = createAsyncThunk(
       return expense;
     } catch (error) {
       return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to fetch expense"
+        error instanceof Error ? error.message : "Failed to fetch expense",
       );
     }
-  }
+  },
 );
 
 export const createExpense = createAsyncThunk(
@@ -103,17 +117,17 @@ export const createExpense = createAsyncThunk(
       return expense;
     } catch (error) {
       return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to create expense"
+        error instanceof Error ? error.message : "Failed to create expense",
       );
     }
-  }
+  },
 );
 
 export const updateExpense = createAsyncThunk(
   "expenses/update",
   async (
     { id, data }: { id: number; data: ExpenseUpdate },
-    { rejectWithValue }
+    { rejectWithValue },
   ) => {
     try {
       const expense = await apiRequest<Expense>(
@@ -121,15 +135,15 @@ export const updateExpense = createAsyncThunk(
         {
           method: "PATCH",
           body: JSON.stringify(data),
-        }
+        },
       );
       return expense;
     } catch (error) {
       return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to update expense"
+        error instanceof Error ? error.message : "Failed to update expense",
       );
     }
-  }
+  },
 );
 
 export const deleteExpense = createAsyncThunk(
@@ -142,10 +156,10 @@ export const deleteExpense = createAsyncThunk(
       return id;
     } catch (error) {
       return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to delete expense"
+        error instanceof Error ? error.message : "Failed to delete expense",
       );
     }
-  }
+  },
 );
 
 // Slice
@@ -178,7 +192,7 @@ const expensesSlice = createSlice({
         state.items = action.payload;
         state.totalAmount = action.payload.reduce(
           (sum, expense) => sum + Number(expense.amount),
-          0
+          0,
         );
         state.lastFetched = Date.now();
       })
@@ -222,7 +236,7 @@ const expensesSlice = createSlice({
     builder
       .addCase(updateExpense.fulfilled, (state, action) => {
         const index = state.items.findIndex(
-          (item) => item.id === action.payload.id
+          (item) => item.id === action.payload.id,
         );
         if (index !== -1) {
           const oldAmount = Number(state.items[index].amount);
@@ -242,7 +256,7 @@ const expensesSlice = createSlice({
     builder
       .addCase(deleteExpense.fulfilled, (state, action) => {
         const deletedExpense = state.items.find(
-          (item) => item.id === action.payload
+          (item) => item.id === action.payload,
         );
         if (deletedExpense) {
           state.totalAmount -= Number(deletedExpense.amount);

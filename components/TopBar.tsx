@@ -1,6 +1,14 @@
 import React, { useMemo } from "react";
-import { View, Text, StyleSheet, Platform } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  Platform,
+  TouchableOpacity,
+} from "react-native";
 import { useSelector } from "react-redux";
+import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { selectUser, selectUserRole } from "../store/slices/authSlice";
 
 /**
@@ -13,9 +21,21 @@ import { selectUser, selectUserRole } from "../store/slices/authSlice";
  * - Accessible text with proper contrast
  * - Graceful fallbacks for missing data
  */
-export default function TopBar() {
+
+interface TopBarProps {
+  onMenuPress?: () => void;
+}
+
+export default function TopBar({ onMenuPress }: TopBarProps) {
   const user = useSelector(selectUser);
   const role = useSelector(selectUserRole);
+  const router = useRouter();
+
+  const handleMenuPress = () => {
+    if (onMenuPress) {
+      onMenuPress();
+    }
+  };
 
   // Memoize computed values to prevent unnecessary recalculations
   const { initials, displayName, roleLabel } = useMemo(() => {
@@ -55,35 +75,9 @@ export default function TopBar() {
       accessibilityLabel="User information bar"
     >
       <View style={styles.content}>
-        {/* Left side - Reserved for future breadcrumbs/navigation */}
-        <View style={styles.leftSection} />
-
-        {/* Right side - User info */}
+        {/* Left side - User info */}
         <View style={styles.userSection}>
-          <View style={styles.userDetails}>
-            <Text
-              style={styles.userName}
-              numberOfLines={1}
-              accessible={true}
-              accessibilityLabel={`User: ${displayName}`}
-            >
-              {displayName}
-            </Text>
-            {roleLabel && (
-              <View style={styles.roleBadge}>
-                <Text
-                  style={styles.roleText}
-                  numberOfLines={1}
-                  accessible={true}
-                  accessibilityLabel={`Role: ${roleLabel}`}
-                >
-                  {roleLabel}
-                </Text>
-              </View>
-            )}
-          </View>
-
-          {/* Avatar with proper touch target size (44x44 minimum) */}
+          {/* Avatar */}
           <View
             style={styles.avatar}
             accessible={true}
@@ -92,6 +86,53 @@ export default function TopBar() {
           >
             <Text style={styles.avatarText}>{initials}</Text>
           </View>
+
+          {/* User Details */}
+          <View style={styles.userDetails}>
+            {roleLabel && (
+              <Text
+                style={styles.roleText}
+                numberOfLines={1}
+                accessible={true}
+                accessibilityLabel={`Role: ${roleLabel}`}
+              >
+                {roleLabel}
+              </Text>
+            )}
+            <Text
+              style={styles.userName}
+              numberOfLines={1}
+              accessible={true}
+              accessibilityLabel={`User: ${displayName}`}
+            >
+              {displayName}
+            </Text>
+          </View>
+        </View>
+
+        {/* Right side - Actions */}
+        <View style={styles.actionsSection}>
+          {/* Notification Bell */}
+          <TouchableOpacity
+            style={styles.iconButton}
+            onPress={() => {}}
+            accessible={true}
+            accessibilityLabel="Notifications"
+            accessibilityRole="button"
+          >
+            <Ionicons name="notifications-outline" size={24} color="#6B7280" />
+          </TouchableOpacity>
+
+          {/* Menu Button */}
+          <TouchableOpacity
+            style={styles.menuButton}
+            onPress={handleMenuPress}
+            accessible={true}
+            accessibilityLabel="Open menu"
+            accessibilityRole="button"
+          >
+            <Ionicons name="menu" size={24} color="#FFFFFF" />
+          </TouchableOpacity>
         </View>
       </View>
     </View>
@@ -125,45 +166,33 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
   },
-  leftSection: {
-    flex: 1,
-  },
   userSection: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12, // Modern gap property for spacing
+    gap: 12,
   },
   userDetails: {
-    alignItems: "flex-end",
-    maxWidth: 200, // Prevent overflow on small screens
-  },
-  userName: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#111827",
-    lineHeight: 20,
-  },
-  roleBadge: {
-    backgroundColor: "#FEE2E2",
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 12,
-    marginTop: 2,
+    maxWidth: 180,
   },
   roleText: {
     fontSize: 11,
     fontWeight: "500",
-    color: "#DC2626",
+    color: "#6B7280",
     textTransform: "capitalize",
   },
+  userName: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#111827",
+    lineHeight: 20,
+  },
   avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: "#DC2626",
     alignItems: "center",
     justifyContent: "center",
-    // Proper shadow for both platforms
     ...Platform.select({
       ios: {
         shadowColor: "#DC2626",
@@ -178,8 +207,38 @@ const styles = StyleSheet.create({
   },
   avatarText: {
     color: "#FFFFFF",
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: "700",
     letterSpacing: 0.5,
+  },
+  actionsSection: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  iconButton: {
+    width: 40,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  menuButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: "#DC2626",
+    alignItems: "center",
+    justifyContent: "center",
+    ...Platform.select({
+      ios: {
+        shadowColor: "#DC2626",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
   },
 });

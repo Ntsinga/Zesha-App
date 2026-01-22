@@ -35,7 +35,7 @@ const initialState: CashCountState = {
 // API helper
 async function apiRequest<T>(
   endpoint: string,
-  options?: RequestInit
+  options?: RequestInit,
 ): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     headers: {
@@ -63,19 +63,33 @@ async function apiRequest<T>(
 // Async thunks
 export const fetchCashCounts = createAsyncThunk(
   "cashCount/fetchAll",
-  async (filters: CashCountFilters = {}, { rejectWithValue }) => {
+  async (filters: CashCountFilters = {}, { getState, rejectWithValue }) => {
     try {
-      const query = buildQueryString(filters);
+      // Get company_id from auth state
+      const state = getState() as any;
+      const companyId = state.auth?.user?.company_id;
+
+      if (!companyId) {
+        return rejectWithValue("No company_id found. Please log in again.");
+      }
+
+      // Add company_id to filters
+      const filtersWithCompany = {
+        ...filters,
+        company_id: companyId,
+      };
+
+      const query = buildQueryString(filtersWithCompany);
       const cashCounts = await apiRequest<CashCount[]>(
-        `${API_ENDPOINTS.cashCount.list}${query}`
+        `${API_ENDPOINTS.cashCount.list}${query}`,
       );
       return cashCounts;
     } catch (error) {
       return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to fetch cash counts"
+        error instanceof Error ? error.message : "Failed to fetch cash counts",
       );
     }
-  }
+  },
 );
 
 export const fetchCashCountById = createAsyncThunk(
@@ -83,15 +97,15 @@ export const fetchCashCountById = createAsyncThunk(
   async (id: number, { rejectWithValue }) => {
     try {
       const cashCount = await apiRequest<CashCount>(
-        API_ENDPOINTS.cashCount.get(id)
+        API_ENDPOINTS.cashCount.get(id),
       );
       return cashCount;
     } catch (error) {
       return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to fetch cash count"
+        error instanceof Error ? error.message : "Failed to fetch cash count",
       );
     }
-  }
+  },
 );
 
 export const createCashCount = createAsyncThunk(
@@ -103,15 +117,15 @@ export const createCashCount = createAsyncThunk(
         {
           method: "POST",
           body: JSON.stringify(data),
-        }
+        },
       );
       return cashCount;
     } catch (error) {
       return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to create cash count"
+        error instanceof Error ? error.message : "Failed to create cash count",
       );
     }
-  }
+  },
 );
 
 export const createManyCashCounts = createAsyncThunk(
@@ -136,17 +150,17 @@ export const createManyCashCounts = createAsyncThunk(
       return response.created;
     } catch (error) {
       return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to create cash counts"
+        error instanceof Error ? error.message : "Failed to create cash counts",
       );
     }
-  }
+  },
 );
 
 export const updateCashCount = createAsyncThunk(
   "cashCount/update",
   async (
     { id, data }: { id: number; data: CashCountUpdate },
-    { rejectWithValue }
+    { rejectWithValue },
   ) => {
     try {
       const cashCount = await apiRequest<CashCount>(
@@ -154,15 +168,15 @@ export const updateCashCount = createAsyncThunk(
         {
           method: "PATCH",
           body: JSON.stringify(data),
-        }
+        },
       );
       return cashCount;
     } catch (error) {
       return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to update cash count"
+        error instanceof Error ? error.message : "Failed to update cash count",
       );
     }
-  }
+  },
 );
 
 export const deleteCashCount = createAsyncThunk(
@@ -175,10 +189,10 @@ export const deleteCashCount = createAsyncThunk(
       return id;
     } catch (error) {
       return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to delete cash count"
+        error instanceof Error ? error.message : "Failed to delete cash count",
       );
     }
-  }
+  },
 );
 
 // Slice
@@ -211,7 +225,7 @@ const cashCountSlice = createSlice({
         state.items = action.payload;
         state.totalAmount = action.payload.reduce(
           (sum, item) => sum + Number(item.amount),
-          0
+          0,
         );
         state.lastFetched = Date.now();
       })
@@ -262,7 +276,7 @@ const cashCountSlice = createSlice({
         state.items = [...action.payload, ...state.items];
         state.totalAmount += action.payload.reduce(
           (sum, item) => sum + Number(item.amount),
-          0
+          0,
         );
       })
       .addCase(createManyCashCounts.rejected, (state, action) => {
@@ -274,7 +288,7 @@ const cashCountSlice = createSlice({
     builder
       .addCase(updateCashCount.fulfilled, (state, action) => {
         const index = state.items.findIndex(
-          (item) => item.id === action.payload.id
+          (item) => item.id === action.payload.id,
         );
         if (index !== -1) {
           const oldAmount = Number(state.items[index].amount);
@@ -294,7 +308,7 @@ const cashCountSlice = createSlice({
     builder
       .addCase(deleteCashCount.fulfilled, (state, action) => {
         const deletedItem = state.items.find(
-          (item) => item.id === action.payload
+          (item) => item.id === action.payload,
         );
         if (deletedItem) {
           state.totalAmount -= Number(deletedItem.amount);
