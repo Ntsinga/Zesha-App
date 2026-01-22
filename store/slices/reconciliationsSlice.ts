@@ -71,9 +71,26 @@ async function apiRequest<T>(
 // Async thunks
 export const fetchReconciliations = createAsyncThunk(
   "reconciliations/fetchAll",
-  async (filters: ReconciliationFilters = {}, { rejectWithValue }) => {
+  async (
+    filters: ReconciliationFilters = {},
+    { getState, rejectWithValue },
+  ) => {
     try {
-      const query = buildQueryString(filters);
+      // Get company_id from auth state
+      const state = getState() as any;
+      const companyId = state.auth?.user?.company_id;
+
+      if (!companyId) {
+        return rejectWithValue("No company_id found. Please log in again.");
+      }
+
+      // Add company_id to filters
+      const filtersWithCompany = {
+        ...filters,
+        company_id: companyId,
+      };
+
+      const query = buildQueryString(filtersWithCompany);
       const reconciliations = await apiRequest<Reconciliation[]>(
         `${API_ENDPOINTS.reconciliations.list}${query}`,
       );
@@ -183,10 +200,24 @@ export const fetchReconciliationHistory = createAsyncThunk(
       shift?: "AM" | "PM";
       finalized_only?: boolean;
     } = {},
-    { rejectWithValue },
+    { getState, rejectWithValue },
   ) => {
     try {
-      const query = buildQueryString(params);
+      // Get company_id from auth state
+      const state = getState() as any;
+      const companyId = state.auth?.user?.company_id;
+
+      if (!companyId) {
+        return rejectWithValue("No company_id found. Please log in again.");
+      }
+
+      // Add company_id to params
+      const paramsWithCompany = {
+        ...params,
+        company_id: companyId,
+      };
+
+      const query = buildQueryString(paramsWithCompany);
       const history = await apiRequest<any[]>(
         `${API_ENDPOINTS.reconciliations.history}${query}`,
       );

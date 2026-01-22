@@ -35,7 +35,7 @@ const initialState: AccountsState = {
 // API helper
 async function apiRequest<T>(
   endpoint: string,
-  options?: RequestInit
+  options?: RequestInit,
 ): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     headers: {
@@ -63,19 +63,33 @@ async function apiRequest<T>(
 // Async thunks
 export const fetchAccounts = createAsyncThunk(
   "accounts/fetchAll",
-  async (filters: AccountFilters = {}, { rejectWithValue }) => {
+  async (filters: AccountFilters = {}, { getState, rejectWithValue }) => {
     try {
-      const query = buildQueryString(filters);
+      // Get company_id from auth state
+      const state = getState() as any;
+      const companyId = state.auth?.user?.company_id;
+
+      if (!companyId) {
+        return rejectWithValue("No company_id found. Please log in again.");
+      }
+
+      // Add company_id to filters
+      const filtersWithCompany = {
+        ...filters,
+        company_id: companyId,
+      };
+
+      const query = buildQueryString(filtersWithCompany);
       const accounts = await apiRequest<Account[]>(
-        `${API_ENDPOINTS.accounts.list}${query}`
+        `${API_ENDPOINTS.accounts.list}${query}`,
       );
       return accounts;
     } catch (error) {
       return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to fetch accounts"
+        error instanceof Error ? error.message : "Failed to fetch accounts",
       );
     }
-  }
+  },
 );
 
 export const fetchAccountById = createAsyncThunk(
@@ -86,10 +100,10 @@ export const fetchAccountById = createAsyncThunk(
       return account;
     } catch (error) {
       return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to fetch account"
+        error instanceof Error ? error.message : "Failed to fetch account",
       );
     }
-  }
+  },
 );
 
 export const createAccount = createAsyncThunk(
@@ -103,17 +117,17 @@ export const createAccount = createAsyncThunk(
       return account;
     } catch (error) {
       return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to create account"
+        error instanceof Error ? error.message : "Failed to create account",
       );
     }
-  }
+  },
 );
 
 export const updateAccount = createAsyncThunk(
   "accounts/update",
   async (
     { id, data }: { id: number; data: AccountUpdate },
-    { rejectWithValue }
+    { rejectWithValue },
   ) => {
     try {
       const account = await apiRequest<Account>(
@@ -121,15 +135,15 @@ export const updateAccount = createAsyncThunk(
         {
           method: "PATCH",
           body: JSON.stringify(data),
-        }
+        },
       );
       return account;
     } catch (error) {
       return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to update account"
+        error instanceof Error ? error.message : "Failed to update account",
       );
     }
-  }
+  },
 );
 
 export const deleteAccount = createAsyncThunk(
@@ -142,10 +156,10 @@ export const deleteAccount = createAsyncThunk(
       return id;
     } catch (error) {
       return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to delete account"
+        error instanceof Error ? error.message : "Failed to delete account",
       );
     }
-  }
+  },
 );
 
 export const createAccountsBulk = createAsyncThunk(
@@ -157,15 +171,15 @@ export const createAccountsBulk = createAsyncThunk(
         {
           method: "POST",
           body: JSON.stringify(data),
-        }
+        },
       );
       return response;
     } catch (error) {
       return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to create accounts"
+        error instanceof Error ? error.message : "Failed to create accounts",
       );
     }
-  }
+  },
 );
 
 export const deactivateAccount = createAsyncThunk(
@@ -176,15 +190,15 @@ export const deactivateAccount = createAsyncThunk(
         API_ENDPOINTS.accounts.deactivate(id),
         {
           method: "POST",
-        }
+        },
       );
       return account;
     } catch (error) {
       return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to deactivate account"
+        error instanceof Error ? error.message : "Failed to deactivate account",
       );
     }
-  }
+  },
 );
 
 export const activateAccount = createAsyncThunk(
@@ -195,15 +209,15 @@ export const activateAccount = createAsyncThunk(
         API_ENDPOINTS.accounts.activate(id),
         {
           method: "POST",
-        }
+        },
       );
       return account;
     } catch (error) {
       return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to activate account"
+        error instanceof Error ? error.message : "Failed to activate account",
       );
     }
-  }
+  },
 );
 
 // Slice
@@ -275,7 +289,7 @@ const accountsSlice = createSlice({
     builder
       .addCase(updateAccount.fulfilled, (state, action) => {
         const index = state.items.findIndex(
-          (item) => item.id === action.payload.id
+          (item) => item.id === action.payload.id,
         );
         if (index !== -1) {
           state.items[index] = action.payload;
@@ -319,7 +333,7 @@ const accountsSlice = createSlice({
     builder
       .addCase(deactivateAccount.fulfilled, (state, action) => {
         const index = state.items.findIndex(
-          (item) => item.id === action.payload.id
+          (item) => item.id === action.payload.id,
         );
         if (index !== -1) {
           state.items[index] = action.payload;
@@ -336,7 +350,7 @@ const accountsSlice = createSlice({
     builder
       .addCase(activateAccount.fulfilled, (state, action) => {
         const index = state.items.findIndex(
-          (item) => item.id === action.payload.id
+          (item) => item.id === action.payload.id,
         );
         if (index !== -1) {
           state.items[index] = action.payload;

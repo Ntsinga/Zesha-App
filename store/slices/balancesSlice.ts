@@ -37,7 +37,7 @@ const initialState: BalancesState = {
 // API helper
 async function apiRequest<T>(
   endpoint: string,
-  options?: RequestInit
+  options?: RequestInit,
 ): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     headers: {
@@ -65,19 +65,33 @@ async function apiRequest<T>(
 // Async thunks
 export const fetchBalances = createAsyncThunk(
   "balances/fetchAll",
-  async (filters: BalanceFilters = {}, { rejectWithValue }) => {
+  async (filters: BalanceFilters = {}, { getState, rejectWithValue }) => {
     try {
-      const query = buildQueryString(filters);
+      // Get company_id from auth state
+      const state = getState() as any;
+      const companyId = state.auth?.user?.company_id;
+
+      if (!companyId) {
+        return rejectWithValue("No company_id found. Please log in again.");
+      }
+
+      // Add company_id to filters
+      const filtersWithCompany = {
+        ...filters,
+        company_id: companyId,
+      };
+
+      const query = buildQueryString(filtersWithCompany);
       const balances = await apiRequest<Balance[]>(
-        `${API_ENDPOINTS.balances.list}${query}`
+        `${API_ENDPOINTS.balances.list}${query}`,
       );
       return balances;
     } catch (error) {
       return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to fetch balances"
+        error instanceof Error ? error.message : "Failed to fetch balances",
       );
     }
-  }
+  },
 );
 
 export const fetchBalanceById = createAsyncThunk(
@@ -88,10 +102,10 @@ export const fetchBalanceById = createAsyncThunk(
       return balance;
     } catch (error) {
       return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to fetch balance"
+        error instanceof Error ? error.message : "Failed to fetch balance",
       );
     }
-  }
+  },
 );
 
 export const createBalance = createAsyncThunk(
@@ -105,10 +119,10 @@ export const createBalance = createAsyncThunk(
       return balance;
     } catch (error) {
       return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to create balance"
+        error instanceof Error ? error.message : "Failed to create balance",
       );
     }
-  }
+  },
 );
 
 export const createBalancesBulk = createAsyncThunk(
@@ -120,22 +134,22 @@ export const createBalancesBulk = createAsyncThunk(
         {
           method: "POST",
           body: JSON.stringify(data),
-        }
+        },
       );
       return response;
     } catch (error) {
       return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to create balances"
+        error instanceof Error ? error.message : "Failed to create balances",
       );
     }
-  }
+  },
 );
 
 export const updateBalance = createAsyncThunk(
   "balances/update",
   async (
     { id, data }: { id: number; data: BalanceUpdate },
-    { rejectWithValue }
+    { rejectWithValue },
   ) => {
     try {
       const balance = await apiRequest<Balance>(
@@ -143,15 +157,15 @@ export const updateBalance = createAsyncThunk(
         {
           method: "PATCH",
           body: JSON.stringify(data),
-        }
+        },
       );
       return balance;
     } catch (error) {
       return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to update balance"
+        error instanceof Error ? error.message : "Failed to update balance",
       );
     }
-  }
+  },
 );
 
 export const deleteBalance = createAsyncThunk(
@@ -164,10 +178,10 @@ export const deleteBalance = createAsyncThunk(
       return id;
     } catch (error) {
       return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to delete balance"
+        error instanceof Error ? error.message : "Failed to delete balance",
       );
     }
-  }
+  },
 );
 
 // Slice
@@ -265,7 +279,7 @@ const balancesSlice = createSlice({
     builder
       .addCase(updateBalance.fulfilled, (state, action) => {
         const index = state.items.findIndex(
-          (item) => item.id === action.payload.id
+          (item) => item.id === action.payload.id,
         );
         if (index !== -1) {
           state.items[index] = action.payload;

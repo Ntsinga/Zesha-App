@@ -53,7 +53,7 @@ function AppContent() {
       // Redirect to app if authenticated with password and in auth group
       router.replace("/(app)");
     }
-  }, [isSignedIn, isLoaded, user, segments]);
+  }, [isSignedIn, isLoaded, user, segments, router]);
 
   // Show loading spinner while Clerk is loading or syncing user
   if (!isLoaded || isSyncing) {
@@ -80,7 +80,7 @@ export default function RootLayoutNav() {
 
   if (!publishableKey) {
     throw new Error(
-      "Missing Publishable Key. Please set EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY in your .env.local"
+      "Missing Publishable Key. Please set EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY in your .env.local",
     );
   }
 

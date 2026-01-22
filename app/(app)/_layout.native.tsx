@@ -1,26 +1,31 @@
-import React from "react";
-import { View, SafeAreaView, StyleSheet } from "react-native";
+import React, { useRef } from "react";
+import { View, StyleSheet, StatusBar } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { Drawer } from "expo-router/drawer";
 import CustomDrawerContent from "../../components/CustomDrawerContent";
 import TopBar from "../../components/TopBar";
+import BottomNav from "../../components/BottomNav";
 
 export default function AppLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaView style={styles.container}>
-        <TopBar />
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+      <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
         <View style={styles.drawerContainer}>
           <Drawer
             drawerContent={(props) => <CustomDrawerContent {...props} />}
-            screenOptions={{
-              headerShown: false,
+            screenOptions={({ navigation }) => ({
+              headerShown: true,
+              header: () => (
+                <TopBar onMenuPress={() => navigation.toggleDrawer()} />
+              ),
               drawerType: "front",
               drawerStyle: {
                 width: 280,
                 backgroundColor: "#C62828",
               },
-            }}
+            })}
           >
             <Drawer.Screen name="index" options={{ title: "Dashboard" }} />
             <Drawer.Screen
@@ -87,6 +92,7 @@ export default function AppLayout() {
             />
           </Drawer>
         </View>
+        <BottomNav />
       </SafeAreaView>
     </GestureHandlerRootView>
   );

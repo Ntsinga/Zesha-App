@@ -35,7 +35,7 @@ const initialState: CommissionsState = {
 // API helper
 async function apiRequest<T>(
   endpoint: string,
-  options?: RequestInit
+  options?: RequestInit,
 ): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     headers: {
@@ -63,19 +63,33 @@ async function apiRequest<T>(
 // Async thunks
 export const fetchCommissions = createAsyncThunk(
   "commissions/fetchAll",
-  async (filters: CommissionFilters = {}, { rejectWithValue }) => {
+  async (filters: CommissionFilters = {}, { getState, rejectWithValue }) => {
     try {
-      const query = buildQueryString(filters);
+      // Get company_id from auth state
+      const state = getState() as any;
+      const companyId = state.auth?.user?.company_id;
+
+      if (!companyId) {
+        return rejectWithValue("No company_id found. Please log in again.");
+      }
+
+      // Add company_id to filters
+      const filtersWithCompany = {
+        ...filters,
+        company_id: companyId,
+      };
+
+      const query = buildQueryString(filtersWithCompany);
       const commissions = await apiRequest<Commission[]>(
-        `${API_ENDPOINTS.commissions.list}${query}`
+        `${API_ENDPOINTS.commissions.list}${query}`,
       );
       return commissions;
     } catch (error) {
       return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to fetch commissions"
+        error instanceof Error ? error.message : "Failed to fetch commissions",
       );
     }
-  }
+  },
 );
 
 export const fetchCommissionById = createAsyncThunk(
@@ -83,15 +97,15 @@ export const fetchCommissionById = createAsyncThunk(
   async (id: number, { rejectWithValue }) => {
     try {
       const commission = await apiRequest<Commission>(
-        API_ENDPOINTS.commissions.get(id)
+        API_ENDPOINTS.commissions.get(id),
       );
       return commission;
     } catch (error) {
       return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to fetch commission"
+        error instanceof Error ? error.message : "Failed to fetch commission",
       );
     }
-  }
+  },
 );
 
 export const createCommission = createAsyncThunk(
@@ -103,15 +117,15 @@ export const createCommission = createAsyncThunk(
         {
           method: "POST",
           body: JSON.stringify(data),
-        }
+        },
       );
       return commission;
     } catch (error) {
       return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to create commission"
+        error instanceof Error ? error.message : "Failed to create commission",
       );
     }
-  }
+  },
 );
 
 export const createCommissionsBulk = createAsyncThunk(
@@ -120,21 +134,21 @@ export const createCommissionsBulk = createAsyncThunk(
     try {
       console.log(
         "[CommissionsSlice] Bulk create payload:",
-        JSON.stringify({ commissions: data }, null, 2)
+        JSON.stringify({ commissions: data }, null, 2),
       );
       const response = await apiRequest<{ commissions: Commission[] }>(
         API_ENDPOINTS.commissions.bulk,
         {
           method: "POST",
           body: JSON.stringify({ commissions: data }),
-        }
+        },
       );
       console.log("[CommissionsSlice] Bulk create response:", response);
 
       if (!response || !response.commissions) {
         console.error(
           "[CommissionsSlice] Invalid response structure:",
-          response
+          response,
         );
         throw new Error("Invalid response from server");
       }
@@ -143,17 +157,17 @@ export const createCommissionsBulk = createAsyncThunk(
     } catch (error) {
       console.error("[CommissionsSlice] Bulk create error:", error);
       return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to create commissions"
+        error instanceof Error ? error.message : "Failed to create commissions",
       );
     }
-  }
+  },
 );
 
 export const updateCommission = createAsyncThunk(
   "commissions/update",
   async (
     { id, data }: { id: number; data: CommissionUpdate },
-    { rejectWithValue }
+    { rejectWithValue },
   ) => {
     try {
       const commission = await apiRequest<Commission>(
@@ -161,15 +175,15 @@ export const updateCommission = createAsyncThunk(
         {
           method: "PATCH",
           body: JSON.stringify(data),
-        }
+        },
       );
       return commission;
     } catch (error) {
       return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to update commission"
+        error instanceof Error ? error.message : "Failed to update commission",
       );
     }
-  }
+  },
 );
 
 export const deleteCommission = createAsyncThunk(
@@ -182,10 +196,10 @@ export const deleteCommission = createAsyncThunk(
       return id;
     } catch (error) {
       return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to delete commission"
+        error instanceof Error ? error.message : "Failed to delete commission",
       );
     }
-  }
+  },
 );
 
 // Slice
@@ -218,7 +232,7 @@ const commissionsSlice = createSlice({
         state.items = action.payload;
         state.totalAmount = action.payload.reduce(
           (sum, commission) => sum + Number(commission.amount),
-          0
+          0,
         );
         state.lastFetched = Date.now();
       })
@@ -269,7 +283,7 @@ const commissionsSlice = createSlice({
         state.items = [...action.payload, ...state.items];
         const bulkTotal = action.payload.reduce(
           (sum, commission) => sum + Number(commission.amount),
-          0
+          0,
         );
         state.totalAmount += bulkTotal;
       })
@@ -282,7 +296,7 @@ const commissionsSlice = createSlice({
     builder
       .addCase(updateCommission.fulfilled, (state, action) => {
         const index = state.items.findIndex(
-          (item) => item.id === action.payload.id
+          (item) => item.id === action.payload.id,
         );
         if (index !== -1) {
           const oldAmount = Number(state.items[index].amount);
@@ -302,7 +316,7 @@ const commissionsSlice = createSlice({
     builder
       .addCase(deleteCommission.fulfilled, (state, action) => {
         const deletedCommission = state.items.find(
-          (item) => item.id === action.payload
+          (item) => item.id === action.payload,
         );
         if (deletedCommission) {
           state.totalAmount -= Number(deletedCommission.amount);

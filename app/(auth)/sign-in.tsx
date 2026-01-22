@@ -15,6 +15,7 @@ import { useSignIn } from "@clerk/clerk-expo";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { validateEmail } from "../../utils/validators";
 
 export default function SignInPage() {
   const { signIn, setActive, isLoaded } = useSignIn();
@@ -38,6 +39,16 @@ export default function SignInPage() {
       );
       return;
     }
+
+    // Validate email format if using email
+    if (!usePhone) {
+      const validation = validateEmail(emailOrPhone.trim());
+      if (!validation.isValid) {
+        Alert.alert("Error", validation.error || "Invalid email format");
+        return;
+      }
+    }
+
     setStep("password");
   };
 
@@ -66,6 +77,17 @@ export default function SignInPage() {
       }
     } catch (err: any) {
       console.error(JSON.stringify(err, null, 2));
+
+      // Handle session_exists error - user is already signed in
+      if (err.errors?.[0]?.code === "session_exists") {
+        Alert.alert(
+          "Already Signed In",
+          "You're already signed in. Redirecting to app...",
+          [{ text: "OK", onPress: () => router.replace("/(app)") }],
+        );
+        return;
+      }
+
       Alert.alert("Error", err.errors?.[0]?.message || "Sign in failed");
     } finally {
       setLoading(false);

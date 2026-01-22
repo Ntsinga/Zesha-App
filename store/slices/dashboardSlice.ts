@@ -51,7 +51,7 @@ const initialState: DashboardState = {
 // API helper
 async function apiRequest<T>(
   endpoint: string,
-  options?: RequestInit
+  options?: RequestInit,
 ): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     headers: {
@@ -104,7 +104,7 @@ export const fetchDashboard = createAsyncThunk(
 
       const query = buildQueryString(queryParams);
       const snapshotEndpoint = `${API_ENDPOINTS.companyInfo.snapshot(
-        companyId
+        companyId,
       )}${query}`;
 
       // Fetch snapshot data
@@ -115,9 +115,10 @@ export const fetchDashboard = createAsyncThunk(
         date_from: snapshotDate,
         date_to: snapshotDate,
         shift: shift,
+        company_id: companyId,
       });
       const balances = await apiRequest<Balance[]>(
-        `${API_ENDPOINTS.balances.list}${balanceQuery}`
+        `${API_ENDPOINTS.balances.list}${balanceQuery}`,
       );
 
       // Transform balances to AccountSummary format
@@ -159,17 +160,17 @@ export const fetchDashboard = createAsyncThunk(
       return rejectWithValue(
         error instanceof Error
           ? error.message
-          : "Failed to fetch dashboard data"
+          : "Failed to fetch dashboard data",
       );
     }
-  }
+  },
 );
 
 export const refreshDashboard = createAsyncThunk(
   "dashboard/refresh",
   async (_, { dispatch }) => {
     return dispatch(fetchDashboard({})).unwrap();
-  }
+  },
 );
 
 // Slice
