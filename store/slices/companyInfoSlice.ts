@@ -1,10 +1,7 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import { CompanyInfo, CompanyInfoCreate, CompanyInfoUpdate } from "../../types";
-import {
-  API_BASE_URL,
-  API_ENDPOINTS,
-  buildQueryString,
-} from "../../config/api";
+import { API_ENDPOINTS, buildQueryString } from "../../config/api";
+import { secureApiRequest } from "../../services/secureApi";
 
 // Types
 export interface CompanyInfoState {
@@ -23,32 +20,12 @@ const initialState: CompanyInfoState = {
   lastFetched: null,
 };
 
-// API helper
+// API helper - now uses secure authenticated requests
 async function apiRequest<T>(
   endpoint: string,
-  options?: RequestInit
+  options?: RequestInit,
 ): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    headers: {
-      "Content-Type": "application/json",
-      "ngrok-skip-browser-warning": "true",
-      ...options?.headers,
-    },
-    ...options,
-  });
-
-  if (!response.ok) {
-    const error = await response
-      .json()
-      .catch(() => ({ detail: "Request failed" }));
-    throw new Error(error.detail || `HTTP ${response.status}`);
-  }
-
-  if (response.status === 204) {
-    return undefined as T;
-  }
-
-  return response.json();
+  return secureApiRequest<T>(endpoint, options);
 }
 
 // Async thunks
@@ -56,20 +33,20 @@ export const fetchCompanyInfoList = createAsyncThunk(
   "companyInfo/fetchAll",
   async (
     params: { skip?: number; limit?: number } = {},
-    { rejectWithValue }
+    { rejectWithValue },
   ) => {
     try {
       const query = buildQueryString(params);
       const companies = await apiRequest<CompanyInfo[]>(
-        `${API_ENDPOINTS.companyInfo.list}${query}`
+        `${API_ENDPOINTS.companyInfo.list}${query}`,
       );
       return companies;
     } catch (error) {
       return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to fetch company info"
+        error instanceof Error ? error.message : "Failed to fetch company info",
       );
     }
-  }
+  },
 );
 
 export const fetchCompanyInfoById = createAsyncThunk(
@@ -77,15 +54,15 @@ export const fetchCompanyInfoById = createAsyncThunk(
   async (id: number, { rejectWithValue }) => {
     try {
       const company = await apiRequest<CompanyInfo>(
-        API_ENDPOINTS.companyInfo.get(id)
+        API_ENDPOINTS.companyInfo.get(id),
       );
       return company;
     } catch (error) {
       return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to fetch company info"
+        error instanceof Error ? error.message : "Failed to fetch company info",
       );
     }
-  }
+  },
 );
 
 export const createCompanyInfo = createAsyncThunk(
@@ -97,22 +74,24 @@ export const createCompanyInfo = createAsyncThunk(
         {
           method: "POST",
           body: JSON.stringify(data),
-        }
+        },
       );
       return company;
     } catch (error) {
       return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to create company info"
+        error instanceof Error
+          ? error.message
+          : "Failed to create company info",
       );
     }
-  }
+  },
 );
 
 export const updateCompanyInfo = createAsyncThunk(
   "companyInfo/update",
   async (
     { id, data }: { id: number; data: CompanyInfoUpdate },
-    { rejectWithValue }
+    { rejectWithValue },
   ) => {
     try {
       const company = await apiRequest<CompanyInfo>(
@@ -120,15 +99,17 @@ export const updateCompanyInfo = createAsyncThunk(
         {
           method: "PATCH",
           body: JSON.stringify(data),
-        }
+        },
       );
       return company;
     } catch (error) {
       return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to update company info"
+        error instanceof Error
+          ? error.message
+          : "Failed to update company info",
       );
     }
-  }
+  },
 );
 
 export const deleteCompanyInfo = createAsyncThunk(
@@ -141,10 +122,12 @@ export const deleteCompanyInfo = createAsyncThunk(
       return id;
     } catch (error) {
       return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to delete company info"
+        error instanceof Error
+          ? error.message
+          : "Failed to delete company info",
       );
     }
-  }
+  },
 );
 
 // Slice
@@ -213,7 +196,7 @@ const companyInfoSlice = createSlice({
     builder
       .addCase(updateCompanyInfo.fulfilled, (state, action) => {
         const index = state.items.findIndex(
-          (item) => item.id === action.payload.id
+          (item) => item.id === action.payload.id,
         );
         if (index !== -1) {
           state.items[index] = action.payload;

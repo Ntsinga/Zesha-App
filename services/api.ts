@@ -5,8 +5,8 @@
  * apiRequest helpers. This file contains shared utilities and specialized APIs.
  */
 
-import { API_BASE_URL, API_HEADERS } from "../config/api";
-import { secureRequest, isSecureApiInitialized } from "./secureApi";
+import { API_BASE_URL } from "../config/api";
+import { secureRequest } from "./secureApi";
 
 // Error class for API errors
 export class ApiError extends Error {
@@ -19,24 +19,16 @@ export class ApiError extends Error {
   }
 }
 
-// Generic fetch wrapper with error handling - uses secure API when initialized
+// Generic fetch wrapper with error handling - uses secure API for authenticated requests
 async function fetchApi<T>(
   endpoint: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
 ): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
 
   try {
-    // Use secure request if initialized, otherwise fall back to basic fetch
-    const response = isSecureApiInitialized()
-      ? await secureRequest(url, options)
-      : await fetch(url, {
-          ...options,
-          headers: {
-            ...API_HEADERS,
-            ...options.headers,
-          },
-        });
+    // Always use secure request for authenticated API calls
+    const response = await secureRequest(url, options);
 
     if (!response.ok) {
       const errorData = await response
@@ -44,7 +36,7 @@ async function fetchApi<T>(
         .catch(() => ({ detail: "Request failed" }));
       throw new ApiError(
         errorData.detail || errorData.message || `HTTP ${response.status}`,
-        response.status
+        response.status,
       );
     }
 
@@ -59,7 +51,7 @@ async function fetchApi<T>(
     }
     throw new ApiError(
       error instanceof Error ? error.message : "Network error occurred",
-      0
+      0,
     );
   }
 }

@@ -2,6 +2,7 @@ import { useEffect, useCallback, useRef } from "react";
 import { useUser, useAuth } from "@clerk/clerk-expo";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import { syncUserWithBackend, clearLocalAuth } from "../store/slices/authSlice";
+import { isSecureApiInitialized } from "../services/secureApi";
 import type { UserSyncRequest, RoleEnum } from "@/types";
 
 /**
@@ -78,6 +79,12 @@ export function useClerkUserSync() {
         isAuthLoaded,
         isUserLoaded,
       });
+      return;
+    }
+
+    // Wait for secure API to be initialized (needs token getter from Clerk)
+    if (!isSecureApiInitialized()) {
+      console.log("[UserSync] Waiting for secure API to initialize...");
       return;
     }
 

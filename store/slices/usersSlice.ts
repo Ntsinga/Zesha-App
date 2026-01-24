@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
-import { API_BASE_URL } from "../../config/api";
 import { UserInviteRequest, UserInviteResponse } from "../../types";
+import { secureApiRequest } from "../../services/secureApi";
 
 export interface UsersState {
   isInviting: boolean;
@@ -16,28 +16,12 @@ const initialState: UsersState = {
   lastInvitedEmail: null,
 };
 
-// API helper
+// API helper - now uses secure authenticated requests
 async function apiRequest<T>(
   endpoint: string,
-  options?: RequestInit
+  options?: RequestInit,
 ): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    headers: {
-      "Content-Type": "application/json",
-      "ngrok-skip-browser-warning": "true",
-      ...options?.headers,
-    },
-    ...options,
-  });
-
-  if (!response.ok) {
-    const error = await response
-      .json()
-      .catch(() => ({ detail: "Request failed" }));
-    throw new Error(error.detail || `HTTP ${response.status}`);
-  }
-
-  return response.json();
+  return secureApiRequest<T>(endpoint, options);
 }
 
 // Async thunks
@@ -52,10 +36,10 @@ export const inviteUser = createAsyncThunk(
       return response;
     } catch (error) {
       return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to send invitation"
+        error instanceof Error ? error.message : "Failed to send invitation",
       );
     }
-  }
+  },
 );
 
 // Slice

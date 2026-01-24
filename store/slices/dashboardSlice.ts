@@ -9,7 +9,8 @@ import type {
   CommissionBreakdown,
 } from "@/types";
 import { mapApiResponse, buildTypedQueryString } from "@/types";
-import { API_BASE_URL, API_ENDPOINTS } from "@/config/api";
+import { API_ENDPOINTS } from "@/config/api";
+import { secureApiRequest } from "@/services/secureApi";
 import type { RootState } from "../index";
 
 // Types
@@ -46,28 +47,12 @@ const initialState: DashboardState = {
   lastFetched: null,
 };
 
-// API helper
+// API helper - now uses secure authenticated requests
 async function apiRequest<T>(
   endpoint: string,
   options?: RequestInit,
 ): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    headers: {
-      "Content-Type": "application/json",
-      "ngrok-skip-browser-warning": "true",
-      ...options?.headers,
-    },
-    ...options,
-  });
-
-  if (!response.ok) {
-    const error = await response
-      .json()
-      .catch(() => ({ detail: "Request failed" }));
-    throw new Error(error.detail || `HTTP ${response.status}`);
-  }
-
-  const data = await response.json();
+  const data = await secureApiRequest<any>(endpoint, options);
   return mapApiResponse<T>(data);
 }
 
