@@ -8,13 +8,13 @@ const getApiBaseUrl = (): string => {
   if (envUrl) {
     return envUrl;
   }
-  
+
   // Development fallback - ngrok URL
   // WARNING: Update this when your ngrok URL changes
   if (__DEV__) {
-    return "https://a4b2560e208b.ngrok-free.app";
+    return "https://19119bea17fa.ngrok-free.app";
   }
-  
+
   // Production fallback - should be set via environment variable
   console.warn("[API] EXPO_PUBLIC_API_URL not set - using development URL");
   return "https://a4b2560e208b.ngrok-free.app";

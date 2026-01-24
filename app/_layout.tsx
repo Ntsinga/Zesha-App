@@ -1,5 +1,5 @@
 import "../global.css";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Stack } from "expo-router";
 import { Provider } from "react-redux";
 import { StatusBar } from "expo-status-bar";
@@ -21,16 +21,18 @@ function AppContent() {
   const { user } = useUser();
   const router = useRouter();
   const segments = useSegments();
+  const [isSecureApiReady, setIsSecureApiReady] = useState(false);
 
-  // Sync Clerk user with backend
-  const { isSyncing } = useClerkUserSync();
-
-  // Initialize secure API with Clerk token getter
+  // Initialize secure API with Clerk token getter FIRST
   useEffect(() => {
     if (isLoaded && getToken) {
       initializeSecureApi(getToken);
+      setIsSecureApiReady(true);
     }
   }, [isLoaded, getToken]);
+
+  // Sync Clerk user with backend (only after secure API is ready)
+  const { isSyncing } = useClerkUserSync();
 
   useEffect(() => {
     // Initialize auth state on app load
@@ -63,8 +65,8 @@ function AppContent() {
     }
   }, [isSignedIn, isLoaded, user, segments, router]);
 
-  // Show loading spinner while Clerk is loading or syncing user
-  if (!isLoaded || isSyncing) {
+  // Show loading spinner while Clerk is loading, secure API initializing, or syncing user
+  if (!isLoaded || !isSecureApiReady || isSyncing) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
         <ActivityIndicator size="large" color="#C62828" />
