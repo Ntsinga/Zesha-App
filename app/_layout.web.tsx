@@ -9,16 +9,24 @@ import { initializeAuth } from "../store/slices/authSlice";
 import { ClerkProvider, useAuth, useUser } from "@clerk/clerk-react";
 import { useRouter } from "expo-router";
 import { useClerkUserSync } from "../hooks/useClerkUserSync.web";
+import { initializeSecureApi } from "../services/secureApi";
 
 // Inner component that uses Redux hooks
 function AppContent() {
   const dispatch = useAppDispatch();
-  const { isSignedIn, isLoaded } = useAuth();
+  const { isSignedIn, isLoaded, getToken } = useAuth();
   const { user } = useUser();
   const router = useRouter();
 
   // Sync Clerk user with backend
   const { isSyncing } = useClerkUserSync();
+
+  // Initialize secure API with Clerk token getter
+  useEffect(() => {
+    if (isLoaded && getToken) {
+      initializeSecureApi(getToken);
+    }
+  }, [isLoaded, getToken]);
 
   useEffect(() => {
     // Initialize auth state on app load
