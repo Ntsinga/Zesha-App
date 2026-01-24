@@ -108,25 +108,25 @@ export default function Accounts() {
               <View
                 key={account.id}
                 className={`bg-white rounded-xl p-4 shadow-sm border-l-4 ${
-                  account.account_type === "BANK"
+                  account.accountType === "BANK"
                     ? "border-l-blue-500"
                     : "border-l-green-500"
-                } ${!account.is_active ? "opacity-50" : ""}`}
+                } ${!account.isActive ? "opacity-50" : ""}`}
               >
                 <View className="flex-row items-center justify-between">
                   <View className="flex-row items-center flex-1">
                     <View
                       className={`p-2 rounded-full mr-3 ${
-                        account.account_type === "BANK"
+                        account.accountType === "BANK"
                           ? "bg-blue-100"
                           : "bg-green-100"
                       }`}
                     >
-                      {account.account_type === "BANK" ? (
+                      {account.accountType === "BANK" ? (
                         <Building2
                           size={20}
                           color={
-                            account.account_type === "BANK"
+                            account.accountType === "BANK"
                               ? "#3B82F6"
                               : "#22C55E"
                           }
@@ -142,22 +142,22 @@ export default function Accounts() {
                       <View className="flex-row items-center mt-1">
                         <View
                           className={`px-2 py-0.5 rounded-full ${
-                            account.account_type === "BANK"
+                            account.accountType === "BANK"
                               ? "bg-blue-100"
                               : "bg-green-100"
                           }`}
                         >
                           <Text
                             className={`text-xs font-medium ${
-                              account.account_type === "BANK"
+                              account.accountType === "BANK"
                                 ? "text-blue-700"
                                 : "text-green-700"
                             }`}
                           >
-                            {account.account_type}
+                            {account.accountType}
                           </Text>
                         </View>
-                        {!account.is_active && (
+                        {!account.isActive && (
                           <View className="px-2 py-0.5 rounded-full bg-gray-100 ml-2">
                             <Text className="text-xs font-medium text-gray-500">
                               Inactive

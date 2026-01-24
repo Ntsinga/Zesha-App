@@ -216,7 +216,7 @@ export default function DashboardWeb() {
               <tbody>
                 {accounts.map((account, idx) => (
                   <tr key={`account-${idx}`}>
-                    <td>{account.account_name}</td>
+                    <td>{account.accountName}</td>
                     <td>
                       <span
                         className={`shift-badge ${

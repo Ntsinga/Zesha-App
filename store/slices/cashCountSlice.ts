@@ -69,7 +69,7 @@ export const fetchCashCounts = createAsyncThunk<
   try {
     // Get companyId from auth state
     const state = getState();
-    const companyId = state.auth.user?.company_id;
+    const companyId = state.auth.user?.companyId;
 
     if (!companyId) {
       return rejectWithValue("No companyId found. Please log in again.");

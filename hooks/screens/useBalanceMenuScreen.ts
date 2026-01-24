@@ -41,10 +41,20 @@ export function useBalanceMenuScreen() {
 
   // Fetch data on mount
   useEffect(() => {
-    dispatch(fetchCashCounts({ countDate: today }));
-    dispatch(fetchBalances({ dateFrom: today, dateTo: today }));
-    dispatch(fetchAccounts({ isActive: true }));
-  }, [dispatch, today]);
+    dispatch(
+      fetchCashCounts({ companyId: backendUser?.companyId || 0, dateFrom: today, dateTo: today }),
+    );
+    dispatch(
+      fetchBalances({
+        companyId: backendUser?.companyId || 0,
+        dateFrom: today,
+        dateTo: today,
+      }),
+    );
+    dispatch(
+      fetchAccounts({ companyId: backendUser?.companyId || 0, isActive: true }),
+    );
+  }, [dispatch, today, backendUser?.companyId]);
 
   // Calculate shift completion status and totals for cash counts
   const cashCountStatus = useMemo(() => {
@@ -134,9 +144,19 @@ export function useBalanceMenuScreen() {
   };
 
   const handleRefresh = () => {
-    dispatch(fetchCashCounts({ countDate: today }));
-    dispatch(fetchBalances({ dateFrom: today, dateTo: today }));
-    dispatch(fetchAccounts({ isActive: true }));
+    dispatch(
+      fetchCashCounts({ companyId: backendUser?.companyId || 0, dateFrom: today, dateTo: today }),
+    );
+    dispatch(
+      fetchBalances({
+        companyId: backendUser?.companyId || 0,
+        dateFrom: today,
+        dateTo: today,
+      }),
+    );
+    dispatch(
+      fetchAccounts({ companyId: backendUser?.companyId || 0, isActive: true }),
+    );
   };
 
   const handleCalculate = async () => {
@@ -150,6 +170,7 @@ export function useBalanceMenuScreen() {
     try {
       await dispatch(
         calculateReconciliation({
+          companyId: backendUser.companyId || 0,
           date: today,
           shift: selectedShift,
           userId: backendUser.id,

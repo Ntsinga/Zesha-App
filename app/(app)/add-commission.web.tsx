@@ -48,7 +48,7 @@ export default function AddCommissionWeb() {
   // Handle file input change
   const handleFileChange = (
     entryId: string,
-    e: React.ChangeEvent<HTMLInputElement>
+    e: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -85,7 +85,7 @@ export default function AddCommissionWeb() {
 
   // Count complete entries
   const completeCount = entries.filter(
-    (e) => e.accountId !== null && e.amount.trim() !== "" && e.imageUrl
+    (e) => e.accountId !== null && e.amount.trim() !== "" && e.imageUrl,
   ).length;
 
   if (accountsLoading) {
@@ -203,7 +203,7 @@ export default function AddCommissionWeb() {
                             setAccountPickerVisible(
                               accountPickerVisible === entry.id
                                 ? null
-                                : entry.id
+                                : entry.id,
                             )
                           }
                         >
@@ -230,7 +230,7 @@ export default function AddCommissionWeb() {
                                 >
                                   <span>{account.name}</span>
                                   <span className="account-dropdown-category">
-                                    {account.account_type}
+                                    {account.accountType}
                                   </span>
                                 </button>
                               ))

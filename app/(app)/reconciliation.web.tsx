@@ -139,8 +139,8 @@ export default function BalanceDetailWeb() {
                 {status === "PASSED"
                   ? "Passed"
                   : status === "FAILED"
-                  ? "Failed"
-                  : "Flagged"}
+                    ? "Failed"
+                    : "Flagged"}
               </span>
             </div>
             <div className="stat-number large">
@@ -235,13 +235,13 @@ export default function BalanceDetailWeb() {
                     <tr key={commission.id}>
                       <td>
                         {commission.account?.name ||
-                          `Account ${commission.account_id}`}
+                          `Account ${commission.accountId}`}
                       </td>
                       <td className="text-right font-semibold">
                         {formatCurrency(commission.amount)}
                       </td>
                       <td className="text-center">
-                        {(commission.image_data || commission.image_url) && (
+                        {(commission.imageData || commission.imageUrl) && (
                           <button
                             onClick={() => {
                               const uri = getImageUri(commission);
@@ -287,7 +287,7 @@ export default function BalanceDetailWeb() {
                     <tr key={balance.id}>
                       <td>
                         {balance.account?.name ||
-                          `Account ${balance.account_id}`}
+                          `Account ${balance.accountId}`}
                       </td>
                       <td className="text-xs text-gray-500">
                         {balance.source}
@@ -296,7 +296,7 @@ export default function BalanceDetailWeb() {
                         {formatCurrency(balance.amount)}
                       </td>
                       <td className="text-center">
-                        {(balance.image_data || balance.image_url) && (
+                        {(balance.imageData || balance.imageUrl) && (
                           <button
                             onClick={() => {
                               const uri = getImageUri(balance);
@@ -372,7 +372,8 @@ export default function BalanceDetailWeb() {
                   padding: "12px",
                   borderRadius: "8px",
                   border: "1px solid #e5e7eb",
-                  backgroundColor: isFinalized && !canReview ? "#f3f4f6" : "#fff",
+                  backgroundColor:
+                    isFinalized && !canReview ? "#f3f4f6" : "#fff",
                   resize: "vertical",
                   fontFamily: "inherit",
                   fontSize: "14px",
@@ -399,14 +400,26 @@ export default function BalanceDetailWeb() {
                 {isApproved ? (
                   <>
                     <Check size={18} color="#16A34A" />
-                    <span style={{ color: "#16A34A", fontWeight: 600, marginLeft: 8 }}>
+                    <span
+                      style={{
+                        color: "#16A34A",
+                        fontWeight: 600,
+                        marginLeft: 8,
+                      }}
+                    >
                       Approved
                     </span>
                   </>
                 ) : (
                   <>
                     <Lock size={18} color="#D97706" />
-                    <span style={{ color: "#D97706", fontWeight: 600, marginLeft: 8 }}>
+                    <span
+                      style={{
+                        color: "#D97706",
+                        fontWeight: 600,
+                        marginLeft: 8,
+                      }}
+                    >
                       Finalized - Awaiting Review
                     </span>
                   </>
@@ -421,7 +434,13 @@ export default function BalanceDetailWeb() {
                   onClick={handleCalculate}
                   disabled={isCalculating}
                   className="btn-primary"
-                  style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
+                  style={{
+                    flex: 1,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 8,
+                  }}
                 >
                   <RefreshCw size={18} />
                   {isCalculating ? "Calculating..." : "Calculate"}
@@ -430,7 +449,13 @@ export default function BalanceDetailWeb() {
                   onClick={handleFinalize}
                   disabled={isFinalizing}
                   className="btn-warning"
-                  style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
+                  style={{
+                    flex: 1,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 8,
+                  }}
                 >
                   <Lock size={18} />
                   {isFinalizing ? "Finalizing..." : "Finalize & Lock"}
@@ -444,7 +469,13 @@ export default function BalanceDetailWeb() {
                 <button
                   onClick={handleApprove}
                   className="btn-success"
-                  style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
+                  style={{
+                    flex: 1,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 8,
+                  }}
                 >
                   <Check size={18} />
                   Approve
@@ -452,7 +483,13 @@ export default function BalanceDetailWeb() {
                 <button
                   onClick={handleReject}
                   className="btn-danger"
-                  style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
+                  style={{
+                    flex: 1,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 8,
+                  }}
                 >
                   <XCircle size={18} />
                   Reject

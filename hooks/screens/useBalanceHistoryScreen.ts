@@ -16,7 +16,9 @@ export function useBalanceHistoryScreen() {
   const dispatch = useDispatch<AppDispatch>();
   const { formatCurrency } = useCurrencyFormatter();
 
-  const history = useSelector(selectBalanceHistory);
+  const history = useSelector((state: RootState) =>
+    selectBalanceHistory(state),
+  );
   const { isLoading, error } = useSelector(
     (state: RootState) => state.reconciliations,
   );

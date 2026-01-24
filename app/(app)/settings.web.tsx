@@ -285,8 +285,8 @@ export default function Settings() {
           {company && (
             <p className="settings-meta">
               Company ID: {company.id} • Last updated:{" "}
-              {company.updated_at
-                ? new Date(company.updated_at).toLocaleDateString()
+              {company.updatedAt
+                ? new Date(company.updatedAt).toLocaleDateString()
                 : "N/A"}
             </p>
           )}

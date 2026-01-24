@@ -42,25 +42,24 @@ export function useReconciliationScreen({
 
   // Check if user is supervisor or admin
   const canReview =
-    backendUser?.role === "supervisor" || backendUser?.role === "admin";
+    backendUser?.role === "manager" || backendUser?.role === "admin";
 
   // Fetch details on mount
   useEffect(() => {
-    if (date && shift) {
-      dispatch(fetchReconciliationDetails({ date, shift }));
+    if (date && shift && backendUser?.companyId) {
+      dispatch(
+        fetchReconciliationDetails({
+          companyId: backendUser.companyId,
+          date,
+          shift,
+        }),
+      );
     }
 
     return () => {
       dispatch(clearReconciliationDetails());
     };
-  }, [dispatch, date, shift]);
-
-  // Sync notes from reconciliation when loaded
-  useEffect(() => {
-    if (reconciliationDetails?.reconciliation?.notes) {
-      setNotes(reconciliationDetails.reconciliation.notes);
-    }
-  }, [reconciliationDetails?.reconciliation?.notes]);
+  }, [dispatch, date, shift, backendUser?.companyId]);
 
   // Extract data from reconciliation detail
   const balances: Balance[] = reconciliationDetails?.balances || [];
@@ -80,9 +79,15 @@ export function useReconciliationScreen({
   const isApproved = reconciliation?.approvalStatus === "APPROVED" || false;
 
   const onRefresh = async () => {
-    if (!date || !shift) return;
+    if (!date || !shift || !backendUser?.companyId) return;
     setRefreshing(true);
-    await dispatch(fetchReconciliationDetails({ date, shift }));
+    await dispatch(
+      fetchReconciliationDetails({
+        companyId: backendUser.companyId,
+        date,
+        shift,
+      }),
+    );
     setRefreshing(false);
   };
 
@@ -96,19 +101,26 @@ export function useReconciliationScreen({
 
   // Calculate/recalculate reconciliation
   const handleCalculate = async () => {
-    if (!date || !shift)
+    if (!date || !shift || !backendUser?.companyId)
       return { success: false, error: "Missing date or shift" };
 
     try {
       await dispatch(
         calculateReconciliation({
+          companyId: backendUser.companyId,
           date,
           shift,
           userId: backendUser?.id,
         }),
       ).unwrap();
       // Refresh to get updated data
-      await dispatch(fetchReconciliationDetails({ date, shift }));
+      await dispatch(
+        fetchReconciliationDetails({
+          companyId: backendUser.companyId,
+          date,
+          shift,
+        }),
+      );
       return { success: true };
     } catch (error: any) {
       return { success: false, error: error.message || "Failed to calculate" };
@@ -117,13 +129,14 @@ export function useReconciliationScreen({
 
   // Finalize reconciliation (lock it)
   const handleFinalize = async () => {
-    if (!date || !shift || !backendUser?.id) {
+    if (!date || !shift || !backendUser?.id || !backendUser?.companyId) {
       return { success: false, error: "Missing required data" };
     }
 
     try {
       await dispatch(
         finalizeReconciliation({
+          companyId: backendUser.companyId,
           date,
           shift,
           reconciledBy: backendUser.id,

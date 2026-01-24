@@ -75,7 +75,9 @@ export function BalanceImageViewer({
         <View style={styles.modalContainer}>
           <View style={styles.modalHeader}>
             <View>
-              <Text style={styles.modalTitle}>{balance.account}</Text>
+              <Text style={styles.modalTitle}>
+                {balance.account?.name || "Unknown Account"}
+              </Text>
               <Text style={styles.modalSubtitle}>
                 {balance.shift} Shift • {balance.date}
               </Text>

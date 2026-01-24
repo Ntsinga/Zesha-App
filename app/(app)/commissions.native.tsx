@@ -106,10 +106,10 @@ export default function CommissionsPage() {
   };
 
   const getImageUri = (commission: Commission) => {
-    if (commission.image_data) {
-      return `data:image/jpeg;base64,${commission.image_data}`;
+    if (commission.imageData) {
+      return `data:image/jpeg;base64,${commission.imageData}`;
     }
-    return commission.image_url;
+    return commission.imageUrl;
   };
 
   // Calculate overall totals
@@ -251,7 +251,7 @@ export default function CommissionsPage() {
                             <View className="flex-1">
                               <Text className="font-medium text-gray-800">
                                 {commission.account?.name ||
-                                  `Account ${commission.account_id}`}
+                                  `Account ${commission.accountId}`}
                               </Text>
                               <Text className="text-xs text-gray-400">
                                 {commission.source}
@@ -260,8 +260,8 @@ export default function CommissionsPage() {
                             <Text className="font-bold text-gray-700 mr-3">
                               {formatCurrency(commission.amount)}
                             </Text>
-                            {(commission.image_data ||
-                              commission.image_url) && (
+                            {(commission.imageData ||
+                              commission.imageUrl) && (
                               <ImageIcon size={16} color="#9CA3AF" />
                             )}
                           </TouchableOpacity>
@@ -293,7 +293,7 @@ export default function CommissionsPage() {
                             <View className="flex-1">
                               <Text className="font-medium text-gray-800">
                                 {commission.account?.name ||
-                                  `Account ${commission.account_id}`}
+                                  `Account ${commission.accountId}`}
                               </Text>
                               <Text className="text-xs text-gray-400">
                                 {commission.source}
@@ -302,8 +302,7 @@ export default function CommissionsPage() {
                             <Text className="font-bold text-gray-700 mr-3">
                               {formatCurrency(commission.amount)}
                             </Text>
-                            {(commission.image_data ||
-                              commission.image_url) && (
+                            {(commission.imageData || commission.imageUrl) && (
                               <ImageIcon size={16} color="#9CA3AF" />
                             )}
                           </TouchableOpacity>

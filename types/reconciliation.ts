@@ -34,6 +34,7 @@ export interface ReconciliationHistory {
   approvedBy: number | null;
   approvedAt: string | null;
   createdAt: string | null;
+  notes: string | null;
 }
 
 /**

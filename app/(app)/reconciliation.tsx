@@ -237,13 +237,13 @@ export default function BalanceDetailPage() {
                 <View className="flex-1">
                   <Text className="font-medium text-gray-800">
                     {commission.account?.name ||
-                      `Account ${commission.account_id}`}
+                      `Account ${commission.accountId}`}
                   </Text>
                 </View>
                 <Text className="font-bold text-gray-700 mr-3">
                   {formatCurrency(commission.amount)}
                 </Text>
-                {(commission.image_data || commission.image_url) && (
+                {(commission.imageData || commission.imageUrl) && (
                   <ImageIcon size={16} color="#9CA3AF" />
                 )}
               </TouchableOpacity>
@@ -278,7 +278,7 @@ export default function BalanceDetailPage() {
               >
                 <View className="flex-1">
                   <Text className="font-medium text-gray-800">
-                    {balance.account?.name || `Account ${balance.account_id}`}
+                    {balance.account?.name || `Account ${balance.accountId}`}
                   </Text>
                   <Text className="text-xs text-gray-400">
                     {balance.source}
@@ -287,7 +287,7 @@ export default function BalanceDetailPage() {
                 <Text className="font-bold text-gray-700 mr-3">
                   {formatCurrency(balance.amount)}
                 </Text>
-                {(balance.image_data || balance.image_url) && (
+                {(balance.imageData || balance.imageUrl) && (
                   <ImageIcon size={16} color="#9CA3AF" />
                 )}
               </TouchableOpacity>
@@ -379,18 +379,24 @@ export default function BalanceDetailPage() {
         <View className="mb-8">
           {/* Status Badge */}
           {isFinalized && (
-            <View className={`flex-row items-center justify-center mb-4 px-4 py-2 rounded-full ${
-              isApproved ? "bg-green-100" : "bg-yellow-100"
-            }`}>
+            <View
+              className={`flex-row items-center justify-center mb-4 px-4 py-2 rounded-full ${
+                isApproved ? "bg-green-100" : "bg-yellow-100"
+              }`}
+            >
               {isApproved ? (
                 <>
                   <Check color="#16A34A" size={18} />
-                  <Text className="text-green-700 font-semibold ml-2">Approved</Text>
+                  <Text className="text-green-700 font-semibold ml-2">
+                    Approved
+                  </Text>
                 </>
               ) : (
                 <>
                   <Lock color="#D97706" size={18} />
-                  <Text className="text-yellow-700 font-semibold ml-2">Finalized - Awaiting Review</Text>
+                  <Text className="text-yellow-700 font-semibold ml-2">
+                    Finalized - Awaiting Review
+                  </Text>
                 </>
               )}
             </View>
