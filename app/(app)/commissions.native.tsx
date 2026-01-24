@@ -10,7 +10,6 @@ import {
 } from "react-native";
 import {
   ArrowLeft,
-  Menu,
   Banknote,
   Image as ImageIcon,
   X,
@@ -43,7 +42,7 @@ export default function CommissionsPage() {
   const { formatCurrency } = useCurrencyFormatter();
 
   const { items: commissions, isLoading } = useSelector(
-    (state: RootState) => state.commissions
+    (state: RootState) => state.commissions,
   );
   const [refreshing, setRefreshing] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -90,7 +89,7 @@ export default function CommissionsPage() {
 
     // Sort by date descending
     return Array.from(groups.values()).sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
     );
   }, [commissions]);
 
@@ -116,7 +115,7 @@ export default function CommissionsPage() {
   // Calculate overall totals
   const overallTotal = groupedCommissions.reduce(
     (sum, g) => sum + g.dailyTotal,
-    0
+    0,
   );
 
   if (isLoading && !refreshing) {
@@ -132,12 +131,7 @@ export default function CommissionsPage() {
             <ArrowLeft color="#000" size={24} />
           </TouchableOpacity>
           <Text className="text-xl font-bold text-gray-900">Commissions</Text>
-          <TouchableOpacity
-            onPress={() => (navigation as any).openDrawer()}
-            className="p-2 bg-brand-red rounded-md shadow-sm"
-          >
-            <Menu color="white" size={24} />
-          </TouchableOpacity>
+          <View className="p-2 w-10" />
         </View>
       </View>
 

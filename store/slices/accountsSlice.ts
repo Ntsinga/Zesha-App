@@ -1,17 +1,15 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
-import {
+import type {
   Account,
   AccountCreate,
   AccountUpdate,
   AccountFilters,
   BulkAccountCreate,
   BulkAccountResponse,
-} from "../../types";
-import {
-  API_BASE_URL,
-  API_ENDPOINTS,
-  buildQueryString,
-} from "../../config/api";
+} from "@/types";
+import { mapApiResponse, mapApiRequest, buildTypedQueryString } from "@/types";
+import { API_BASE_URL, API_ENDPOINTS } from "@/config/api";
+import type { RootState } from "../index";
 
 // Types
 export interface AccountsState {
@@ -57,168 +55,189 @@ async function apiRequest<T>(
     return undefined as T;
   }
 
-  return response.json();
+  const data = await response.json();
+  return mapApiResponse<T>(data);
 }
 
+// Cache duration in milliseconds (2 minutes for accounts - they change less frequently)
+const CACHE_DURATION = 2 * 60 * 1000;
+
 // Async thunks
-export const fetchAccounts = createAsyncThunk(
-  "accounts/fetchAll",
-  async (filters: AccountFilters = {}, { getState, rejectWithValue }) => {
-    try {
-      // Get company_id from auth state
-      const state = getState() as any;
-      const companyId = state.auth?.user?.company_id;
+export const fetchAccounts = createAsyncThunk<
+  Account[],
+  AccountFilters & { forceRefresh?: boolean },
+  { state: RootState; rejectValue: string }
+>("accounts/fetchAll", async (filters = {}, { getState, rejectWithValue }) => {
+  try {
+    // Get companyId from auth state
+    const state = getState();
+    const companyId = state.auth.user?.companyId;
 
-      if (!companyId) {
-        return rejectWithValue("No company_id found. Please log in again.");
-      }
-
-      // Add company_id to filters
-      const filtersWithCompany = {
-        ...filters,
-        company_id: companyId,
-      };
-
-      const query = buildQueryString(filtersWithCompany);
-      const accounts = await apiRequest<Account[]>(
-        `${API_ENDPOINTS.accounts.list}${query}`,
-      );
-      return accounts;
-    } catch (error) {
-      return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to fetch accounts",
-      );
+    if (!companyId) {
+      return rejectWithValue("No companyId found. Please log in again.");
     }
-  },
-);
 
-export const fetchAccountById = createAsyncThunk(
-  "accounts/fetchById",
-  async (id: number, { rejectWithValue }) => {
-    try {
-      const account = await apiRequest<Account>(API_ENDPOINTS.accounts.get(id));
-      return account;
-    } catch (error) {
-      return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to fetch account",
+    const { forceRefresh, ...filterParams } = filters;
+
+    // Check cache - skip fetch if data is fresh
+    const { lastFetched, items, filters: cachedFilters } = state.accounts;
+    const isCacheValid =
+      lastFetched && Date.now() - lastFetched < CACHE_DURATION;
+    const isSameFilters =
+      JSON.stringify(cachedFilters) === JSON.stringify(filterParams);
+
+    if (!forceRefresh && isCacheValid && isSameFilters && items.length > 0) {
+      console.log(
+        "[Accounts] Using cached data, age:",
+        Date.now() - lastFetched,
+        "ms",
       );
+      return items;
     }
-  },
-);
 
-export const createAccount = createAsyncThunk(
-  "accounts/create",
-  async (data: AccountCreate, { rejectWithValue }) => {
-    try {
-      const account = await apiRequest<Account>(API_ENDPOINTS.accounts.create, {
+    const query = buildTypedQueryString({ ...filterParams, companyId });
+    const accounts = await apiRequest<Account[]>(
+      `${API_ENDPOINTS.accounts.list}${query}`,
+    );
+    return accounts;
+  } catch (error) {
+    return rejectWithValue(
+      error instanceof Error ? error.message : "Failed to fetch accounts",
+    );
+  }
+});
+
+export const fetchAccountById = createAsyncThunk<
+  Account,
+  number,
+  { rejectValue: string }
+>("accounts/fetchById", async (id, { rejectWithValue }) => {
+  try {
+    const account = await apiRequest<Account>(API_ENDPOINTS.accounts.get(id));
+    return account;
+  } catch (error) {
+    return rejectWithValue(
+      error instanceof Error ? error.message : "Failed to fetch account",
+    );
+  }
+});
+
+export const createAccount = createAsyncThunk<
+  Account,
+  AccountCreate,
+  { rejectValue: string }
+>("accounts/create", async (data, { rejectWithValue }) => {
+  try {
+    const account = await apiRequest<Account>(API_ENDPOINTS.accounts.create, {
+      method: "POST",
+      body: JSON.stringify(mapApiRequest(data)),
+    });
+    return account;
+  } catch (error) {
+    return rejectWithValue(
+      error instanceof Error ? error.message : "Failed to create account",
+    );
+  }
+});
+
+export const updateAccount = createAsyncThunk<
+  Account,
+  { id: number; data: AccountUpdate },
+  { rejectValue: string }
+>("accounts/update", async ({ id, data }, { rejectWithValue }) => {
+  try {
+    const account = await apiRequest<Account>(
+      API_ENDPOINTS.accounts.update(id),
+      {
+        method: "PATCH",
+        body: JSON.stringify(mapApiRequest(data)),
+      },
+    );
+    return account;
+  } catch (error) {
+    return rejectWithValue(
+      error instanceof Error ? error.message : "Failed to update account",
+    );
+  }
+});
+
+export const deleteAccount = createAsyncThunk<
+  number,
+  number,
+  { rejectValue: string }
+>("accounts/delete", async (id, { rejectWithValue }) => {
+  try {
+    await apiRequest<void>(API_ENDPOINTS.accounts.delete(id), {
+      method: "DELETE",
+    });
+    return id;
+  } catch (error) {
+    return rejectWithValue(
+      error instanceof Error ? error.message : "Failed to delete account",
+    );
+  }
+});
+
+export const createAccountsBulk = createAsyncThunk<
+  BulkAccountResponse,
+  BulkAccountCreate,
+  { rejectValue: string }
+>("accounts/createBulk", async (data, { rejectWithValue }) => {
+  try {
+    const response = await apiRequest<BulkAccountResponse>(
+      API_ENDPOINTS.accounts.bulk,
+      {
         method: "POST",
-        body: JSON.stringify(data),
-      });
-      return account;
-    } catch (error) {
-      return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to create account",
-      );
-    }
-  },
-);
+        body: JSON.stringify(mapApiRequest(data)),
+      },
+    );
+    return response;
+  } catch (error) {
+    return rejectWithValue(
+      error instanceof Error ? error.message : "Failed to create accounts",
+    );
+  }
+});
 
-export const updateAccount = createAsyncThunk(
-  "accounts/update",
-  async (
-    { id, data }: { id: number; data: AccountUpdate },
-    { rejectWithValue },
-  ) => {
-    try {
-      const account = await apiRequest<Account>(
-        API_ENDPOINTS.accounts.update(id),
-        {
-          method: "PATCH",
-          body: JSON.stringify(data),
-        },
-      );
-      return account;
-    } catch (error) {
-      return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to update account",
-      );
-    }
-  },
-);
+export const deactivateAccount = createAsyncThunk<
+  Account,
+  number,
+  { rejectValue: string }
+>("accounts/deactivate", async (id, { rejectWithValue }) => {
+  try {
+    const account = await apiRequest<Account>(
+      API_ENDPOINTS.accounts.deactivate(id),
+      {
+        method: "POST",
+      },
+    );
+    return account;
+  } catch (error) {
+    return rejectWithValue(
+      error instanceof Error ? error.message : "Failed to deactivate account",
+    );
+  }
+});
 
-export const deleteAccount = createAsyncThunk(
-  "accounts/delete",
-  async (id: number, { rejectWithValue }) => {
-    try {
-      await apiRequest<void>(API_ENDPOINTS.accounts.delete(id), {
-        method: "DELETE",
-      });
-      return id;
-    } catch (error) {
-      return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to delete account",
-      );
-    }
-  },
-);
-
-export const createAccountsBulk = createAsyncThunk(
-  "accounts/createBulk",
-  async (data: BulkAccountCreate, { rejectWithValue }) => {
-    try {
-      const response = await apiRequest<BulkAccountResponse>(
-        API_ENDPOINTS.accounts.bulk,
-        {
-          method: "POST",
-          body: JSON.stringify(data),
-        },
-      );
-      return response;
-    } catch (error) {
-      return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to create accounts",
-      );
-    }
-  },
-);
-
-export const deactivateAccount = createAsyncThunk(
-  "accounts/deactivate",
-  async (id: number, { rejectWithValue }) => {
-    try {
-      const account = await apiRequest<Account>(
-        API_ENDPOINTS.accounts.deactivate(id),
-        {
-          method: "POST",
-        },
-      );
-      return account;
-    } catch (error) {
-      return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to deactivate account",
-      );
-    }
-  },
-);
-
-export const activateAccount = createAsyncThunk(
-  "accounts/activate",
-  async (id: number, { rejectWithValue }) => {
-    try {
-      const account = await apiRequest<Account>(
-        API_ENDPOINTS.accounts.activate(id),
-        {
-          method: "POST",
-        },
-      );
-      return account;
-    } catch (error) {
-      return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to activate account",
-      );
-    }
-  },
-);
+export const activateAccount = createAsyncThunk<
+  Account,
+  number,
+  { rejectValue: string }
+>("accounts/activate", async (id, { rejectWithValue }) => {
+  try {
+    const account = await apiRequest<Account>(
+      API_ENDPOINTS.accounts.activate(id),
+      {
+        method: "POST",
+      },
+    );
+    return account;
+  } catch (error) {
+    return rejectWithValue(
+      error instanceof Error ? error.message : "Failed to activate account",
+    );
+  }
+});
 
 // Slice
 const accountsSlice = createSlice({
@@ -249,6 +268,9 @@ const accountsSlice = createSlice({
         state.isLoading = false;
         state.items = action.payload;
         state.lastFetched = Date.now();
+        // Store filters for cache comparison
+        const { forceRefresh, ...filterParams } = action.meta.arg;
+        state.filters = filterParams;
       })
       .addCase(fetchAccounts.rejected, (state, action) => {
         state.isLoading = false;

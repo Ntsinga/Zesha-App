@@ -36,11 +36,11 @@ export function useDashboardScreen() {
     console.log("[Dashboard] API Keys Check:");
     console.log(
       "  - Gemini:",
-      geminiKey ? `${geminiKey.substring(0, 10)}...` : "NOT SET"
+      geminiKey ? `${geminiKey.substring(0, 10)}...` : "NOT SET",
     );
     console.log(
       "  - OpenAI:",
-      openaiKey ? `${openaiKey.substring(0, 10)}...` : "NOT SET"
+      openaiKey ? `${openaiKey.substring(0, 10)}...` : "NOT SET",
     );
   }, []);
 
@@ -49,10 +49,10 @@ export function useDashboardScreen() {
     dispatch(fetchDashboard({}));
   }, [dispatch]);
 
-  // Refresh handler
+  // Refresh handler - forces cache bypass
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await dispatch(fetchDashboard({}));
+    await dispatch(fetchDashboard({ forceRefresh: true }));
     setRefreshing(false);
   }, [dispatch]);
 
@@ -62,7 +62,7 @@ export function useDashboardScreen() {
       dispatch(setShift(shift));
       dispatch(fetchDashboard({ shift }));
     },
-    [dispatch]
+    [dispatch],
   );
 
   // Computed values from summary

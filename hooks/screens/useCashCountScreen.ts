@@ -196,7 +196,7 @@ export function useCashCountScreen() {
       }
 
       const cashCountData: CashCountCreate[] = validEntries.map((entry) => ({
-        company_id: companyId,
+        companyId: companyId,
         denomination: entry.denomination,
         quantity: parseInt(entry.quantity),
         amount: entry.displayValue * parseInt(entry.quantity),

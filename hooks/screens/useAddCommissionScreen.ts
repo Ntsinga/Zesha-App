@@ -53,10 +53,10 @@ export function useAddCommissionScreen() {
   // Selectors
   const companyId = useSelector(selectCompanyId);
   const { items: accounts, isLoading: accountsLoading } = useSelector(
-    (state: RootState) => state.accounts
+    (state: RootState) => state.accounts,
   );
   const { items: commissions } = useSelector(
-    (state: RootState) => state.commissions
+    (state: RootState) => state.commissions,
   );
 
   // State
@@ -65,7 +65,7 @@ export function useAddCommissionScreen() {
   ]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, Record<string, string>>>(
-    {}
+    {},
   );
   const [currentShift, setCurrentShift] = useState<ShiftEnum>("AM");
   const [isInitialized, setIsInitialized] = useState(false);
@@ -78,7 +78,7 @@ export function useAddCommissionScreen() {
 
   // Fetch data on mount
   useEffect(() => {
-    dispatch(fetchAccounts({ is_active: true }));
+    dispatch(fetchAccounts({ isActive: true }));
     dispatch(fetchCommissions({}));
   }, [dispatch]);
 
@@ -86,26 +86,26 @@ export function useAddCommissionScreen() {
   useEffect(() => {
     if (isInitialized || accountsLoading || accounts.length === 0) return;
 
-    const activeAccounts = accounts.filter((acc) => acc.is_active);
+    const activeAccounts = accounts.filter((acc) => acc.isActive);
 
     // Get commissions for today and current shift
     const shiftCommissions = commissions.filter(
-      (com) => com.date.startsWith(today) && com.shift === currentShift
+      (com) => com.date.startsWith(today) && com.shift === currentShift,
     );
 
     if (shiftCommissions.length > 0) {
       const prepopulatedEntries: CommissionEntry[] = shiftCommissions.map(
         (com) => ({
           id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-          accountId: com.account_id,
+          accountId: com.accountId,
           accountName:
             com.account?.name ||
-            accounts.find((acc) => acc.id === com.account_id)?.name ||
-            `Account ${com.account_id}`,
+            accounts.find((acc) => acc.id === com.accountId)?.name ||
+            `Account ${com.accountId}`,
           shift: currentShift,
           amount: com.amount.toString(),
-          imageUrl: com.image_data
-            ? `data:image/jpeg;base64,${com.image_data}`
+          imageUrl: com.imageData
+            ? `data:image/jpeg;base64,${com.imageData}`
             : "",
           extractedBalance: com.amount,
           isExtracting: false,
@@ -118,19 +118,19 @@ export function useAddCommissionScreen() {
             enteredAmount: com.amount,
             message: "Existing commission",
           },
-        })
+        }),
       );
 
       // Add empty entries for accounts without commissions
       const accountsWithCommissions = new Set(
-        shiftCommissions.map((com) => com.account_id)
+        shiftCommissions.map((com) => com.accountId),
       );
       const accountsWithoutCommissions = activeAccounts.filter(
-        (acc) => !accountsWithCommissions.has(acc.id)
+        (acc) => !accountsWithCommissions.has(acc.id),
       );
 
       const emptyEntries: CommissionEntry[] = accountsWithoutCommissions.map(
-        () => createEmptyEntry(currentShift)
+        () => createEmptyEntry(currentShift),
       );
 
       setEntries([...prepopulatedEntries, ...emptyEntries]);
@@ -151,8 +151,8 @@ export function useAddCommissionScreen() {
 
   // Active accounts
   const activeAccounts = useMemo(
-    () => accounts.filter((acc) => acc.is_active),
-    [accounts]
+    () => accounts.filter((acc) => acc.isActive),
+    [accounts],
   );
 
   // Get available accounts for a specific entry
@@ -163,10 +163,10 @@ export function useAddCommissionScreen() {
         .map((e) => e.accountId);
 
       return activeAccounts.filter(
-        (acc) => !selectedAccountIds.includes(acc.id)
+        (acc) => !selectedAccountIds.includes(acc.id),
       );
     },
-    [entries, activeAccounts]
+    [entries, activeAccounts],
   );
 
   // Update entry field
@@ -174,8 +174,8 @@ export function useAddCommissionScreen() {
     (id: string, field: keyof CommissionEntry, value: any) => {
       setEntries((prev) =>
         prev.map((entry) =>
-          entry.id === id ? { ...entry, [field]: value } : entry
-        )
+          entry.id === id ? { ...entry, [field]: value } : entry,
+        ),
       );
 
       const errorField = field === "accountId" ? "accountName" : field;
@@ -189,7 +189,7 @@ export function useAddCommissionScreen() {
         });
       }
     },
-    [errors]
+    [errors],
   );
 
   // Handle amount change with validation
@@ -206,7 +206,7 @@ export function useAddCommissionScreen() {
             const inputBalance = parseFloat(value);
             if (!isNaN(inputBalance)) {
               const difference = Math.abs(
-                entry.extractedBalance - inputBalance
+                entry.extractedBalance - inputBalance,
               );
               const isValid = difference < 0.01;
               validationResult = {
@@ -224,7 +224,7 @@ export function useAddCommissionScreen() {
             amount: value,
             validationResult,
           };
-        })
+        }),
       );
 
       if (errors[entryId]?.amount) {
@@ -237,7 +237,7 @@ export function useAddCommissionScreen() {
         });
       }
     },
-    [errors]
+    [errors],
   );
 
   // Select account for entry
@@ -247,8 +247,8 @@ export function useAddCommissionScreen() {
         prev.map((entry) =>
           entry.id === entryId
             ? { ...entry, accountId: account.id, accountName: account.name }
-            : entry
-        )
+            : entry,
+        ),
       );
 
       if (errors[entryId]?.accountName) {
@@ -263,7 +263,7 @@ export function useAddCommissionScreen() {
 
       setAccountPickerVisible(null);
     },
-    [errors]
+    [errors],
   );
 
   // Add new entry
@@ -283,7 +283,7 @@ export function useAddCommissionScreen() {
         });
       }
     },
-    [entries.length]
+    [entries.length],
   );
 
   // Clear image from entry
@@ -298,8 +298,8 @@ export function useAddCommissionScreen() {
               extractedBalance: null,
               validationResult: null,
             }
-          : entry
-      )
+          : entry,
+      ),
     );
   }, []);
 
@@ -317,8 +317,8 @@ export function useAddCommissionScreen() {
                 isExtracting: true,
                 validationResult: null,
               }
-            : entry
-        )
+            : entry,
+        ),
       );
 
       try {
@@ -342,7 +342,7 @@ export function useAddCommissionScreen() {
               if (!isNaN(inputBalance)) {
                 validationResult = validateBalance(
                   extractedBalance,
-                  inputBalance
+                  inputBalance,
                 );
               }
             }
@@ -353,13 +353,13 @@ export function useAddCommissionScreen() {
               isExtracting: false,
               validationResult,
             };
-          })
+          }),
         );
 
         if (!result.success) {
           console.warn(
             "[Web Commission] Extraction unsuccessful:",
-            result.error
+            result.error,
           );
         }
       } catch (error) {
@@ -368,12 +368,12 @@ export function useAddCommissionScreen() {
           prev.map((entry) =>
             entry.id === entryId
               ? { ...entry, isExtracting: false, extractedBalance: null }
-              : entry
-          )
+              : entry,
+          ),
         );
       }
     },
-    []
+    [],
   );
 
   // Change shift and reinitialize
@@ -428,7 +428,10 @@ export function useAddCommissionScreen() {
     }
 
     if (!companyId) {
-      return { success: false, message: "Company not found. Please log in again." };
+      return {
+        success: false,
+        message: "Company not found. Please log in again.",
+      };
     }
 
     setIsSubmitting(true);
@@ -456,14 +459,14 @@ export function useAddCommissionScreen() {
           }
 
           return {
-            company_id: companyId,
-            account_id: entry.accountId!,
+            companyId: companyId,
+            accountId: entry.accountId!,
             shift: currentShift,
             amount: parseFloat(entry.amount),
             date: today,
-            image_data: imageData,
+            imageData: imageData,
           };
-        })
+        }),
       );
 
       await dispatch(createCommissionsBulk(commissionsData)).unwrap();

@@ -12,7 +12,6 @@ import {
   Keyboard,
 } from "react-native";
 import {
-  Menu,
   Save,
   Building,
   DollarSign,
@@ -161,7 +160,7 @@ export default function Settings() {
     } catch (err) {
       Alert.alert(
         "Error",
-        err instanceof Error ? err.message : "Failed to save settings"
+        err instanceof Error ? err.message : "Failed to save settings",
       );
     } finally {
       setIsSaving(false);
@@ -188,17 +187,9 @@ export default function Settings() {
         }
       >
         {/* Header */}
-        <View className="flex-row justify-between items-center mb-6 mt-4">
-          <View>
-            <Text className="text-3xl font-bold text-gray-800">Settings</Text>
-            <Text className="text-gray-500 mt-1">Company Information</Text>
-          </View>
-          <TouchableOpacity
-            onPress={() => (navigation as any).openDrawer()}
-            className="p-2 bg-brand-red rounded-md shadow-sm"
-          >
-            <Menu color="white" size={24} />
-          </TouchableOpacity>
+        <View className="mb-6 mt-4">
+          <Text className="text-3xl font-bold text-gray-800">Settings</Text>
+          <Text className="text-gray-500 mt-1">Company Information</Text>
         </View>
 
         {/* Company Info Card */}

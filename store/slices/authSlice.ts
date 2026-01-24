@@ -1,8 +1,9 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
-import { API_BASE_URL, API_HEADERS } from "../../config/api";
-import { User, UserSyncRequest, RoleEnum } from "../../types";
+import { API_BASE_URL, API_HEADERS } from "@/config/api";
+import type { User, UserSyncRequest, RoleEnum } from "@/types";
+import { mapApiResponse, mapApiRequest } from "@/types";
 
 // Re-export for convenience (use types from types.ts)
 export type { User, UserSyncRequest };
@@ -63,7 +64,10 @@ export const initializeAuth = createAsyncThunk(
       const userJson = await getSecureItem(USER_KEY);
 
       if (clerkUserId && userJson) {
-        const user = JSON.parse(userJson) as User;
+        const rawUser = JSON.parse(userJson);
+        // Handle both legacy snake_case and new camelCase stored data
+        // by normalizing to camelCase format
+        const user = mapApiResponse<User>(rawUser);
         return { clerkUserId, user };
       }
       return null;
@@ -84,7 +88,7 @@ export const syncUserWithBackend = createAsyncThunk(
       const response = await fetch(`${API_BASE_URL}/users/sync`, {
         method: "POST",
         headers: API_HEADERS,
-        body: JSON.stringify(syncData),
+        body: JSON.stringify(mapApiRequest(syncData)),
       });
 
       console.log("[Auth Sync] Response status:", response.status);
@@ -97,12 +101,13 @@ export const syncUserWithBackend = createAsyncThunk(
         );
       }
 
-      const user: User = await response.json();
+      const data = await response.json();
+      const user: User = mapApiResponse<User>(data);
       console.log("[Auth Sync] User synced successfully:", user.id);
 
       // Store user data locally
       await setSecureItem(USER_KEY, JSON.stringify(user));
-      await setSecureItem(CLERK_USER_ID_KEY, syncData.clerk_user_id);
+      await setSecureItem(CLERK_USER_ID_KEY, syncData.clerkUserId);
 
       return user;
     } catch (error) {
@@ -140,7 +145,8 @@ export const fetchUserByClerkId = createAsyncThunk(
         );
       }
 
-      const user: User = await response.json();
+      const data = await response.json();
+      const user: User = mapApiResponse<User>(data);
 
       // Store user data locally
       await setSecureItem(USER_KEY, JSON.stringify(user));
@@ -166,7 +172,7 @@ export const updateUserProfile = createAsyncThunk(
       const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
         method: "PATCH",
         headers: API_HEADERS,
-        body: JSON.stringify(data),
+        body: JSON.stringify(mapApiRequest(data)),
       });
 
       if (!response.ok) {
@@ -176,7 +182,8 @@ export const updateUserProfile = createAsyncThunk(
         );
       }
 
-      const user: User = await response.json();
+      const responseData = await response.json();
+      const user: User = mapApiResponse<User>(responseData);
 
       // Store updated user data locally
       await setSecureItem(USER_KEY, JSON.stringify(user));
@@ -241,7 +248,7 @@ const authSlice = createSlice({
       .addCase(syncUserWithBackend.fulfilled, (state, action) => {
         state.isSyncing = false;
         state.user = action.payload;
-        state.clerkUserId = action.payload.clerk_user_id;
+        state.clerkUserId = action.payload.clerkUserId;
         state.isAuthenticated = true;
         state.error = null;
       })
@@ -260,7 +267,7 @@ const authSlice = createSlice({
         state.isLoading = false;
         if (action.payload) {
           state.user = action.payload;
-          state.clerkUserId = action.payload.clerk_user_id;
+          state.clerkUserId = action.payload.clerkUserId;
           state.isAuthenticated = true;
         }
         state.error = null;
@@ -297,7 +304,7 @@ const authSlice = createSlice({
 // Selectors
 export const selectUser = (state: { auth: AuthState }) => state.auth.user;
 export const selectCompanyId = (state: { auth: AuthState }) =>
-  state.auth.user?.company_id ?? null;
+  state.auth.user?.companyId ?? null;
 export const selectIsAuthenticated = (state: { auth: AuthState }) =>
   state.auth.isAuthenticated;
 export const selectUserRole = (state: { auth: AuthState }) =>

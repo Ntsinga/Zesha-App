@@ -9,7 +9,6 @@ import {
 import {
   CheckCircle2,
   Clock,
-  Menu,
   Plus,
   ChevronRight,
   AlertTriangle,
@@ -43,14 +42,8 @@ export default function BalanceHistory() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        <View className="flex-row justify-between items-center mb-6 mt-4">
+        <View className="mb-6 mt-4">
           <Text className="text-3xl font-bold text-brand-red">History</Text>
-          <TouchableOpacity
-            onPress={() => (navigation as any).openDrawer()}
-            className="p-2 bg-brand-red rounded-md shadow-sm"
-          >
-            <Menu color="white" size={24} />
-          </TouchableOpacity>
         </View>
 
         <View className="bg-white rounded-xl shadow-md border-2 border-brand-red/10 overflow-hidden mb-6">
@@ -79,7 +72,9 @@ export default function BalanceHistory() {
               <TouchableOpacity
                 key={record.id || `history-${index}`}
                 onPress={() => {
-                  router.push(`/reconciliation?date=${record.date}&shift=${record.shift}` as any);
+                  router.push(
+                    `/reconciliation?date=${record.date}&shift=${record.shift}` as any,
+                  );
                 }}
                 className={`flex-row items-center p-4 border-b border-yellow-100 ${
                   index % 2 === 0 ? "bg-white" : "bg-yellow-50/30"

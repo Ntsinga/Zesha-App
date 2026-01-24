@@ -12,7 +12,6 @@ import {
   Platform,
 } from "react-native";
 import {
-  Menu,
   Plus,
   Building2,
   Smartphone,
@@ -90,14 +89,8 @@ export default function Accounts() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        <View className="flex-row justify-between items-center mb-6 mt-4">
+        <View className="mb-6 mt-4">
           <Text className="text-3xl font-bold text-brand-red">Accounts</Text>
-          <TouchableOpacity
-            onPress={() => (navigation as any).openDrawer()}
-            className="p-2 bg-brand-red rounded-md shadow-sm"
-          >
-            <Menu color="white" size={24} />
-          </TouchableOpacity>
         </View>
 
         {/* Account List */}

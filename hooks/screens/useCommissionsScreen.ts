@@ -22,7 +22,7 @@ export function useCommissionsScreen() {
   const { formatCurrency } = useCurrencyFormatter();
 
   const { items: commissions, isLoading } = useSelector(
-    (state: RootState) => state.commissions
+    (state: RootState) => state.commissions,
   );
 
   const [refreshing, setRefreshing] = useState(false);
@@ -34,9 +34,10 @@ export function useCommissionsScreen() {
     dispatch(fetchCommissions({}));
   }, [dispatch]);
 
+  // Refresh handler - forces cache bypass
   const onRefresh = async () => {
     setRefreshing(true);
-    await dispatch(fetchCommissions({}));
+    await dispatch(fetchCommissions({ forceRefresh: true }));
     setRefreshing(false);
   };
 
@@ -71,7 +72,7 @@ export function useCommissionsScreen() {
 
     // Sort by date descending
     return Array.from(groups.values()).sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
     );
   }, [commissions]);
 
@@ -79,7 +80,7 @@ export function useCommissionsScreen() {
   const filteredCommissions = useMemo(() => {
     if (filterShift === "ALL") {
       return [...commissions].sort(
-        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
       );
     }
     return commissions
@@ -100,16 +101,16 @@ export function useCommissionsScreen() {
   };
 
   const getImageUri = (commission: Commission) => {
-    if (commission.image_data) {
-      return `data:image/jpeg;base64,${commission.image_data}`;
+    if (commission.imageData) {
+      return `data:image/jpeg;base64,${commission.imageData}`;
     }
-    return commission.image_url;
+    return commission.imageUrl;
   };
 
   // Calculate overall totals
   const overallTotal = groupedCommissions.reduce(
     (sum, g) => sum + g.dailyTotal,
-    0
+    0,
   );
 
   const amTotal = groupedCommissions.reduce((sum, g) => sum + g.amTotal, 0);

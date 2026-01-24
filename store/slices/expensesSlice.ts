@@ -1,15 +1,13 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
-import {
+import type {
   Expense,
   ExpenseCreate,
   ExpenseUpdate,
   ExpenseFilters,
-} from "../../types";
-import {
-  API_BASE_URL,
-  API_ENDPOINTS,
-  buildQueryString,
-} from "../../config/api";
+} from "@/types";
+import { mapApiResponse, mapApiRequest, buildTypedQueryString } from "@/types";
+import { API_BASE_URL, API_ENDPOINTS } from "@/config/api";
+import type { RootState } from "../index";
 
 // Types
 export interface ExpensesState {
@@ -57,110 +55,133 @@ async function apiRequest<T>(
     return undefined as T;
   }
 
-  return response.json();
+  const data = await response.json();
+  return mapApiResponse<T>(data);
 }
 
+// Cache duration in milliseconds (30 seconds)
+const CACHE_DURATION = 30 * 1000;
+
 // Async thunks
-export const fetchExpenses = createAsyncThunk(
-  "expenses/fetchAll",
-  async (filters: ExpenseFilters = {}, { getState, rejectWithValue }) => {
-    try {
-      // Get company_id from auth state
-      const state = getState() as any;
-      const companyId = state.auth?.user?.company_id;
+export const fetchExpenses = createAsyncThunk<
+  Expense[],
+  ExpenseFilters & { forceRefresh?: boolean },
+  { state: RootState; rejectValue: string }
+>("expenses/fetchAll", async (filters = {}, { getState, rejectWithValue }) => {
+  try {
+    // Get companyId from auth state
+    const state = getState();
+    const companyId = state.auth.user?.companyId;
 
-      if (!companyId) {
-        return rejectWithValue("No company_id found. Please log in again.");
-      }
-
-      // Add company_id to filters
-      const filtersWithCompany = {
-        ...filters,
-        company_id: companyId,
-      };
-
-      const query = buildQueryString(filtersWithCompany);
-      const expenses = await apiRequest<Expense[]>(
-        `${API_ENDPOINTS.expenses.list}${query}`,
-      );
-      return expenses;
-    } catch (error) {
-      return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to fetch expenses",
-      );
+    if (!companyId) {
+      return rejectWithValue("No companyId found. Please log in again.");
     }
-  },
-);
 
-export const fetchExpenseById = createAsyncThunk(
-  "expenses/fetchById",
-  async (id: number, { rejectWithValue }) => {
-    try {
-      const expense = await apiRequest<Expense>(API_ENDPOINTS.expenses.get(id));
-      return expense;
-    } catch (error) {
-      return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to fetch expense",
-      );
-    }
-  },
-);
+    const { forceRefresh, ...filterParams } = filters;
 
-export const createExpense = createAsyncThunk(
-  "expenses/create",
-  async (data: ExpenseCreate, { rejectWithValue }) => {
-    try {
-      const expense = await apiRequest<Expense>(API_ENDPOINTS.expenses.create, {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
-      return expense;
-    } catch (error) {
-      return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to create expense",
-      );
-    }
-  },
-);
+    // Check cache - skip fetch if data is fresh
+    const { lastFetched, items, filters: cachedFilters } = state.expenses;
+    const isCacheValid =
+      lastFetched && Date.now() - lastFetched < CACHE_DURATION;
+    const isSameFilters =
+      JSON.stringify(cachedFilters) === JSON.stringify(filterParams);
 
-export const updateExpense = createAsyncThunk(
-  "expenses/update",
-  async (
-    { id, data }: { id: number; data: ExpenseUpdate },
-    { rejectWithValue },
-  ) => {
-    try {
-      const expense = await apiRequest<Expense>(
-        API_ENDPOINTS.expenses.update(id),
-        {
-          method: "PATCH",
-          body: JSON.stringify(data),
-        },
+    if (!forceRefresh && isCacheValid && isSameFilters && items.length > 0) {
+      console.log(
+        "[Expenses] Using cached data, age:",
+        Date.now() - lastFetched,
+        "ms",
       );
-      return expense;
-    } catch (error) {
-      return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to update expense",
-      );
+      return items;
     }
-  },
-);
 
-export const deleteExpense = createAsyncThunk(
-  "expenses/delete",
-  async (id: number, { rejectWithValue }) => {
-    try {
-      await apiRequest<void>(API_ENDPOINTS.expenses.delete(id), {
-        method: "DELETE",
-      });
-      return id;
-    } catch (error) {
-      return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to delete expense",
-      );
-    }
-  },
-);
+    // Build query with camelCase filters, convert to snake_case for API
+    const query = buildTypedQueryString({
+      ...filterParams,
+      companyId,
+    });
+
+    const expenses = await apiRequest<Expense[]>(
+      `${API_ENDPOINTS.expenses.list}${query}`,
+    );
+    return expenses;
+  } catch (error) {
+    return rejectWithValue(
+      error instanceof Error ? error.message : "Failed to fetch expenses",
+    );
+  }
+});
+
+export const fetchExpenseById = createAsyncThunk<
+  Expense,
+  number,
+  { rejectValue: string }
+>("expenses/fetchById", async (id, { rejectWithValue }) => {
+  try {
+    const expense = await apiRequest<Expense>(API_ENDPOINTS.expenses.get(id));
+    return expense;
+  } catch (error) {
+    return rejectWithValue(
+      error instanceof Error ? error.message : "Failed to fetch expense",
+    );
+  }
+});
+
+export const createExpense = createAsyncThunk<
+  Expense,
+  ExpenseCreate,
+  { rejectValue: string }
+>("expenses/create", async (data, { rejectWithValue }) => {
+  try {
+    const expense = await apiRequest<Expense>(API_ENDPOINTS.expenses.create, {
+      method: "POST",
+      body: JSON.stringify(mapApiRequest(data)),
+    });
+    return expense;
+  } catch (error) {
+    return rejectWithValue(
+      error instanceof Error ? error.message : "Failed to create expense",
+    );
+  }
+});
+
+export const updateExpense = createAsyncThunk<
+  Expense,
+  { id: number; data: ExpenseUpdate },
+  { rejectValue: string }
+>("expenses/update", async ({ id, data }, { rejectWithValue }) => {
+  try {
+    const expense = await apiRequest<Expense>(
+      API_ENDPOINTS.expenses.update(id),
+      {
+        method: "PATCH",
+        body: JSON.stringify(mapApiRequest(data)),
+      },
+    );
+    return expense;
+  } catch (error) {
+    return rejectWithValue(
+      error instanceof Error ? error.message : "Failed to update expense",
+    );
+  }
+});
+
+export const deleteExpense = createAsyncThunk<
+  number,
+  number,
+  { rejectValue: string }
+>("expenses/delete", async (id, { rejectWithValue }) => {
+  try {
+    await apiRequest<void>(API_ENDPOINTS.expenses.delete(id), {
+      method: "DELETE",
+    });
+    return id;
+  } catch (error) {
+    return rejectWithValue(
+      error instanceof Error ? error.message : "Failed to delete expense",
+    );
+  }
+});
 
 // Slice
 const expensesSlice = createSlice({
@@ -195,6 +216,9 @@ const expensesSlice = createSlice({
           0,
         );
         state.lastFetched = Date.now();
+        // Store filters for cache comparison
+        const { forceRefresh, ...filterParams } = action.meta.arg;
+        state.filters = filterParams;
       })
       .addCase(fetchExpenses.rejected, (state, action) => {
         state.isLoading = false;
