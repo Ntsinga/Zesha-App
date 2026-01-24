@@ -16,30 +16,38 @@ export default function BottomNav() {
   const insets = useSafeAreaInsets();
 
   const tabs = [
-    { name: "Home", icon: "grid-outline", activeIcon: "grid", route: "/" },
+    { name: "Home", icon: "home-outline", activeIcon: "home", route: "/" },
     {
-      name: "Insights",
-      icon: "bar-chart-outline",
-      activeIcon: "bar-chart",
-      route: "/insights",
+      name: "Reconcile",
+      icon: "calculator-outline",
+      activeIcon: "calculator",
+      route: "/balance",
     },
-    { name: "add", icon: "add", activeIcon: "add", route: "/balance" }, // Center button
     {
-      name: "History",
-      icon: "time-outline",
-      activeIcon: "time",
-      route: "/history",
+      name: "Expenses",
+      icon: "receipt-outline",
+      activeIcon: "receipt",
+      route: "/expenses",
     },
     {
       name: "Profile",
-      icon: "settings-outline",
-      activeIcon: "settings",
+      icon: "person-outline",
+      activeIcon: "person",
       route: "/settings",
     },
   ];
 
   const isActive = (route: string) => {
     if (route === "/") return pathname === "/index" || pathname === "/";
+    // Handle balance route - also match add-balance, add-cash-count, reconciliation
+    if (route === "/balance") {
+      return (
+        pathname.includes("/balance") ||
+        pathname.includes("/add-balance") ||
+        pathname.includes("/add-cash-count") ||
+        pathname.includes("/reconciliation")
+      );
+    }
     return pathname.includes(route);
   };
 
@@ -47,24 +55,8 @@ export default function BottomNav() {
     <View
       style={[styles.container, { paddingBottom: Math.max(insets.bottom, 10) }]}
     >
-      {tabs.map((tab, index) => {
+      {tabs.map((tab) => {
         const active = isActive(tab.route);
-
-        // Center add button
-        if (tab.name === "add") {
-          return (
-            <TouchableOpacity
-              key={tab.name}
-              onPress={() => router.push(tab.route as any)}
-              style={styles.addButton}
-              accessible={true}
-              accessibilityLabel="Add new item"
-              accessibilityRole="button"
-            >
-              <Ionicons name={tab.icon as any} size={28} color="#FFFFFF" />
-            </TouchableOpacity>
-          );
-        }
 
         return (
           <TouchableOpacity
@@ -130,25 +122,5 @@ const styles = StyleSheet.create({
   tabLabelActive: {
     color: "#DC2626",
     fontWeight: "600",
-  },
-  addButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: "#DC2626",
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: -20,
-    ...Platform.select({
-      ios: {
-        shadowColor: "#DC2626",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 8,
-      },
-    }),
   },
 });

@@ -232,6 +232,42 @@ export default function DashboardNative() {
             </View>
           </View>
         </View>
+
+        {/* Quick Actions */}
+        <View className="px-5 py-3">
+          <Text className="text-lg font-bold text-gray-900 mb-4">
+            Quick Actions
+          </Text>
+          <View className="flex-row gap-2.5 mb-4">
+            <TouchableOpacity
+              onPress={() => router.push("/history" as any)}
+              className="flex-1 bg-white rounded-xl p-3 mr-0 shadow-sm flex-row items-center"
+              style={{ paddingRight: 2 }}
+            >
+              <View className="bg-blue-100 p-2 rounded-xl mr-2">
+                <Ionicons name="time" size={20} color="#3B82F6" />
+              </View>
+              <View className="flex-shrink">
+                <Text className="font-bold text-gray-900 text-sm">History</Text>
+                <Text className="text-xs text-gray-500">Records</Text>
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => router.push("/commissions" as any)}
+              className="flex-1 bg-white ml-0 rounded-xl p-3 shadow-sm flex-row items-center"
+            >
+              <View className="bg-green-100 p-2 rounded-xl mr-2">
+                <Ionicons name="cash" size={20} color="#22C55E" />
+              </View>
+              <View className="flex-shrink">
+                <Text className="font-bold text-gray-900 text-sm">
+                  Commissions
+                </Text>
+                <Text className="text-xs text-gray-500">Payments</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+        </View>
       </ScrollView>
     </View>
   );

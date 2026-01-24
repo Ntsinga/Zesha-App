@@ -22,20 +22,10 @@ import { selectUser, selectUserRole } from "../store/slices/authSlice";
  * - Graceful fallbacks for missing data
  */
 
-interface TopBarProps {
-  onMenuPress?: () => void;
-}
-
-export default function TopBar({ onMenuPress }: TopBarProps) {
+export default function TopBar() {
   const user = useSelector(selectUser);
   const role = useSelector(selectUserRole);
   const router = useRouter();
-
-  const handleMenuPress = () => {
-    if (onMenuPress) {
-      onMenuPress();
-    }
-  };
 
   // Memoize computed values to prevent unnecessary recalculations
   const { initials, displayName, roleLabel } = useMemo(() => {
@@ -121,17 +111,6 @@ export default function TopBar({ onMenuPress }: TopBarProps) {
             accessibilityRole="button"
           >
             <Ionicons name="notifications-outline" size={24} color="#6B7280" />
-          </TouchableOpacity>
-
-          {/* Menu Button */}
-          <TouchableOpacity
-            style={styles.menuButton}
-            onPress={handleMenuPress}
-            accessible={true}
-            accessibilityLabel="Open menu"
-            accessibilityRole="button"
-          >
-            <Ionicons name="menu" size={24} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
       </View>
@@ -221,24 +200,5 @@ const styles = StyleSheet.create({
     height: 40,
     alignItems: "center",
     justifyContent: "center",
-  },
-  menuButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: "#DC2626",
-    alignItems: "center",
-    justifyContent: "center",
-    ...Platform.select({
-      ios: {
-        shadowColor: "#DC2626",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.3,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 4,
-      },
-    }),
   },
 });

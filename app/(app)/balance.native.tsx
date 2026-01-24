@@ -2,7 +2,6 @@ import React from "react";
 import { View, Text, TouchableOpacity, ScrollView, Alert } from "react-native";
 import { useRouter } from "expo-router";
 import {
-  ArrowLeft,
   Banknote,
   Wallet,
   ChevronRight,
@@ -33,7 +32,6 @@ export default function BalancePage() {
     handleNavigateCashCount,
     handleNavigateAddBalance,
     handleNavigateCommissions,
-    handleBack,
     handleRefresh,
     handleCalculate,
   } = useBalanceMenuScreen();
@@ -42,27 +40,24 @@ export default function BalancePage() {
     const result = await handleCalculate();
     if (result?.success) {
       router.push(
-        `/reconciliation?date=${today}&shift=${selectedShift}` as any
+        `/reconciliation?date=${today}&shift=${selectedShift}` as any,
       );
     } else {
       Alert.alert(
         "Error",
-        result?.error || "Failed to calculate reconciliation"
+        result?.error || "Failed to calculate reconciliation",
       );
     }
   };
 
   return (
     <View className="flex-1 bg-gray-50">
-      <ScrollView className="flex-1" contentContainerStyle={{ padding: 20 }}>
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={{ padding: 20, paddingBottom: 120 }}
+      >
         {/* Header */}
-        <View className="flex-row items-center mb-8 mt-4">
-          <TouchableOpacity
-            onPress={handleBack}
-            className="p-2 bg-white rounded-full shadow-sm mr-4"
-          >
-            <ArrowLeft color="#C62828" size={24} />
-          </TouchableOpacity>
+        <View className="mb-8">
           <View>
             <Text className="text-2xl font-bold text-gray-800">
               Daily Reconciliation
@@ -123,7 +118,7 @@ export default function BalancePage() {
                 >
                   {hasTodayCashCount
                     ? `${latestShift} Total: ${formatCurrency(
-                        latestShiftTotal
+                        latestShiftTotal,
                       )}`
                     : "Count notes and coins by denomination"}
                 </Text>

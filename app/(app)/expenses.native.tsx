@@ -20,16 +20,21 @@ import {
   DollarSign,
   Tag,
   FileText,
+  TrendingDown,
+  Wrench,
+  Zap,
+  ShoppingCart,
+  Users,
+  Home,
 } from "lucide-react-native";
-import { useNavigation } from "expo-router";
 import {
   useExpensesScreen,
   EXPENSE_CATEGORIES,
 } from "../../hooks/screens/useExpensesScreen";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
+import { formatDate } from "../../utils/formatters";
 
 export default function Expenses() {
-  const navigation = useNavigation();
   const {
     expenses,
     isLoading,
@@ -59,6 +64,31 @@ export default function Expenses() {
   } = useExpensesScreen();
 
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
+
+  const getCategoryIcon = (category: string | null) => {
+    switch (category) {
+      case "Business Operations":
+        return <TrendingDown color="#EF4444" size={20} />;
+      case "Maintenance":
+        return <Wrench color="#F59E0B" size={20} />;
+      case "Utilities":
+        return <Zap color="#3B82F6" size={20} />;
+      case "Supplies":
+        return <ShoppingCart color="#10B981" size={20} />;
+      case "Salaries":
+        return <Users color="#8B5CF6" size={20} />;
+      case "Rent":
+        return <Home color="#EC4899" size={20} />;
+      case "Transport":
+        return <DollarSign color="#14B8A6" size={20} />;
+      case "Marketing":
+        return <TrendingDown color="#F97316" size={20} />;
+      case "Shortage":
+        return <DollarSign color="#DC2626" size={20} />;
+      default:
+        return <DollarSign color="#6B7280" size={20} />;
+    }
+  };
 
   const onSubmit = async () => {
     const result = await handleSubmit();
@@ -96,13 +126,13 @@ export default function Expenses() {
   return (
     <View className="flex-1 bg-gray-50">
       <ScrollView
-        contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
+        contentContainerStyle={{ padding: 20, paddingBottom: 120 }}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
         {/* Header */}
-        <View className="mb-6 mt-4">
+        <View className="mb-6">
           <Text className="text-3xl font-bold text-brand-red">Expenses</Text>
         </View>
 
@@ -129,14 +159,6 @@ export default function Expenses() {
             <View className="py-8 items-center">
               <DollarSign color="#9CA3AF" size={48} />
               <Text className="text-gray-400 mt-2">No expenses recorded</Text>
-              <TouchableOpacity
-                onPress={openAddModal}
-                className="mt-4 bg-brand-red px-6 py-2 rounded-xl"
-              >
-                <Text className="text-white font-semibold">
-                  Add First Expense
-                </Text>
-              </TouchableOpacity>
             </View>
           ) : (
             expenses.map((expense) => (
@@ -144,6 +166,9 @@ export default function Expenses() {
                 key={expense.id}
                 className="flex-row items-center py-4 border-b border-gray-100"
               >
+                <View className="mr-3">
+                  {getCategoryIcon(expense.category)}
+                </View>
                 <View className="flex-1">
                   <Text className="font-semibold text-gray-800">
                     {expense.name}
@@ -157,7 +182,7 @@ export default function Expenses() {
                       </View>
                     )}
                     <Text className="text-xs text-gray-400">
-                      {new Date(expense.expense_date).toLocaleDateString()}
+                      {formatDate(expense.expenseDate, "short")}
                     </Text>
                   </View>
                 </View>
@@ -180,18 +205,22 @@ export default function Expenses() {
             ))
           )}
         </View>
-
-        {/* Add Button */}
-        <TouchableOpacity
-          onPress={openAddModal}
-          className="mt-6 bg-brand-red py-4 rounded-xl flex-row items-center justify-center shadow-md"
-        >
-          <Plus size={20} color="white" />
-          <Text className="text-white font-bold text-base ml-2">
-            Add Expense
-          </Text>
-        </TouchableOpacity>
       </ScrollView>
+
+      {/* Floating Action Button */}
+      <TouchableOpacity
+        onPress={openAddModal}
+        className="absolute bottom-32 right-5 w-14 h-14 bg-brand-red rounded-full items-center justify-center"
+        style={{
+          elevation: 8,
+          shadowColor: "#DC2626",
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.3,
+          shadowRadius: 8,
+        }}
+      >
+        <Plus color="white" size={28} />
+      </TouchableOpacity>
 
       {/* Add/Edit Modal */}
       <Modal
