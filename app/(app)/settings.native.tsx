@@ -19,14 +19,19 @@ import {
   Mail,
   X,
   Plus,
+  LogOut,
+  Users,
+  ChevronRight,
 } from "lucide-react-native";
-import { useNavigation } from "expo-router";
+import { useRouter } from "expo-router";
 import { useDispatch, useSelector } from "react-redux";
+import { useAuth } from "@clerk/clerk-expo";
 import {
   fetchCompanyInfoList,
   updateCompanyInfo,
   createCompanyInfo,
 } from "../../store/slices/companyInfoSlice";
+import { clearLocalAuth, selectUserRole } from "../../store/slices/authSlice";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { formatCurrency } from "../../utils/formatters";
 import type { AppDispatch, RootState } from "../../store";
@@ -45,13 +50,18 @@ const CURRENCIES = [
 ];
 
 export default function Settings() {
-  const navigation = useNavigation();
+  const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
+  const { signOut } = useAuth();
   const {
     items: companies,
     isLoading,
     error,
   } = useSelector((state: RootState) => state.companyInfo);
+
+  const userRole = useSelector(selectUserRole);
+  const isAdmin =
+    userRole === "ADMINISTRATOR" || userRole === "SUPER_ADMINISTRATOR";
 
   const [refreshing, setRefreshing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -117,6 +127,29 @@ export default function Settings() {
 
   const removeEmail = (emailToRemove: string) => {
     setEmails(emails.filter((e) => e !== emailToRemove));
+  };
+
+  const handleSignOut = async () => {
+    Alert.alert("Sign Out", "Are you sure you want to sign out?", [
+      {
+        text: "Cancel",
+        style: "cancel",
+      },
+      {
+        text: "Sign Out",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await dispatch(clearLocalAuth());
+            await signOut();
+            router.replace("/(auth)/sign-in");
+          } catch (error) {
+            console.error("Sign out error:", error);
+            Alert.alert("Error", "Failed to sign out. Please try again.");
+          }
+        },
+      },
+    ]);
   };
 
   const handleSave = async () => {
@@ -210,7 +243,8 @@ export default function Settings() {
               value={name}
               onChangeText={setName}
               placeholder="Enter company name"
-              className="bg-gray-50 rounded-xl px-4 py-3 text-gray-800 border border-gray-200"
+              editable={isAdmin}
+              className={`bg-gray-50 rounded-xl px-4 py-3 text-gray-800 border border-gray-200 ${!isAdmin ? "opacity-60" : ""}`}
             />
           </View>
 
@@ -226,7 +260,8 @@ export default function Settings() {
               multiline
               numberOfLines={3}
               textAlignVertical="top"
-              className="bg-gray-50 rounded-xl px-4 py-3 text-gray-800 border border-gray-200 min-h-[80px]"
+              editable={isAdmin}
+              className={`bg-gray-50 rounded-xl px-4 py-3 text-gray-800 border border-gray-200 min-h-[80px] ${!isAdmin ? "opacity-60" : ""}`}
             />
           </View>
         </View>
@@ -244,8 +279,11 @@ export default function Settings() {
           <View className="mb-4">
             <Text className="text-gray-700 font-semibold mb-2">Currency</Text>
             <TouchableOpacity
-              onPress={() => setShowCurrencyPicker(!showCurrencyPicker)}
-              className="bg-gray-50 rounded-xl px-4 py-3 border border-gray-200 flex-row justify-between items-center"
+              onPress={() =>
+                isAdmin && setShowCurrencyPicker(!showCurrencyPicker)
+              }
+              disabled={!isAdmin}
+              className={`bg-gray-50 rounded-xl px-4 py-3 border border-gray-200 flex-row justify-between items-center ${!isAdmin ? "opacity-60" : ""}`}
             >
               <Text className="text-gray-800">
                 {currency} -{" "}
@@ -294,7 +332,8 @@ export default function Settings() {
               onChangeText={setTotalWorkingCapital}
               placeholder="0.00"
               keyboardType="decimal-pad"
-              className="bg-gray-50 rounded-xl px-4 py-3 text-gray-800 border border-gray-200 text-lg"
+              editable={isAdmin}
+              className={`bg-gray-50 rounded-xl px-4 py-3 text-gray-800 border border-gray-200 text-lg ${!isAdmin ? "opacity-60" : ""}`}
             />
             {totalWorkingCapital && (
               <Text className="text-gray-500 text-sm mt-1">
@@ -313,7 +352,8 @@ export default function Settings() {
               onChangeText={setOutstandingBalance}
               placeholder="0.00"
               keyboardType="decimal-pad"
-              className="bg-gray-50 rounded-xl px-4 py-3 text-gray-800 border border-gray-200 text-lg"
+              editable={isAdmin}
+              className={`bg-gray-50 rounded-xl px-4 py-3 text-gray-800 border border-gray-200 text-lg ${!isAdmin ? "opacity-60" : ""}`}
             />
             {outstandingBalance && (
               <Text className="text-gray-500 text-sm mt-1">
@@ -325,45 +365,49 @@ export default function Settings() {
 
         {/* Email Notifications Card */}
         <View className="bg-white rounded-3xl shadow-sm p-6 border border-gray-100 mb-4">
-          <View className="flex-row items-center mb-6">
-            <Mail color="#C62828" size={24} />
-            <Text className="text-xl font-bold text-gray-800 ml-2">
-              Email Notifications
-            </Text>
+          <View className="flex-row items-center justify-between mb-6">
+            <View className="flex-row items-center">
+              <Mail color="#C62828" size={24} />
+              <Text className="text-xl font-bold text-gray-800 ml-2">
+                Email Notifications
+              </Text>
+            </View>
           </View>
 
           {/* Add Email Input */}
-          <View className="flex-row mb-4 items-center">
-            <TextInput
-              ref={emailInputRef}
-              value={newEmail}
-              onChangeText={setNewEmail}
-              placeholder="Add email address"
-              keyboardType="email-address"
-              autoCapitalize="none"
-              onSubmitEditing={() => {
-                addEmail();
-                Keyboard.dismiss();
-              }}
-              onFocus={() => {
-                // Scroll to make the input visible above keyboard
-                setTimeout(() => {
-                  scrollViewRef.current?.scrollToEnd({ animated: true });
-                }, 300);
-              }}
-              returnKeyType="done"
-              className="flex-1 bg-gray-50 rounded-xl px-4 py-3 text-gray-800 border border-gray-200"
-            />
-            <TouchableOpacity
-              onPress={() => {
-                addEmail();
-                Keyboard.dismiss();
-              }}
-              className="bg-brand-red ml-2 w-12 h-12 rounded-xl items-center justify-center"
-            >
-              <Plus color="white" size={20} />
-            </TouchableOpacity>
-          </View>
+          {isAdmin && (
+            <View className="flex-row mb-4 items-center">
+              <TextInput
+                ref={emailInputRef}
+                value={newEmail}
+                onChangeText={setNewEmail}
+                placeholder="Add email address"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                onSubmitEditing={() => {
+                  addEmail();
+                  Keyboard.dismiss();
+                }}
+                onFocus={() => {
+                  // Scroll to make the input visible above keyboard
+                  setTimeout(() => {
+                    scrollViewRef.current?.scrollToEnd({ animated: true });
+                  }, 300);
+                }}
+                returnKeyType="done"
+                className="flex-1 bg-gray-50 rounded-xl px-4 py-3 text-gray-800 border border-gray-200"
+              />
+              <TouchableOpacity
+                onPress={() => {
+                  addEmail();
+                  Keyboard.dismiss();
+                }}
+                className="bg-brand-red ml-2 w-12 h-12 rounded-xl items-center justify-center"
+              >
+                <Plus color="white" size={20} />
+              </TouchableOpacity>
+            </View>
+          )}
 
           {/* Email List */}
           {emails.length === 0 ? (
@@ -378,12 +422,14 @@ export default function Settings() {
                   className="flex-row items-center justify-between bg-gray-50 rounded-xl px-4 py-3 mb-2"
                 >
                   <Text className="text-gray-700 flex-1">{email}</Text>
-                  <TouchableOpacity
-                    onPress={() => removeEmail(email)}
-                    className="p-1"
-                  >
-                    <X color="#EF4444" size={18} />
-                  </TouchableOpacity>
+                  {isAdmin && (
+                    <TouchableOpacity
+                      onPress={() => removeEmail(email)}
+                      className="p-1"
+                    >
+                      <X color="#EF4444" size={18} />
+                    </TouchableOpacity>
+                  )}
                 </View>
               ))}
             </View>
@@ -391,30 +437,70 @@ export default function Settings() {
         </View>
 
         {/* Save Button */}
-        <TouchableOpacity
-          onPress={handleSave}
-          disabled={isSaving}
-          className={`py-4 rounded-xl flex-row items-center justify-center space-x-2 ${
-            isSaving ? "bg-gray-400" : "bg-brand-red"
-          }`}
-        >
-          <Save color="white" size={20} />
-          <Text className="text-white font-bold text-base ml-2">
-            {isSaving ? "Saving..." : "Save Settings"}
-          </Text>
-        </TouchableOpacity>
-
-        {/* Company Info Summary */}
-        {company && (
-          <View className="mt-6 p-4 bg-gray-100 rounded-xl">
-            <Text className="text-gray-500 text-xs text-center">
-              Company ID: {company.id} • Last updated:{" "}
-              {company.updated_at
-                ? new Date(company.updated_at).toLocaleDateString()
-                : "N/A"}
+        {isAdmin && (
+          <TouchableOpacity
+            onPress={handleSave}
+            disabled={isSaving}
+            className={`py-4 rounded-xl flex-row items-center justify-center space-x-2 ${
+              isSaving ? "bg-gray-400" : "bg-brand-red"
+            }`}
+          >
+            <Save color="white" size={20} />
+            <Text className="text-white font-bold text-base ml-2">
+              {isSaving ? "Saving..." : "Save Settings"}
             </Text>
-          </View>
+          </TouchableOpacity>
         )}
+
+
+        {/* Other Options */}
+        <View className="mt-8">
+          <Text className="text-gray-500 text-sm font-medium mb-3 uppercase">
+            More Options
+          </Text>
+
+          {/* Manage Accounts - Only for Administrators */}
+          {isAdmin && (
+            <TouchableOpacity
+              onPress={() => router.push("/accounts" as any)}
+              className="bg-white rounded-xl p-4 flex-row items-center justify-between mb-3 shadow-sm"
+            >
+              <View className="flex-row items-center">
+                <View className="bg-blue-100 p-2 rounded-lg mr-3">
+                  <Users color="#3B82F6" size={20} />
+                </View>
+                <View>
+                  <Text className="font-semibold text-gray-900">
+                    Manage Accounts
+                  </Text>
+                  <Text className="text-xs text-gray-500">
+                    Add or edit float accounts
+                  </Text>
+                </View>
+              </View>
+              <ChevronRight color="#9CA3AF" size={20} />
+            </TouchableOpacity>
+          )}
+
+          {/* Sign Out */}
+          <TouchableOpacity
+            onPress={handleSignOut}
+            className="bg-white rounded-xl p-4 flex-row items-center justify-between shadow-sm"
+          >
+            <View className="flex-row items-center">
+              <View className="bg-red-100 p-2 rounded-lg mr-3">
+                <LogOut color="#EF4444" size={20} />
+              </View>
+              <View>
+                <Text className="font-semibold text-red-600">Sign Out</Text>
+                <Text className="text-xs text-gray-500">
+                  Log out of your account
+                </Text>
+              </View>
+            </View>
+            <ChevronRight color="#EF4444" size={20} />
+          </TouchableOpacity>
+        </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );

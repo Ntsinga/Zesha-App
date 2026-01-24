@@ -130,7 +130,7 @@ export default function AddCashCountPage() {
         {/* Denominations List */}
         <ScrollView
           className="flex-1"
-          contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
+          contentContainerStyle={{ padding: 20, paddingBottom: 120 }}
         >
           {entries.map((entry, index) => {
             const qty = parseInt(entry.quantity || "0");

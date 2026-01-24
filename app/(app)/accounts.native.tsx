@@ -84,12 +84,12 @@ export default function Accounts() {
   return (
     <View className="flex-1 bg-gray-50">
       <ScrollView
-        contentContainerStyle={{ padding: 20 }}
+        contentContainerStyle={{ padding: 20, paddingBottom: 120 }}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        <View className="mb-6 mt-4">
+        <View className="mb-6">
           <Text className="text-3xl font-bold text-brand-red">Accounts</Text>
         </View>
 

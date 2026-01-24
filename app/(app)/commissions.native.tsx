@@ -125,7 +125,7 @@ export default function CommissionsPage() {
   return (
     <View className="flex-1 bg-gray-50">
       {/* Header */}
-      <View className="bg-white border-b border-gray-100 px-4 pt-14 pb-4">
+      <View className="bg-white border-b border-gray-100 px-4 pt-4 pb-4">
         <View className="flex-row items-center justify-between">
           <TouchableOpacity onPress={() => router.back()} className="p-2">
             <ArrowLeft color="#000" size={24} />
@@ -137,7 +137,7 @@ export default function CommissionsPage() {
 
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
+        contentContainerStyle={{ padding: 16, paddingBottom: 120 }}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }

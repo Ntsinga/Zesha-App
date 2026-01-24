@@ -1,6 +1,6 @@
 // API Configuration
 // Update this to match your FastAPI backend URL
-export const API_BASE_URL = "https://d15ce612af0b.ngrok-free.app";
+export const API_BASE_URL = "https://a4b2560e208b.ngrok-free.app";
 // process.env.EXPO_PUBLIC_API_URL || "https://048d74d27099.ngrok-free.app";
 
 // Default headers for API requests
