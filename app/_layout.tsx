@@ -12,17 +12,25 @@ import { tokenCache } from "@clerk/clerk-expo/token-cache";
 import { useRouter, useSegments } from "expo-router";
 import { ActivityIndicator, View } from "react-native";
 import { useClerkUserSync } from "../hooks/useClerkUserSync";
+import { initializeSecureApi } from "../services/secureApi";
 
 // Inner component that uses Redux hooks
 function AppContent() {
   const dispatch = useAppDispatch();
-  const { isSignedIn, isLoaded } = useAuth();
+  const { isSignedIn, isLoaded, getToken } = useAuth();
   const { user } = useUser();
   const router = useRouter();
   const segments = useSegments();
 
   // Sync Clerk user with backend
   const { isSyncing } = useClerkUserSync();
+
+  // Initialize secure API with Clerk token getter
+  useEffect(() => {
+    if (isLoaded && getToken) {
+      initializeSecureApi(getToken);
+    }
+  }, [isLoaded, getToken]);
 
   useEffect(() => {
     // Initialize auth state on app load

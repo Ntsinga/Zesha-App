@@ -6,6 +6,7 @@
  */
 
 import { API_BASE_URL, API_HEADERS } from "../config/api";
+import { secureRequest, isSecureApiInitialized } from "./secureApi";
 
 // Error class for API errors
 export class ApiError extends Error {
@@ -18,7 +19,7 @@ export class ApiError extends Error {
   }
 }
 
-// Generic fetch wrapper with error handling
+// Generic fetch wrapper with error handling - uses secure API when initialized
 async function fetchApi<T>(
   endpoint: string,
   options: RequestInit = {}
@@ -26,13 +27,16 @@ async function fetchApi<T>(
   const url = `${API_BASE_URL}${endpoint}`;
 
   try {
-    const response = await fetch(url, {
-      ...options,
-      headers: {
-        ...API_HEADERS,
-        ...options.headers,
-      },
-    });
+    // Use secure request if initialized, otherwise fall back to basic fetch
+    const response = isSecureApiInitialized()
+      ? await secureRequest(url, options)
+      : await fetch(url, {
+          ...options,
+          headers: {
+            ...API_HEADERS,
+            ...options.headers,
+          },
+        });
 
     if (!response.ok) {
       const errorData = await response

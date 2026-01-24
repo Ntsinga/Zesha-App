@@ -1,13 +1,33 @@
 // API Configuration
-// Update this to match your FastAPI backend URL
-export const API_BASE_URL = "https://a4b2560e208b.ngrok-free.app";
-// process.env.EXPO_PUBLIC_API_URL || "https://048d74d27099.ngrok-free.app";
+// Uses environment variable for production, fallback to ngrok for development
+
+// Get API URL from environment or use development fallback
+const getApiBaseUrl = (): string => {
+  // Check for environment variable first (production)
+  const envUrl = process.env.EXPO_PUBLIC_API_URL;
+  if (envUrl) {
+    return envUrl;
+  }
+  
+  // Development fallback - ngrok URL
+  // WARNING: Update this when your ngrok URL changes
+  if (__DEV__) {
+    return "https://a4b2560e208b.ngrok-free.app";
+  }
+  
+  // Production fallback - should be set via environment variable
+  console.warn("[API] EXPO_PUBLIC_API_URL not set - using development URL");
+  return "https://a4b2560e208b.ngrok-free.app";
+};
+
+export const API_BASE_URL = getApiBaseUrl();
 
 // Default headers for API requests
 // The ngrok-skip-browser-warning header bypasses the ngrok interstitial page
-export const API_HEADERS = {
+export const API_HEADERS: Record<string, string> = {
   "Content-Type": "application/json",
-  "ngrok-skip-browser-warning": "true",
+  // Only include ngrok header in development
+  ...(__DEV__ ? { "ngrok-skip-browser-warning": "true" } : {}),
 };
 
 // API Endpoints - matching FastAPI backend routers
@@ -104,6 +124,13 @@ export const API_ENDPOINTS = {
     delete: (id: number) => `/accounts/${id}`,
     deactivate: (id: number) => `/accounts/${id}/deactivate`,
     activate: (id: number) => `/accounts/${id}/activate`,
+  },
+
+  // AI Extraction
+  extraction: {
+    extract: "/extraction/extract",
+    validate: "/extraction/validate",
+    health: "/extraction/health",
   },
 } as const;
 

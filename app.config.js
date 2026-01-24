@@ -1,19 +1,13 @@
 // App configuration for Expo
-// This file allows us to use environment variables in the app
+// AI API keys have been moved to the backend for security
 
 export default ({ config }) => {
-  const geminiKey =
-    process.env.EXPO_PUBLIC_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
-
-  const openaiKey =
-    process.env.EXPO_PUBLIC_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
-
   return {
     ...config,
     extra: {
       ...config.extra,
-      geminiApiKey: geminiKey,
-      openaiApiKey: openaiKey,
+      // Note: AI extraction is now handled by the backend
+      // No API keys should be exposed in the frontend
     },
   };
 };
