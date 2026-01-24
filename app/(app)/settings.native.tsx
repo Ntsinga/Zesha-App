@@ -60,8 +60,7 @@ export default function Settings() {
   } = useSelector((state: RootState) => state.companyInfo);
 
   const userRole = useSelector(selectUserRole);
-  const isAdmin =
-    userRole === "ADMINISTRATOR" || userRole === "SUPER_ADMINISTRATOR";
+  const isAdmin = userRole === "admin";
 
   const [refreshing, setRefreshing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -91,8 +90,8 @@ export default function Settings() {
   useEffect(() => {
     if (company) {
       setName(company.name || "");
-      setTotalWorkingCapital(company.total_working_capital?.toString() || "0");
-      setOutstandingBalance(company.outstanding_balance?.toString() || "0");
+      setTotalWorkingCapital(company.totalWorkingCapital?.toString() || "0");
+      setOutstandingBalance(company.outstandingBalance?.toString() || "0");
       setCurrency(company.currency || "UGX");
       setDescription(company.description || "");
       setEmails(company.emails || []);
@@ -451,7 +450,6 @@ export default function Settings() {
             </Text>
           </TouchableOpacity>
         )}
-
 
         {/* Other Options */}
         <View className="mt-8">

@@ -77,11 +77,11 @@ export default function AddCommissionPage() {
 
   // Get accounts and commissions from Redux store
   const { items: accounts, isLoading: accountsLoading } = useSelector(
-    (state: RootState) => state.accounts
+    (state: RootState) => state.accounts,
   );
 
   const { items: commissions } = useSelector(
-    (state: RootState) => state.commissions
+    (state: RootState) => state.commissions,
   );
 
   const [entries, setEntries] = useState<CommissionEntry[]>([
@@ -89,7 +89,7 @@ export default function AddCommissionPage() {
   ]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, Record<string, string>>>(
-    {}
+    {},
   );
   const [accountPickerVisible, setAccountPickerVisible] = useState<
     string | null
@@ -125,11 +125,11 @@ export default function AddCommissionPage() {
 
     if (isInitialized || accountsLoading || accounts.length === 0) return;
 
-    const activeAccounts = accounts.filter((acc) => acc.is_active);
+    const activeAccounts = accounts.filter((acc) => acc.isActive);
 
     // Get commissions for today and current shift
     const shiftCommissions = commissions.filter(
-      (com) => com.date.startsWith(today) && com.shift === currentShift
+      (com) => com.date.startsWith(today) && com.shift === currentShift,
     );
 
     console.log("[AddCommission] Shift commissions:", {
@@ -142,15 +142,15 @@ export default function AddCommissionPage() {
       const prepopulatedEntries: CommissionEntry[] = shiftCommissions.map(
         (com) => ({
           id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-          accountId: com.account_id,
+          accountId: com.accountId,
           accountName:
             com.account?.name ||
-            accounts.find((acc) => acc.id === com.account_id)?.name ||
-            `Account ${com.account_id}`,
+            accounts.find((acc) => acc.id === com.accountId)?.name ||
+            `Account ${com.accountId}`,
           shift: currentShift,
           amount: com.amount.toString(),
-          imageUrl: com.image_data
-            ? `data:image/jpeg;base64,${com.image_data}`
+          imageUrl: com.imageData
+            ? `data:image/jpeg;base64,${com.imageData}`
             : "",
           extractedBalance: com.amount,
           isExtracting: false,
@@ -163,19 +163,19 @@ export default function AddCommissionPage() {
             enteredAmount: com.amount,
             message: "Existing commission",
           },
-        })
+        }),
       );
 
       // Add empty entries for accounts without commissions
       const accountsWithCommissions = new Set(
-        shiftCommissions.map((com) => com.account_id)
+        shiftCommissions.map((com) => com.accountId),
       );
       const accountsWithoutCommissions = activeAccounts.filter(
-        (acc) => !accountsWithCommissions.has(acc.id)
+        (acc) => !accountsWithCommissions.has(acc.id),
       );
 
       const emptyEntries: CommissionEntry[] = accountsWithoutCommissions.map(
-        () => createEmptyEntry()
+        () => createEmptyEntry(),
       );
 
       setEntries([...prepopulatedEntries, ...emptyEntries]);
@@ -201,7 +201,7 @@ export default function AddCommissionPage() {
       Alert.alert(
         "Permission Required",
         "Gallery permission is needed to choose photos. Please enable it in your device settings.",
-        [{ text: "OK" }]
+        [{ text: "OK" }],
       );
       return false;
     }
@@ -215,7 +215,7 @@ export default function AddCommissionPage() {
       if (status !== "granted") {
         Alert.alert(
           "Permission required",
-          "Camera permission is required to take pictures"
+          "Camera permission is required to take pictures",
         );
         return;
       }
@@ -238,8 +238,8 @@ export default function AddCommissionPage() {
                   isExtracting: true,
                   validationResult: null,
                 }
-              : entry
-          )
+              : entry,
+          ),
         );
 
         try {
@@ -262,7 +262,7 @@ export default function AddCommissionPage() {
                 if (!isNaN(inputBalance)) {
                   validationResult = validateBalance(
                     extractedBalance,
-                    inputBalance
+                    inputBalance,
                   );
                 }
               }
@@ -273,14 +273,14 @@ export default function AddCommissionPage() {
                 isExtracting: false,
                 validationResult,
               };
-            })
+            }),
           );
 
           if (!result.success) {
             Alert.alert(
               "Extraction Notice",
               result.error ||
-                "Could not extract commission from image. Please verify manually."
+                "Could not extract commission from image. Please verify manually.",
             );
           }
         } catch (error) {
@@ -289,14 +289,14 @@ export default function AddCommissionPage() {
             prev.map((entry) =>
               entry.id === entryId
                 ? { ...entry, isExtracting: false, extractedBalance: null }
-                : entry
-            )
+                : entry,
+            ),
           );
           Alert.alert(
             "Extraction Error",
             `Failed to extract commission: ${
               error instanceof Error ? error.message : "Unknown error"
-            }`
+            }`,
           );
         }
       }
@@ -331,8 +331,8 @@ export default function AddCommissionPage() {
                   isExtracting: true,
                   validationResult: null,
                 }
-              : entry
-          )
+              : entry,
+          ),
         );
 
         try {
@@ -355,7 +355,7 @@ export default function AddCommissionPage() {
                 if (!isNaN(inputBalance)) {
                   validationResult = validateBalance(
                     extractedBalance,
-                    inputBalance
+                    inputBalance,
                   );
                 }
               }
@@ -366,14 +366,14 @@ export default function AddCommissionPage() {
                 isExtracting: false,
                 validationResult,
               };
-            })
+            }),
           );
 
           if (!result.success) {
             Alert.alert(
               "Extraction Notice",
               result.error ||
-                "Could not extract commission from image. Please verify manually."
+                "Could not extract commission from image. Please verify manually.",
             );
           }
         } catch (error) {
@@ -382,14 +382,14 @@ export default function AddCommissionPage() {
             prev.map((entry) =>
               entry.id === entryId
                 ? { ...entry, isExtracting: false, extractedBalance: null }
-                : entry
-            )
+                : entry,
+            ),
           );
           Alert.alert(
             "Extraction Error",
             `Failed to extract commission: ${
               error instanceof Error ? error.message : "Unknown error"
-            }`
+            }`,
           );
         }
       }
@@ -413,8 +413,8 @@ export default function AddCommissionPage() {
       prev.map((entry) =>
         entry.id === entryId
           ? { ...entry, amount: value, validationResult: null }
-          : entry
-      )
+          : entry,
+      ),
     );
 
     setErrors((prev) => {
@@ -435,13 +435,13 @@ export default function AddCommissionPage() {
         if (!isNaN(enteredAmount)) {
           const result = await validateBalance(
             entry.extractedBalance,
-            enteredAmount
+            enteredAmount,
           );
 
           setEntries((prev) =>
             prev.map((e) =>
-              e.id === entryId ? { ...e, validationResult: result } : e
-            )
+              e.id === entryId ? { ...e, validationResult: result } : e,
+            ),
           );
         }
       } catch (error) {
@@ -459,8 +459,8 @@ export default function AddCommissionPage() {
               accountId: account.id,
               accountName: account.name,
             }
-          : entry
-      )
+          : entry,
+      ),
     );
 
     setErrors((prev) => {
@@ -542,7 +542,7 @@ export default function AddCommissionPage() {
     if (!validateEntries()) {
       Alert.alert(
         "Validation Error",
-        "Please fix all errors before submitting"
+        "Please fix all errors before submitting",
       );
       return;
     }
@@ -566,33 +566,34 @@ export default function AddCommissionPage() {
                 entry.imageUrl,
                 {
                   encoding: FileSystem.EncodingType.Base64,
-                }
+                },
               );
               imageData = base64;
             }
           }
 
           const commission: CommissionCreate = {
-            account_id: entry.accountId!,
+            accountId: entry.accountId!,
             shift: currentShift,
             amount: parseFloat(entry.amount),
             date: new Date().toISOString().split("T")[0],
-            image_data: imageData,
+            imageData: imageData,
+            companyId: 0, // Will be set by backend from auth
             // source defaults to "mobile_app" on backend
           };
 
           return commission;
-        })
+        }),
       );
 
       // Use bulk create endpoint
       console.log(
         "[AddCommission] Submitting commissions:",
-        JSON.stringify(commissionsWithImages, null, 2)
+        JSON.stringify(commissionsWithImages, null, 2),
       );
 
       const result = await dispatch(
-        createCommissionsBulk(commissionsWithImages)
+        createCommissionsBulk(commissionsWithImages),
       ).unwrap();
       console.log("[AddCommission] Commission creation result:", result);
 
@@ -612,7 +613,7 @@ export default function AddCommissionPage() {
       console.error("[AddCommission] Error stack:", error?.stack);
       Alert.alert(
         "Error",
-        error?.message || "Failed to save commissions. Please try again."
+        error?.message || "Failed to save commissions. Please try again.",
       );
     } finally {
       setIsSubmitting(false);
@@ -625,7 +626,7 @@ export default function AddCommissionPage() {
       .map((e) => e.accountId);
 
     return accounts
-      .filter((acc) => acc.is_active)
+      .filter((acc) => acc.isActive)
       .filter((acc) => !selectedAccountIds.includes(acc.id));
   };
 
@@ -943,7 +944,7 @@ export default function AddCommissionPage() {
                       {item.name}
                     </Text>
                     <Text className="text-gray-500 text-sm mt-1">
-                      {item.account_type}
+                      {item.accountType}
                     </Text>
                   </TouchableOpacity>
                 )}

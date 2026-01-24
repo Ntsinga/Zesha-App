@@ -80,17 +80,17 @@ export default function AddBalancePage() {
 
   // Get accounts, draft entries, and balances from Redux store
   const { items: accounts, isLoading: accountsLoading } = useSelector(
-    (state: RootState) => state.accounts
+    (state: RootState) => state.accounts,
   );
 
   const { draftEntries, items: balances } = useSelector(
-    (state: RootState) => state.balances
+    (state: RootState) => state.balances,
   );
 
   const [entries, setEntries] = useState<BalanceEntry[]>([createEmptyEntry()]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, Record<string, string>>>(
-    {}
+    {},
   );
   const [accountPickerVisible, setAccountPickerVisible] = useState<
     string | null
@@ -106,8 +106,8 @@ export default function AddBalancePage() {
 
   // Fetch accounts and balances on mount
   useEffect(() => {
-    dispatch(fetchAccounts({ is_active: true }));
-    dispatch(fetchBalances({ date_from: today, date_to: today }));
+    dispatch(fetchAccounts({ isActive: true }));
+    dispatch(fetchBalances({ dateFrom: today, dateTo: today }));
   }, [dispatch, today]);
 
   // Initialize entries from existing balances or draft entries
@@ -123,14 +123,14 @@ export default function AddBalancePage() {
 
     // Check if there are balances for today with the current shift
     const todayBalances = balances.filter(
-      (bal) => bal.date.startsWith(today) && bal.shift === currentShift
+      (bal) => bal.date.startsWith(today) && bal.shift === currentShift,
     );
 
     console.log("[AddBalance] Today balances for shift:", {
       shift: currentShift,
       count: todayBalances.length,
       balances: todayBalances.map((b) => ({
-        account_id: b.account_id,
+        accountId: b.accountId,
         amount: b.amount,
         date: b.date,
       })),
@@ -141,25 +141,25 @@ export default function AddBalancePage() {
       const prepopulatedEntries: BalanceEntry[] = todayBalances.map((bal) => {
         // Get account name from relationship or find by id
         let accountName = "";
-        let accountId = bal.account_id;
+        let accountId = bal.accountId;
 
         if (bal.account) {
           // Use relationship data if available
           accountName = bal.account.name;
         } else {
           // Fallback: find account by id
-          const account = accounts.find((acc) => acc.id === bal.account_id);
-          accountName = account?.name || `Account ${bal.account_id}`;
+          const account = accounts.find((acc) => acc.id === bal.accountId);
+          accountName = account?.name || `Account ${bal.accountId}`;
         }
 
-        // Determine the image URL - prioritize image_data (base64) over image_url
+        // Determine the image URL - prioritize imageData (base64) over imageUrl
         let imageUri = "";
-        if (bal.image_data) {
+        if (bal.imageData) {
           // Mobile app upload - use base64 data
-          imageUri = `data:image/jpeg;base64,${bal.image_data}`;
-        } else if (bal.image_url) {
+          imageUri = `data:image/jpeg;base64,${bal.imageData}`;
+        } else if (bal.imageUrl) {
           // WhatsApp or URL upload
-          imageUri = bal.image_url;
+          imageUri = bal.imageUrl;
         }
 
         return {
@@ -177,7 +177,7 @@ export default function AddBalancePage() {
 
       console.log(
         "[AddBalance] Prepopulating entries:",
-        prepopulatedEntries.length
+        prepopulatedEntries.length,
       );
       setEntries(prepopulatedEntries);
       setIsInitialized(true);
@@ -188,7 +188,7 @@ export default function AddBalancePage() {
       setIsInitialized(true);
     } else {
       console.log(
-        "[AddBalance] No existing balances or drafts, initializing empty"
+        "[AddBalance] No existing balances or drafts, initializing empty",
       );
       setIsInitialized(true);
     }
@@ -216,7 +216,7 @@ export default function AddBalancePage() {
       Alert.alert(
         "Permission Required",
         "Camera permission is needed to take photos. Please enable it in your device settings.",
-        [{ text: "OK" }]
+        [{ text: "OK" }],
       );
       return false;
     }
@@ -230,7 +230,7 @@ export default function AddBalancePage() {
       Alert.alert(
         "Permission Required",
         "Photo library permission is needed to select images. Please enable it in your device settings.",
-        [{ text: "OK" }]
+        [{ text: "OK" }],
       );
       return false;
     }
@@ -288,20 +288,20 @@ export default function AddBalancePage() {
   // Extract balance from image and validate against user input
   const extractAndValidateBalance = async (
     entryId: string,
-    imageUri: string
+    imageUri: string,
   ) => {
     // Set extracting state
     setEntries((prev) =>
       prev.map((entry) =>
         entry.id === entryId
           ? { ...entry, isExtracting: true, validationResult: null }
-          : entry
-      )
+          : entry,
+      ),
     );
 
     try {
       console.log(
-        `[AddBalance] Calling extractBalanceFromImage for entry ${entryId}...`
+        `[AddBalance] Calling extractBalanceFromImage for entry ${entryId}...`,
       );
       const result = await extractBalanceFromImage(imageUri);
       console.log(`[AddBalance] Extraction result:`, result);
@@ -313,7 +313,7 @@ export default function AddBalancePage() {
           const extractedBalance = result.balance;
           console.log(
             `[AddBalance] Extracted balance for entry ${entryId}:`,
-            extractedBalance
+            extractedBalance,
           );
 
           // If user has already entered an amount, validate it
@@ -327,7 +327,7 @@ export default function AddBalancePage() {
             if (!isNaN(inputBalance)) {
               validationResult = validateBalance(
                 extractedBalance,
-                inputBalance
+                inputBalance,
               );
               console.log(`[AddBalance] Validation result:`, validationResult);
             }
@@ -339,7 +339,7 @@ export default function AddBalancePage() {
             isExtracting: false,
             validationResult,
           };
-        })
+        }),
       );
 
       if (!result.success) {
@@ -347,7 +347,7 @@ export default function AddBalancePage() {
         Alert.alert(
           "Extraction Notice",
           result.error ||
-            "Could not extract balance from image. Please verify manually."
+            "Could not extract balance from image. Please verify manually.",
         );
       }
     } catch (error) {
@@ -357,14 +357,14 @@ export default function AddBalancePage() {
       }
       setEntries((prev) =>
         prev.map((entry) =>
-          entry.id === entryId ? { ...entry, isExtracting: false } : entry
-        )
+          entry.id === entryId ? { ...entry, isExtracting: false } : entry,
+        ),
       );
       Alert.alert(
         "Extraction Error",
         `Failed to extract balance: ${
           error instanceof Error ? error.message : "Unknown error"
-        }`
+        }`,
       );
     }
   };
@@ -391,7 +391,7 @@ export default function AddBalancePage() {
           if (!isNaN(inputBalance)) {
             updatedEntry.validationResult = validateBalance(
               entry.extractedBalance,
-              inputBalance
+              inputBalance,
             );
           }
         } else {
@@ -399,7 +399,7 @@ export default function AddBalancePage() {
         }
 
         return updatedEntry;
-      })
+      }),
     );
 
     // Clear error for this field
@@ -434,20 +434,20 @@ export default function AddBalancePage() {
               extractedBalance: null,
               validationResult: null,
             }
-          : entry
-      )
+          : entry,
+      ),
     );
   };
 
   const updateEntry = (
     id: string,
     field: keyof BalanceEntry,
-    value: string | number | null
+    value: string | number | null,
   ) => {
     setEntries((prev) =>
       prev.map((entry) =>
-        entry.id === id ? { ...entry, [field]: value } : entry
-      )
+        entry.id === id ? { ...entry, [field]: value } : entry,
+      ),
     );
     // Clear error for this field
     const errorField = field === "accountId" ? "account" : field;
@@ -467,8 +467,8 @@ export default function AddBalancePage() {
       prev.map((entry) =>
         entry.id === entryId
           ? { ...entry, accountId: account.id, accountName: account.name }
-          : entry
-      )
+          : entry,
+      ),
     );
     // Clear account error
     if (errors[entryId]?.account) {
@@ -544,9 +544,9 @@ export default function AddBalancePage() {
     const selectedAccountIds = entries
       .filter((e) => e.accountId !== null)
       .map((e) => e.accountId);
-    const activeAccounts = accounts.filter((a) => a.is_active);
+    const activeAccounts = accounts.filter((a) => a.isActive);
     const missingAccounts = activeAccounts.filter(
-      (account) => !selectedAccountIds.includes(account.id)
+      (account) => !selectedAccountIds.includes(account.id),
     );
 
     if (missingAccounts.length > 0) {
@@ -554,20 +554,20 @@ export default function AddBalancePage() {
       Alert.alert(
         "Missing Account Balances",
         `The following active accounts are missing balances: ${missingAccountNames}\n\nPlease add balances for all active accounts.`,
-        [{ text: "OK" }]
+        [{ text: "OK" }],
       );
       isValid = false;
     }
 
     // Show specific alert for balance mismatches
     const mismatchedEntries = entries.filter(
-      (e) => e.validationResult && !e.validationResult.isValid
+      (e) => e.validationResult && !e.validationResult.isValid,
     );
     if (mismatchedEntries.length > 0) {
       Alert.alert(
         "Balance Mismatch Detected",
         "One or more balances don't match the extracted values from images. Please verify and correct the amounts before saving.",
-        [{ text: "OK" }]
+        [{ text: "OK" }],
       );
     }
 
@@ -598,19 +598,20 @@ export default function AddBalancePage() {
           }
 
           return {
-            account_id: entry.accountId!,
+            accountId: entry.accountId!,
             shift: entry.shift,
             amount: parseFloat(entry.amount),
             source: "mobile_app" as const,
-            date: new Date().toISOString().split("T")[0],
-            image_data: imageData,
+            date: today,
+            imageData: imageData,
+            companyId: 0, // Will be set by backend from auth
           };
-        })
+        }),
       );
 
       // Use bulk create endpoint
       const result = await dispatch(
-        createBalancesBulk({ balances: balanceDataArray })
+        createBalancesBulk({ balances: balanceDataArray }),
       ).unwrap();
 
       // Refresh dashboard after adding balances
@@ -620,25 +621,25 @@ export default function AddBalancePage() {
       dispatch(clearDraftEntries());
 
       // Show success/partial success message
-      if (result.total_failed > 0) {
+      if (result.totalFailed > 0) {
         Alert.alert(
           "Partial Success",
-          `${result.total_created} of ${result.total_submitted} balances created successfully. ${result.total_failed} failed.`,
-          [{ text: "OK", onPress: () => router.back() }]
+          `${result.totalCreated} of ${result.totalSubmitted} balances created successfully. ${result.totalFailed} failed.`,
+          [{ text: "OK", onPress: () => router.back() }],
         );
       } else {
         Alert.alert(
           "Success",
-          `${result.total_created} balance${
-            result.total_created > 1 ? "s" : ""
+          `${result.totalCreated} balance${
+            result.totalCreated > 1 ? "s" : ""
           } added successfully!`,
-          [{ text: "OK", onPress: () => router.back() }]
+          [{ text: "OK", onPress: () => router.back() }],
         );
       }
     } catch (error) {
       Alert.alert(
         "Error",
-        error instanceof Error ? error.message : "Failed to add balances"
+        error instanceof Error ? error.message : "Failed to add balances",
       );
     } finally {
       setIsSubmitting(false);
@@ -650,9 +651,9 @@ export default function AddBalancePage() {
     const selectedAccountIds = entries
       .filter((e) => e.accountId !== null)
       .map((e) => e.accountId);
-    const activeAccounts = accounts.filter((a) => a.is_active);
+    const activeAccounts = accounts.filter((a) => a.isActive);
     return activeAccounts.filter(
-      (account) => !selectedAccountIds.includes(account.id)
+      (account) => !selectedAccountIds.includes(account.id),
     );
   };
 
@@ -680,7 +681,7 @@ export default function AddBalancePage() {
                 </Text>
                 <Text className="text-gray-500 text-sm">
                   {entries.length} of{" "}
-                  {accounts.filter((a) => a.is_active).length} accounts
+                  {accounts.filter((a) => a.isActive).length} accounts
                 </Text>
               </View>
             </View>
@@ -863,8 +864,8 @@ export default function AddBalancePage() {
                     errors[entry.id]?.amount || errors[entry.id]?.validation
                       ? "border-2 border-red-500"
                       : entry.validationResult?.isValid
-                      ? "border-2 border-green-500"
-                      : "border border-gray-200"
+                        ? "border-2 border-green-500"
+                        : "border border-gray-200"
                   }`}
                 />
                 {errors[entry.id]?.amount && (
@@ -1100,12 +1101,13 @@ export default function AddBalancePage() {
                   keyExtractor={(item) => item.id.toString()}
                   renderItem={({ item }) => {
                     const currentEntry = entries.find(
-                      (e) => e.id === accountPickerVisible
+                      (e) => e.id === accountPickerVisible,
                     );
                     const isSelected = currentEntry?.accountId === item.id;
                     const isAlreadySelected = entries.some(
                       (e) =>
-                        e.accountId === item.id && e.id !== accountPickerVisible
+                        e.accountId === item.id &&
+                        e.id !== accountPickerVisible,
                     );
                     return (
                       <TouchableOpacity
@@ -1118,8 +1120,8 @@ export default function AddBalancePage() {
                           isSelected
                             ? "bg-red-50"
                             : isAlreadySelected
-                            ? "bg-gray-50 opacity-50"
-                            : ""
+                              ? "bg-gray-50 opacity-50"
+                              : ""
                         }`}
                       >
                         <View className="flex-1">
@@ -1148,7 +1150,7 @@ export default function AddBalancePage() {
                                 : "text-gray-500"
                             }`}
                           >
-                            {item.account_type}
+                            {item.accountType}
                           </Text>
                         </View>
                         {isSelected && <Check color="#DC2626" size={20} />}

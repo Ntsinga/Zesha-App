@@ -69,8 +69,8 @@ export function useCashCountScreen() {
 
   // Fetch cash counts on mount
   useEffect(() => {
-    dispatch(fetchCashCounts({ count_date: today }));
-  }, [dispatch, today]);
+    dispatch(fetchCashCounts({ companyId: companyId || 0, dateFrom: today, dateTo: today }));
+  }, [dispatch, today, companyId]);
 
   // Pre-populate entries when shift changes or cash counts are loaded
   useEffect(() => {
@@ -208,7 +208,7 @@ export function useCashCountScreen() {
 
       // Refresh dashboard and cash counts
       dispatch(fetchDashboard({}));
-      dispatch(fetchCashCounts({ count_date: today }));
+      dispatch(fetchCashCounts({ companyId: companyId, dateFrom: today, dateTo: today }));
 
       return {
         success: true,

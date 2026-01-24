@@ -167,7 +167,7 @@ export default function ExpensesWeb() {
                         {expense.category || "Uncategorized"}
                       </span>
                     </td>
-                    <td>{expense.expense_date}</td>
+                    <td>{expense.expenseDate}</td>
                     <td className="amount negative">
                       -{formatCurrency(expense.amount)}
                     </td>

@@ -53,8 +53,8 @@ export function useSettingsScreen() {
   useEffect(() => {
     if (company) {
       setName(company.name || "");
-      setTotalWorkingCapital(company.total_working_capital?.toString() || "0");
-      setOutstandingBalance(company.outstanding_balance?.toString() || "0");
+      setTotalWorkingCapital(company.totalWorkingCapital?.toString() || "0");
+      setOutstandingBalance(company.outstandingBalance?.toString() || "0");
       setCurrency(company.currency || "UGX");
       setDescription(company.description || "");
       setEmails(company.emails || []);
@@ -119,8 +119,8 @@ export function useSettingsScreen() {
     try {
       const data = {
         name: name.trim(),
-        total_working_capital: parseFloat(totalWorkingCapital) || 0,
-        outstanding_balance: parseFloat(outstandingBalance) || 0,
+        totalWorkingCapital: parseFloat(totalWorkingCapital) || 0,
+        outstandingBalance: parseFloat(outstandingBalance) || 0,
         currency,
         description: description.trim() || undefined,
         emails: emails.length > 0 ? emails : undefined,

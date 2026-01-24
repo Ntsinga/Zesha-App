@@ -155,7 +155,7 @@ export default function CommissionsPage() {
                       <td>{formatDate(commission.date, "medium")}</td>
                       <td>
                         {commission.account?.name ||
-                          `Account ${commission.account_id}`}
+                          `Account ${commission.accountId}`}
                       </td>
                       <td>
                         <span

@@ -9,27 +9,27 @@ import type { Balance } from "../types";
  * Returns either a base64 data URI (for mobile app uploads) or a regular URI (for WhatsApp)
  */
 export function getBalanceImageSource(balance: Balance): string | null {
-  // Priority 1: Use base64 image_data if available (mobile app uploads)
-  if (balance.image_data) {
-    // Determine MIME type from image_url if it contains extension info
-    const mimeType = balance.image_url?.includes(".png")
+  // Priority 1: Use base64 imageData if available (mobile app uploads)
+  if (balance.imageData) {
+    // Determine MIME type from imageUrl if it contains extension info
+    const mimeType = balance.imageUrl?.includes(".png")
       ? "image/png"
-      : balance.image_url?.includes(".gif")
-      ? "image/gif"
-      : balance.image_url?.includes(".webp")
-      ? "image/webp"
-      : "image/jpeg";
+      : balance.imageUrl?.includes(".gif")
+        ? "image/gif"
+        : balance.imageUrl?.includes(".webp")
+          ? "image/webp"
+          : "image/jpeg";
 
-    return `data:${mimeType};base64,${balance.image_data}`;
+    return `data:${mimeType};base64,${balance.imageData}`;
   }
 
-  // Priority 2: Use image_url if it's a valid HTTP/HTTPS URL (WhatsApp images)
+  // Priority 2: Use imageUrl if it's a valid HTTP/HTTPS URL (WhatsApp images)
   if (
-    balance.image_url &&
-    (balance.image_url.startsWith("http://") ||
-      balance.image_url.startsWith("https://"))
+    balance.imageUrl &&
+    (balance.imageUrl.startsWith("http://") ||
+      balance.imageUrl.startsWith("https://"))
   ) {
-    return balance.image_url;
+    return balance.imageUrl;
   }
 
   // No valid image source

@@ -67,9 +67,9 @@ export default function UserManagement() {
               <User size={18} className="input-icon" />
               <input
                 type="text"
-                value={formData.first_name}
+                value={formData.firstName}
                 onChange={(e) =>
-                  handleInputChange("first_name", e.target.value)
+                  handleInputChange("firstName", e.target.value)
                 }
                 placeholder="John"
                 className="form-input"
@@ -86,8 +86,8 @@ export default function UserManagement() {
               <User size={18} className="input-icon" />
               <input
                 type="text"
-                value={formData.last_name}
-                onChange={(e) => handleInputChange("last_name", e.target.value)}
+                value={formData.lastName}
+                onChange={(e) => handleInputChange("lastName", e.target.value)}
                 placeholder="Doe"
                 className="form-input"
                 required
@@ -119,10 +119,8 @@ export default function UserManagement() {
             <Phone size={18} className="input-icon" />
             <input
               type="tel"
-              value={formData.phone_number}
-              onChange={(e) =>
-                handleInputChange("phone_number", e.target.value)
-              }
+              value={formData.phoneNumber}
+              onChange={(e) => handleInputChange("phoneNumber", e.target.value)}
               placeholder="+1234567890"
               className="form-input"
             />
