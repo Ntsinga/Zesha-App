@@ -32,6 +32,17 @@ export default function CommissionsPage() {
     formatDate,
   } = useCommissionsScreen();
 
+  if (isLoading && filteredCommissions.length === 0) {
+    return (
+      <div className="page-wrapper">
+        <div className="loading-container">
+          <div className="spinner"></div>
+          <p>Loading commissions...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="page-wrapper">
       {/* Header Bar */}

@@ -183,8 +183,8 @@ export default function Accounts() {
                 filterActive === "ALL"
                   ? "ALL"
                   : filterActive
-                  ? "active"
-                  : "inactive"
+                    ? "active"
+                    : "inactive"
               }
               onChange={(e) => {
                 const val = e.target.value;
@@ -221,7 +221,7 @@ export default function Accounts() {
                 {accounts.map((account) => (
                   <tr key={account.id}>
                     <td className="account-name">
-                      {account.account_type === "BANK" ? (
+                      {account.accountType === "BANK" ? (
                         <Building2 size={16} className="text-muted" />
                       ) : (
                         <Smartphone size={16} className="text-muted" />
@@ -230,18 +230,18 @@ export default function Accounts() {
                     </td>
                     <td>
                       <span
-                        className={`category-badge ${account.account_type.toLowerCase()}`}
+                        className={`category-badge ${account.accountType.toLowerCase()}`}
                       >
-                        {account.account_type}
+                        {account.accountType}
                       </span>
                     </td>
                     <td>
                       <span
                         className={`status-badge ${
-                          account.is_active ? "passed" : "failed"
+                          account.isActive ? "passed" : "failed"
                         }`}
                       >
-                        {account.is_active ? "Active" : "Inactive"}
+                        {account.isActive ? "Active" : "Inactive"}
                       </span>
                     </td>
                     <td>

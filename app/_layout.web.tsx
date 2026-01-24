@@ -8,6 +8,7 @@ import { useAppDispatch } from "../store/hooks";
 import { initializeAuth } from "../store/slices/authSlice";
 import { ClerkProvider, useAuth, useUser } from "@clerk/clerk-react";
 import { useRouter } from "expo-router";
+import { useClerkUserSync } from "../hooks/useClerkUserSync.web";
 
 // Inner component that uses Redux hooks
 function AppContent() {
@@ -15,6 +16,9 @@ function AppContent() {
   const { isSignedIn, isLoaded } = useAuth();
   const { user } = useUser();
   const router = useRouter();
+
+  // Sync Clerk user with backend
+  const { isSyncing } = useClerkUserSync();
 
   useEffect(() => {
     // Initialize auth state on app load
@@ -56,8 +60,8 @@ function AppContent() {
     }
   }, [isSignedIn, isLoaded, user, router]);
 
-  // Show loading while Clerk is loading
-  if (!isLoaded) {
+  // Show loading while Clerk is loading or syncing user
+  if (!isLoaded || isSyncing) {
     return (
       <div
         style={{

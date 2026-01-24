@@ -31,13 +31,18 @@ export function useReconciliationScreen({
   const [notes, setNotes] = useState("");
 
   // Redux state
-  const { reconciliationDetails, isLoading, isFinalizing, isCalculating, error } = useSelector(
-    (state: RootState) => state.reconciliations
-  );
+  const {
+    reconciliationDetails,
+    isLoading,
+    isFinalizing,
+    isCalculating,
+    error,
+  } = useSelector((state: RootState) => state.reconciliations);
   const { user: backendUser } = useSelector((state: RootState) => state.auth);
 
   // Check if user is supervisor or admin
-  const canReview = backendUser?.role === "supervisor" || backendUser?.role === "admin";
+  const canReview =
+    backendUser?.role === "supervisor" || backendUser?.role === "admin";
 
   // Fetch details on mount
   useEffect(() => {
@@ -59,20 +64,20 @@ export function useReconciliationScreen({
 
   // Extract data from reconciliation detail
   const balances: Balance[] = reconciliationDetails?.balances || [];
-  const cashCounts: CashCount[] = reconciliationDetails?.cash_counts || [];
+  const cashCounts: CashCount[] = reconciliationDetails?.cashCounts || [];
   const commissions: Commission[] = reconciliationDetails?.commissions || [];
   const reconciliation = reconciliationDetails?.reconciliation;
 
   // Use reconciliation totals (pre-calculated on backend)
-  const totalFloat = reconciliation?.total_float || 0;
-  const totalCash = reconciliation?.total_cash || 0;
-  const totalCommission = reconciliation?.total_commissions || 0;
-  const expectedClosing = reconciliation?.expected_closing || 0;
-  const actualClosing = reconciliation?.actual_closing || 0;
+  const totalFloat = reconciliation?.totalFloat || 0;
+  const totalCash = reconciliation?.totalCash || 0;
+  const totalCommission = reconciliation?.totalCommissions || 0;
+  const expectedClosing = reconciliation?.expectedClosing || 0;
+  const actualClosing = reconciliation?.actualClosing || 0;
   const variance = reconciliation?.variance || 0;
   const status = reconciliation?.status || "FLAGGED";
-  const isFinalized = reconciliation?.is_finalized || false;
-  const isApproved = reconciliation?.is_approved || false;
+  const isFinalized = reconciliation?.isFinalized || false;
+  const isApproved = reconciliation?.approvalStatus === "APPROVED" || false;
 
   const onRefresh = async () => {
     if (!date || !shift) return;
@@ -91,15 +96,16 @@ export function useReconciliationScreen({
 
   // Calculate/recalculate reconciliation
   const handleCalculate = async () => {
-    if (!date || !shift) return { success: false, error: "Missing date or shift" };
+    if (!date || !shift)
+      return { success: false, error: "Missing date or shift" };
 
     try {
       await dispatch(
         calculateReconciliation({
           date,
           shift,
-          user_id: backendUser?.id,
-        })
+          userId: backendUser?.id,
+        }),
       ).unwrap();
       // Refresh to get updated data
       await dispatch(fetchReconciliationDetails({ date, shift }));
@@ -120,9 +126,9 @@ export function useReconciliationScreen({
         finalizeReconciliation({
           date,
           shift,
-          reconciled_by: backendUser.id,
+          reconciledBy: backendUser.id,
           notes: notes.trim() || undefined,
-        })
+        }),
       ).unwrap();
       return { success: true };
     } catch (error: any) {
@@ -142,8 +148,8 @@ export function useReconciliationScreen({
           date,
           shift,
           action: "APPROVED",
-          approved_by: backendUser.id,
-        })
+          approvedBy: backendUser.id,
+        }),
       ).unwrap();
       return { success: true };
     } catch (error: any) {
@@ -167,9 +173,9 @@ export function useReconciliationScreen({
           date,
           shift,
           action: "REJECTED",
-          approved_by: backendUser.id,
-          rejection_reason: notes.trim(),
-        })
+          approvedBy: backendUser.id,
+          rejectionReason: notes.trim(),
+        }),
       ).unwrap();
       return { success: true };
     } catch (error: any) {
@@ -178,13 +184,13 @@ export function useReconciliationScreen({
   };
 
   const getImageUri = (item: {
-    image_data?: string | null;
-    image_url?: string | null;
+    imageData?: string | null;
+    imageUrl?: string | null;
   }) => {
-    if (item.image_data) {
-      return `data:image/jpeg;base64,${item.image_data}`;
+    if (item.imageData) {
+      return `data:image/jpeg;base64,${item.imageData}`;
     }
-    return item.image_url || undefined;
+    return item.imageUrl || undefined;
   };
 
   return {

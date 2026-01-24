@@ -1,6 +1,6 @@
 // API Configuration
 // Update this to match your FastAPI backend URL
-export const API_BASE_URL = "https://a77aba59f764.ngrok-free.app";
+export const API_BASE_URL = "https://d15ce612af0b.ngrok-free.app";
 // process.env.EXPO_PUBLIC_API_URL || "https://048d74d27099.ngrok-free.app";
 
 // Default headers for API requests
@@ -10,8 +10,21 @@ export const API_HEADERS = {
   "ngrok-skip-browser-warning": "true",
 };
 
-// API Endpoints
+// API Endpoints - matching FastAPI backend routers
 export const API_ENDPOINTS = {
+  // Users - matches routers/users.py
+  users: {
+    list: "/users/",
+    sync: "/users/sync",
+    invite: "/users/invite",
+    getByClerkId: (clerkId: string) => `/users/clerk/${clerkId}`,
+    get: (id: number) => `/users/${id}`,
+    update: (id: number) => `/users/${id}`,
+    delete: (id: number) => `/users/${id}`,
+    deactivate: (id: number) => `/users/${id}/deactivate`,
+    activate: (id: number) => `/users/${id}/activate`,
+  },
+
   // Balances
   balances: {
     list: "/balances/",

@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
-import {
+import type {
   AccountSummary,
   CompanySnapshot,
   DashboardSummary,
@@ -7,12 +7,10 @@ import {
   Balance,
   CompanyInfo,
   CommissionBreakdown,
-} from "../../types";
-import {
-  API_BASE_URL,
-  API_ENDPOINTS,
-  buildQueryString,
-} from "../../config/api";
+} from "@/types";
+import { mapApiResponse, buildTypedQueryString } from "@/types";
+import { API_BASE_URL, API_ENDPOINTS } from "@/config/api";
+import type { RootState } from "../index";
 
 // Types
 export interface DashboardState {
@@ -69,7 +67,8 @@ async function apiRequest<T>(
     throw new Error(error.detail || `HTTP ${response.status}`);
   }
 
-  return response.json();
+  const data = await response.json();
+  return mapApiResponse<T>(data);
 }
 
 // Thunk params interface
@@ -78,100 +77,142 @@ interface FetchDashboardParams {
   date?: string;
   shift?: ShiftEnum;
   source?: "whatsapp" | "mobile_app";
+  forceRefresh?: boolean;
 }
 
+// Thunk return type
+interface FetchDashboardResult {
+  companyInfo: CompanyInfo;
+  summary: DashboardSummary;
+  accounts: AccountSummary[];
+  snapshotDate: string;
+  shift: ShiftEnum;
+}
+
+// Cache duration in milliseconds (30 seconds)
+const CACHE_DURATION = 30 * 1000;
+
 // Async thunks
-export const fetchDashboard = createAsyncThunk(
-  "dashboard/fetch",
-  async (params: FetchDashboardParams = {}, { getState, rejectWithValue }) => {
-    try {
-      const state = getState() as { dashboard: DashboardState };
-      const companyId = params.companyId || 1; // Default to company ID 1
+export const fetchDashboard = createAsyncThunk<
+  FetchDashboardResult,
+  FetchDashboardParams,
+  { state: RootState; rejectValue: string }
+>("dashboard/fetch", async (params = {}, { getState, rejectWithValue }) => {
+  try {
+    const state = getState();
+    const companyId = params.companyId || state.auth.user?.companyId || 1;
 
-      // IMPORTANT: Always default to TODAY if no date is explicitly provided
-      // This prevents using stale persisted dates from Redux state
-      const snapshotDate = params.date || getTodayDate();
-      const shift = params.shift || getCurrentShift();
+    // IMPORTANT: Always default to TODAY if no date is explicitly provided
+    // This prevents using stale persisted dates from Redux state
+    const snapshotDate = params.date || getTodayDate();
+    const shift = params.shift || getCurrentShift();
 
-      // Build query string
-      const queryParams: Record<string, string> = {
-        snapshot_date: snapshotDate,
-        shift: shift,
-      };
-      if (params.source) {
-        queryParams.source = params.source;
-      }
+    // Check cache - skip fetch if data is fresh and same params (unless forced)
+    if (!params.forceRefresh) {
+      const {
+        lastFetched,
+        snapshotDate: cachedDate,
+        currentShift: cachedShift,
+      } = state.dashboard;
+      const isSameParams = cachedDate === snapshotDate && cachedShift === shift;
+      const isCacheValid =
+        lastFetched && Date.now() - lastFetched < CACHE_DURATION;
 
-      const query = buildQueryString(queryParams);
-      const snapshotEndpoint = `${API_ENDPOINTS.companyInfo.snapshot(
-        companyId,
-      )}${query}`;
-
-      // Fetch snapshot data
-      const snapshot = await apiRequest<CompanySnapshot>(snapshotEndpoint);
-
-      // Fetch today's balances for the account list
-      const balanceQuery = buildQueryString({
-        date_from: snapshotDate,
-        date_to: snapshotDate,
-        shift: shift,
-        company_id: companyId,
-      });
-      const balances = await apiRequest<Balance[]>(
-        `${API_ENDPOINTS.balances.list}${balanceQuery}`,
-      );
-
-      // Transform balances to AccountSummary format
-      const accounts: AccountSummary[] = balances.map((b) => {
-        console.log("[DashboardSlice] Processing balance:", b);
+      if (isSameParams && isCacheValid && state.dashboard.summary) {
+        console.log(
+          "[Dashboard] Using cached data, age:",
+          Date.now() - lastFetched,
+          "ms",
+        );
         return {
-          account_id: b.account_id,
-          account_name: b.account?.name || `Account ${b.account_id}`,
-          balance: b.amount,
-          shift: b.shift,
-          imageUrl: b.image_url,
+          companyInfo: state.dashboard.companyInfo!,
+          summary: state.dashboard.summary!,
+          accounts: state.dashboard.accounts,
+          snapshotDate: cachedDate,
+          shift: cachedShift,
         };
-      });
-
-      // Build summary from snapshot (including commission data)
-      const summary: DashboardSummary = {
-        totalWorkingCapital: snapshot.company.total_working_capital,
-        outstandingBalance: snapshot.company.outstanding_balance,
-        totalFloat: snapshot.total_float,
-        totalCash: snapshot.total_cash,
-        grandTotal: snapshot.grand_total,
-        expectedGrandTotal: snapshot.expected_grand_total,
-        totalExpenses: snapshot.total_expenses,
-        capitalVariance: snapshot.capital_variance,
-        // Commission data from backend
-        totalCommission: snapshot.total_commission || 0,
-        dailyCommission: snapshot.daily_commission || 0,
-        commissionBreakdown: snapshot.commission_breakdown || [],
-      };
-
-      return {
-        companyInfo: snapshot.company,
-        summary,
-        accounts,
-        snapshotDate,
-        shift,
-      };
-    } catch (error) {
-      return rejectWithValue(
-        error instanceof Error
-          ? error.message
-          : "Failed to fetch dashboard data",
-      );
+      }
     }
-  },
-);
 
-export const refreshDashboard = createAsyncThunk(
-  "dashboard/refresh",
-  async (_, { dispatch }) => {
-    return dispatch(fetchDashboard({})).unwrap();
-  },
-);
+    // Build query string
+    const queryParams: Record<string, string> = {
+      snapshotDate: snapshotDate,
+      shift: shift,
+    };
+    if (params.source) {
+      queryParams.source = params.source;
+    }
+
+    const query = buildTypedQueryString(queryParams);
+    const snapshotEndpoint = `${API_ENDPOINTS.companyInfo.snapshot(
+      companyId,
+    )}${query}`;
+
+    // Build balance query
+    const balanceQuery = buildTypedQueryString({
+      dateFrom: snapshotDate,
+      dateTo: snapshotDate,
+      shift: shift,
+      companyId: companyId,
+    });
+
+    // Fetch snapshot and balances in PARALLEL for better performance
+    console.log("[Dashboard] Fetching data in parallel...");
+    const [snapshot, balances] = await Promise.all([
+      apiRequest<CompanySnapshot>(snapshotEndpoint),
+      apiRequest<Balance[]>(`${API_ENDPOINTS.balances.list}${balanceQuery}`),
+    ]);
+    console.log("[Dashboard] Parallel fetch complete");
+
+    // Transform balances to AccountSummary format
+    const accounts: AccountSummary[] = balances.map((b) => {
+      console.log("[DashboardSlice] Processing balance:", b);
+      return {
+        accountId: b.accountId,
+        accountName: b.account?.name || `Account ${b.accountId}`,
+        balance: b.amount,
+        shift: b.shift,
+        imageUrl: b.imageUrl,
+      };
+    });
+
+    // Build summary from snapshot (including commission data)
+    const summary: DashboardSummary = {
+      totalWorkingCapital: snapshot.company.totalWorkingCapital,
+      outstandingBalance: snapshot.company.outstandingBalance,
+      totalFloat: snapshot.totalFloat,
+      totalCash: snapshot.totalCash,
+      grandTotal: snapshot.grandTotal,
+      expectedGrandTotal: snapshot.expectedGrandTotal,
+      totalExpenses: snapshot.totalExpenses,
+      capitalVariance: snapshot.capitalVariance,
+      // Commission data from backend
+      totalCommission: snapshot.totalCommission || 0,
+      dailyCommission: snapshot.dailyCommission || 0,
+      commissionBreakdown: snapshot.commissionBreakdown || [],
+    };
+
+    return {
+      companyInfo: snapshot.company,
+      summary,
+      accounts,
+      snapshotDate,
+      shift,
+    };
+  } catch (error) {
+    return rejectWithValue(
+      error instanceof Error ? error.message : "Failed to fetch dashboard data",
+    );
+  }
+});
+
+export const refreshDashboard = createAsyncThunk<
+  FetchDashboardResult,
+  void,
+  { state: RootState; rejectValue: string }
+>("dashboard/refresh", async (_, { dispatch }) => {
+  return dispatch(fetchDashboard({})).unwrap();
+});
 
 // Slice
 const dashboardSlice = createSlice({

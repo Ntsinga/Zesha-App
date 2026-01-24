@@ -20,19 +20,19 @@ export function useBalanceMenuScreen() {
 
   // Get cash counts, balances, and accounts from Redux
   const { items: cashCounts, isLoading: cashCountLoading } = useSelector(
-    (state: RootState) => state.cashCount
+    (state: RootState) => state.cashCount,
   );
 
   const { items: balances, isLoading: balancesLoading } = useSelector(
-    (state: RootState) => state.balances
+    (state: RootState) => state.balances,
   );
 
   const { items: accounts, isLoading: accountsLoading } = useSelector(
-    (state: RootState) => state.accounts
+    (state: RootState) => state.accounts,
   );
 
   const { isCalculating } = useSelector(
-    (state: RootState) => state.reconciliations
+    (state: RootState) => state.reconciliations,
   );
 
   const { user: backendUser } = useSelector((state: RootState) => state.auth);
@@ -41,9 +41,9 @@ export function useBalanceMenuScreen() {
 
   // Fetch data on mount
   useEffect(() => {
-    dispatch(fetchCashCounts({ count_date: today }));
-    dispatch(fetchBalances({ date_from: today, date_to: today }));
-    dispatch(fetchAccounts({ is_active: true }));
+    dispatch(fetchCashCounts({ countDate: today }));
+    dispatch(fetchBalances({ dateFrom: today, dateTo: today }));
+    dispatch(fetchAccounts({ isActive: true }));
   }, [dispatch, today]);
 
   // Calculate shift completion status and totals for cash counts
@@ -62,13 +62,13 @@ export function useBalanceMenuScreen() {
       latestShift = "PM";
       total = pmCounts.reduce(
         (sum, cc) => sum + parseFloat(String(cc.amount)),
-        0
+        0,
       );
     } else if (hasAM) {
       latestShift = "AM";
       total = amCounts.reduce(
         (sum, cc) => sum + parseFloat(String(cc.amount)),
-        0
+        0,
       );
     }
 
@@ -83,7 +83,7 @@ export function useBalanceMenuScreen() {
 
   // Calculate balance completion status
   const balanceStatus = useMemo(() => {
-    const activeAccounts = accounts.filter((acc) => acc.is_active);
+    const activeAccounts = accounts.filter((acc) => acc.isActive);
     const todayBalances = balances.filter((bal) => bal.date.startsWith(today));
 
     const amBalances = todayBalances.filter((bal) => bal.shift === "AM");
@@ -93,13 +93,13 @@ export function useBalanceMenuScreen() {
     const hasAM =
       activeAccounts.length > 0 &&
       activeAccounts.every((acc) =>
-        amBalances.some((bal) => bal.account_id === acc.id)
+        amBalances.some((bal) => bal.accountId === acc.id),
       );
 
     const hasPM =
       activeAccounts.length > 0 &&
       activeAccounts.every((acc) =>
-        pmBalances.some((bal) => bal.account_id === acc.id)
+        pmBalances.some((bal) => bal.accountId === acc.id),
       );
 
     let latestShift: ShiftEnum | null = null;
@@ -134,9 +134,9 @@ export function useBalanceMenuScreen() {
   };
 
   const handleRefresh = () => {
-    dispatch(fetchCashCounts({ count_date: today }));
-    dispatch(fetchBalances({ date_from: today, date_to: today }));
-    dispatch(fetchAccounts({ is_active: true }));
+    dispatch(fetchCashCounts({ countDate: today }));
+    dispatch(fetchBalances({ dateFrom: today, dateTo: today }));
+    dispatch(fetchAccounts({ isActive: true }));
   };
 
   const handleCalculate = async () => {
@@ -152,8 +152,8 @@ export function useBalanceMenuScreen() {
         calculateReconciliation({
           date: today,
           shift: selectedShift,
-          user_id: backendUser.id,
-        })
+          userId: backendUser.id,
+        }),
       ).unwrap();
 
       return { success: true };

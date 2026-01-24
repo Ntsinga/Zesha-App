@@ -1,15 +1,14 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
-import {
+import type {
   CashCount,
   CashCountCreate,
   CashCountUpdate,
   CashCountFilters,
-} from "../../types";
-import {
-  API_BASE_URL,
-  API_ENDPOINTS,
-  buildQueryString,
-} from "../../config/api";
+  BulkCashCountResponse,
+} from "@/types";
+import { mapApiResponse, mapApiRequest, buildTypedQueryString } from "@/types";
+import { API_BASE_URL, API_ENDPOINTS } from "@/config/api";
+import type { RootState } from "../index";
 
 // Types
 export interface CashCountState {
@@ -57,143 +56,143 @@ async function apiRequest<T>(
     return undefined as T;
   }
 
-  return response.json();
+  const data = await response.json();
+  return mapApiResponse<T>(data);
 }
 
 // Async thunks
-export const fetchCashCounts = createAsyncThunk(
-  "cashCount/fetchAll",
-  async (filters: CashCountFilters = {}, { getState, rejectWithValue }) => {
-    try {
-      // Get company_id from auth state
-      const state = getState() as any;
-      const companyId = state.auth?.user?.company_id;
+export const fetchCashCounts = createAsyncThunk<
+  CashCount[],
+  CashCountFilters,
+  { state: RootState; rejectValue: string }
+>("cashCount/fetchAll", async (filters = {}, { getState, rejectWithValue }) => {
+  try {
+    // Get companyId from auth state
+    const state = getState();
+    const companyId = state.auth.user?.company_id;
 
-      if (!companyId) {
-        return rejectWithValue("No company_id found. Please log in again.");
-      }
-
-      // Add company_id to filters
-      const filtersWithCompany = {
-        ...filters,
-        company_id: companyId,
-      };
-
-      const query = buildQueryString(filtersWithCompany);
-      const cashCounts = await apiRequest<CashCount[]>(
-        `${API_ENDPOINTS.cashCount.list}${query}`,
-      );
-      return cashCounts;
-    } catch (error) {
-      return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to fetch cash counts",
-      );
+    if (!companyId) {
+      return rejectWithValue("No companyId found. Please log in again.");
     }
-  },
-);
 
-export const fetchCashCountById = createAsyncThunk(
-  "cashCount/fetchById",
-  async (id: number, { rejectWithValue }) => {
-    try {
-      const cashCount = await apiRequest<CashCount>(
-        API_ENDPOINTS.cashCount.get(id),
-      );
-      return cashCount;
-    } catch (error) {
-      return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to fetch cash count",
-      );
-    }
-  },
-);
+    // Build query with camelCase filters, convert to snake_case for API
+    const query = buildTypedQueryString({
+      ...filters,
+      companyId,
+    });
 
-export const createCashCount = createAsyncThunk(
-  "cashCount/create",
-  async (data: CashCountCreate, { rejectWithValue }) => {
-    try {
-      const cashCount = await apiRequest<CashCount>(
-        API_ENDPOINTS.cashCount.create,
-        {
-          method: "POST",
-          body: JSON.stringify(data),
-        },
-      );
-      return cashCount;
-    } catch (error) {
-      return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to create cash count",
-      );
-    }
-  },
-);
+    const cashCounts = await apiRequest<CashCount[]>(
+      `${API_ENDPOINTS.cashCount.list}${query}`,
+    );
+    return cashCounts;
+  } catch (error) {
+    return rejectWithValue(
+      error instanceof Error ? error.message : "Failed to fetch cash counts",
+    );
+  }
+});
 
-export const createManyCashCounts = createAsyncThunk(
-  "cashCount/createMany",
-  async (data: CashCountCreate[], { rejectWithValue }) => {
-    try {
-      const response = await apiRequest<{
-        created: CashCount[];
-        failed: { index: number; denomination: number; error: string }[];
-        total_submitted: number;
-        total_created: number;
-        total_failed: number;
-      }>(API_ENDPOINTS.cashCount.bulk, {
+export const fetchCashCountById = createAsyncThunk<
+  CashCount,
+  number,
+  { rejectValue: string }
+>("cashCount/fetchById", async (id, { rejectWithValue }) => {
+  try {
+    const cashCount = await apiRequest<CashCount>(
+      API_ENDPOINTS.cashCount.get(id),
+    );
+    return cashCount;
+  } catch (error) {
+    return rejectWithValue(
+      error instanceof Error ? error.message : "Failed to fetch cash count",
+    );
+  }
+});
+
+export const createCashCount = createAsyncThunk<
+  CashCount,
+  CashCountCreate,
+  { rejectValue: string }
+>("cashCount/create", async (data, { rejectWithValue }) => {
+  try {
+    const cashCount = await apiRequest<CashCount>(
+      API_ENDPOINTS.cashCount.create,
+      {
         method: "POST",
-        body: JSON.stringify({ cash_counts: data }),
-      });
+        body: JSON.stringify(mapApiRequest(data)),
+      },
+    );
+    return cashCount;
+  } catch (error) {
+    return rejectWithValue(
+      error instanceof Error ? error.message : "Failed to create cash count",
+    );
+  }
+});
 
-      if (response.total_failed > 0) {
-        console.warn(`${response.total_failed} cash counts failed to create`);
-      }
+export const createManyCashCounts = createAsyncThunk<
+  CashCount[],
+  CashCountCreate[],
+  { rejectValue: string }
+>("cashCount/createMany", async (data, { rejectWithValue }) => {
+  try {
+    const response = await apiRequest<BulkCashCountResponse>(
+      API_ENDPOINTS.cashCount.bulk,
+      {
+        method: "POST",
+        body: JSON.stringify({ cash_counts: mapApiRequest(data) }),
+      },
+    );
 
-      return response.created;
-    } catch (error) {
-      return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to create cash counts",
-      );
+    if (response.totalFailed > 0) {
+      console.warn(`${response.totalFailed} cash counts failed to create`);
     }
-  },
-);
 
-export const updateCashCount = createAsyncThunk(
-  "cashCount/update",
-  async (
-    { id, data }: { id: number; data: CashCountUpdate },
-    { rejectWithValue },
-  ) => {
-    try {
-      const cashCount = await apiRequest<CashCount>(
-        API_ENDPOINTS.cashCount.update(id),
-        {
-          method: "PATCH",
-          body: JSON.stringify(data),
-        },
-      );
-      return cashCount;
-    } catch (error) {
-      return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to update cash count",
-      );
-    }
-  },
-);
+    return response.created;
+  } catch (error) {
+    return rejectWithValue(
+      error instanceof Error ? error.message : "Failed to create cash counts",
+    );
+  }
+});
 
-export const deleteCashCount = createAsyncThunk(
-  "cashCount/delete",
-  async (id: number, { rejectWithValue }) => {
-    try {
-      await apiRequest<void>(API_ENDPOINTS.cashCount.delete(id), {
-        method: "DELETE",
-      });
-      return id;
-    } catch (error) {
-      return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to delete cash count",
-      );
-    }
-  },
-);
+export const updateCashCount = createAsyncThunk<
+  CashCount,
+  { id: number; data: CashCountUpdate },
+  { rejectValue: string }
+>("cashCount/update", async ({ id, data }, { rejectWithValue }) => {
+  try {
+    const cashCount = await apiRequest<CashCount>(
+      API_ENDPOINTS.cashCount.update(id),
+      {
+        method: "PATCH",
+        body: JSON.stringify(mapApiRequest(data)),
+      },
+    );
+    return cashCount;
+  } catch (error) {
+    return rejectWithValue(
+      error instanceof Error ? error.message : "Failed to update cash count",
+    );
+  }
+});
+
+export const deleteCashCount = createAsyncThunk<
+  number,
+  number,
+  { rejectValue: string }
+>("cashCount/delete", async (id, { rejectWithValue }) => {
+  try {
+    await apiRequest<void>(API_ENDPOINTS.cashCount.delete(id), {
+      method: "DELETE",
+    });
+    return id;
+  } catch (error) {
+    return rejectWithValue(
+      error instanceof Error ? error.message : "Failed to delete cash count",
+    );
+  }
+});
 
 // Slice
 const cashCountSlice = createSlice({

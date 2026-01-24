@@ -2,13 +2,13 @@ import { useState, useEffect } from "react";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import { inviteUser, clearInviteState } from "../../store/slices/usersSlice";
 import { selectCompanyId } from "../../store/slices/authSlice";
-import { UserInviteRequest } from "../../types";
+import type { UserInviteRequest } from "@/types";
 
 interface FormData {
   email: string;
-  first_name: string;
-  last_name: string;
-  phone_number: string;
+  firstName: string;
+  lastName: string;
+  phoneNumber: string;
   role: string;
 }
 
@@ -20,9 +20,9 @@ export const useUserManagementScreen = () => {
 
   const [formData, setFormData] = useState<FormData>({
     email: "",
-    first_name: "",
-    last_name: "",
-    phone_number: "",
+    firstName: "",
+    lastName: "",
+    phoneNumber: "",
     role: "Agent",
   });
 
@@ -50,7 +50,7 @@ export const useUserManagementScreen = () => {
   };
 
   const validateForm = (): boolean => {
-    if (!formData.email || !formData.first_name || !formData.last_name) {
+    if (!formData.email || !formData.firstName || !formData.lastName) {
       setValidationError(
         "Please fill in all required fields (email, first name, last name)",
       );
@@ -85,12 +85,12 @@ export const useUserManagementScreen = () => {
 
     const inviteData: UserInviteRequest = {
       email: formData.email,
-      first_name: formData.first_name,
-      last_name: formData.last_name,
-      phone_number: formData.phone_number || undefined,
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      phoneNumber: formData.phoneNumber || undefined,
       role: formData.role as any,
-      company_id: companyId,
-      redirect_url: frontendUrl ? `${frontendUrl}/welcome` : undefined,
+      companyId: companyId,
+      redirectUrl: frontendUrl ? `${frontendUrl}/welcome` : undefined,
     };
 
     const result = await dispatch(inviteUser(inviteData));
@@ -104,9 +104,9 @@ export const useUserManagementScreen = () => {
   const handleReset = () => {
     setFormData({
       email: "",
-      first_name: "",
-      last_name: "",
-      phone_number: "",
+      firstName: "",
+      lastName: "",
+      phoneNumber: "",
       role: "Agent",
     });
     setValidationError(null);

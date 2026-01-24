@@ -63,8 +63,8 @@ export function useAccountsScreen() {
   const openEditModal = (account: Account) => {
     setEditingAccount(account);
     setName(account.name);
-    setAccountType(account.account_type);
-    setIsActive(account.is_active);
+    setAccountType(account.accountType);
+    setIsActive(account.isActive);
     setIsModalOpen(true);
   };
 
@@ -95,8 +95,8 @@ export function useAccountsScreen() {
             id: editingAccount.id,
             data: {
               name: name.trim(),
-              account_type: accountType,
-              is_active: isActive,
+              accountType: accountType,
+              isActive: isActive,
             },
           }),
         ).unwrap();
@@ -106,10 +106,10 @@ export function useAccountsScreen() {
       } else {
         await dispatch(
           createAccount({
-            company_id: companyId,
+            companyId: companyId,
             name: name.trim(),
-            account_type: accountType,
-            is_active: isActive,
+            accountType: accountType,
+            isActive: isActive,
           }),
         ).unwrap();
 
@@ -160,12 +160,12 @@ export function useAccountsScreen() {
   // Filter accounts
   const filteredAccounts = accounts.filter((account) => {
     // Filter by type
-    if (filterType !== "ALL" && account.account_type !== filterType) {
+    if (filterType !== "ALL" && account.accountType !== filterType) {
       return false;
     }
 
     // Filter by active status
-    if (filterActive !== "ALL" && account.is_active !== filterActive) {
+    if (filterActive !== "ALL" && account.isActive !== filterActive) {
       return false;
     }
 
@@ -183,10 +183,10 @@ export function useAccountsScreen() {
   // Get stats
   const stats = {
     total: accounts.length,
-    active: accounts.filter((a) => a.is_active).length,
-    inactive: accounts.filter((a) => !a.is_active).length,
-    bank: accounts.filter((a) => a.account_type === "BANK").length,
-    telecom: accounts.filter((a) => a.account_type === "TELECOM").length,
+    active: accounts.filter((a) => a.isActive).length,
+    inactive: accounts.filter((a) => !a.isActive).length,
+    bank: accounts.filter((a) => a.accountType === "BANK").length,
+    telecom: accounts.filter((a) => a.accountType === "TELECOM").length,
   };
 
   return {

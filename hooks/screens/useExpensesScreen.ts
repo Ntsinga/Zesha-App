@@ -59,13 +59,15 @@ export function useExpensesScreen() {
 
   // Load expenses on mount
   useEffect(() => {
-    dispatch(fetchExpenses({}));
-  }, [dispatch]);
+    if (companyId) {
+      dispatch(fetchExpenses({}));
+    }
+  }, [dispatch, companyId]);
 
-  // Refresh handler
+  // Refresh handler - forces cache bypass
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await dispatch(fetchExpenses({}));
+    await dispatch(fetchExpenses({ forceRefresh: true }));
     setRefreshing(false);
   }, [dispatch]);
 
@@ -91,7 +93,7 @@ export function useExpensesScreen() {
     setName(expense.name);
     setAmount(expense.amount.toString());
     setDescription(expense.description || "");
-    setExpenseDate(expense.expense_date);
+    setExpenseDate(expense.expenseDate);
     setCategory(expense.category || "");
     setIsModalOpen(true);
   }, []);
@@ -142,7 +144,7 @@ export function useExpensesScreen() {
               name: name.trim(),
               amount: amountNum,
               description: description.trim() || undefined,
-              expense_date: expenseDate,
+              expenseDate: expenseDate,
               category: category || undefined,
             },
           }),
@@ -150,11 +152,11 @@ export function useExpensesScreen() {
       } else {
         await dispatch(
           createExpense({
-            company_id: companyId,
+            companyId: companyId,
             name: name.trim(),
             amount: amountNum,
             description: description.trim() || undefined,
-            expense_date: expenseDate,
+            expenseDate: expenseDate,
             category: category || undefined,
           }),
         ).unwrap();

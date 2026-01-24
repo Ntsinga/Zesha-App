@@ -1,17 +1,16 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
-import {
+import type {
   Balance,
   BalanceCreate,
   BalanceUpdate,
   BalanceFilters,
   BulkBalanceCreate,
   BulkBalanceResponse,
-} from "../../types";
-import {
-  API_BASE_URL,
-  API_ENDPOINTS,
-  buildQueryString,
-} from "../../config/api";
+  DraftBalanceEntry,
+} from "@/types";
+import { mapApiResponse, mapApiRequest, buildTypedQueryString } from "@/types";
+import { API_BASE_URL, API_ENDPOINTS } from "@/config/api";
+import type { RootState } from "../index";
 
 // Types
 export interface BalancesState {
@@ -21,7 +20,7 @@ export interface BalancesState {
   error: string | null;
   lastFetched: number | null;
   filters: BalanceFilters;
-  draftEntries: any[]; // Draft balance entries being created
+  draftEntries: DraftBalanceEntry[];
 }
 
 const initialState: BalancesState = {
@@ -59,130 +58,159 @@ async function apiRequest<T>(
     return undefined as T;
   }
 
-  return response.json();
+  const data = await response.json();
+  return mapApiResponse<T>(data);
+}
+
+// Cache duration in milliseconds (30 seconds)
+const CACHE_DURATION = 30 * 1000;
+
+// Helper to create a cache key from filters
+function createCacheKey(filters: BalanceFilters, companyId: number): string {
+  return JSON.stringify({ ...filters, companyId });
 }
 
 // Async thunks
-export const fetchBalances = createAsyncThunk(
-  "balances/fetchAll",
-  async (filters: BalanceFilters = {}, { getState, rejectWithValue }) => {
-    try {
-      // Get company_id from auth state
-      const state = getState() as any;
-      const companyId = state.auth?.user?.company_id;
+export const fetchBalances = createAsyncThunk<
+  Balance[],
+  BalanceFilters & { forceRefresh?: boolean },
+  { state: RootState; rejectValue: string }
+>("balances/fetchAll", async (filters = {}, { getState, rejectWithValue }) => {
+  try {
+    // Get companyId from auth state
+    const state = getState();
+    const companyId = state.auth.user?.companyId;
 
-      if (!companyId) {
-        return rejectWithValue("No company_id found. Please log in again.");
-      }
-
-      // Add company_id to filters
-      const filtersWithCompany = {
-        ...filters,
-        company_id: companyId,
-      };
-
-      const query = buildQueryString(filtersWithCompany);
-      const balances = await apiRequest<Balance[]>(
-        `${API_ENDPOINTS.balances.list}${query}`,
-      );
-      return balances;
-    } catch (error) {
-      return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to fetch balances",
-      );
+    if (!companyId) {
+      return rejectWithValue("No companyId found. Please log in again.");
     }
-  },
-);
 
-export const fetchBalanceById = createAsyncThunk(
-  "balances/fetchById",
-  async (id: number, { rejectWithValue }) => {
-    try {
-      const balance = await apiRequest<Balance>(API_ENDPOINTS.balances.get(id));
-      return balance;
-    } catch (error) {
-      return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to fetch balance",
+    const { forceRefresh, ...filterParams } = filters;
+
+    // Check cache - skip fetch if data is fresh
+    const { lastFetched, items, filters: cachedFilters } = state.balances;
+    const isCacheValid =
+      lastFetched && Date.now() - lastFetched < CACHE_DURATION;
+    const isSameFilters =
+      JSON.stringify(cachedFilters) === JSON.stringify(filterParams);
+
+    if (!forceRefresh && isCacheValid && isSameFilters && items.length > 0) {
+      console.log(
+        "[Balances] Using cached data, age:",
+        Date.now() - lastFetched,
+        "ms",
       );
+      return items;
     }
-  },
-);
 
-export const createBalance = createAsyncThunk(
-  "balances/create",
-  async (data: BalanceCreate, { rejectWithValue }) => {
-    try {
-      const balance = await apiRequest<Balance>(API_ENDPOINTS.balances.create, {
+    // Build query with camelCase filters, convert to snake_case for API
+    const query = buildTypedQueryString({
+      ...filterParams,
+      companyId,
+    });
+
+    const balances = await apiRequest<Balance[]>(
+      `${API_ENDPOINTS.balances.list}${query}`,
+    );
+    return balances;
+  } catch (error) {
+    return rejectWithValue(
+      error instanceof Error ? error.message : "Failed to fetch balances",
+    );
+  }
+});
+
+export const fetchBalanceById = createAsyncThunk<
+  Balance,
+  number,
+  { rejectValue: string }
+>("balances/fetchById", async (id, { rejectWithValue }) => {
+  try {
+    const balance = await apiRequest<Balance>(API_ENDPOINTS.balances.get(id));
+    return balance;
+  } catch (error) {
+    return rejectWithValue(
+      error instanceof Error ? error.message : "Failed to fetch balance",
+    );
+  }
+});
+
+export const createBalance = createAsyncThunk<
+  Balance,
+  BalanceCreate,
+  { rejectValue: string }
+>("balances/create", async (data, { rejectWithValue }) => {
+  try {
+    const balance = await apiRequest<Balance>(API_ENDPOINTS.balances.create, {
+      method: "POST",
+      body: JSON.stringify(mapApiRequest(data)),
+    });
+    return balance;
+  } catch (error) {
+    return rejectWithValue(
+      error instanceof Error ? error.message : "Failed to create balance",
+    );
+  }
+});
+
+export const createBalancesBulk = createAsyncThunk<
+  BulkBalanceResponse,
+  BulkBalanceCreate,
+  { rejectValue: string }
+>("balances/createBulk", async (data, { rejectWithValue }) => {
+  try {
+    const response = await apiRequest<BulkBalanceResponse>(
+      API_ENDPOINTS.balances.bulk,
+      {
         method: "POST",
-        body: JSON.stringify(data),
-      });
-      return balance;
-    } catch (error) {
-      return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to create balance",
-      );
-    }
-  },
-);
+        body: JSON.stringify(mapApiRequest(data)),
+      },
+    );
+    return response;
+  } catch (error) {
+    return rejectWithValue(
+      error instanceof Error ? error.message : "Failed to create balances",
+    );
+  }
+});
 
-export const createBalancesBulk = createAsyncThunk(
-  "balances/createBulk",
-  async (data: BulkBalanceCreate, { rejectWithValue }) => {
-    try {
-      const response = await apiRequest<BulkBalanceResponse>(
-        API_ENDPOINTS.balances.bulk,
-        {
-          method: "POST",
-          body: JSON.stringify(data),
-        },
-      );
-      return response;
-    } catch (error) {
-      return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to create balances",
-      );
-    }
-  },
-);
+export const updateBalance = createAsyncThunk<
+  Balance,
+  { id: number; data: BalanceUpdate },
+  { rejectValue: string }
+>("balances/update", async ({ id, data }, { rejectWithValue }) => {
+  try {
+    const balance = await apiRequest<Balance>(
+      API_ENDPOINTS.balances.update(id),
+      {
+        method: "PATCH",
+        body: JSON.stringify(mapApiRequest(data)),
+      },
+    );
+    return balance;
+  } catch (error) {
+    return rejectWithValue(
+      error instanceof Error ? error.message : "Failed to update balance",
+    );
+  }
+});
 
-export const updateBalance = createAsyncThunk(
-  "balances/update",
-  async (
-    { id, data }: { id: number; data: BalanceUpdate },
-    { rejectWithValue },
-  ) => {
-    try {
-      const balance = await apiRequest<Balance>(
-        API_ENDPOINTS.balances.update(id),
-        {
-          method: "PATCH",
-          body: JSON.stringify(data),
-        },
-      );
-      return balance;
-    } catch (error) {
-      return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to update balance",
-      );
-    }
-  },
-);
-
-export const deleteBalance = createAsyncThunk(
-  "balances/delete",
-  async (id: number, { rejectWithValue }) => {
-    try {
-      await apiRequest<void>(API_ENDPOINTS.balances.delete(id), {
-        method: "DELETE",
-      });
-      return id;
-    } catch (error) {
-      return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to delete balance",
-      );
-    }
-  },
-);
+export const deleteBalance = createAsyncThunk<
+  number,
+  number,
+  { rejectValue: string }
+>("balances/delete", async (id, { rejectWithValue }) => {
+  try {
+    await apiRequest<void>(API_ENDPOINTS.balances.delete(id), {
+      method: "DELETE",
+    });
+    return id;
+  } catch (error) {
+    return rejectWithValue(
+      error instanceof Error ? error.message : "Failed to delete balance",
+    );
+  }
+});
 
 // Slice
 const balancesSlice = createSlice({
@@ -201,7 +229,7 @@ const balancesSlice = createSlice({
     clearSelectedBalance: (state) => {
       state.selectedBalance = null;
     },
-    saveDraftEntries: (state, action: PayloadAction<any[]>) => {
+    saveDraftEntries: (state, action: PayloadAction<DraftBalanceEntry[]>) => {
       state.draftEntries = action.payload;
     },
     clearDraftEntries: (state) => {
@@ -215,11 +243,24 @@ const balancesSlice = createSlice({
         state.isLoading = true;
         state.error = null;
       })
-      .addCase(fetchBalances.fulfilled, (state, action) => {
-        state.isLoading = false;
-        state.items = action.payload;
-        state.lastFetched = Date.now();
-      })
+      .addCase(
+        fetchBalances.fulfilled,
+        (
+          state,
+          action: PayloadAction<
+            Balance[],
+            string,
+            { arg: BalanceFilters & { forceRefresh?: boolean } }
+          >,
+        ) => {
+          state.isLoading = false;
+          state.items = action.payload;
+          state.lastFetched = Date.now();
+          // Update filters to match what was fetched (excluding forceRefresh)
+          const { forceRefresh, ...filterParams } = action.meta.arg;
+          state.filters = filterParams;
+        },
+      )
       .addCase(fetchBalances.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
@@ -266,8 +307,8 @@ const balancesSlice = createSlice({
         // Add all successfully created balances to the beginning of the list
         state.items.unshift(...action.payload.created);
         // Set error if some failed
-        if (action.payload.total_failed > 0) {
-          state.error = `${action.payload.total_failed} of ${action.payload.total_submitted} balances failed to create`;
+        if (action.payload.totalFailed > 0) {
+          state.error = `${action.payload.totalFailed} of ${action.payload.totalSubmitted} balances failed to create`;
         }
       })
       .addCase(createBalancesBulk.rejected, (state, action) => {

@@ -13,28 +13,18 @@ import {
   validateBalance,
 } from "../../services/balanceExtractor";
 import type { AppDispatch, RootState } from "../../store";
-import type { ShiftEnum, Account } from "../../types";
+import type {
+  ShiftEnum,
+  Account,
+  DraftBalanceEntry,
+  BalanceValidationResult,
+} from "@/types";
 
-export interface BalanceValidationResult {
-  isValid: boolean;
-  extractedBalance: number | null;
-  inputBalance: number;
-  difference: number | null;
-  message: string;
-}
+// Re-export for consumers that import from this hook
+export type { BalanceValidationResult };
 
-export interface BalanceEntry {
-  id: string;
-  accountId: number | null;
-  accountName: string;
-  shift: ShiftEnum;
-  amount: string;
-  imageUrl: string;
-  imageFile?: File; // For web file upload
-  extractedBalance: number | null;
-  isExtracting: boolean;
-  validationResult: BalanceValidationResult | null;
-}
+// BalanceEntry is the same as DraftBalanceEntry
+export type BalanceEntry = DraftBalanceEntry;
 
 const createEmptyEntry = (shift: ShiftEnum = "AM"): BalanceEntry => ({
   id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
@@ -54,17 +44,17 @@ export function useAddBalanceScreen() {
   // Selectors
   const companyId = useSelector(selectCompanyId);
   const { items: accounts, isLoading: accountsLoading } = useSelector(
-    (state: RootState) => state.accounts
+    (state: RootState) => state.accounts,
   );
   const { items: balances, draftEntries } = useSelector(
-    (state: RootState) => state.balances
+    (state: RootState) => state.balances,
   );
 
   // State
   const [entries, setEntries] = useState<BalanceEntry[]>([createEmptyEntry()]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, Record<string, string>>>(
-    {}
+    {},
   );
   const [currentShift, setCurrentShift] = useState<ShiftEnum>("AM");
   const [isInitialized, setIsInitialized] = useState(false);
@@ -77,8 +67,8 @@ export function useAddBalanceScreen() {
 
   // Fetch data on mount
   useEffect(() => {
-    dispatch(fetchAccounts({ is_active: true }));
-    dispatch(fetchBalances({ date_from: today, date_to: today }));
+    dispatch(fetchAccounts({ isActive: true }));
+    dispatch(fetchBalances({ dateFrom: today, dateTo: today }));
   }, [dispatch, today]);
 
   // Initialize entries from existing balances or draft entries
@@ -86,7 +76,7 @@ export function useAddBalanceScreen() {
     if (isInitialized || accountsLoading) return;
 
     const todayBalances = balances.filter(
-      (bal) => bal.date.startsWith(today) && bal.shift === currentShift
+      (bal) => bal.date.startsWith(today) && bal.shift === currentShift,
     );
 
     if (todayBalances.length > 0) {
@@ -95,20 +85,20 @@ export function useAddBalanceScreen() {
         if (bal.account) {
           accountName = bal.account.name;
         } else {
-          const account = accounts.find((acc) => acc.id === bal.account_id);
-          accountName = account?.name || `Account ${bal.account_id}`;
+          const account = accounts.find((acc) => acc.id === bal.accountId);
+          accountName = account?.name || `Account ${bal.accountId}`;
         }
 
         let imageUri = "";
-        if (bal.image_data) {
-          imageUri = `data:image/jpeg;base64,${bal.image_data}`;
-        } else if (bal.image_url) {
-          imageUri = bal.image_url;
+        if (bal.imageData) {
+          imageUri = `data:image/jpeg;base64,${bal.imageData}`;
+        } else if (bal.imageUrl) {
+          imageUri = bal.imageUrl;
         }
 
         return {
           id: `existing-${bal.id}`,
-          accountId: bal.account_id,
+          accountId: bal.accountId,
           accountName: accountName,
           shift: bal.shift,
           amount: bal.amount.toString(),
@@ -139,8 +129,8 @@ export function useAddBalanceScreen() {
 
   // Active accounts
   const activeAccounts = useMemo(
-    () => accounts.filter((acc) => acc.is_active),
-    [accounts]
+    () => accounts.filter((acc) => acc.isActive),
+    [accounts],
   );
 
   // Get available accounts for a specific entry (exclude already selected)
@@ -151,10 +141,10 @@ export function useAddBalanceScreen() {
         .map((e) => e.accountId);
 
       return activeAccounts.filter(
-        (acc) => !selectedAccountIds.includes(acc.id)
+        (acc) => !selectedAccountIds.includes(acc.id),
       );
     },
-    [entries, activeAccounts]
+    [entries, activeAccounts],
   );
 
   // Missing accounts (active accounts without entries)
@@ -163,7 +153,7 @@ export function useAddBalanceScreen() {
       .filter((e) => e.accountId !== null)
       .map((e) => e.accountId);
     return activeAccounts.filter(
-      (account) => !selectedAccountIds.includes(account.id)
+      (account) => !selectedAccountIds.includes(account.id),
     );
   }, [entries, activeAccounts]);
 
@@ -172,8 +162,8 @@ export function useAddBalanceScreen() {
     (id: string, field: keyof BalanceEntry, value: any) => {
       setEntries((prev) =>
         prev.map((entry) =>
-          entry.id === id ? { ...entry, [field]: value } : entry
-        )
+          entry.id === id ? { ...entry, [field]: value } : entry,
+        ),
       );
 
       const errorField = field === "accountId" ? "account" : field;
@@ -187,7 +177,7 @@ export function useAddBalanceScreen() {
         });
       }
     },
-    [errors]
+    [errors],
   );
 
   // Handle amount change with validation
@@ -208,7 +198,7 @@ export function useAddBalanceScreen() {
             const inputBalance = parseFloat(cleanValue);
             if (!isNaN(inputBalance)) {
               const difference = Math.abs(
-                entry.extractedBalance - inputBalance
+                entry.extractedBalance - inputBalance,
               );
               const isValid = difference < 0.01; // Allow small float differences
               updatedEntry.validationResult = {
@@ -224,7 +214,7 @@ export function useAddBalanceScreen() {
           }
 
           return updatedEntry;
-        })
+        }),
       );
 
       if (errors[entryId]?.amount) {
@@ -237,7 +227,7 @@ export function useAddBalanceScreen() {
         });
       }
     },
-    [errors]
+    [errors],
   );
 
   // Select account for entry
@@ -247,8 +237,8 @@ export function useAddBalanceScreen() {
         prev.map((entry) =>
           entry.id === entryId
             ? { ...entry, accountId: account.id, accountName: account.name }
-            : entry
-        )
+            : entry,
+        ),
       );
 
       if (errors[entryId]?.account) {
@@ -263,7 +253,7 @@ export function useAddBalanceScreen() {
 
       setAccountPickerVisible(null);
     },
-    [errors]
+    [errors],
   );
 
   // Add new entry
@@ -283,7 +273,7 @@ export function useAddBalanceScreen() {
         });
       }
     },
-    [entries.length]
+    [entries.length],
   );
 
   // Clear image from entry
@@ -298,8 +288,8 @@ export function useAddBalanceScreen() {
               extractedBalance: null,
               validationResult: null,
             }
-          : entry
-      )
+          : entry,
+      ),
     );
   }, []);
 
@@ -317,8 +307,8 @@ export function useAddBalanceScreen() {
                 isExtracting: true,
                 validationResult: null,
               }
-            : entry
-        )
+            : entry,
+        ),
       );
 
       try {
@@ -342,7 +332,7 @@ export function useAddBalanceScreen() {
               if (!isNaN(inputBalance)) {
                 validationResult = validateBalance(
                   extractedBalance,
-                  inputBalance
+                  inputBalance,
                 );
               }
             }
@@ -353,7 +343,7 @@ export function useAddBalanceScreen() {
               isExtracting: false,
               validationResult,
             };
-          })
+          }),
         );
 
         if (!result.success) {
@@ -365,12 +355,12 @@ export function useAddBalanceScreen() {
           prev.map((entry) =>
             entry.id === entryId
               ? { ...entry, isExtracting: false, extractedBalance: null }
-              : entry
-          )
+              : entry,
+          ),
         );
       }
     },
-    []
+    [],
   );
 
   // Change shift and reinitialize
@@ -435,7 +425,10 @@ export function useAddBalanceScreen() {
     }
 
     if (!companyId) {
-      return { success: false, message: "Company not found. Please log in again." };
+      return {
+        success: false,
+        message: "Company not found. Please log in again.",
+      };
     }
 
     setIsSubmitting(true);
@@ -464,39 +457,39 @@ export function useAddBalanceScreen() {
           }
 
           return {
-            company_id: companyId,
-            account_id: entry.accountId!,
+            companyId: companyId,
+            accountId: entry.accountId!,
             shift: currentShift,
             amount: parseFloat(entry.amount),
             source: "mobile_app" as const,
             date: today,
-            image_data: imageData,
+            imageData: imageData,
           };
-        })
+        }),
       );
 
       const result = await dispatch(
-        createBalancesBulk({ balances: balanceDataArray })
+        createBalancesBulk({ balances: balanceDataArray }),
       ).unwrap();
 
       // Refresh data
       dispatch(fetchDashboard({}));
       dispatch(clearDraftEntries());
 
-      if (result.total_failed > 0) {
+      if (result.totalFailed > 0) {
         return {
           success: true,
-          message: `${result.total_created} of ${result.total_submitted} balances created successfully. ${result.total_failed} failed.`,
-          totalCreated: result.total_created,
-          totalFailed: result.total_failed,
+          message: `${result.totalCreated} of ${result.totalSubmitted} balances created successfully. ${result.totalFailed} failed.`,
+          totalCreated: result.totalCreated,
+          totalFailed: result.totalFailed,
         };
       } else {
         return {
           success: true,
-          message: `${result.total_created} balance${
-            result.total_created > 1 ? "s" : ""
+          message: `${result.totalCreated} balance${
+            result.totalCreated > 1 ? "s" : ""
           } added successfully!`,
-          totalCreated: result.total_created,
+          totalCreated: result.totalCreated,
           totalFailed: 0,
         };
       }

@@ -1,11 +1,8 @@
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useRef } from "react";
 import { useUser, useAuth } from "@clerk/clerk-expo";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
-import {
-  syncUserWithBackend,
-  clearLocalAuth,
-  UserSyncRequest,
-} from "../store/slices/authSlice";
+import { syncUserWithBackend, clearLocalAuth } from "../store/slices/authSlice";
+import type { UserSyncRequest, RoleEnum } from "@/types";
 
 /**
  * Hook to sync Clerk user data with the backend.
@@ -21,6 +18,9 @@ export function useClerkUserSync() {
   const { user: clerkUser, isLoaded: isUserLoaded } = useUser();
   const { isSignedIn, isLoaded: isAuthLoaded } = useAuth();
 
+  // Ref to track which clerk user ID we've already synced - prevents sync loops
+  const syncedClerkIdRef = useRef<string | null>(null);
+
   const {
     user: backendUser,
     isSyncing,
@@ -35,37 +35,39 @@ export function useClerkUserSync() {
 
     console.log("[UserSync] Starting sync for Clerk user:", clerkUser.id);
 
-    // Extract company_id and role from Clerk public metadata (set during invite)
+    // Extract companyId and role from Clerk public metadata (set during invite)
     const publicMetadata = clerkUser.publicMetadata as
-      | { company_id?: number; role?: string }
+      | { company_id?: number; role?: RoleEnum }
       | undefined;
-    const companyId = publicMetadata?.company_id || null;
-    const role = (publicMetadata?.role as any) || null;
+    const companyId = publicMetadata?.company_id ?? null;
+    const role = publicMetadata?.role ?? null;
 
     // Build sync request from Clerk user data
     const syncData: UserSyncRequest = {
-      clerk_user_id: clerkUser.id,
+      clerkUserId: clerkUser.id,
       email: clerkUser.primaryEmailAddress?.emailAddress || "",
-      first_name: clerkUser.firstName,
-      last_name: clerkUser.lastName,
-      profile_image_url: clerkUser.imageUrl,
-      phone_number: clerkUser.primaryPhoneNumber?.phoneNumber || null,
-      user_metadata: clerkUser.publicMetadata
+      firstName: clerkUser.firstName,
+      lastName: clerkUser.lastName,
+      profileImageUrl: clerkUser.imageUrl,
+      phoneNumber: clerkUser.primaryPhoneNumber?.phoneNumber || null,
+      userMetadata: clerkUser.publicMetadata
         ? JSON.stringify(clerkUser.publicMetadata)
         : null,
-      company_id: companyId,
+      companyId: companyId,
       role: role,
     };
 
     console.log("[UserSync] Sync data:", JSON.stringify(syncData, null, 2));
 
     // Only sync if we have required data
-    if (syncData.email && syncData.clerk_user_id) {
+    if (syncData.email && syncData.clerkUserId) {
       console.log("[UserSync] Dispatching syncUserWithBackend...");
       const result = await dispatch(syncUserWithBackend(syncData));
       console.log("[UserSync] Sync result:", result);
+      // Mark this clerk user as synced
+      syncedClerkIdRef.current = clerkUser.id;
     } else {
-      console.log("[UserSync] Missing required data - email or clerk_user_id");
+      console.log("[UserSync] Missing required data - email or clerkUserId");
     }
   }, [clerkUser, dispatch]);
 
@@ -86,27 +88,47 @@ export function useClerkUserSync() {
     });
 
     if (isSignedIn && clerkUser) {
-      // User is signed in, sync with backend
-      // Only sync if we don't have a backend user or if Clerk user has changed
-      if (!backendUser || backendUser.clerk_user_id !== clerkUser.id) {
+      // Skip if we already synced this clerk user (prevents loops)
+      if (syncedClerkIdRef.current === clerkUser.id) {
+        console.log("[UserSync] Already synced this clerk user, skipping");
+        return;
+      }
+
+      // Skip if currently syncing
+      if (isSyncing) {
+        console.log("[UserSync] Already syncing, skipping");
+        return;
+      }
+
+      // Check if we need to sync
+      const needsSync =
+        !backendUser || backendUser.clerkUserId !== clerkUser.id;
+
+      if (needsSync) {
         console.log(
           "[UserSync] Triggering sync - no backend user or user changed",
         );
         syncUser();
       } else {
+        // Backend user is already synced, mark it in the ref
         console.log("[UserSync] Backend user already synced");
+        syncedClerkIdRef.current = clerkUser.id;
       }
-    } else if (!isSignedIn && backendUser) {
-      // User signed out, clear local auth data
-      console.log("[UserSync] User signed out, clearing local auth");
-      dispatch(clearLocalAuth());
+    } else if (!isSignedIn) {
+      // User signed out, clear local auth data and reset ref
+      if (backendUser) {
+        console.log("[UserSync] User signed out, clearing local auth");
+        dispatch(clearLocalAuth());
+      }
+      syncedClerkIdRef.current = null;
     }
   }, [
     isSignedIn,
     isAuthLoaded,
     isUserLoaded,
-    clerkUser,
-    backendUser,
+    clerkUser?.id,
+    backendUser?.clerkUserId,
+    isSyncing,
     syncUser,
     dispatch,
   ]);

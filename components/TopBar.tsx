@@ -42,13 +42,13 @@ export default function TopBar({ onMenuPress }: TopBarProps) {
     if (!user) return { initials: "", displayName: "", roleLabel: "" };
 
     const initials =
-      user.first_name && user.last_name
-        ? `${user.first_name[0]}${user.last_name[0]}`.toUpperCase()
+      user.firstName && user.lastName
+        ? `${user.firstName[0]}${user.lastName[0]}`.toUpperCase()
         : user.email?.[0]?.toUpperCase() || "U";
 
     const displayName =
-      user.first_name && user.last_name
-        ? `${user.first_name} ${user.last_name}`
+      user.firstName && user.lastName
+        ? `${user.firstName} ${user.lastName}`
         : user.email || "User";
 
     // Proper text transformation for roles

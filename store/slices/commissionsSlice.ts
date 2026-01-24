@@ -1,15 +1,13 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
-import {
+import type {
   Commission,
   CommissionCreate,
   CommissionUpdate,
   CommissionFilters,
-} from "../../types";
-import {
-  API_BASE_URL,
-  API_ENDPOINTS,
-  buildQueryString,
-} from "../../config/api";
+} from "@/types";
+import { mapApiResponse, mapApiRequest, buildTypedQueryString } from "@/types";
+import { API_BASE_URL, API_ENDPOINTS } from "@/config/api";
+import type { RootState } from "../index";
 
 // Types
 export interface CommissionsState {
@@ -57,29 +55,54 @@ async function apiRequest<T>(
     return undefined as T;
   }
 
-  return response.json();
+  const data = await response.json();
+  return mapApiResponse<T>(data);
 }
 
+// Cache duration in milliseconds (30 seconds)
+const CACHE_DURATION = 30 * 1000;
+
 // Async thunks
-export const fetchCommissions = createAsyncThunk(
+export const fetchCommissions = createAsyncThunk<
+  Commission[],
+  CommissionFilters & { forceRefresh?: boolean },
+  { state: RootState; rejectValue: string }
+>(
   "commissions/fetchAll",
-  async (filters: CommissionFilters = {}, { getState, rejectWithValue }) => {
+  async (filters = {}, { getState, rejectWithValue }) => {
     try {
-      // Get company_id from auth state
-      const state = getState() as any;
-      const companyId = state.auth?.user?.company_id;
+      // Get companyId from auth state
+      const state = getState();
+      const companyId = state.auth.user?.companyId;
 
       if (!companyId) {
-        return rejectWithValue("No company_id found. Please log in again.");
+        return rejectWithValue("No companyId found. Please log in again.");
       }
 
-      // Add company_id to filters
-      const filtersWithCompany = {
-        ...filters,
-        company_id: companyId,
-      };
+      const { forceRefresh, ...filterParams } = filters;
 
-      const query = buildQueryString(filtersWithCompany);
+      // Check cache - skip fetch if data is fresh
+      const { lastFetched, items, filters: cachedFilters } = state.commissions;
+      const isCacheValid =
+        lastFetched && Date.now() - lastFetched < CACHE_DURATION;
+      const isSameFilters =
+        JSON.stringify(cachedFilters) === JSON.stringify(filterParams);
+
+      if (!forceRefresh && isCacheValid && isSameFilters && items.length > 0) {
+        console.log(
+          "[Commissions] Using cached data, age:",
+          Date.now() - lastFetched,
+          "ms",
+        );
+        return items;
+      }
+
+      // Build query with camelCase filters, convert to snake_case for API
+      const query = buildTypedQueryString({
+        ...filterParams,
+        companyId,
+      });
+
       const commissions = await apiRequest<Commission[]>(
         `${API_ENDPOINTS.commissions.list}${query}`,
       );
@@ -92,115 +115,114 @@ export const fetchCommissions = createAsyncThunk(
   },
 );
 
-export const fetchCommissionById = createAsyncThunk(
-  "commissions/fetchById",
-  async (id: number, { rejectWithValue }) => {
-    try {
-      const commission = await apiRequest<Commission>(
-        API_ENDPOINTS.commissions.get(id),
-      );
-      return commission;
-    } catch (error) {
-      return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to fetch commission",
-      );
+export const fetchCommissionById = createAsyncThunk<
+  Commission,
+  number,
+  { rejectValue: string }
+>("commissions/fetchById", async (id, { rejectWithValue }) => {
+  try {
+    const commission = await apiRequest<Commission>(
+      API_ENDPOINTS.commissions.get(id),
+    );
+    return commission;
+  } catch (error) {
+    return rejectWithValue(
+      error instanceof Error ? error.message : "Failed to fetch commission",
+    );
+  }
+});
+
+export const createCommission = createAsyncThunk<
+  Commission,
+  CommissionCreate,
+  { rejectValue: string }
+>("commissions/create", async (data, { rejectWithValue }) => {
+  try {
+    const commission = await apiRequest<Commission>(
+      API_ENDPOINTS.commissions.create,
+      {
+        method: "POST",
+        body: JSON.stringify(mapApiRequest(data)),
+      },
+    );
+    return commission;
+  } catch (error) {
+    return rejectWithValue(
+      error instanceof Error ? error.message : "Failed to create commission",
+    );
+  }
+});
+
+export const createCommissionsBulk = createAsyncThunk<
+  Commission[],
+  CommissionCreate[],
+  { rejectValue: string }
+>("commissions/createBulk", async (data, { rejectWithValue }) => {
+  try {
+    console.log(
+      "[CommissionsSlice] Bulk create payload:",
+      JSON.stringify({ commissions: mapApiRequest(data) }, null, 2),
+    );
+    const response = await apiRequest<{ commissions: Commission[] }>(
+      API_ENDPOINTS.commissions.bulk,
+      {
+        method: "POST",
+        body: JSON.stringify({ commissions: mapApiRequest(data) }),
+      },
+    );
+    console.log("[CommissionsSlice] Bulk create response:", response);
+
+    if (!response || !response.commissions) {
+      console.error("[CommissionsSlice] Invalid response structure:", response);
+      throw new Error("Invalid response from server");
     }
-  },
-);
 
-export const createCommission = createAsyncThunk(
-  "commissions/create",
-  async (data: CommissionCreate, { rejectWithValue }) => {
-    try {
-      const commission = await apiRequest<Commission>(
-        API_ENDPOINTS.commissions.create,
-        {
-          method: "POST",
-          body: JSON.stringify(data),
-        },
-      );
-      return commission;
-    } catch (error) {
-      return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to create commission",
-      );
-    }
-  },
-);
+    return response.commissions;
+  } catch (error) {
+    console.error("[CommissionsSlice] Bulk create error:", error);
+    return rejectWithValue(
+      error instanceof Error ? error.message : "Failed to create commissions",
+    );
+  }
+});
 
-export const createCommissionsBulk = createAsyncThunk(
-  "commissions/createBulk",
-  async (data: CommissionCreate[], { rejectWithValue }) => {
-    try {
-      console.log(
-        "[CommissionsSlice] Bulk create payload:",
-        JSON.stringify({ commissions: data }, null, 2),
-      );
-      const response = await apiRequest<{ commissions: Commission[] }>(
-        API_ENDPOINTS.commissions.bulk,
-        {
-          method: "POST",
-          body: JSON.stringify({ commissions: data }),
-        },
-      );
-      console.log("[CommissionsSlice] Bulk create response:", response);
+export const updateCommission = createAsyncThunk<
+  Commission,
+  { id: number; data: CommissionUpdate },
+  { rejectValue: string }
+>("commissions/update", async ({ id, data }, { rejectWithValue }) => {
+  try {
+    const commission = await apiRequest<Commission>(
+      API_ENDPOINTS.commissions.update(id),
+      {
+        method: "PATCH",
+        body: JSON.stringify(mapApiRequest(data)),
+      },
+    );
+    return commission;
+  } catch (error) {
+    return rejectWithValue(
+      error instanceof Error ? error.message : "Failed to update commission",
+    );
+  }
+});
 
-      if (!response || !response.commissions) {
-        console.error(
-          "[CommissionsSlice] Invalid response structure:",
-          response,
-        );
-        throw new Error("Invalid response from server");
-      }
-
-      return response.commissions;
-    } catch (error) {
-      console.error("[CommissionsSlice] Bulk create error:", error);
-      return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to create commissions",
-      );
-    }
-  },
-);
-
-export const updateCommission = createAsyncThunk(
-  "commissions/update",
-  async (
-    { id, data }: { id: number; data: CommissionUpdate },
-    { rejectWithValue },
-  ) => {
-    try {
-      const commission = await apiRequest<Commission>(
-        API_ENDPOINTS.commissions.update(id),
-        {
-          method: "PATCH",
-          body: JSON.stringify(data),
-        },
-      );
-      return commission;
-    } catch (error) {
-      return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to update commission",
-      );
-    }
-  },
-);
-
-export const deleteCommission = createAsyncThunk(
-  "commissions/delete",
-  async (id: number, { rejectWithValue }) => {
-    try {
-      await apiRequest<void>(API_ENDPOINTS.commissions.delete(id), {
-        method: "DELETE",
-      });
-      return id;
-    } catch (error) {
-      return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to delete commission",
-      );
-    }
-  },
-);
+export const deleteCommission = createAsyncThunk<
+  number,
+  number,
+  { rejectValue: string }
+>("commissions/delete", async (id, { rejectWithValue }) => {
+  try {
+    await apiRequest<void>(API_ENDPOINTS.commissions.delete(id), {
+      method: "DELETE",
+    });
+    return id;
+  } catch (error) {
+    return rejectWithValue(
+      error instanceof Error ? error.message : "Failed to delete commission",
+    );
+  }
+});
 
 // Slice
 const commissionsSlice = createSlice({
@@ -227,15 +249,28 @@ const commissionsSlice = createSlice({
         state.isLoading = true;
         state.error = null;
       })
-      .addCase(fetchCommissions.fulfilled, (state, action) => {
-        state.isLoading = false;
-        state.items = action.payload;
-        state.totalAmount = action.payload.reduce(
-          (sum, commission) => sum + Number(commission.amount),
-          0,
-        );
-        state.lastFetched = Date.now();
-      })
+      .addCase(
+        fetchCommissions.fulfilled,
+        (
+          state,
+          action: PayloadAction<
+            Commission[],
+            string,
+            { arg: CommissionFilters & { forceRefresh?: boolean } }
+          >,
+        ) => {
+          state.isLoading = false;
+          state.items = action.payload;
+          state.totalAmount = action.payload.reduce(
+            (sum, commission) => sum + Number(commission.amount),
+            0,
+          );
+          state.lastFetched = Date.now();
+          // Update filters to match what was fetched (excluding forceRefresh)
+          const { forceRefresh, ...filterParams } = action.meta.arg;
+          state.filters = filterParams;
+        },
+      )
       .addCase(fetchCommissions.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
