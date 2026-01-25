@@ -12,8 +12,12 @@ export type SourceEnum = "whatsapp" | "mobile_app" | "manual";
 // Account categories
 export type AccountTypeEnum = "BANK" | "TELECOM";
 
-// User permission levels
-export type RoleEnum = "admin" | "manager" | "agent";
+// User permission levels - matches backend RoleEnum values
+export type RoleEnum =
+  | "Super Administrator"
+  | "Administrator"
+  | "Agent Supervisor"
+  | "Agent";
 
 // Reconciliation outcome status
 export type StatusEnum = "PASSED" | "FAILED" | "FLAGGED";
