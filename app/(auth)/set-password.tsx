@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -11,35 +11,173 @@ import {
   ScrollView,
   StatusBar,
 } from "react-native";
-import { useUser } from "@clerk/clerk-expo";
-import { useRouter } from "expo-router";
+import { useUser, useSignUp } from "@clerk/clerk-expo";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 
 /**
  * Set Password Page (Native) - For invited users to set their password
- * This page is shown after accepting an invitation
- * The user is already authenticated but needs to set a password
+ * This page handles two flows:
+ * 1. Invite flow: User arrives with __clerk_ticket, needs to accept invitation and set password
+ * 2. Existing user: User is already authenticated but needs to set a password
  */
 export default function SetPasswordPage() {
-  const { user, isLoaded } = useUser();
+  const { user, isLoaded: isUserLoaded } = useUser();
+  const { signUp, setActive, isLoaded: isSignUpLoaded } = useSignUp();
   const router = useRouter();
+  const params = useLocalSearchParams();
 
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState<string | null>(null);
+  const [isProcessingInvite, setIsProcessingInvite] = useState(false);
+  const [requiresUsername, setRequiresUsername] = useState(false);
+  const [ticketProcessed, setTicketProcessed] = useState(false);
+
+  // Check for invite ticket and process it
+  useEffect(() => {
+    if (!isSignUpLoaded || isProcessingInvite || ticketProcessed) return;
+
+    const ticket = params.__clerk_ticket as string | undefined;
+
+    // If user is already authenticated, skip ticket processing
+    if (user) {
+      console.log(
+        "[SetPassword] User already authenticated, skipping ticket processing",
+      );
+      return;
+    }
+
+    // If signUp already has an email, we're ready
+    if (signUp?.emailAddress) {
+      console.log(
+        "[SetPassword] SignUp already has email, skipping ticket processing",
+      );
+      setInviteEmail(signUp.emailAddress);
+      setTicketProcessed(true);
+      // Check if username is required from existing signUp state
+      if (signUp.missingFields?.includes("username")) {
+        setRequiresUsername(true);
+      }
+      return;
+    }
+
+    if (ticket) {
+      console.log("[SetPassword] Processing invite ticket...");
+      setIsProcessingInvite(true);
+
+      // Create a sign-up with the ticket - Clerk will auto-populate user info
+      signUp
+        ?.create({
+          strategy: "ticket",
+          ticket,
+        })
+        .then((result) => {
+          console.log("[SetPassword] Invite result:", {
+            status: result.status,
+            email: result.emailAddress,
+            missingFields: result.missingFields,
+          });
+
+          if (result.emailAddress) {
+            setInviteEmail(result.emailAddress);
+          }
+
+          // Check if username is required - also set true if status is missing_requirements
+          // since Clerk instance requires username for all users
+          if (
+            result.missingFields?.includes("username") ||
+            result.status === "missing_requirements"
+          ) {
+            console.log("[SetPassword] Username is required, showing field");
+            setRequiresUsername(true);
+          }
+
+          setTicketProcessed(true);
+
+          // If status is complete, the user might already be signed in
+          if (result.status === "complete" && result.createdSessionId) {
+            console.log(
+              "[SetPassword] Ticket auto-completed, activating session...",
+            );
+            setActive?.({ session: result.createdSessionId });
+          }
+        })
+        .catch((err) => {
+          console.error("[SetPassword] Failed to process invite:", err);
+
+          const errorCode = err.errors?.[0]?.code;
+          if (
+            errorCode === "form_identifier_exists" ||
+            errorCode === "ticket_invalid"
+          ) {
+            Alert.alert(
+              "Invitation Issue",
+              "This invitation has already been used or expired. Please sign in.",
+              [
+                {
+                  text: "Sign In",
+                  onPress: () => router.replace("/(auth)/sign-in"),
+                },
+              ],
+            );
+          } else {
+            Alert.alert(
+              "Error",
+              err.errors?.[0]?.message || "Failed to process invitation",
+            );
+          }
+        })
+        .finally(() => {
+          setIsProcessingInvite(false);
+        });
+    }
+  }, [
+    isSignUpLoaded,
+    signUp,
+    user,
+    isProcessingInvite,
+    params.__clerk_ticket,
+    setActive,
+    ticketProcessed,
+  ]);
+
+  // Determine if we're ready to show the form
+  // Check signUp object for email as well
+  const signUpEmail = signUp?.emailAddress;
+  const effectiveInviteEmail = inviteEmail || signUpEmail || null;
+  const isInviteFlow = !!effectiveInviteEmail && !user;
+  const isReady = (isUserLoaded && user) || isInviteFlow;
+  const displayEmail =
+    user?.primaryEmailAddress?.emailAddress || effectiveInviteEmail;
+  const displayName =
+    user?.firstName ||
+    (effectiveInviteEmail ? effectiveInviteEmail.split("@")[0] : null);
 
   // If user already has password, redirect to app
   React.useEffect(() => {
-    if (isLoaded && user?.passwordEnabled) {
+    if (isUserLoaded && user?.passwordEnabled) {
       router.replace("/(app)");
     }
-  }, [isLoaded, user, router]);
+  }, [isUserLoaded, user, router]);
 
   const handleSetPassword = async () => {
-    if (!isLoaded || !user) return;
+    // For invite flow, we use signUp; for existing users, we use user
+    const hasInviteData =
+      (!!inviteEmail || !!signUp?.emailAddress) && signUp && !user;
+
+    if (!hasInviteData && (!isUserLoaded || !user)) return;
+
+    // Username validation for invite flow
+    if (requiresUsername && !username.trim()) {
+      Alert.alert("Error", "Please enter a username");
+      return;
+    }
 
     if (!password || !confirmPassword) {
       Alert.alert("Error", "Please fill in all fields");
@@ -58,17 +196,54 @@ export default function SetPasswordPage() {
 
     setIsLoading(true);
     try {
-      // Update user with password using updatePassword method
-      await user.updatePassword({
-        newPassword: password,
-      });
+      if (hasInviteData && signUp) {
+        // Invite flow: Update signUp with password (and username if required) and complete registration
+        console.log("[SetPassword] Setting password for invite flow...");
+        const updatePayload: { password: string; username?: string } = {
+          password,
+        };
+        if (requiresUsername && username.trim()) {
+          updatePayload.username = username.trim();
+        }
+        const result = await signUp.update(updatePayload);
 
-      Alert.alert("Success", "Password set successfully!", [
-        {
-          text: "Continue",
-          onPress: () => router.replace("/(app)"),
-        },
-      ]);
+        console.log(
+          "[SetPassword] SignUp status:",
+          result.status,
+          "sessionId:",
+          result.createdSessionId,
+        );
+
+        if (result.status === "complete" && result.createdSessionId) {
+          // Activate the session
+          await setActive({ session: result.createdSessionId });
+          console.log("[SetPassword] Session activated for invited user");
+          Alert.alert("Success", "Password set successfully!", [
+            { text: "Continue", onPress: () => router.replace("/(app)") },
+          ]);
+        } else {
+          console.log(
+            "[SetPassword] Status not complete, missing fields:",
+            result.missingFields,
+          );
+          Alert.alert(
+            "Error",
+            `Registration incomplete. Status: ${result.status}. Please contact support.`,
+          );
+        }
+      } else if (user) {
+        // Existing user flow: Update password directly
+        await user.updatePassword({
+          newPassword: password,
+        });
+
+        // Reload user to ensure passwordEnabled is updated
+        await user.reload();
+
+        Alert.alert("Success", "Password set successfully!", [
+          { text: "Continue", onPress: () => router.replace("/(app)") },
+        ]);
+      }
     } catch (err: any) {
       console.error("Set password error:", err);
       const errorMessage =
@@ -79,7 +254,7 @@ export default function SetPasswordPage() {
     }
   };
 
-  if (!isLoaded) {
+  if (!isUserLoaded || !isSignUpLoaded || isProcessingInvite) {
     return (
       <View
         style={{
@@ -90,15 +265,29 @@ export default function SetPasswordPage() {
         }}
       >
         <ActivityIndicator size="large" color="#FDB022" />
-        <Text style={{ color: "#94A3B8", marginTop: 16 }}>Loading...</Text>
+        <Text style={{ color: "#94A3B8", marginTop: 16 }}>
+          {isProcessingInvite ? "Processing invitation..." : "Loading..."}
+        </Text>
       </View>
     );
   }
 
-  // If no user (not authenticated), redirect to sign-in
-  if (!user) {
-    router.replace("/sign-in");
-    return null;
+  if (!isReady) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+          backgroundColor: "#0F172A",
+        }}
+      >
+        <ActivityIndicator size="large" color="#FDB022" />
+        <Text style={{ color: "#94A3B8", marginTop: 16 }}>
+          Initializing your account...
+        </Text>
+      </View>
+    );
   }
 
   return (
@@ -150,7 +339,7 @@ export default function SetPasswordPage() {
                 textAlign: "center",
               }}
             >
-              Welcome, {user.firstName || user.emailAddresses[0]?.emailAddress}
+              Welcome, {displayName || displayEmail}
             </Text>
             <Text
               style={{
@@ -166,6 +355,45 @@ export default function SetPasswordPage() {
 
           {/* Form */}
           <View style={{ marginBottom: 24 }}>
+            {/* Username - only shown for invite flow when required */}
+            {requiresUsername && (
+              <View style={{ marginBottom: 16 }}>
+                <Text
+                  style={{
+                    fontSize: 14,
+                    fontWeight: "600",
+                    color: "#F1F5F9",
+                    marginBottom: 8,
+                  }}
+                >
+                  Username
+                </Text>
+                <View
+                  style={{
+                    backgroundColor: "#1E293B",
+                    borderRadius: 12,
+                    borderWidth: 1,
+                    borderColor: "#334155",
+                  }}
+                >
+                  <TextInput
+                    value={username}
+                    onChangeText={setUsername}
+                    placeholder="Choose a username"
+                    placeholderTextColor="#64748B"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    style={{
+                      padding: 16,
+                      fontSize: 16,
+                      color: "#fff",
+                    }}
+                    editable={!isLoading}
+                  />
+                </View>
+              </View>
+            )}
+
             {/* Password */}
             <View style={{ marginBottom: 16 }}>
               <Text

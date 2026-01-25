@@ -66,7 +66,8 @@ export default function AppLayoutWeb() {
   const handleSignOut = async () => {
     try {
       await signOut();
-      router.replace("/sign-in");
+      // Use hard redirect to avoid race conditions with auth state
+      window.location.href = "/sign-in";
     } catch (error) {
       console.error("Sign out error:", error);
     }

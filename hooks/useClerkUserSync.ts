@@ -21,6 +21,8 @@ export function useClerkUserSync() {
 
   // Ref to track which clerk user ID we've already synced - prevents sync loops
   const syncedClerkIdRef = useRef<string | null>(null);
+  // Ref to prevent multiple sync attempts
+  const syncInProgressRef = useRef<boolean>(false);
 
   const {
     user: backendUser,
@@ -33,6 +35,16 @@ export function useClerkUserSync() {
       console.log("[UserSync] No Clerk user available");
       return;
     }
+
+    // Prevent multiple simultaneous sync calls
+    if (syncInProgressRef.current) {
+      console.log("[UserSync] Sync already in progress, skipping");
+      return;
+    }
+
+    // Mark this clerk user as synced to prevent duplicate syncs
+    syncedClerkIdRef.current = clerkUser.id;
+    syncInProgressRef.current = true;
 
     console.log("[UserSync] Starting sync for Clerk user:", clerkUser.id);
 
@@ -63,12 +75,17 @@ export function useClerkUserSync() {
     // Only sync if we have required data
     if (syncData.email && syncData.clerkUserId) {
       console.log("[UserSync] Dispatching syncUserWithBackend...");
-      const result = await dispatch(syncUserWithBackend(syncData));
-      console.log("[UserSync] Sync result:", result);
-      // Mark this clerk user as synced
-      syncedClerkIdRef.current = clerkUser.id;
+      try {
+        const result = await dispatch(syncUserWithBackend(syncData));
+        console.log("[UserSync] Sync result:", result);
+      } catch (err) {
+        console.error("[UserSync] Sync error:", err);
+      } finally {
+        syncInProgressRef.current = false;
+      }
     } else {
       console.log("[UserSync] Missing required data - email or clerkUserId");
+      syncInProgressRef.current = false;
     }
   }, [clerkUser, dispatch]);
 

@@ -21,6 +21,8 @@ export function useClerkUserSync() {
 
   // Ref to track if we've already synced for the current Clerk user
   const syncedClerkIdRef = useRef<string | null>(null);
+  // Ref to prevent multiple sync attempts
+  const syncInProgressRef = useRef<boolean>(false);
 
   const {
     user: backendUser,
@@ -34,31 +36,30 @@ export function useClerkUserSync() {
       return;
     }
 
+    // Prevent multiple simultaneous sync calls
+    if (syncInProgressRef.current) {
+      console.log("[UserSync Web] Sync already in progress, skipping");
+      return;
+    }
+
     // Mark this clerk user as synced to prevent duplicate syncs
     syncedClerkIdRef.current = clerkUser.id;
+    syncInProgressRef.current = true;
 
-    console.log("[UserSync Web] Starting sync for Clerk user:", clerkUser.id);
-    console.log(
-      "[UserSync Web] Full Clerk publicMetadata:",
-      JSON.stringify(clerkUser.publicMetadata, null, 2),
-    );
+    console.log("[UserSync Web] Syncing user:", clerkUser.id);
 
-    // Extract companyId and role from Clerk public metadata (set during invite)
+    // Extract companyId and role from Clerk metadata (set during invite)
+    // Try publicMetadata first, then unsafeMetadata as fallback
     const publicMetadata = clerkUser.publicMetadata as
       | { company_id?: number; role?: RoleEnum }
       | undefined;
+    const unsafeMetadata = clerkUser.unsafeMetadata as
+      | { company_id?: number; role?: RoleEnum }
+      | undefined;
 
-    console.log("[UserSync Web] Extracted publicMetadata:", publicMetadata);
-    const companyId = publicMetadata?.company_id ?? null;
-    const role = publicMetadata?.role ?? null;
-    console.log(
-      "[UserSync Web] Extracted companyId:",
-      companyId,
-      "(type:",
-      typeof companyId,
-      ")",
-    );
-    console.log("[UserSync Web] Extracted role:", role);
+    const companyId =
+      publicMetadata?.company_id ?? unsafeMetadata?.company_id ?? null;
+    const role = publicMetadata?.role ?? unsafeMetadata?.role ?? null;
 
     // Build sync request from Clerk user data
     const syncData: UserSyncRequest = {
@@ -75,75 +76,43 @@ export function useClerkUserSync() {
       role: role,
     };
 
-    console.log("[UserSync Web] Sync data:", JSON.stringify(syncData, null, 2));
-
     // Only sync if we have required data
     if (syncData.email && syncData.clerkUserId) {
-      console.log("[UserSync Web] Dispatching syncUserWithBackend...");
-      const result = await dispatch(syncUserWithBackend(syncData));
-      console.log("[UserSync Web] Sync result:", result);
+      try {
+        await dispatch(syncUserWithBackend(syncData));
+        console.log("[UserSync Web] Sync complete");
+      } catch (err) {
+        console.error("[UserSync Web] Sync failed:", err);
+      } finally {
+        syncInProgressRef.current = false;
+      }
     } else {
-      console.log(
-        "[UserSync Web] Missing required data - email or clerkUserId",
-      );
+      console.log("[UserSync Web] Missing required data");
+      syncInProgressRef.current = false;
     }
   }, [clerkUser, dispatch]);
 
   useEffect(() => {
-    // Wait for Clerk to load
-    if (!isAuthLoaded || !isUserLoaded) {
-      console.log("[UserSync Web] Waiting for Clerk to load...", {
-        isAuthLoaded,
-        isUserLoaded,
-      });
-      return;
-    }
-
-    // Wait for secure API to be initialized (needs token getter from Clerk)
-    if (!isSecureApiInitialized()) {
-      console.log("[UserSync Web] Waiting for secure API to initialize...");
-      return;
-    }
-
-    console.log("[UserSync Web] Clerk loaded. Checking auth state...", {
-      isSignedIn,
-      hasClerkUser: !!clerkUser,
-      hasBackendUser: !!backendUser,
-      syncedClerkId: syncedClerkIdRef.current,
-      clerkUserId: clerkUser?.id,
-    });
+    if (!isAuthLoaded || !isUserLoaded) return;
+    if (!isSecureApiInitialized()) return;
 
     if (isSignedIn && clerkUser) {
-      // Check if we already synced this clerk user (using ref to prevent loops)
-      if (syncedClerkIdRef.current === clerkUser.id) {
-        console.log("[UserSync Web] Already synced this clerk user, skipping");
-        return;
-      }
+      // Skip if already synced
+      if (syncedClerkIdRef.current === clerkUser.id) return;
+      if (isSyncing) return;
 
-      // Don't sync if already syncing
-      if (isSyncing) {
-        console.log("[UserSync Web] Already syncing, skipping");
-        return;
-      }
-
-      // Sync if: no backend user OR different clerk user
+      // Sync if no backend user or different clerk user
       const needsSync =
         !backendUser || backendUser.clerkUserId !== clerkUser.id;
-      console.log("[UserSync Web] Needs sync?", needsSync);
 
       if (needsSync) {
-        console.log("[UserSync Web] Triggering sync");
         syncUser();
       } else {
-        // Backend user exists and matches - mark as synced
         syncedClerkIdRef.current = clerkUser.id;
-        console.log("[UserSync Web] Backend user already synced");
       }
     } else if (!isSignedIn) {
-      // User signed out, clear synced ref and local auth
       syncedClerkIdRef.current = null;
       if (backendUser) {
-        console.log("[UserSync Web] User signed out, clearing local auth");
         dispatch(clearLocalAuth());
       }
     }

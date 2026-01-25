@@ -90,9 +90,7 @@ export default function SignUpWeb() {
                   borderRadius: "12px",
                 },
               }}
-              routing="virtual"
               signInUrl="/sign-in"
-              afterSignUpUrl="/(app)"
             />
           </div>
 
