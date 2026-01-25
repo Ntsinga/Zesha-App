@@ -88,7 +88,7 @@ export default function AddCashCountPage() {
           </View>
 
           {/* Shift Selection */}
-          <View className="flex-row space-x-3">
+          <View className="flex-row space-x-1" style={{ gap: 5 }}>
             {(["AM", "PM"] as ShiftEnum[]).map((s) => {
               const hasData = hasDataForShift(s);
               const isSelected = shift === s;
@@ -130,7 +130,7 @@ export default function AddCashCountPage() {
         {/* Denominations List */}
         <ScrollView
           className="flex-1"
-          contentContainerStyle={{ padding: 20, paddingBottom: 120 }}
+          contentContainerStyle={{ padding: 20, paddingBottom: 10 }}
         >
           {entries.map((entry, index) => {
             const qty = parseInt(entry.quantity || "0");
@@ -199,7 +199,7 @@ export default function AddCashCountPage() {
         </ScrollView>
 
         {/* Summary & Submit - Fixed at bottom */}
-        <View className="px-5 pb-6 pt-4 bg-white border-t border-gray-100">
+        <View className="my-9 px-5 pb-9 pt-4 bg-white border-t border-gray-100">
           {/* Summary */}
           <View className="flex-row justify-between mb-4">
             <View>
@@ -220,7 +220,7 @@ export default function AddCashCountPage() {
           <TouchableOpacity
             onPress={onSubmit}
             disabled={isSubmitting || filledEntries === 0}
-            className={`py-4 rounded-xl flex-row items-center justify-center space-x-2 ${
+            className={`mb-20 py-4 rounded-xl flex-row items-center justify-center space-x-2 ${
               isSubmitting || filledEntries === 0
                 ? "bg-gray-300"
                 : isEditing

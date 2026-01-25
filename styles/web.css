@@ -2120,13 +2120,13 @@ body {
 
 .action-buttons {
   display: flex;
-  gap: 8px;
+  gap: 10px;
 }
 
 .btn-icon-sm {
-  width: 32px;
-  height: 32px;
-  border-radius: 6px;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
   border: none;
   cursor: pointer;
   display: flex;
@@ -2155,6 +2155,13 @@ body {
   color: white;
 }
 
+.btn-icon-sm svg {
+  width: 20px !important;
+  height: 20px !important;
+  min-width: 20px;
+  min-height: 20px;
+}
+
 /* ============================================
    MODAL
    ============================================ */
@@ -2165,7 +2172,7 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2248,7 +2255,7 @@ body {
   margin-bottom: 20px;
 }
 
-.form-group label {
+.form-group label:not(.toggle) {
   display: block;
   font-size: 13px;
   font-weight: 500;
@@ -3060,10 +3067,11 @@ body {
 }
 
 .toggle {
-  display: flex;
+  display: flex !important;
   align-items: center;
   gap: var(--space-md);
   cursor: pointer;
+  user-select: none;
 }
 
 .toggle input {
@@ -3072,6 +3080,7 @@ body {
 
 .toggle-slider {
   position: relative;
+  flex-shrink: 0;
   width: 48px;
   height: 26px;
   background: var(--color-border);
@@ -3103,6 +3112,7 @@ body {
 .toggle-label {
   font-size: 14px;
   color: var(--color-text-secondary);
+  white-space: nowrap;
 }
 
 /* Type Buttons */
@@ -3240,7 +3250,16 @@ body {
    ============================================ */
 
 .modal-sm {
-  max-width: 400px;
+  max-width: 420px !important;
+  width: 100%;
+}
+
+.modal-sm .modal-form {
+  padding: var(--space-lg) var(--space-xl);
+}
+
+.modal-sm .form-group {
+  margin-bottom: var(--space-lg);
 }
 
 .modal-body {
@@ -3741,7 +3760,28 @@ body {
 .form-actions-right {
   display: flex;
   align-items: center;
-  gap: var(--space-md);
+  gap: var(--space-lg);
+}
+
+.form-total {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 8px 16px;
+  background: var(--color-bg);
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+}
+
+.form-total-label {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+}
+
+.form-total-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-text);
 }
 
 .form-summary {

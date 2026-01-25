@@ -61,6 +61,13 @@ export function useReconciliationScreen({
     };
   }, [dispatch, date, shift, backendUser?.companyId]);
 
+  // Load notes from reconciliation details when they're fetched
+  useEffect(() => {
+    if (reconciliationDetails?.reconciliation?.notes) {
+      setNotes(reconciliationDetails.reconciliation.notes);
+    }
+  }, [reconciliationDetails]);
+
   // Extract data from reconciliation detail
   const balances: Balance[] = reconciliationDetails?.balances || [];
   const cashCounts: CashCount[] = reconciliationDetails?.cashCounts || [];

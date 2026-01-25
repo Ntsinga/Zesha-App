@@ -23,13 +23,16 @@ export default function BalancePage() {
     setSelectedShift,
     hasAMShift,
     hasPMShift,
-    latestShift,
-    latestShiftTotal,
-    hasTodayCashCount,
     hasAMBalances,
     hasPMBalances,
-    latestBalanceShift,
-    hasTodayBalances,
+    hasAMCommissions,
+    hasPMCommissions,
+    hasSelectedCashCount,
+    hasSelectedBalances,
+    hasSelectedCommissions,
+    selectedShiftTotal,
+    selectedBalanceTotal,
+    selectedCommissionTotal,
     handleNavigateCashCount,
     handleNavigateAddBalance,
     handleNavigateCommissions,
@@ -42,7 +45,7 @@ export default function BalancePage() {
     const result = await handleCalculate();
     if (result?.success) {
       router.push(
-        `/reconciliation?date=${today}&shift=${selectedShift}` as any
+        `/reconciliation?date=${today}&shift=${selectedShift}` as any,
       );
     } else {
       alert(result?.error || "Failed to calculate reconciliation");
@@ -70,177 +73,239 @@ export default function BalancePage() {
 
       {/* Content */}
       <div className="dashboard-content">
-        <div className="balance-menu-grid">
-          {/* Cash Count Card */}
-          <div
-            className={`balance-menu-card ${
-              hasTodayCashCount ? "completed" : ""
-            }`}
-            onClick={handleNavigateCashCount}
-          >
-            <div
-              className={`balance-menu-icon ${
-                hasTodayCashCount ? "completed" : ""
-              }`}
-            >
-              {hasTodayCashCount ? (
-                <CheckCircle size={32} />
-              ) : (
-                <Banknote size={32} />
-              )}
-            </div>
-            <div className="balance-menu-content">
-              <div className="balance-menu-title-row">
-                <h3
-                  className={`balance-menu-title ${
-                    hasTodayCashCount ? "completed" : ""
+        {isLoading ? (
+          <div className="loading-container">
+            <div className="spinner"></div>
+            <p className="loading-text">Loading balance data...</p>
+          </div>
+        ) : (
+          <>
+            <div className="balance-menu-grid">
+              {/* Cash Count Card */}
+              <div
+                className={`balance-menu-card ${
+                  hasSelectedCashCount ? "completed" : ""
+                }`}
+                onClick={handleNavigateCashCount}
+              >
+                <div
+                  className={`balance-menu-icon ${
+                    hasSelectedCashCount ? "completed" : ""
                   }`}
                 >
-                  Cash Count
-                </h3>
-                <div className="shift-badges">
-                  {hasAMShift && (
-                    <span className="shift-badge completed">AM</span>
-                  )}
-                  {hasPMShift && (
-                    <span className="shift-badge completed">PM</span>
+                  {hasSelectedCashCount ? (
+                    <CheckCircle size={32} />
+                  ) : (
+                    <Banknote size={32} />
                   )}
                 </div>
+                <div className="balance-menu-content">
+                  <div className="balance-menu-title-row">
+                    <h3
+                      className={`balance-menu-title ${
+                        hasSelectedCashCount ? "completed" : ""
+                      }`}
+                    >
+                      Cash Count
+                    </h3>
+                    <div className="shift-badges">
+                      {hasAMShift && (
+                        <span className="shift-badge completed">AM</span>
+                      )}
+                      {hasPMShift && (
+                        <span className="shift-badge completed">PM</span>
+                      )}
+                    </div>
+                  </div>
+                  <p
+                    className={`balance-menu-description ${
+                      hasSelectedCashCount ? "completed" : ""
+                    }`}
+                  >
+                    {hasSelectedCashCount
+                      ? `${selectedShift} Total: ${formatCurrency(selectedShiftTotal)}`
+                      : "Count notes and coins by denomination"}
+                  </p>
+                </div>
+                <ChevronRight
+                  size={24}
+                  className={`balance-menu-arrow ${
+                    hasSelectedCashCount ? "completed" : ""
+                  }`}
+                />
               </div>
-              <p
-                className={`balance-menu-description ${
-                  hasTodayCashCount ? "completed" : ""
-                }`}
-              >
-                {hasTodayCashCount
-                  ? `${latestShift} Total: ${formatCurrency(latestShiftTotal)}`
-                  : "Count notes and coins by denomination"}
-              </p>
-            </div>
-            <ChevronRight
-              size={24}
-              className={`balance-menu-arrow ${
-                hasTodayCashCount ? "completed" : ""
-              }`}
-            />
-          </div>
 
-          {/* Add Balances Card */}
-          <div
-            className={`balance-menu-card ${
-              hasTodayBalances ? "completed" : ""
-            }`}
-            onClick={handleNavigateAddBalance}
-          >
-            <div
-              className={`balance-menu-icon balance ${
-                hasTodayBalances ? "completed" : ""
-              }`}
-            >
-              {hasTodayBalances ? (
-                <CheckCircle size={32} />
-              ) : (
-                <Wallet size={32} />
-              )}
-            </div>
-            <div className="balance-menu-content">
-              <div className="balance-menu-title-row">
-                <h3
-                  className={`balance-menu-title ${
-                    hasTodayBalances ? "completed" : ""
+              {/* Add Balances Card */}
+              <div
+                className={`balance-menu-card ${
+                  hasSelectedBalances ? "completed" : ""
+                }`}
+                onClick={handleNavigateAddBalance}
+              >
+                <div
+                  className={`balance-menu-icon balance ${
+                    hasSelectedBalances ? "completed" : ""
                   }`}
                 >
-                  Add Float Balances
-                </h3>
-                <div className="shift-badges">
-                  {hasAMBalances && (
-                    <span className="shift-badge completed">AM</span>
-                  )}
-                  {hasPMBalances && (
-                    <span className="shift-badge completed">PM</span>
+                  {hasSelectedBalances ? (
+                    <CheckCircle size={32} />
+                  ) : (
+                    <Wallet size={32} />
                   )}
                 </div>
+                <div className="balance-menu-content">
+                  <div className="balance-menu-title-row">
+                    <h3
+                      className={`balance-menu-title ${
+                        hasSelectedBalances ? "completed" : ""
+                      }`}
+                    >
+                      Add Float Balances
+                    </h3>
+                    <div className="shift-badges">
+                      {hasAMBalances && (
+                        <span className="shift-badge completed">AM</span>
+                      )}
+                      {hasPMBalances && (
+                        <span className="shift-badge completed">PM</span>
+                      )}
+                    </div>
+                  </div>
+                  <p
+                    className={`balance-menu-description ${
+                      hasSelectedBalances ? "completed" : ""
+                    }`}
+                  >
+                    {hasSelectedBalances
+                      ? `${selectedShift} Total: ${formatCurrency(selectedBalanceTotal)}`
+                      : "Add account balances with images"}
+                  </p>
+                </div>
+                <ChevronRight
+                  size={24}
+                  className={`balance-menu-arrow ${
+                    hasSelectedBalances ? "completed" : ""
+                  }`}
+                />
               </div>
-              <p
-                className={`balance-menu-description ${
-                  hasTodayBalances ? "completed" : ""
+
+              {/* Add Commissions Card */}
+              <div
+                className={`balance-menu-card ${
+                  hasSelectedCommissions ? "completed" : ""
+                }`}
+                onClick={handleNavigateCommissions}
+              >
+                <div
+                  className={`balance-menu-icon ${
+                    hasSelectedCommissions ? "completed" : "commission"
+                  }`}
+                >
+                  {hasSelectedCommissions ? (
+                    <CheckCircle size={32} />
+                  ) : (
+                    <Banknote size={32} />
+                  )}
+                </div>
+                <div className="balance-menu-content">
+                  <div className="balance-menu-title-row">
+                    <h3
+                      className={`balance-menu-title ${
+                        hasSelectedCommissions ? "completed" : ""
+                      }`}
+                    >
+                      Add Commissions
+                    </h3>
+                    <div className="shift-badges">
+                      {hasAMCommissions && (
+                        <span className="shift-badge completed">AM</span>
+                      )}
+                      {hasPMCommissions && (
+                        <span className="shift-badge completed">PM</span>
+                      )}
+                    </div>
+                  </div>
+                  <p
+                    className={`balance-menu-description ${
+                      hasSelectedCommissions ? "completed" : ""
+                    }`}
+                  >
+                    {hasSelectedCommissions
+                      ? `${selectedShift} Total: ${formatCurrency(selectedCommissionTotal)}`
+                      : "Record commission payments with images"}
+                  </p>
+                </div>
+                <ChevronRight
+                  size={24}
+                  className={`balance-menu-arrow ${
+                    hasSelectedCommissions ? "completed" : ""
+                  }`}
+                />
+              </div>
+            </div>
+
+            {/* Calculate Reconciliation Section */}
+            <div className="reconciliation-section-centered">
+              <h3 className="section-title-centered">
+                Calculate Reconciliation
+              </h3>
+              <p className="section-description-centered">
+                Select a shift and calculate the reconciliation to review
+                discrepancies
+              </p>
+
+              {/* Shift Selector */}
+              <div className="shift-selector-centered">
+                <button
+                  onClick={() => setSelectedShift("AM")}
+                  className={`shift-selector-btn ${
+                    selectedShift === "AM" ? "active" : ""
+                  }`}
+                >
+                  AM Shift
+                </button>
+                <button
+                  onClick={() => setSelectedShift("PM")}
+                  className={`shift-selector-btn ${
+                    selectedShift === "PM" ? "active" : ""
+                  }`}
+                >
+                  PM Shift
+                </button>
+              </div>
+
+              {/* Calculate Button */}
+              <button
+                onClick={handleCalculatePress}
+                disabled={
+                  isCalculating ||
+                  !hasSelectedCashCount ||
+                  !hasSelectedBalances ||
+                  !hasSelectedCommissions
+                }
+                className={`btn-calculate-centered ${
+                  isCalculating ||
+                  !hasSelectedCashCount ||
+                  !hasSelectedBalances ||
+                  !hasSelectedCommissions
+                    ? "loading"
+                    : ""
                 }`}
               >
-                {hasTodayBalances
-                  ? `${latestBalanceShift} - All accounts completed`
-                  : "Add account balances with images"}
-              </p>
+                <Calculator size={24} />
+                <span>
+                  {isCalculating
+                    ? "Calculating..."
+                    : !hasSelectedCashCount ||
+                        !hasSelectedBalances ||
+                        !hasSelectedCommissions
+                      ? "Complete All Steps First"
+                      : `Calculate ${selectedShift} Reconciliation`}
+                </span>
+              </button>
             </div>
-            <ChevronRight
-              size={24}
-              className={`balance-menu-arrow ${
-                hasTodayBalances ? "completed" : ""
-              }`}
-            />
-          </div>
-
-          {/* Add Commissions Card */}
-          <div
-            className="balance-menu-card"
-            onClick={handleNavigateCommissions}
-          >
-            <div className="balance-menu-icon commission">
-              <Banknote size={32} />
-            </div>
-            <div className="balance-menu-content">
-              <h3 className="balance-menu-title">Add Commissions</h3>
-              <p className="balance-menu-description">
-                Record commission payments with images
-              </p>
-            </div>
-            <ChevronRight size={24} className="balance-menu-arrow" />
-          </div>
-        </div>
-
-        {/* Calculate Reconciliation Section */}
-        <div className="reconciliation-section-centered">
-          <h3 className="section-title-centered">Calculate Reconciliation</h3>
-          <p className="section-description-centered">
-            Select a shift and calculate the reconciliation to review
-            discrepancies
-          </p>
-
-          {/* Shift Selector */}
-          <div className="shift-selector-centered">
-            <button
-              onClick={() => setSelectedShift("AM")}
-              className={`shift-selector-btn ${
-                selectedShift === "AM" ? "active" : ""
-              }`}
-            >
-              AM Shift
-            </button>
-            <button
-              onClick={() => setSelectedShift("PM")}
-              className={`shift-selector-btn ${
-                selectedShift === "PM" ? "active" : ""
-              }`}
-            >
-              PM Shift
-            </button>
-          </div>
-
-          {/* Calculate Button */}
-          <button
-            onClick={handleCalculatePress}
-            disabled={isCalculating}
-            className={`btn-calculate-centered ${
-              isCalculating ? "loading" : ""
-            }`}
-          >
-            <Calculator size={24} />
-            <span>
-              {isCalculating
-                ? "Calculating..."
-                : `Calculate ${selectedShift} Reconciliation`}
-            </span>
-          </button>
-        </div>
+          </>
+        )}
       </div>
     </div>
   );

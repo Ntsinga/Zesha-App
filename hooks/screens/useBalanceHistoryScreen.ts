@@ -1,9 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import {
-  fetchReconciliationHistory,
-  selectBalanceHistory,
-} from "../../store/slices/reconciliationsSlice";
+import { fetchReconciliationHistory } from "../../store/slices/reconciliationsSlice";
 import { useCurrencyFormatter } from "../useCurrency";
 import { formatDate } from "../../utils/formatters";
 import type { AppDispatch, RootState } from "../../store";
@@ -16,12 +13,31 @@ export function useBalanceHistoryScreen() {
   const dispatch = useDispatch<AppDispatch>();
   const { formatCurrency } = useCurrencyFormatter();
 
-  const history = useSelector((state: RootState) =>
-    selectBalanceHistory(state),
-  );
-  const { isLoading, error } = useSelector(
-    (state: RootState) => state.reconciliations,
-  );
+  // Use inline selector like other hooks do
+  const {
+    history: rawHistory,
+    isLoading,
+    error,
+  } = useSelector((state: RootState) => state.reconciliations);
+
+  // Transform history with safety check
+  const history = (rawHistory || []).map((item) => ({
+    id: item.id?.toString() || "",
+    date: item.date,
+    shift: item.shift,
+    totalFloat: item.totalFloat,
+    totalCash: item.totalCash,
+    totalCommissions: item.totalCommissions,
+    expectedClosing: item.expectedClosing,
+    actualClosing: item.actualClosing,
+    variance: item.variance,
+    status: item.status,
+    approvalStatus: item.approvalStatus,
+    reconciliationStatus: item.reconciliationStatus,
+    isFinalized: item.isFinalized,
+    reconciledBy: item.reconciledBy,
+    reconciledAt: item.reconciledAt,
+  }));
 
   const [refreshing, setRefreshing] = useState(false);
   const [filterShift, setFilterShift] = useState<"ALL" | "AM" | "PM">("ALL");
@@ -40,11 +56,14 @@ export function useBalanceHistoryScreen() {
   }, [dispatch]);
 
   // Filter history based on shift and date
-  const filteredHistory = history.filter((record) => {
-    const matchesShift = filterShift === "ALL" || record.shift === filterShift;
-    const matchesDate = !searchDate || record.date.includes(searchDate);
-    return matchesShift && matchesDate;
-  });
+  const filteredHistory = Array.isArray(history)
+    ? history.filter((record) => {
+        const matchesShift =
+          filterShift === "ALL" || record.shift === filterShift;
+        const matchesDate = !searchDate || record.date.includes(searchDate);
+        return matchesShift && matchesDate;
+      })
+    : [];
 
   // Calculate summary stats
   const totalRecords = filteredHistory.length;

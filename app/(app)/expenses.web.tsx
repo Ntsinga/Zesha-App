@@ -181,14 +181,14 @@ export default function ExpensesWeb() {
                           className="btn-icon-sm edit"
                           title="Edit"
                         >
-                          <Edit2 size={14} />
+                          <Edit2 size={24} />
                         </button>
                         <button
                           onClick={() => setDeleteConfirmId(expense.id)}
                           className="btn-icon-sm delete"
                           title="Delete"
                         >
-                          <Trash2 size={14} />
+                          <Trash2 size={24} />
                         </button>
                       </div>
                     </td>

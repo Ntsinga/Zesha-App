@@ -72,7 +72,7 @@ export default function BalanceDetailPage() {
   } = useReconciliationScreen({ date, shift });
 
   if (isLoading && !refreshing) {
-    return <LoadingSpinner message="Loading balance details..." />;
+    return <LoadingSpinner message="Loading reconciliation details..." />;
   }
 
   return (
@@ -107,7 +107,7 @@ export default function BalanceDetailPage() {
 
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ padding: 16 }}
+        contentContainerStyle={{ padding: 16, paddingBottom: 120 }}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
@@ -149,13 +149,13 @@ export default function BalanceDetailPage() {
           <View className="flex-row justify-between">
             <View>
               <Text className="text-red-900/70">Float</Text>
-              <Text className="text-xl font-bold text-red-900">
+              <Text className="text-l font-bold text-red-900">
                 {formatCurrency(totalFloat)}
               </Text>
             </View>
             <View className="items-end">
               <Text className="text-red-900/70">Cash</Text>
-              <Text className="text-xl font-bold text-red-900">
+              <Text className="text-l font-bold text-red-900">
                 {formatCurrency(totalCash)}
               </Text>
             </View>

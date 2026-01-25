@@ -12,7 +12,7 @@ const getApiBaseUrl = (): string => {
   // Development fallback - ngrok URL
   // WARNING: Update this when your ngrok URL changes
   if (__DEV__) {
-    return "https://19119bea17fa.ngrok-free.app";
+    return "https://032ca84d02e0.ngrok-free.app";
   }
 
   // Production fallback - should be set via environment variable
@@ -60,8 +60,10 @@ export const API_ENDPOINTS = {
     list: "/expenses/",
     create: "/expenses/",
     get: (id: number) => `/expenses/${id}`,
-    update: (id: number) => `/expenses/${id}`,
-    delete: (id: number) => `/expenses/${id}`,
+    update: (id: number, companyId: number) =>
+      `/expenses/${id}?company_id=${companyId}`,
+    delete: (id: number, companyId: number) =>
+      `/expenses/${id}?company_id=${companyId}`,
   },
 
   // Commissions

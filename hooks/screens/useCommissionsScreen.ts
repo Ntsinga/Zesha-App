@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import { fetchCommissions } from "../../store/slices/commissionsSlice";
 import { useCurrencyFormatter } from "../useCurrency";
 import { formatDate } from "../../utils/formatters";
@@ -30,9 +30,12 @@ export function useCommissionsScreen() {
   const [expandedDates, setExpandedDates] = useState<Set<string>>(new Set());
   const [filterShift, setFilterShift] = useState<ShiftEnum | "ALL">("ALL");
 
-  useEffect(() => {
-    dispatch(fetchCommissions({}));
-  }, [dispatch]);
+  // Refresh commissions when screen gains focus
+  useFocusEffect(
+    useCallback(() => {
+      dispatch(fetchCommissions({ forceRefresh: true }));
+    }, [dispatch]),
+  );
 
   // Refresh handler - forces cache bypass
   const onRefresh = async () => {

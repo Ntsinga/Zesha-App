@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import { CompanyInfo, CompanyInfoCreate, CompanyInfoUpdate } from "../../types";
+import { mapApiResponse } from "../../types";
 import { API_ENDPOINTS, buildQueryString } from "../../config/api";
 import { secureApiRequest } from "../../services/secureApi";
 
@@ -25,7 +26,8 @@ async function apiRequest<T>(
   endpoint: string,
   options?: RequestInit,
 ): Promise<T> {
-  return secureApiRequest<T>(endpoint, options);
+  const data = await secureApiRequest<any>(endpoint, options);
+  return mapApiResponse<T>(data);
 }
 
 // Async thunks

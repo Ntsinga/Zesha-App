@@ -115,7 +115,7 @@ export default function DashboardNative() {
                 <Text className="text-yellow-800 font-semibold text-sm uppercase mb-1">
                   Float
                 </Text>
-                <Text className="text-2xl font-bold text-yellow-900">
+                <Text className="text-l font-bold text-yellow-900">
                   {formatCurrency(totalFloat)}
                 </Text>
               </View>

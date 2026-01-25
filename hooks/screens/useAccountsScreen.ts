@@ -23,6 +23,7 @@ export function useAccountsScreen() {
   );
 
   const [refreshing, setRefreshing] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
   const [showTypeDropdown, setShowTypeDropdown] = useState(false);
@@ -88,6 +89,7 @@ export function useAccountsScreen() {
       };
     }
 
+    setIsSubmitting(true);
     try {
       if (editingAccount) {
         await dispatch(
@@ -97,10 +99,13 @@ export function useAccountsScreen() {
               name: name.trim(),
               accountType: accountType,
               isActive: isActive,
+              companyId: companyId,
             },
           }),
         ).unwrap();
 
+        // Force refresh accounts after update
+        await dispatch(fetchAccounts({ forceRefresh: true })).unwrap();
         closeModal();
         return { success: true, message: "Account updated successfully" };
       } else {
@@ -113,6 +118,8 @@ export function useAccountsScreen() {
           }),
         ).unwrap();
 
+        // Force refresh accounts after creation
+        await dispatch(fetchAccounts({ forceRefresh: true })).unwrap();
         closeModal();
         return { success: true, message: "Account created successfully" };
       }
@@ -122,6 +129,8 @@ export function useAccountsScreen() {
         message:
           error instanceof Error ? error.message : "Failed to save account",
       };
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -195,6 +204,7 @@ export function useAccountsScreen() {
     allAccounts: accounts,
     isLoading,
     refreshing,
+    isSubmitting,
     isModalOpen,
     editingAccount,
     showTypeDropdown,

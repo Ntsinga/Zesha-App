@@ -60,7 +60,7 @@ export function useDashboardScreen() {
   const handleShiftChange = useCallback(
     (shift: ShiftEnum) => {
       dispatch(setShift(shift));
-      dispatch(fetchDashboard({ shift }));
+      dispatch(fetchDashboard({ shift, forceRefresh: true }));
     },
     [dispatch],
   );

@@ -14,7 +14,7 @@ import {
   FlatList,
   ActivityIndicator,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import {
   ArrowLeft,
   Camera,
@@ -33,6 +33,8 @@ import * as ImagePicker from "expo-image-picker";
 import {
   createCommissionsBulk,
   fetchCommissions,
+  saveDraftEntries,
+  clearDraftEntries,
 } from "../../store/slices/commissionsSlice";
 import { fetchDashboard } from "../../store/slices/dashboardSlice";
 import { fetchAccounts } from "../../store/slices/accountsSlice";
@@ -74,17 +76,24 @@ const CARD_WIDTH = Dimensions.get("window").width * 0.75;
 export default function AddCommissionPage() {
   const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
+  const params = useLocalSearchParams();
+  const shiftFromParams = (params.shift as ShiftEnum) || "AM";
+
+  // Get companyId from auth state
+  const { user } = useSelector((state: RootState) => state.auth);
+  const companyId = user?.companyId;
 
   // Get accounts and commissions from Redux store
   const { items: accounts, isLoading: accountsLoading } = useSelector(
     (state: RootState) => state.accounts,
   );
 
-  const { items: commissions } = useSelector(
+  const { items: commissions, draftEntries } = useSelector(
     (state: RootState) => state.commissions,
   );
 
-  const [entries, setEntries] = useState<CommissionEntry[]>([
+  // Create stable initial entry outside of state to avoid recreation
+  const [entries, setEntries] = useState<CommissionEntry[]>(() => [
     createEmptyEntry(),
   ]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -94,36 +103,30 @@ export default function AddCommissionPage() {
   const [accountPickerVisible, setAccountPickerVisible] = useState<
     string | null
   >(null);
-  const [currentShift, setCurrentShift] = useState<ShiftEnum>("AM");
+  const [currentShift, setCurrentShift] = useState<ShiftEnum>(shiftFromParams);
   const [isInitialized, setIsInitialized] = useState(false);
 
   // Get today's date
   const today = new Date().toISOString().split("T")[0];
 
-  // Load accounts on mount
+  // Fetch accounts and commissions on mount - force refresh to get latest data
   useEffect(() => {
-    if (accounts.length === 0) {
-      dispatch(fetchAccounts({}));
-    }
-  }, [dispatch]);
-
-  // Load existing commissions for prepopulation
-  useEffect(() => {
-    dispatch(fetchCommissions({}));
-  }, [dispatch]);
+    dispatch(fetchAccounts({ isActive: true, forceRefresh: true }));
+    dispatch(
+      fetchCommissions({ dateFrom: today, dateTo: today, forceRefresh: true }),
+    );
+  }, [dispatch, today]);
 
   // Prepopulate entries with existing commissions for today's date and selected shift
   useEffect(() => {
+    if (isInitialized || accountsLoading) return;
+
     console.log("[AddCommission] Prepopulation check:", {
-      isInitialized,
-      accountsLoading,
-      accountsCount: accounts.length,
       commissionsCount: commissions.length,
       today,
       currentShift,
+      accountsLoaded: accounts.length,
     });
-
-    if (isInitialized || accountsLoading || accounts.length === 0) return;
 
     const activeAccounts = accounts.filter((acc) => acc.isActive);
 
@@ -135,64 +138,84 @@ export default function AddCommissionPage() {
     console.log("[AddCommission] Shift commissions:", {
       shift: currentShift,
       count: shiftCommissions.length,
+      commissions: shiftCommissions.map((c) => ({
+        accountId: c.accountId,
+        amount: c.amount,
+        date: c.date,
+      })),
     });
 
     if (shiftCommissions.length > 0) {
       // Create entries for accounts that have commissions
       const prepopulatedEntries: CommissionEntry[] = shiftCommissions.map(
-        (com) => ({
-          id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-          accountId: com.accountId,
-          accountName:
-            com.account?.name ||
-            accounts.find((acc) => acc.id === com.accountId)?.name ||
-            `Account ${com.accountId}`,
-          shift: currentShift,
-          amount: com.amount.toString(),
-          imageUrl: com.imageData
-            ? `data:image/jpeg;base64,${com.imageData}`
-            : "",
-          extractedBalance: com.amount,
-          isExtracting: false,
-          validationResult: {
-            isValid: true,
-            extractedBalance: com.amount,
-            inputBalance: com.amount,
-            difference: 0,
-            extractedAmount: com.amount,
-            enteredAmount: com.amount,
-            message: "Existing commission",
-          },
-        }),
+        (com) => {
+          // Get account name from relationship or find by id
+          let accountName = "";
+          if (com.account) {
+            accountName = com.account.name;
+          } else {
+            const account = accounts.find((acc) => acc.id === com.accountId);
+            accountName = account?.name || `Account ${com.accountId}`;
+          }
+
+          // Determine the image URL - prioritize imageData (base64) over imageUrl
+          let imageUri = "";
+          if (com.imageData) {
+            imageUri = `data:image/jpeg;base64,${com.imageData}`;
+          } else if (com.imageUrl) {
+            imageUri = com.imageUrl;
+          }
+
+          return {
+            id: `existing-${com.id}`,
+            accountId: com.accountId,
+            accountName: accountName,
+            shift: currentShift,
+            amount: com.amount.toString(),
+            imageUrl: imageUri,
+            extractedBalance: null,
+            isExtracting: false,
+            validationResult: null,
+          };
+        },
       );
 
-      // Add empty entries for accounts without commissions
-      const accountsWithCommissions = new Set(
-        shiftCommissions.map((com) => com.accountId),
+      console.log(
+        "[AddCommission] Prepopulating entries:",
+        prepopulatedEntries.length,
       );
-      const accountsWithoutCommissions = activeAccounts.filter(
-        (acc) => !accountsWithCommissions.has(acc.id),
+      setEntries(prepopulatedEntries);
+      setIsInitialized(true);
+    } else if (draftEntries.length > 0) {
+      // Load draft entries if no existing commissions
+      console.log(
+        "[AddCommission] Loading draft entries:",
+        draftEntries.length,
       );
-
-      const emptyEntries: CommissionEntry[] = accountsWithoutCommissions.map(
-        () => createEmptyEntry(),
-      );
-
-      setEntries([...prepopulatedEntries, ...emptyEntries]);
+      setEntries(draftEntries);
+      setIsInitialized(true);
     } else {
-      // No existing commissions, create empty entries for all active accounts
-      setEntries(activeAccounts.map(() => createEmptyEntry()));
+      console.log(
+        "[AddCommission] No existing commissions or drafts, initializing empty",
+      );
+      setIsInitialized(true);
     }
-
-    setIsInitialized(true);
   }, [
     commissions,
+    draftEntries,
     today,
     currentShift,
     isInitialized,
     accountsLoading,
     accounts,
   ]);
+
+  // Save draft entries to Redux whenever they change (only if not from existing commissions)
+  useEffect(() => {
+    if (isInitialized && !entries.some((e) => e.id.startsWith("existing-"))) {
+      dispatch(saveDraftEntries(entries));
+    }
+  }, [entries, dispatch, isInitialized]);
 
   // Request media library permissions
   const requestMediaLibraryPermission = async (): Promise<boolean> => {
@@ -208,101 +231,184 @@ export default function AddCommissionPage() {
     return true;
   };
 
-  const handleTakePicture = async (entryId: string) => {
+  // Update an entry field
+  const updateEntry = (
+    id: string,
+    field: keyof CommissionEntry,
+    value: any,
+  ) => {
+    setEntries((prev) =>
+      prev.map((entry) =>
+        entry.id === id ? { ...entry, [field]: value } : entry,
+      ),
+    );
+  };
+
+  // Extract commission from image and validate against user input
+  const extractAndValidateCommission = async (
+    entryId: string,
+    imageUri: string,
+  ) => {
+    // Set extracting state
+    setEntries((prev) =>
+      prev.map((entry) =>
+        entry.id === entryId
+          ? { ...entry, isExtracting: true, validationResult: null }
+          : entry,
+      ),
+    );
+
+    try {
+      console.log(
+        `[AddCommission] Calling extractBalanceFromImage for entry ${entryId}...`,
+      );
+      const result = await extractBalanceFromImage(imageUri, "commission");
+      console.log(`[AddCommission] Extraction result:`, result);
+
+      setEntries((prev) =>
+        prev.map((entry) => {
+          if (entry.id !== entryId) return entry;
+
+          const extractedBalance = result.balance;
+          console.log(
+            `[AddCommission] Extracted commission for entry ${entryId}:`,
+            extractedBalance,
+          );
+
+          // If user has already entered an amount, validate it against extracted balance
+          let validationResult: BalanceValidationResult | null = null;
+          if (
+            entry.amount.trim() &&
+            result.success &&
+            extractedBalance !== null
+          ) {
+            const inputBalance = parseFloat(entry.amount);
+            if (!isNaN(inputBalance)) {
+              validationResult = validateBalance(
+                extractedBalance,
+                inputBalance,
+              );
+              console.log(
+                `[AddCommission] Validation result:`,
+                validationResult,
+              );
+            }
+          }
+
+          return {
+            ...entry,
+            extractedBalance,
+            isExtracting: false,
+            validationResult,
+          };
+        }),
+      );
+
+      if (!result.success) {
+        console.warn(`[AddCommission] Extraction unsuccessful:`, result.error);
+        Alert.alert(
+          "Extraction Notice",
+          result.error ||
+            "Could not extract commission from image. Please verify manually.",
+        );
+      }
+    } catch (error) {
+      console.error(`[AddCommission] Exception during extraction:`, error);
+      setEntries((prev) =>
+        prev.map((entry) =>
+          entry.id === entryId ? { ...entry, isExtracting: false } : entry,
+        ),
+      );
+      Alert.alert(
+        "Extraction Error",
+        `Failed to extract commission: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`,
+      );
+    }
+  };
+
+  // Re-validate when amount changes (if image already has extracted balance)
+  const handleAmountChange = (entryId: string, value: string) => {
+    // Remove commas and spaces from input to get clean number
+    const cleanValue = value.replace(/[,\s]/g, "");
+
+    // Only allow valid number characters (digits and one decimal point)
+    if (cleanValue && !/^\d*\.?\d*$/.test(cleanValue)) {
+      return; // Reject invalid input
+    }
+
+    setEntries((prev) =>
+      prev.map((entry) => {
+        if (entry.id !== entryId) return entry;
+
+        const updatedEntry = { ...entry, amount: cleanValue };
+
+        // If we have an extracted balance and user entered an amount, validate
+        if (entry.extractedBalance !== null && cleanValue.trim()) {
+          const inputBalance = parseFloat(cleanValue);
+          if (!isNaN(inputBalance)) {
+            updatedEntry.validationResult = validateBalance(
+              entry.extractedBalance,
+              inputBalance,
+            );
+          }
+        } else {
+          updatedEntry.validationResult = null;
+        }
+
+        return updatedEntry;
+      }),
+    );
+
+    // Clear error for this field
+    if (errors[entryId]?.amount) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        if (newErrors[entryId]) {
+          delete newErrors[entryId].amount;
+        }
+        return newErrors;
+      });
+    }
+  };
+
+  // Show image picker options
+  const showImageOptions = (entryId: string) => {
+    Alert.alert("Add Image", "Choose an option", [
+      { text: "Take Photo", onPress: () => takePhoto(entryId) },
+      { text: "Choose from Library", onPress: () => pickImage(entryId) },
+      { text: "Cancel", style: "cancel" },
+    ]);
+  };
+
+  // Take photo with camera
+  const takePhoto = async (entryId: string) => {
     try {
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
-
       if (status !== "granted") {
         Alert.alert(
-          "Permission required",
-          "Camera permission is required to take pictures",
+          "Permission Required",
+          "Camera permission is needed to take photos.",
         );
         return;
       }
 
       const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: "images" as any,
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
+        aspect: [4, 3],
         quality: 0.8,
       });
 
       if (!result.canceled && result.assets[0]) {
         const imageUri = result.assets[0].uri;
-
-        setEntries((prev) =>
-          prev.map((entry) =>
-            entry.id === entryId
-              ? {
-                  ...entry,
-                  imageUrl: imageUri,
-                  isExtracting: true,
-                  validationResult: null,
-                }
-              : entry,
-          ),
-        );
-
-        try {
-          const result = await extractBalanceFromImage(imageUri, "commission");
-
-          setEntries((prev) =>
-            prev.map((entry) => {
-              if (entry.id !== entryId) return entry;
-
-              const extractedBalance = result.balance;
-
-              // If user has already entered an amount, validate it
-              let validationResult: BalanceValidationResult | null = null;
-              if (
-                entry.amount.trim() &&
-                result.success &&
-                extractedBalance !== null
-              ) {
-                const inputBalance = parseFloat(entry.amount);
-                if (!isNaN(inputBalance)) {
-                  validationResult = validateBalance(
-                    extractedBalance,
-                    inputBalance,
-                  );
-                }
-              }
-
-              return {
-                ...entry,
-                extractedBalance,
-                isExtracting: false,
-                validationResult,
-              };
-            }),
-          );
-
-          if (!result.success) {
-            Alert.alert(
-              "Extraction Notice",
-              result.error ||
-                "Could not extract commission from image. Please verify manually.",
-            );
-          }
-        } catch (error) {
-          console.error("Commission extraction failed:", error);
-          setEntries((prev) =>
-            prev.map((entry) =>
-              entry.id === entryId
-                ? { ...entry, isExtracting: false, extractedBalance: null }
-                : entry,
-            ),
-          );
-          Alert.alert(
-            "Extraction Error",
-            `Failed to extract commission: ${
-              error instanceof Error ? error.message : "Unknown error"
-            }`,
-          );
-        }
+        updateEntry(entryId, "imageUrl", imageUri);
+        // Extract commission from the image
+        await extractAndValidateCommission(entryId, imageUri);
       }
     } catch (error) {
-      console.error("Error taking picture:", error);
-      Alert.alert("Error", "Failed to take picture");
+      Alert.alert("Error", "Failed to take photo. Please try again.");
     }
   };
 
@@ -321,136 +427,33 @@ export default function AddCommissionPage() {
 
       if (!result.canceled && result.assets[0]) {
         const imageUri = result.assets[0].uri;
-
-        setEntries((prev) =>
-          prev.map((entry) =>
-            entry.id === entryId
-              ? {
-                  ...entry,
-                  imageUrl: imageUri,
-                  isExtracting: true,
-                  validationResult: null,
-                }
-              : entry,
-          ),
-        );
-
-        try {
-          const result = await extractBalanceFromImage(imageUri, "commission");
-
-          setEntries((prev) =>
-            prev.map((entry) => {
-              if (entry.id !== entryId) return entry;
-
-              const extractedBalance = result.balance;
-
-              // If user has already entered an amount, validate it
-              let validationResult: BalanceValidationResult | null = null;
-              if (
-                entry.amount.trim() &&
-                result.success &&
-                extractedBalance !== null
-              ) {
-                const inputBalance = parseFloat(entry.amount);
-                if (!isNaN(inputBalance)) {
-                  validationResult = validateBalance(
-                    extractedBalance,
-                    inputBalance,
-                  );
-                }
-              }
-
-              return {
-                ...entry,
-                extractedBalance,
-                isExtracting: false,
-                validationResult,
-              };
-            }),
-          );
-
-          if (!result.success) {
-            Alert.alert(
-              "Extraction Notice",
-              result.error ||
-                "Could not extract commission from image. Please verify manually.",
-            );
-          }
-        } catch (error) {
-          console.error("Commission extraction failed:", error);
-          setEntries((prev) =>
-            prev.map((entry) =>
-              entry.id === entryId
-                ? { ...entry, isExtracting: false, extractedBalance: null }
-                : entry,
-            ),
-          );
-          Alert.alert(
-            "Extraction Error",
-            `Failed to extract commission: ${
-              error instanceof Error ? error.message : "Unknown error"
-            }`,
-          );
-        }
+        updateEntry(entryId, "imageUrl", imageUri);
+        // Extract commission from the image
+        await extractAndValidateCommission(entryId, imageUri);
       }
     } catch (error) {
-      console.error("Error picking image:", error);
       Alert.alert("Error", "Failed to pick image. Please try again.");
     }
   };
 
-  // Show image picker options
-  const showImageOptions = (entryId: string) => {
-    Alert.alert("Add Image", "Choose an option", [
-      { text: "Take Photo", onPress: () => handleTakePicture(entryId) },
-      { text: "Choose from Library", onPress: () => pickImage(entryId) },
-      { text: "Cancel", style: "cancel" },
-    ]);
-  };
-
-  const handleAmountChange = async (entryId: string, value: string) => {
+  // Remove image from entry
+  const removeImage = (entryId: string) => {
     setEntries((prev) =>
       prev.map((entry) =>
         entry.id === entryId
-          ? { ...entry, amount: value, validationResult: null }
+          ? {
+              ...entry,
+              imageUrl: "",
+              extractedBalance: null,
+              validationResult: null,
+            }
           : entry,
       ),
     );
-
-    setErrors((prev) => {
-      const newErrors = { ...prev };
-      if (newErrors[entryId]) {
-        delete newErrors[entryId].amount;
-        if (Object.keys(newErrors[entryId]).length === 0) {
-          delete newErrors[entryId];
-        }
-      }
-      return newErrors;
-    });
-
-    const entry = entries.find((e) => e.id === entryId);
-    if (entry && entry.extractedBalance !== null && value) {
-      try {
-        const enteredAmount = parseFloat(value);
-        if (!isNaN(enteredAmount)) {
-          const result = await validateBalance(
-            entry.extractedBalance,
-            enteredAmount,
-          );
-
-          setEntries((prev) =>
-            prev.map((e) =>
-              e.id === entryId ? { ...e, validationResult: result } : e,
-            ),
-          );
-        }
-      } catch (error) {
-        console.error("Validation error:", error);
-      }
-    }
   };
 
-  const handleAccountSelect = (entryId: string, account: Account) => {
+  // Select account for entry
+  const selectAccount = (entryId: string, account: Account) => {
     setEntries((prev) =>
       prev.map((entry) =>
         entry.id === entryId
@@ -520,13 +523,10 @@ export default function AddCommissionPage() {
         isValid = false;
       }
 
-      if (
-        entry.validationResult &&
-        !entry.validationResult.isValid &&
-        entry.extractedBalance !== null
-      ) {
-        entryErrors.validation =
-          entry.validationResult.message || "Validation failed";
+      // Check for commission mismatch
+      if (entry.validationResult && !entry.validationResult.isValid) {
+        entryErrors.validation = "Commission mismatch";
+        isValid = false;
       }
 
       if (Object.keys(entryErrors).length > 0) {
@@ -535,17 +535,24 @@ export default function AddCommissionPage() {
     });
 
     setErrors(newErrors);
+
+    // Show specific alert for commission mismatches
+    const mismatchedEntries = entries.filter(
+      (e) => e.validationResult && !e.validationResult.isValid,
+    );
+    if (mismatchedEntries.length > 0) {
+      Alert.alert(
+        "Commission Mismatch Detected",
+        "One or more commissions don't match the extracted values from images. Please verify and correct the amounts before saving.",
+        [{ text: "OK" }],
+      );
+    }
+
     return isValid;
   };
 
   const handleSubmit = async () => {
-    if (!validateEntries()) {
-      Alert.alert(
-        "Validation Error",
-        "Please fix all errors before submitting",
-      );
-      return;
-    }
+    if (!validateEntries()) return;
 
     try {
       setIsSubmitting(true);
@@ -578,7 +585,7 @@ export default function AddCommissionPage() {
             amount: parseFloat(entry.amount),
             date: new Date().toISOString().split("T")[0],
             imageData: imageData,
-            companyId: 0, // Will be set by backend from auth
+            companyId: companyId || 0,
             // source defaults to "mobile_app" on backend
           };
 
@@ -597,12 +604,18 @@ export default function AddCommissionPage() {
       ).unwrap();
       console.log("[AddCommission] Commission creation result:", result);
 
-      // Refresh dashboard
-      console.log("[AddCommission] Refreshing dashboard...");
-      await dispatch(fetchDashboard({})).unwrap();
-      console.log("[AddCommission] Dashboard refreshed");
+      // Refresh dashboard and commissions list
+      console.log("[AddCommission] Refreshing dashboard and commissions...");
+      await Promise.all([
+        dispatch(fetchDashboard({})).unwrap(),
+        dispatch(fetchCommissions({ forceRefresh: true })).unwrap(),
+      ]);
+      console.log("[AddCommission] Data refreshed");
 
-      Alert.alert("Success", "Commissions saved successfully", [
+      // Clear draft entries after successful submission
+      dispatch(clearDraftEntries());
+
+      Alert.alert("Success", "Commissions submitted successfully", [
         {
           text: "OK",
           onPress: () => router.back(),
@@ -655,6 +668,7 @@ export default function AddCommissionPage() {
                 onPress={() => {
                   setCurrentShift("AM");
                   setIsInitialized(false);
+                  setEntries([createEmptyEntry()]);
                 }}
                 className={`flex-1 py-3 rounded-lg ${
                   currentShift === "AM" ? "bg-brand-gold" : "bg-transparent"
@@ -672,6 +686,7 @@ export default function AddCommissionPage() {
                 onPress={() => {
                   setCurrentShift("PM");
                   setIsInitialized(false);
+                  setEntries([createEmptyEntry()]);
                 }}
                 className={`flex-1 py-3 rounded-lg ${
                   currentShift === "PM" ? "bg-brand-gold" : "bg-transparent"
@@ -693,7 +708,7 @@ export default function AddCommissionPage() {
         <ScrollView
           className="flex-1 px-4"
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingVertical: 16 }}
+          contentContainerStyle={{ paddingVertical: 16, paddingBottom: 240 }}
         >
           {entries.map((entry, index) => (
             <View key={entry.id} className="mb-6">
@@ -754,7 +769,7 @@ export default function AddCommissionPage() {
                     }
                     placeholder="0.00"
                     keyboardType="decimal-pad"
-                    className={`p-4 rounded-xl border text-lg ${
+                    className={`p-4 rounded-xl border text-lg text-gray-900 ${
                       errors[entry.id]?.amount
                         ? "border-red-300 bg-red-50"
                         : "border-gray-200 bg-gray-50"
@@ -791,6 +806,15 @@ export default function AddCommissionPage() {
                       </Text>
                     </View>
                   )}
+
+                  {/* Show extracted balance if available but no validation yet */}
+                  {entry.extractedBalance !== null &&
+                    !entry.validationResult && (
+                      <Text className="text-gray-500 text-sm mt-2">
+                        Extracted from image: R{" "}
+                        {entry.extractedBalance.toLocaleString()}
+                      </Text>
+                    )}
                 </View>
 
                 {/* Image Section */}
@@ -818,6 +842,17 @@ export default function AddCommissionPage() {
                           </Text>
                         </View>
                       )}
+
+                      {/* Extraction status badge - Green checkmark with amount */}
+                      {!entry.isExtracting &&
+                        entry.extractedBalance !== null && (
+                          <View className="absolute top-2 left-2 bg-green-500 px-3 py-1.5 rounded-full flex-row items-center">
+                            <CheckCircle color="white" size={14} />
+                            <Text className="text-white text-sm ml-1 font-semibold">
+                              R {entry.extractedBalance.toLocaleString()}
+                            </Text>
+                          </View>
+                        )}
 
                       {/* Retake Button */}
                       <TouchableOpacity
@@ -876,31 +911,37 @@ export default function AddCommissionPage() {
           </TouchableOpacity>
         </ScrollView>
 
-        {/* Submit Button */}
-        <View className="p-4 bg-white border-t border-gray-100">
+        {/* Total and Submit Button - Fixed at bottom */}
+        <View className="my-20 px-5 pb-6 pt-2 bg-gray-50">
+          {/* Total Display */}
+          <View className="flex-row justify-between items-center mb-3 px-2">
+            <Text className="text-gray-600 font-medium">Total Commission:</Text>
+            <Text className="text-xl font-bold text-gray-900">
+              UGX{" "}
+              {entries
+                .reduce(
+                  (sum, entry) => sum + (parseFloat(entry.amount) || 0),
+                  0,
+                )
+                .toLocaleString()}
+            </Text>
+          </View>
+
           <TouchableOpacity
             onPress={handleSubmit}
             disabled={isSubmitting}
-            className={`flex-row items-center justify-center p-4 rounded-xl ${
+            className={`py-4 rounded-xl flex-row items-center justify-center space-x-2 ${
               isSubmitting ? "bg-gray-400" : "bg-brand-gold"
             }`}
           >
-            {isSubmitting ? (
-              <>
-                <ActivityIndicator color="#FFF" className="mr-2" />
-                <Text className="text-white font-semibold text-lg">
-                  Saving...
-                </Text>
-              </>
-            ) : (
-              <>
-                <Save color="#FFF" size={20} />
-                <Text className="text-white font-semibold text-lg ml-2">
-                  Save {entries.length} Commission
-                  {entries.length !== 1 ? "s" : ""}
-                </Text>
-              </>
-            )}
+            <Save color="white" size={20} />
+            <Text className="text-white font-bold text-base ml-2">
+              {isSubmitting
+                ? "Submitting..."
+                : `Submit ${entries.length} Commission${
+                    entries.length > 1 ? "s" : ""
+                  }`}
+            </Text>
           </TouchableOpacity>
         </View>
 
@@ -936,7 +977,7 @@ export default function AddCommissionPage() {
                   <TouchableOpacity
                     onPress={() =>
                       accountPickerVisible &&
-                      handleAccountSelect(accountPickerVisible, item)
+                      selectAccount(accountPickerVisible, item)
                     }
                     className="p-4 border-b border-gray-100"
                   >

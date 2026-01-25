@@ -19,6 +19,7 @@ export interface CommissionsState {
   error: string | null;
   lastFetched: number | null;
   filters: CommissionFilters;
+  draftEntries: any[];
 }
 
 const initialState: CommissionsState = {
@@ -29,6 +30,7 @@ const initialState: CommissionsState = {
   error: null,
   lastFetched: null,
   filters: {},
+  draftEntries: [],
 };
 
 // API helper - now uses secure authenticated requests
@@ -144,21 +146,36 @@ export const createCommissionsBulk = createAsyncThunk<
       "[CommissionsSlice] Bulk create payload:",
       JSON.stringify({ commissions: mapApiRequest(data) }, null, 2),
     );
-    const response = await apiRequest<{ commissions: Commission[] }>(
-      API_ENDPOINTS.commissions.bulk,
-      {
-        method: "POST",
-        body: JSON.stringify({ commissions: mapApiRequest(data) }),
-      },
-    );
+    const response = await apiRequest<
+      Commission[] | { commissions: Commission[] }
+    >(API_ENDPOINTS.commissions.bulk, {
+      method: "POST",
+      body: JSON.stringify({ commissions: mapApiRequest(data) }),
+    });
     console.log("[CommissionsSlice] Bulk create response:", response);
+    console.log("[CommissionsSlice] Response type:", typeof response);
+    console.log("[CommissionsSlice] Is array:", Array.isArray(response));
+    if (response && typeof response === "object" && !Array.isArray(response)) {
+      console.log("[CommissionsSlice] Response keys:", Object.keys(response));
+    }
 
-    if (!response || !response.commissions) {
+    // Backend may return array directly or wrapped in { commissions: [] }
+    if (Array.isArray(response)) {
+      console.log(
+        "[CommissionsSlice] Returning direct array, length:",
+        response.length,
+      );
+      return response;
+    } else if (response && Array.isArray(response.commissions)) {
+      console.log(
+        "[CommissionsSlice] Returning wrapped array, length:",
+        response.commissions.length,
+      );
+      return response.commissions;
+    } else {
       console.error("[CommissionsSlice] Invalid response structure:", response);
       throw new Error("Invalid response from server");
     }
-
-    return response.commissions;
   } catch (error) {
     console.error("[CommissionsSlice] Bulk create error:", error);
     return rejectWithValue(
@@ -221,6 +238,12 @@ const commissionsSlice = createSlice({
     },
     clearSelectedCommission: (state) => {
       state.selectedCommission = null;
+    },
+    saveDraftEntries: (state, action: PayloadAction<any[]>) => {
+      state.draftEntries = action.payload;
+    },
+    clearDraftEntries: (state) => {
+      state.draftEntries = [];
     },
   },
   extraReducers: (builder) => {
@@ -348,6 +371,12 @@ const commissionsSlice = createSlice({
   },
 });
 
-export const { clearError, setFilters, clearFilters, clearSelectedCommission } =
-  commissionsSlice.actions;
+export const {
+  clearError,
+  setFilters,
+  clearFilters,
+  clearSelectedCommission,
+  saveDraftEntries,
+  clearDraftEntries,
+} = commissionsSlice.actions;
 export default commissionsSlice.reducer;
