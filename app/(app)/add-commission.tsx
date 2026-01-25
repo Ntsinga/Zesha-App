@@ -32,6 +32,7 @@ import { useDispatch, useSelector } from "react-redux";
 import * as ImagePicker from "expo-image-picker";
 import {
   createCommissionsBulk,
+  updateCommissionsBulk,
   fetchCommissions,
   saveDraftEntries,
   clearDraftEntries,
@@ -551,58 +552,116 @@ export default function AddCommissionPage() {
     return isValid;
   };
 
+  // Check if we have existing entries (for update vs create)
+  const hasExistingEntries = entries.some((e) => e.id.startsWith("existing-"));
+
   const handleSubmit = async () => {
     if (!validateEntries()) return;
 
     try {
       setIsSubmitting(true);
 
-      // Convert image URIs to base64
-      const commissionsWithImages = await Promise.all(
-        entries.map(async (entry) => {
-          let imageData: string | undefined;
+      // Separate entries into existing (to update) vs new (to create)
+      const existingEntries = entries.filter((e) =>
+        e.id.startsWith("existing-"),
+      );
+      const newEntries = entries.filter((e) => !e.id.startsWith("existing-"));
 
-          if (entry.imageUrl) {
-            // Check if it's already base64 (from prepopulated data)
-            if (entry.imageUrl.startsWith("data:image")) {
-              // Extract base64 part
-              imageData = entry.imageUrl.split(",")[1];
-            } else {
-              // Read from file system for new images
-              const base64 = await FileSystem.readAsStringAsync(
-                entry.imageUrl,
-                {
-                  encoding: FileSystem.EncodingType.Base64,
-                },
-              );
-              imageData = base64;
+      let totalCreated = 0;
+      let totalUpdated = 0;
+      let totalFailed = 0;
+
+      // Handle updates for existing entries
+      if (existingEntries.length > 0) {
+        const updateDataArray = await Promise.all(
+          existingEntries.map(async (entry) => {
+            // Extract the numeric id from "existing-{id}"
+            const numericId = parseInt(entry.id.replace("existing-", ""), 10);
+
+            let imageData: string | undefined;
+
+            if (entry.imageUrl) {
+              // Check if it's already base64 (from prepopulated data)
+              if (entry.imageUrl.startsWith("data:image")) {
+                imageData = entry.imageUrl.split(",")[1];
+              } else {
+                // Read from file system for new images
+                const base64 = await FileSystem.readAsStringAsync(
+                  entry.imageUrl,
+                  {
+                    encoding: FileSystem.EncodingType.Base64,
+                  },
+                );
+                imageData = base64;
+              }
             }
-          }
 
-          const commission: CommissionCreate = {
-            accountId: entry.accountId!,
-            shift: currentShift,
-            amount: parseFloat(entry.amount),
-            date: new Date().toISOString().split("T")[0],
-            imageData: imageData,
-            companyId: companyId || 0,
-            // source defaults to "mobile_app" on backend
-          };
+            return {
+              id: numericId,
+              accountId: entry.accountId!,
+              shift: currentShift,
+              amount: parseFloat(entry.amount),
+              imageData: imageData,
+            };
+          }),
+        );
 
-          return commission;
-        }),
-      );
+        const updateResult = await dispatch(
+          updateCommissionsBulk({ commissions: updateDataArray }),
+        ).unwrap();
 
-      // Use bulk create endpoint
-      console.log(
-        "[AddCommission] Submitting commissions:",
-        JSON.stringify(commissionsWithImages, null, 2),
-      );
+        totalUpdated = updateResult.totalUpdated;
+        totalFailed += updateResult.totalFailed;
+      }
 
-      const result = await dispatch(
-        createCommissionsBulk(commissionsWithImages),
-      ).unwrap();
-      console.log("[AddCommission] Commission creation result:", result);
+      // Handle creates for new entries
+      if (newEntries.length > 0) {
+        const commissionsWithImages = await Promise.all(
+          newEntries.map(async (entry) => {
+            let imageData: string | undefined;
+
+            if (entry.imageUrl) {
+              // Check if it's already base64 (from prepopulated data)
+              if (entry.imageUrl.startsWith("data:image")) {
+                imageData = entry.imageUrl.split(",")[1];
+              } else {
+                // Read from file system for new images
+                const base64 = await FileSystem.readAsStringAsync(
+                  entry.imageUrl,
+                  {
+                    encoding: FileSystem.EncodingType.Base64,
+                  },
+                );
+                imageData = base64;
+              }
+            }
+
+            const commission: CommissionCreate = {
+              accountId: entry.accountId!,
+              shift: currentShift,
+              amount: parseFloat(entry.amount),
+              date: new Date().toISOString().split("T")[0],
+              imageData: imageData,
+              companyId: companyId || 0,
+            };
+
+            return commission;
+          }),
+        );
+
+        console.log(
+          "[AddCommission] Submitting new commissions:",
+          JSON.stringify(commissionsWithImages, null, 2),
+        );
+
+        const result = await dispatch(
+          createCommissionsBulk(commissionsWithImages),
+        ).unwrap();
+        console.log("[AddCommission] Commission creation result:", result);
+
+        // createCommissionsBulk returns Commission[], count the successes
+        totalCreated = Array.isArray(result) ? result.length : 0;
+      }
 
       // Refresh dashboard and commissions list
       console.log("[AddCommission] Refreshing dashboard and commissions...");
@@ -615,12 +674,28 @@ export default function AddCommissionPage() {
       // Clear draft entries after successful submission
       dispatch(clearDraftEntries());
 
-      Alert.alert("Success", "Commissions submitted successfully", [
-        {
-          text: "OK",
-          onPress: () => router.back(),
-        },
-      ]);
+      // Build success message
+      const operations: string[] = [];
+      if (totalCreated > 0)
+        operations.push(
+          `${totalCreated} commission${totalCreated > 1 ? "s" : ""} created`,
+        );
+      if (totalUpdated > 0)
+        operations.push(
+          `${totalUpdated} commission${totalUpdated > 1 ? "s" : ""} updated`,
+        );
+
+      if (totalFailed > 0) {
+        Alert.alert(
+          "Partial Success",
+          `${operations.join(", ")}. ${totalFailed} failed.`,
+          [{ text: "OK", onPress: () => router.back() }],
+        );
+      } else {
+        Alert.alert("Success", `Successfully ${operations.join(" and ")}!`, [
+          { text: "OK", onPress: () => router.back() },
+        ]);
+      }
     } catch (error: any) {
       console.error("[AddCommission] Error saving commissions:", error);
       console.error("[AddCommission] Error stack:", error?.stack);
@@ -937,10 +1012,16 @@ export default function AddCommissionPage() {
             <Save color="white" size={20} />
             <Text className="text-white font-bold text-base ml-2">
               {isSubmitting
-                ? "Submitting..."
-                : `Submit ${entries.length} Commission${
-                    entries.length > 1 ? "s" : ""
-                  }`}
+                ? hasExistingEntries
+                  ? "Updating..."
+                  : "Submitting..."
+                : hasExistingEntries
+                  ? `Update ${entries.length} Commission${
+                      entries.length > 1 ? "s" : ""
+                    }`
+                  : `Submit ${entries.length} Commission${
+                      entries.length > 1 ? "s" : ""
+                    }`}
             </Text>
           </TouchableOpacity>
         </View>

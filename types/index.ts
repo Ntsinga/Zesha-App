@@ -25,6 +25,7 @@ export {
   type PaginatedResponse,
   type ApiError,
   type BulkOperationResponse,
+  type BulkUpdateOperationResponse,
 } from "./base";
 
 // ============= User Types =============
@@ -56,6 +57,9 @@ export {
   type BalanceFilters,
   type BulkBalanceCreate,
   type BulkBalanceResponse,
+  type BalanceItemUpdate,
+  type BulkBalanceUpdate,
+  type BulkBalanceUpdateResponse,
   type DraftBalanceEntry,
   type BalanceValidationResult,
 } from "./balance";
@@ -67,6 +71,9 @@ export {
   type CommissionUpdate,
   type CommissionFilters,
   type CommissionBreakdown,
+  type CommissionItemUpdate,
+  type BulkCommissionUpdate,
+  type BulkCommissionUpdateResponse,
 } from "./commission";
 
 // ============= Expense Types =============

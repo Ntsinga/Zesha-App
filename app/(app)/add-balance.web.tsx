@@ -37,6 +37,7 @@ export default function AddBalanceWeb() {
     activeAccounts,
     missingAccounts,
     getAvailableAccounts,
+    hasExistingEntries,
     handleAmountChange,
     selectAccount,
     addEntry,
@@ -427,12 +428,12 @@ export default function AddBalanceWeb() {
               {isSubmitting ? (
                 <>
                   <Loader2 className="spinning" size={18} />
-                  Submitting...
+                  {hasExistingEntries ? "Updating..." : "Submitting..."}
                 </>
               ) : (
                 <>
                   <Save size={18} />
-                  Submit Balances
+                  {hasExistingEntries ? "Update Balances" : "Submit Balances"}
                 </>
               )}
             </button>

@@ -34,6 +34,7 @@ export default function AddCommissionWeb() {
     accountPickerVisible,
     activeAccounts,
     getAvailableAccounts,
+    hasExistingEntries,
     handleAmountChange,
     selectAccount,
     addEntry,
@@ -400,12 +401,14 @@ export default function AddCommissionWeb() {
               {isSubmitting ? (
                 <>
                   <Loader2 className="spinning" size={18} />
-                  Saving...
+                  {hasExistingEntries ? "Updating..." : "Saving..."}
                 </>
               ) : (
                 <>
                   <Save size={18} />
-                  Save Commissions
+                  {hasExistingEntries
+                    ? "Update Commissions"
+                    : "Save Commissions"}
                 </>
               )}
             </button>

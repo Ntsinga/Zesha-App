@@ -32,7 +32,7 @@ export default function CommissionsPage() {
     formatDate,
   } = useCommissionsScreen();
 
-  if (isLoading && filteredCommissions.length === 0) {
+  if (isLoading) {
     return (
       <div className="page-wrapper">
         <div className="loading-container">

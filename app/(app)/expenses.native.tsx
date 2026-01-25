@@ -119,7 +119,7 @@ export default function Expenses() {
     setShowCategoryPicker(false);
   };
 
-  if (isLoading && !refreshing && expenses.length === 0) {
+  if (isLoading && !refreshing) {
     return <LoadingSpinner message="Loading expenses..." />;
   }
 

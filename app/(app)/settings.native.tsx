@@ -199,7 +199,7 @@ export default function Settings() {
     }
   };
 
-  if (isLoading && !refreshing && !company) {
+  if (isLoading && !refreshing) {
     return <LoadingSpinner message="Loading settings..." />;
   }
 
