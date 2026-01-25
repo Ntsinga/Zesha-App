@@ -9,7 +9,7 @@ import { useAppDispatch } from "../store/hooks";
 import { initializeAuth } from "../store/slices/authSlice";
 import { ClerkProvider, useAuth, useUser } from "@clerk/clerk-expo";
 import { tokenCache } from "@clerk/clerk-expo/token-cache";
-import { useRouter, useSegments } from "expo-router";
+import { useRouter, useSegments, useLocalSearchParams } from "expo-router";
 import { ActivityIndicator, View } from "react-native";
 import { useClerkUserSync } from "../hooks/useClerkUserSync";
 import { initializeSecureApi } from "../services/secureApi";
@@ -21,6 +21,7 @@ function AppContent() {
   const { user } = useUser();
   const router = useRouter();
   const segments = useSegments();
+  const params = useLocalSearchParams();
   const [isSecureApiReady, setIsSecureApiReady] = useState(false);
 
   // Initialize secure API with Clerk token getter FIRST
@@ -46,6 +47,36 @@ function AppContent() {
     // Type assertion to handle segments array properly
     const authSegments = segments as string[];
     const isOnSetPassword = authSegments[1] === "set-password";
+    const isOnWelcome = authSegments[1] === "welcome";
+    const isOnSignUp = authSegments[1] === "sign-up";
+
+    console.log("[Layout] Auth state:", {
+      isSignedIn,
+      hasUser: !!user,
+      passwordEnabled: user?.passwordEnabled,
+      segments: authSegments,
+    });
+
+    // Check for invite ticket in URL params
+    const hasInviteTicket = !!params.__clerk_ticket;
+
+    // If there's an invite ticket and not on set-password, redirect to set-password
+    // Invited users are already created in Clerk - they just need to set their password
+    if (hasInviteTicket && !isOnSetPassword) {
+      console.log(
+        "[Layout] Invite ticket detected, redirecting to set-password",
+      );
+      router.replace({
+        pathname: "/(auth)/set-password",
+        params: { __clerk_ticket: params.__clerk_ticket as string },
+      });
+      return;
+    }
+
+    // Allow unauthenticated access to welcome, sign-up, and set-password for invite flow
+    if (!isSignedIn && (isOnWelcome || isOnSignUp || isOnSetPassword)) {
+      return; // Don't redirect, allow these pages during invite flow
+    }
 
     // Check if authenticated user needs to set password
     if (isSignedIn && user && !user.passwordEnabled) {
@@ -63,10 +94,14 @@ function AppContent() {
       // Redirect to app if authenticated with password and in auth group
       router.replace("/(app)");
     }
-  }, [isSignedIn, isLoaded, user, segments, router]);
+  }, [isSignedIn, isLoaded, user?.passwordEnabled, segments, router]);
 
-  // Show loading spinner while Clerk is loading, secure API initializing, or syncing user
-  if (!isLoaded || !isSecureApiReady || isSyncing) {
+  // Determine if we're on an auth page
+  const inAuthGroup = segments[0] === "(auth)";
+
+  // Show loading spinner while Clerk is loading or secure API initializing
+  // Don't block on isSyncing for auth pages - let them render while sync happens in background
+  if (!isLoaded || !isSecureApiReady || (isSyncing && !inAuthGroup)) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
         <ActivityIndicator size="large" color="#C62828" />

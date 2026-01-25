@@ -210,8 +210,12 @@ export default function DashboardNative() {
 
               {/* Variance */}
               <View className="border-t border-gray-100 pt-4 mt-2">
-                <View className="bg-red-50 rounded-2xl p-4 flex-row justify-between items-center">
-                  <Text className="text-red-600 font-bold text-lg">
+                <View
+                  className={`${capitalVariance >= 0 ? "bg-green-50" : "bg-red-50"} rounded-2xl p-4 flex-row justify-between items-center`}
+                >
+                  <Text
+                    className={`${capitalVariance >= 0 ? "text-green-600" : "text-red-600"} font-bold text-lg`}
+                  >
                     Variance
                   </Text>
                   <View className="flex-row items-center">
@@ -220,10 +224,12 @@ export default function DashboardNative() {
                         capitalVariance >= 0 ? "trending-up" : "trending-down"
                       }
                       size={20}
-                      color="#DC2626"
+                      color={capitalVariance >= 0 ? "#16A34A" : "#DC2626"}
                     />
-                    <Text className="font-bold text-red-600 text-lg ml-2">
-                      {capitalVariance >= 0 ? "" : "-"}
+                    <Text
+                      className={`font-bold ${capitalVariance >= 0 ? "text-green-600" : "text-red-600"} text-lg ml-2`}
+                    >
+                      {capitalVariance >= 0 ? "+" : "-"}
                       {formatCurrency(Math.abs(capitalVariance))}
                     </Text>
                   </View>

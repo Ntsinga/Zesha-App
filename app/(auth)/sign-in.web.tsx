@@ -92,9 +92,7 @@ export default function SignInWeb() {
                   borderRadius: "12px",
                 },
               }}
-              routing="hash"
-              fallbackRedirectUrl="/"
-              forceRedirectUrl="/"
+              signUpUrl="/sign-up"
             />
           </div>
         </div>
