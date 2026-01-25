@@ -34,6 +34,7 @@ export interface AccountUpdate {
   description?: string;
   accountType?: AccountTypeEnum;
   isActive?: boolean;
+  companyId?: number;
 }
 
 /**

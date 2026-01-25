@@ -27,7 +27,7 @@ const DEFAULT_CURRENCY = "UGX";
  */
 export function useCompanyCurrency(): string {
   const companyInfo = useSelector(
-    (state: RootState) => state.dashboard.companyInfo
+    (state: RootState) => state?.dashboard?.companyInfo,
   );
   return companyInfo?.currency || DEFAULT_CURRENCY;
 }
@@ -41,9 +41,9 @@ export function useCurrencyFormatter() {
 
   const formatCurrency = (
     amount: number | string | null | undefined,
-    locale: string = "en-US"
+    locale: string = "en-US",
   ): string => {
-    const num = typeof amount === "string" ? parseFloat(amount) : amount ?? 0;
+    const num = typeof amount === "string" ? parseFloat(amount) : (amount ?? 0);
     const safeNum = isNaN(num) ? 0 : num;
 
     try {
@@ -63,9 +63,9 @@ export function useCurrencyFormatter() {
   };
 
   const formatCompactCurrency = (
-    amount: number | string | null | undefined
+    amount: number | string | null | undefined,
   ): string => {
-    const num = typeof amount === "string" ? parseFloat(amount) : amount ?? 0;
+    const num = typeof amount === "string" ? parseFloat(amount) : (amount ?? 0);
     const safeNum = isNaN(num) ? 0 : num;
 
     if (Math.abs(safeNum) >= 1000000) {

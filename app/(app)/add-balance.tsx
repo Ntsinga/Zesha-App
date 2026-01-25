@@ -14,7 +14,7 @@ import {
   FlatList,
   ActivityIndicator,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import {
   ArrowLeft,
   Camera,
@@ -47,6 +47,7 @@ import {
 import * as FileSystem from "expo-file-system/legacy";
 import type { AppDispatch, RootState } from "../../store";
 import type { ShiftEnum, BalanceCreate, Account } from "../../types";
+import { useCurrencyFormatter } from "../../hooks/useCurrency";
 
 interface BalanceEntry {
   id: string;
@@ -72,11 +73,16 @@ const createEmptyEntry = (): BalanceEntry => ({
   validationResult: null,
 });
 
-const CARD_WIDTH = Dimensions.get("window").width * 0.75;
-
 export default function AddBalancePage() {
   const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
+  const { formatCurrency } = useCurrencyFormatter();
+  const params = useLocalSearchParams();
+  const shiftFromParams = (params.shift as ShiftEnum) || "AM";
+
+  // Get companyId from auth state
+  const { user } = useSelector((state: RootState) => state.auth);
+  const companyId = user?.companyId;
 
   // Get accounts, draft entries, and balances from Redux store
   const { items: accounts, isLoading: accountsLoading } = useSelector(
@@ -95,8 +101,9 @@ export default function AddBalancePage() {
   const [accountPickerVisible, setAccountPickerVisible] = useState<
     string | null
   >(null);
-  const [currentShift, setCurrentShift] = useState<ShiftEnum>("AM");
+  const [currentShift, setCurrentShift] = useState<ShiftEnum>(shiftFromParams);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
 
   // Get today's date
   const today = new Date().toISOString().split("T")[0];
@@ -104,10 +111,12 @@ export default function AddBalancePage() {
     .toISOString()
     .split("T")[0];
 
-  // Fetch accounts and balances on mount
+  // Fetch accounts and balances on mount - force refresh to get latest data
   useEffect(() => {
-    dispatch(fetchAccounts({ isActive: true }));
-    dispatch(fetchBalances({ dateFrom: today, dateTo: today }));
+    dispatch(fetchAccounts({ isActive: true, forceRefresh: true }));
+    dispatch(
+      fetchBalances({ dateFrom: today, dateTo: today, forceRefresh: true }),
+    );
   }, [dispatch, today]);
 
   // Initialize entries from existing balances or draft entries
@@ -498,6 +507,78 @@ export default function AddBalancePage() {
     }
   };
 
+  // Validate a single entry and set its errors
+  const validateSingleEntry = (entryId: string): boolean => {
+    const entry = entries.find((e) => e.id === entryId);
+    if (!entry) return false;
+
+    const entryErrors: Record<string, string> = {};
+    let isValid = true;
+
+    if (!entry.accountId) {
+      entryErrors.account = "Account is required";
+      isValid = false;
+    }
+
+    if (!entry.amount.trim()) {
+      entryErrors.amount = "Amount is required";
+      isValid = false;
+    } else if (
+      isNaN(parseFloat(entry.amount)) ||
+      parseFloat(entry.amount) < 0
+    ) {
+      entryErrors.amount = "Invalid amount";
+      isValid = false;
+    }
+
+    if (!entry.imageUrl) {
+      entryErrors.image = "Image is required";
+      isValid = false;
+    }
+
+    if (entry.validationResult && !entry.validationResult.isValid) {
+      entryErrors.validation = "Balance mismatch detected";
+      isValid = false;
+    }
+
+    setErrors((prev) => {
+      if (Object.keys(entryErrors).length > 0) {
+        return { ...prev, [entryId]: entryErrors };
+      } else {
+        const newErrors = { ...prev };
+        delete newErrors[entryId];
+        return newErrors;
+      }
+    });
+
+    return isValid;
+  };
+
+  // Handle closing the entry modal with validation
+  const handleCloseEntryModal = () => {
+    if (editingEntryId) {
+      const entry = entries.find((e) => e.id === editingEntryId);
+
+      // Check if entry is pristine (empty/untouched)
+      const isPristine =
+        entry && !entry.accountId && !entry.amount.trim() && !entry.imageUrl;
+
+      // If pristine, allow closing without validation
+      if (isPristine) {
+        setEditingEntryId(null);
+        return;
+      }
+
+      // Otherwise validate before closing
+      const isValid = validateSingleEntry(editingEntryId);
+      if (!isValid) {
+        // Keep modal open - errors are shown inline
+        return;
+      }
+    }
+    setEditingEntryId(null);
+  };
+
   const validateEntries = (): boolean => {
     const newErrors: Record<string, Record<string, string>> = {};
     let isValid = true;
@@ -577,6 +658,11 @@ export default function AddBalancePage() {
   const handleSubmit = async () => {
     if (!validateEntries()) return;
 
+    if (!companyId) {
+      Alert.alert("Error", "Company not found. Please log in again.");
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -599,12 +685,12 @@ export default function AddBalancePage() {
 
           return {
             accountId: entry.accountId!,
-            shift: entry.shift,
+            shift: currentShift,
             amount: parseFloat(entry.amount),
             source: "mobile_app" as const,
             date: today,
             imageData: imageData,
-            companyId: 0, // Will be set by backend from auth
+            companyId: companyId || 0,
           };
         }),
       );
@@ -699,6 +785,7 @@ export default function AddBalancePage() {
               onPress={() => {
                 setCurrentShift("AM");
                 setIsInitialized(false);
+                setEntries([createEmptyEntry()]);
               }}
               className={`flex-1 py-2 rounded-lg ${
                 currentShift === "AM" ? "bg-brand-red" : "bg-transparent"
@@ -716,6 +803,7 @@ export default function AddBalancePage() {
               onPress={() => {
                 setCurrentShift("PM");
                 setIsInitialized(false);
+                setEntries([createEmptyEntry()]);
               }}
               className={`flex-1 py-2 rounded-lg ${
                 currentShift === "PM" ? "bg-brand-red" : "bg-transparent"
@@ -748,291 +836,139 @@ export default function AddBalancePage() {
           )}
         </View>
 
-        {/* Horizontal Scrolling Cards */}
+        {/* Entry List */}
         <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 20 }}
           className="flex-1"
-          snapToInterval={CARD_WIDTH + 16}
-          decelerationRate="fast"
+          contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 20 }}
+          showsVerticalScrollIndicator={false}
         >
-          {entries.map((entry, index) => (
-            <View
-              key={entry.id}
-              style={{ width: CARD_WIDTH }}
-              className="bg-white rounded-3xl shadow-sm p-5 border border-gray-100 mr-4"
-            >
-              {/* Card Header */}
-              <View className="flex-row justify-between items-center mb-4">
-                <Text className="text-lg font-bold text-brand-red">
-                  Balance {index + 1}
-                </Text>
-                {entries.length > 1 && (
-                  <TouchableOpacity
-                    onPress={() => removeEntry(entry.id)}
-                    className="p-1"
-                  >
-                    <X color="#EF4444" size={20} />
-                  </TouchableOpacity>
-                )}
-              </View>
+          {entries.map((entry, index) => {
+            const isComplete =
+              entry.accountId && entry.amount && entry.imageUrl;
+            const hasError =
+              errors[entry.id] && Object.keys(errors[entry.id]).length > 0;
+            const hasMismatch =
+              entry.validationResult && !entry.validationResult.isValid;
 
-              {/* Account Selection */}
-              <View className="mb-4">
-                <Text className="text-gray-700 font-semibold mb-1 text-sm">
-                  Account *
-                </Text>
-                <TouchableOpacity
-                  onPress={() => setAccountPickerVisible(entry.id)}
-                  className={`bg-gray-50 rounded-xl px-3 py-2.5 flex-row justify-between items-center ${
-                    errors[entry.id]?.account
-                      ? "border-2 border-red-500"
-                      : "border border-gray-200"
-                  }`}
-                >
-                  <Text
-                    className={`${
-                      entry.accountName ? "text-gray-800" : "text-gray-400"
-                    }`}
-                  >
-                    {entry.accountName || "Select account"}
-                  </Text>
-                  <ChevronDown color="#6B7280" size={20} />
-                </TouchableOpacity>
-                {errors[entry.id]?.account && (
-                  <Text className="text-red-500 text-xs mt-1">
-                    {errors[entry.id].account}
-                  </Text>
-                )}
-              </View>
-
-              {/* Shift Selection */}
-              <View className="mb-4">
-                <Text className="text-gray-700 font-semibold mb-1 text-sm">
-                  Shift *
-                </Text>
-                <View className="flex-row space-x-2">
-                  <TouchableOpacity
-                    onPress={() => updateEntry(entry.id, "shift", "AM")}
-                    className={`flex-1 py-2.5 rounded-xl ${
-                      entry.shift === "AM"
-                        ? "bg-brand-red"
-                        : "bg-gray-100 border border-gray-200"
-                    }`}
-                  >
-                    <Text
-                      className={`text-center font-bold ${
-                        entry.shift === "AM" ? "text-white" : "text-gray-600"
-                      }`}
-                    >
-                      AM
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => updateEntry(entry.id, "shift", "PM")}
-                    className={`flex-1 py-2.5 rounded-xl ${
-                      entry.shift === "PM"
-                        ? "bg-brand-red"
-                        : "bg-gray-100 border border-gray-200"
-                    }`}
-                  >
-                    <Text
-                      className={`text-center font-bold ${
-                        entry.shift === "PM" ? "text-white" : "text-gray-600"
-                      }`}
-                    >
-                      PM
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-
-              {/* Amount */}
-              <View className="mb-4">
-                <Text className="text-gray-700 font-semibold mb-1 text-sm">
-                  Amount *
-                </Text>
-                <TextInput
-                  value={
-                    entry.amount ? Number(entry.amount).toLocaleString() : ""
-                  }
-                  onChangeText={(value) => handleAmountChange(entry.id, value)}
-                  placeholder="0"
-                  keyboardType="number-pad"
-                  className={`bg-gray-50 rounded-xl px-3 py-2.5 text-gray-800 text-lg ${
-                    errors[entry.id]?.amount || errors[entry.id]?.validation
-                      ? "border-2 border-red-500"
-                      : entry.validationResult?.isValid
-                        ? "border-2 border-green-500"
-                        : "border border-gray-200"
-                  }`}
-                />
-                {errors[entry.id]?.amount && (
-                  <Text className="text-red-500 text-xs mt-1">
-                    {errors[entry.id].amount}
-                  </Text>
-                )}
-
-                {/* Validation Status */}
-                {entry.validationResult && (
-                  <View
-                    className={`mt-2 p-2 rounded-lg flex-row items-start ${
-                      entry.validationResult.isValid
-                        ? "bg-green-50"
-                        : "bg-red-50"
-                    }`}
-                  >
-                    {entry.validationResult.isValid ? (
-                      <CheckCircle color="#22C55E" size={16} />
-                    ) : (
-                      <AlertTriangle color="#EF4444" size={16} />
-                    )}
-                    <Text
-                      className={`ml-2 text-xs flex-1 ${
-                        entry.validationResult.isValid
-                          ? "text-green-700"
-                          : "text-red-700"
-                      }`}
-                    >
-                      {entry.validationResult.message}
-                    </Text>
-                  </View>
-                )}
-
-                {/* Show extracted balance if available */}
-                {entry.extractedBalance !== null && !entry.validationResult && (
-                  <Text className="text-gray-500 text-xs mt-1">
-                    Extracted from image:{" "}
-                    {entry.extractedBalance.toLocaleString()}
-                  </Text>
-                )}
-              </View>
-
-              {/* Image Section */}
-              <View>
-                <Text className="text-gray-700 font-semibold mb-1 text-sm">
-                  Image *
-                </Text>
-                {entry.imageUrl ? (
-                  <View className="relative">
-                    <Image
-                      source={{ uri: entry.imageUrl }}
-                      className="w-full h-32 rounded-xl"
-                      resizeMode="cover"
-                    />
-                    {/* Extraction loading overlay */}
-                    {entry.isExtracting && (
-                      <View className="absolute inset-0 bg-black/50 rounded-xl items-center justify-center">
-                        <ActivityIndicator color="white" size="large" />
-                        <Text className="text-white text-xs mt-2">
-                          Extracting balance...
-                        </Text>
-                      </View>
-                    )}
-                    <TouchableOpacity
-                      onPress={() => removeImage(entry.id)}
-                      className="absolute top-2 right-2 bg-red-500 p-1.5 rounded-full"
-                    >
-                      <X color="white" size={14} />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={() => showImageOptions(entry.id)}
-                      className="absolute bottom-2 right-2 bg-white/90 px-3 py-1.5 rounded-lg flex-row items-center"
-                    >
-                      <Camera color="#6B7280" size={14} />
-                      <Text className="text-gray-600 text-xs ml-1">Change</Text>
-                    </TouchableOpacity>
-                    {/* Extraction status badge */}
-                    {!entry.isExtracting && entry.extractedBalance !== null && (
-                      <View className="absolute top-2 left-2 bg-green-500 px-2 py-1 rounded-full flex-row items-center">
-                        <CheckCircle color="white" size={12} />
-                        <Text className="text-white text-xs ml-1 font-semibold">
-                          {entry.extractedBalance.toLocaleString()}
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-                ) : (
-                  <View>
+            return (
+              <TouchableOpacity
+                key={entry.id}
+                onPress={() => setEditingEntryId(entry.id)}
+                className={`bg-white rounded-2xl p-4 mb-3 border ${
+                  hasError || hasMismatch
+                    ? "border-red-300 bg-red-50"
+                    : isComplete
+                      ? "border-green-300 bg-green-50"
+                      : "border-gray-200"
+                }`}
+              >
+                <View className="flex-row items-center justify-between">
+                  <View className="flex-row items-center flex-1">
+                    {/* Status indicator */}
                     <View
-                      className={`flex-row space-x-2 ${
-                        errors[entry.id]?.image ? "opacity-100" : ""
+                      className={`w-10 h-10 rounded-full items-center justify-center mr-3 ${
+                        hasError || hasMismatch
+                          ? "bg-red-100"
+                          : isComplete
+                            ? "bg-green-100"
+                            : "bg-gray-100"
                       }`}
                     >
-                      <TouchableOpacity
-                        onPress={() => takePhoto(entry.id)}
-                        className={`flex-1 bg-gray-50 rounded-xl py-4 items-center ${
-                          errors[entry.id]?.image
-                            ? "border-2 border-red-500"
-                            : "border border-gray-200"
-                        }`}
-                      >
-                        <Camera
-                          color={
-                            errors[entry.id]?.image ? "#EF4444" : "#6B7280"
-                          }
-                          size={24}
-                        />
-                        <Text
-                          className={`text-xs mt-1 ${
-                            errors[entry.id]?.image
-                              ? "text-red-500"
-                              : "text-gray-500"
-                          }`}
-                        >
-                          Camera
+                      {hasError || hasMismatch ? (
+                        <AlertTriangle color="#EF4444" size={20} />
+                      ) : isComplete ? (
+                        <CheckCircle color="#22C55E" size={20} />
+                      ) : (
+                        <Text className="text-gray-500 font-bold">
+                          {index + 1}
                         </Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        onPress={() => pickImage(entry.id)}
-                        className={`flex-1 bg-gray-50 rounded-xl py-4 items-center ${
-                          errors[entry.id]?.image
-                            ? "border-2 border-red-500"
-                            : "border border-gray-200"
-                        }`}
-                      >
-                        <ImageIcon
-                          color={
-                            errors[entry.id]?.image ? "#EF4444" : "#6B7280"
-                          }
-                          size={24}
-                        />
-                        <Text
-                          className={`text-xs mt-1 ${
-                            errors[entry.id]?.image
-                              ? "text-red-500"
-                              : "text-gray-500"
-                          }`}
-                        >
-                          Gallery
-                        </Text>
-                      </TouchableOpacity>
+                      )}
                     </View>
-                    {errors[entry.id]?.image && (
-                      <Text className="text-red-500 text-xs mt-1 text-center">
-                        {errors[entry.id].image}
-                      </Text>
-                    )}
-                  </View>
-                )}
-              </View>
-            </View>
-          ))}
 
-          {/* Add More Card */}
+                    {/* Entry info */}
+                    <View className="flex-1">
+                      <Text className="font-semibold text-gray-800">
+                        {entry.accountName || "Select account"}
+                      </Text>
+                      <View className="flex-row items-center mt-0.5">
+                        {entry.amount ? (
+                          <Text className="text-gray-600 text-sm">
+                            R {Number(entry.amount).toLocaleString()}
+                          </Text>
+                        ) : (
+                          <Text className="text-gray-400 text-sm">
+                            No amount
+                          </Text>
+                        )}
+                        {entry.imageUrl && (
+                          <View className="flex-row items-center ml-2">
+                            <Camera color="#6B7280" size={12} />
+                            <Text className="text-gray-500 text-xs ml-1">
+                              Image
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+                    </View>
+                  </View>
+
+                  {/* Actions */}
+                  <View className="flex-row items-center">
+                    {entries.length > 1 && (
+                      <TouchableOpacity
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          removeEntry(entry.id);
+                        }}
+                        className="p-2"
+                      >
+                        <X color="#EF4444" size={18} />
+                      </TouchableOpacity>
+                    )}
+                    <ChevronDown
+                      color="#9CA3AF"
+                      size={20}
+                      style={{ transform: [{ rotate: "-90deg" }] }}
+                    />
+                  </View>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+
+          {/* Add More Button */}
           <TouchableOpacity
-            onPress={addEntry}
-            style={{ width: CARD_WIDTH * 0.5 }}
-            className="bg-gray-100 rounded-3xl border-2 border-dashed border-gray-300 items-center justify-center mr-4"
+            onPress={() => {
+              const newEntry = createEmptyEntry();
+              setEntries((prev) => [...prev, newEntry]);
+              setEditingEntryId(newEntry.id);
+            }}
+            className="bg-gray-100 rounded-2xl p-4 border-2 border-dashed border-gray-300 flex-row items-center justify-center"
           >
-            <Plus color="#9CA3AF" size={40} />
-            <Text className="text-gray-400 font-semibold mt-2">Add More</Text>
+            <Plus color="#9CA3AF" size={24} />
+            <Text className="text-gray-500 font-semibold ml-2">
+              Add Another Balance
+            </Text>
           </TouchableOpacity>
         </ScrollView>
 
-        {/* Submit Button - Fixed at bottom */}
-        <View className="px-5 pb-6 pt-2 bg-gray-50">
+        {/* Total and Submit Button - Fixed at bottom */}
+        <View className="my-20 px-5 pb-6 pt-2 bg-gray-50">
+          {/* Total Display */}
+          <View className="flex-row justify-between items-center mb-3 px-2">
+            <Text className="text-gray-600 font-medium">
+              Total Float Balance:
+            </Text>
+            <Text className="text-xl font-bold text-gray-900">
+              {formatCurrency(
+                entries.reduce(
+                  (sum, entry) => sum + (parseFloat(entry.amount) || 0),
+                  0,
+                ),
+              )}
+            </Text>
+          </View>
+
           <TouchableOpacity
             onPress={handleSubmit}
             disabled={isSubmitting}
@@ -1043,14 +979,253 @@ export default function AddBalancePage() {
             <Save color="white" size={20} />
             <Text className="text-white font-bold text-base ml-2">
               {isSubmitting
-                ? "Saving..."
-                : `Save ${entries.length} Balance${
+                ? "Submitting..."
+                : `Submit ${entries.length} Balance${
                     entries.length > 1 ? "s" : ""
                   }`}
             </Text>
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* Entry Form Modal */}
+      <Modal
+        visible={editingEntryId !== null}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={handleCloseEntryModal}
+      >
+        {(() => {
+          const entry = entries.find((e) => e.id === editingEntryId);
+          if (!entry) return null;
+          const entryIndex = entries.findIndex((e) => e.id === editingEntryId);
+
+          return (
+            <KeyboardAvoidingView
+              behavior={Platform.OS === "ios" ? "padding" : "height"}
+              className="flex-1 bg-white"
+            >
+              {/* Modal Header */}
+              <View className="flex-row items-center justify-between px-5 pt-4 pb-3 border-b border-gray-200">
+                <TouchableOpacity
+                  onPress={handleCloseEntryModal}
+                  className="p-2"
+                >
+                  <X color="#6B7280" size={24} />
+                </TouchableOpacity>
+                <Text className="text-lg font-bold text-gray-800">
+                  Balance {entryIndex + 1}
+                </Text>
+                <TouchableOpacity
+                  onPress={handleCloseEntryModal}
+                  className="bg-brand-red px-4 py-2 rounded-xl"
+                >
+                  <Text className="text-white font-semibold">Done</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Modal Content */}
+              <ScrollView
+                className="flex-1"
+                contentContainerStyle={{ padding: 20 }}
+                keyboardShouldPersistTaps="handled"
+              >
+                {/* Account Selection */}
+                <View className="mb-5">
+                  <Text className="text-gray-700 font-semibold mb-2">
+                    Account *
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => setAccountPickerVisible(entry.id)}
+                    className={`bg-gray-50 rounded-xl px-4 py-3.5 flex-row justify-between items-center ${
+                      errors[entry.id]?.account
+                        ? "border-2 border-red-500"
+                        : "border border-gray-200"
+                    }`}
+                  >
+                    <Text
+                      className={`text-base ${
+                        entry.accountName ? "text-gray-800" : "text-gray-400"
+                      }`}
+                    >
+                      {entry.accountName || "Select account"}
+                    </Text>
+                    <ChevronDown color="#6B7280" size={20} />
+                  </TouchableOpacity>
+                  {errors[entry.id]?.account && (
+                    <Text className="text-red-500 text-sm mt-1">
+                      {errors[entry.id].account}
+                    </Text>
+                  )}
+                </View>
+
+                {/* Amount */}
+                <View className="mb-5">
+                  <Text className="text-gray-700 font-semibold mb-2">
+                    Amount *
+                  </Text>
+                  <TextInput
+                    value={
+                      entry.amount ? Number(entry.amount).toLocaleString() : ""
+                    }
+                    onChangeText={(value) =>
+                      handleAmountChange(entry.id, value)
+                    }
+                    placeholder="0"
+                    keyboardType="number-pad"
+                    className={`bg-gray-50 rounded-xl px-4 py-3.5 text-gray-800 text-xl ${
+                      errors[entry.id]?.amount || errors[entry.id]?.validation
+                        ? "border-2 border-red-500"
+                        : entry.validationResult?.isValid
+                          ? "border-2 border-green-500"
+                          : "border border-gray-200"
+                    }`}
+                  />
+                  {errors[entry.id]?.amount && (
+                    <Text className="text-red-500 text-sm mt-1">
+                      {errors[entry.id].amount}
+                    </Text>
+                  )}
+
+                  {/* Validation Status */}
+                  {entry.validationResult && (
+                    <View
+                      className={`mt-3 p-3 rounded-xl flex-row items-start ${
+                        entry.validationResult.isValid
+                          ? "bg-green-50"
+                          : "bg-red-50"
+                      }`}
+                    >
+                      {entry.validationResult.isValid ? (
+                        <CheckCircle color="#22C55E" size={20} />
+                      ) : (
+                        <AlertTriangle color="#EF4444" size={20} />
+                      )}
+                      <Text
+                        className={`ml-2 text-sm flex-1 ${
+                          entry.validationResult.isValid
+                            ? "text-green-700"
+                            : "text-red-700"
+                        }`}
+                      >
+                        {entry.validationResult.message}
+                      </Text>
+                    </View>
+                  )}
+
+                  {/* Show extracted balance if available */}
+                  {entry.extractedBalance !== null &&
+                    !entry.validationResult && (
+                      <Text className="text-gray-500 text-sm mt-2">
+                        Extracted from image: R{" "}
+                        {entry.extractedBalance.toLocaleString()}
+                      </Text>
+                    )}
+                </View>
+
+                {/* Image Section */}
+                <View className="mb-5">
+                  <Text className="text-gray-700 font-semibold mb-2">
+                    Image *
+                  </Text>
+                  {entry.imageUrl ? (
+                    <View className="relative">
+                      <Image
+                        source={{ uri: entry.imageUrl }}
+                        className="w-full h-48 rounded-xl"
+                        resizeMode="cover"
+                      />
+                      {/* Extraction loading overlay */}
+                      {entry.isExtracting && (
+                        <View className="absolute inset-0 bg-black/50 rounded-xl items-center justify-center">
+                          <ActivityIndicator color="white" size="large" />
+                          <Text className="text-white text-sm mt-2">
+                            Extracting balance...
+                          </Text>
+                        </View>
+                      )}
+                      <TouchableOpacity
+                        onPress={() => removeImage(entry.id)}
+                        className="absolute top-3 right-3 bg-red-500 p-2 rounded-full"
+                      >
+                        <X color="white" size={18} />
+                      </TouchableOpacity>
+                      {/* Extraction status badge */}
+                      {!entry.isExtracting &&
+                        entry.extractedBalance !== null && (
+                          <View className="absolute top-3 left-3 bg-green-500 px-3 py-1.5 rounded-full flex-row items-center">
+                            <CheckCircle color="white" size={14} />
+                            <Text className="text-white text-sm ml-1 font-semibold">
+                              R {entry.extractedBalance.toLocaleString()}
+                            </Text>
+                          </View>
+                        )}
+                    </View>
+                  ) : (
+                    <View>
+                      <View className="flex-row" style={{ gap: 12 }}>
+                        <TouchableOpacity
+                          onPress={() => takePhoto(entry.id)}
+                          className={`flex-1 bg-gray-50 rounded-xl py-6 items-center ${
+                            errors[entry.id]?.image
+                              ? "border-2 border-red-500"
+                              : "border border-gray-200"
+                          }`}
+                        >
+                          <Camera
+                            color={
+                              errors[entry.id]?.image ? "#EF4444" : "#6B7280"
+                            }
+                            size={32}
+                          />
+                          <Text
+                            className={`text-sm mt-2 ${
+                              errors[entry.id]?.image
+                                ? "text-red-500"
+                                : "text-gray-500"
+                            }`}
+                          >
+                            Camera
+                          </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          onPress={() => pickImage(entry.id)}
+                          className={`flex-1 bg-gray-50 rounded-xl py-6 items-center ${
+                            errors[entry.id]?.image
+                              ? "border-2 border-red-500"
+                              : "border border-gray-200"
+                          }`}
+                        >
+                          <ImageIcon
+                            color={
+                              errors[entry.id]?.image ? "#EF4444" : "#6B7280"
+                            }
+                            size={32}
+                          />
+                          <Text
+                            className={`text-sm mt-2 ${
+                              errors[entry.id]?.image
+                                ? "text-red-500"
+                                : "text-gray-500"
+                            }`}
+                          >
+                            Gallery
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                      {errors[entry.id]?.image && (
+                        <Text className="text-red-500 text-sm mt-2 text-center">
+                          {errors[entry.id].image}
+                        </Text>
+                      )}
+                    </View>
+                  )}
+                </View>
+              </ScrollView>
+            </KeyboardAvoidingView>
+          );
+        })()}
+      </Modal>
 
       {/* Account Picker Modal */}
       <Modal
@@ -1059,109 +1234,105 @@ export default function AddBalancePage() {
         animationType="slide"
         onRequestClose={() => setAccountPickerVisible(null)}
       >
-        <TouchableOpacity
-          style={{ flex: 1 }}
-          activeOpacity={1}
-          onPress={() => setAccountPickerVisible(null)}
-          className="bg-black/50 justify-end"
-        >
-          <TouchableOpacity activeOpacity={1} onPress={() => {}}>
-            <View className="bg-white rounded-t-3xl max-h-96">
-              <View className="flex-row justify-between items-center p-4 border-b border-gray-200">
-                <Text className="text-lg font-bold text-gray-800">
-                  Select Account
-                </Text>
-                <TouchableOpacity onPress={() => setAccountPickerVisible(null)}>
-                  <X color="#6B7280" size={24} />
+        <View style={{ flex: 1 }} className="bg-black/50 justify-end">
+          <TouchableOpacity
+            style={{ flex: 1 }}
+            activeOpacity={1}
+            onPress={() => setAccountPickerVisible(null)}
+          />
+          <View className="bg-white rounded-t-3xl max-h-96">
+            <View className="flex-row justify-between items-center p-4 border-b border-gray-200">
+              <Text className="text-lg font-bold text-gray-800">
+                Select Account
+              </Text>
+              <TouchableOpacity onPress={() => setAccountPickerVisible(null)}>
+                <X color="#6B7280" size={24} />
+              </TouchableOpacity>
+            </View>
+
+            {accountsLoading ? (
+              <View className="p-8 items-center">
+                <Text className="text-gray-500">Loading accounts...</Text>
+              </View>
+            ) : accounts.length === 0 ? (
+              <View className="p-8 items-center">
+                <Text className="text-gray-500">No accounts available</Text>
+                <TouchableOpacity
+                  onPress={() => {
+                    setAccountPickerVisible(null);
+                    router.push("/accounts");
+                  }}
+                  className="mt-4 bg-brand-red px-6 py-2 rounded-xl"
+                >
+                  <Text className="text-white font-semibold">Add Account</Text>
                 </TouchableOpacity>
               </View>
-
-              {accountsLoading ? (
-                <View className="p-8 items-center">
-                  <Text className="text-gray-500">Loading accounts...</Text>
-                </View>
-              ) : accounts.length === 0 ? (
-                <View className="p-8 items-center">
-                  <Text className="text-gray-500">No accounts available</Text>
-                  <TouchableOpacity
-                    onPress={() => {
-                      setAccountPickerVisible(null);
-                      router.push("/accounts");
-                    }}
-                    className="mt-4 bg-brand-red px-6 py-2 rounded-xl"
-                  >
-                    <Text className="text-white font-semibold">
-                      Add Account
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              ) : (
-                <FlatList
-                  data={accounts}
-                  keyExtractor={(item) => item.id.toString()}
-                  renderItem={({ item }) => {
-                    const currentEntry = entries.find(
-                      (e) => e.id === accountPickerVisible,
-                    );
-                    const isSelected = currentEntry?.accountId === item.id;
-                    const isAlreadySelected = entries.some(
-                      (e) =>
-                        e.accountId === item.id &&
-                        e.id !== accountPickerVisible,
-                    );
-                    return (
-                      <TouchableOpacity
-                        onPress={() =>
-                          accountPickerVisible &&
-                          selectAccount(accountPickerVisible, item)
-                        }
-                        disabled={isAlreadySelected}
-                        className={`flex-row items-center justify-between p-4 border-b border-gray-100 ${
-                          isSelected
-                            ? "bg-red-50"
-                            : isAlreadySelected
-                              ? "bg-gray-50 opacity-50"
-                              : ""
-                        }`}
-                      >
-                        <View className="flex-1">
-                          <View className="flex-row items-center">
-                            <Text
-                              className={`font-semibold ${
-                                isAlreadySelected
-                                  ? "text-gray-400"
-                                  : "text-gray-800"
-                              }`}
-                            >
-                              {item.name}
-                            </Text>
-                            {isAlreadySelected && (
-                              <View className="ml-2 bg-green-100 px-2 py-0.5 rounded-full">
-                                <Text className="text-green-700 text-xs font-semibold">
-                                  ✓ Added
-                                </Text>
-                              </View>
-                            )}
-                          </View>
+            ) : (
+              <FlatList
+                data={accounts}
+                keyExtractor={(item) => item.id.toString()}
+                nestedScrollEnabled={true}
+                renderItem={({ item }) => {
+                  const currentEntry = entries.find(
+                    (e) => e.id === accountPickerVisible,
+                  );
+                  const isSelected = currentEntry?.accountId === item.id;
+                  const isAlreadySelected = entries.some(
+                    (e) =>
+                      e.accountId === item.id && e.id !== accountPickerVisible,
+                  );
+                  return (
+                    <TouchableOpacity
+                      onPress={() =>
+                        accountPickerVisible &&
+                        selectAccount(accountPickerVisible, item)
+                      }
+                      disabled={isAlreadySelected}
+                      className={`flex-row items-center justify-between p-4 border-b border-gray-100 ${
+                        isSelected
+                          ? "bg-red-50"
+                          : isAlreadySelected
+                            ? "bg-gray-50 opacity-50"
+                            : ""
+                      }`}
+                    >
+                      <View className="flex-1">
+                        <View className="flex-row items-center">
                           <Text
-                            className={`text-sm ${
+                            className={`font-semibold ${
                               isAlreadySelected
                                 ? "text-gray-400"
-                                : "text-gray-500"
+                                : "text-gray-800"
                             }`}
                           >
-                            {item.accountType}
+                            {item.name}
                           </Text>
+                          {isAlreadySelected && (
+                            <View className="ml-2 bg-green-100 px-2 py-0.5 rounded-full">
+                              <Text className="text-green-700 text-xs font-semibold">
+                                ✓ Added
+                              </Text>
+                            </View>
+                          )}
                         </View>
-                        {isSelected && <Check color="#DC2626" size={20} />}
-                      </TouchableOpacity>
-                    );
-                  }}
-                />
-              )}
-            </View>
-          </TouchableOpacity>
-        </TouchableOpacity>
+                        <Text
+                          className={`text-sm ${
+                            isAlreadySelected
+                              ? "text-gray-400"
+                              : "text-gray-500"
+                          }`}
+                        >
+                          {item.accountType}
+                        </Text>
+                      </View>
+                      {isSelected && <Check color="#DC2626" size={20} />}
+                    </TouchableOpacity>
+                  );
+                }}
+              />
+            )}
+          </View>
+        </View>
       </Modal>
     </KeyboardAvoidingView>
   );

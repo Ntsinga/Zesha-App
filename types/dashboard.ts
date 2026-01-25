@@ -1,7 +1,11 @@
 /**
  * Dashboard-specific types for UI display
  */
-import type { ShiftEnum } from "./enums";
+import type {
+  ShiftEnum,
+  ApprovalStatusEnum,
+  ReconciliationStatusEnum,
+} from "./enums";
 import type { CommissionBreakdown } from "./commission";
 
 /**
@@ -47,6 +51,8 @@ export interface BalanceHistoryEntry {
   actualClosing: number;
   variance: number;
   status: "PASSED" | "FAILED" | "FLAGGED";
+  approvalStatus?: ApprovalStatusEnum;
+  reconciliationStatus?: ReconciliationStatusEnum;
   isFinalized: boolean;
   reconciledBy: number | null;
   reconciledAt: string | null;

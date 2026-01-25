@@ -129,11 +129,18 @@ export const createExpense = createAsyncThunk<
 export const updateExpense = createAsyncThunk<
   Expense,
   { id: number; data: ExpenseUpdate },
-  { rejectValue: string }
->("expenses/update", async ({ id, data }, { rejectWithValue }) => {
+  { state: RootState; rejectValue: string }
+>("expenses/update", async ({ id, data }, { getState, rejectWithValue }) => {
   try {
+    const state = getState();
+    const companyId = state.auth.user?.companyId;
+
+    if (!companyId) {
+      return rejectWithValue("No companyId found. Please log in again.");
+    }
+
     const expense = await apiRequest<Expense>(
-      API_ENDPOINTS.expenses.update(id),
+      API_ENDPOINTS.expenses.update(id, companyId),
       {
         method: "PATCH",
         body: JSON.stringify(mapApiRequest(data)),
@@ -150,10 +157,17 @@ export const updateExpense = createAsyncThunk<
 export const deleteExpense = createAsyncThunk<
   number,
   number,
-  { rejectValue: string }
->("expenses/delete", async (id, { rejectWithValue }) => {
+  { state: RootState; rejectValue: string }
+>("expenses/delete", async (id, { getState, rejectWithValue }) => {
   try {
-    await apiRequest<void>(API_ENDPOINTS.expenses.delete(id), {
+    const state = getState();
+    const companyId = state.auth.user?.companyId;
+
+    if (!companyId) {
+      return rejectWithValue("No companyId found. Please log in again.");
+    }
+
+    await apiRequest<void>(API_ENDPOINTS.expenses.delete(id, companyId), {
       method: "DELETE",
     });
     return id;

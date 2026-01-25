@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import {
   createManyCashCounts,
   fetchCashCounts,
@@ -40,13 +40,15 @@ export function useCashCountScreen() {
   const dispatch = useDispatch<AppDispatch>();
   const { formatCurrency } = useCurrencyFormatter();
   const companyId = useSelector(selectCompanyId);
+  const params = useLocalSearchParams();
 
   // Get today's date
   const today = new Date().toISOString().split("T")[0];
 
-  // Determine initial shift based on time (PM if after noon)
+  // Determine initial shift: use params if available, otherwise use time-based logic
   const currentHour = new Date().getHours();
-  const initialShift: ShiftEnum = currentHour >= 12 ? "PM" : "AM";
+  const timeBasedShift: ShiftEnum = currentHour >= 12 ? "PM" : "AM";
+  const initialShift: ShiftEnum = (params.shift as ShiftEnum) || timeBasedShift;
 
   const [shift, setShift] = useState<ShiftEnum>(initialShift);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -69,7 +71,13 @@ export function useCashCountScreen() {
 
   // Fetch cash counts on mount
   useEffect(() => {
-    dispatch(fetchCashCounts({ companyId: companyId || 0, dateFrom: today, dateTo: today }));
+    dispatch(
+      fetchCashCounts({
+        companyId: companyId || 0,
+        dateFrom: today,
+        dateTo: today,
+      }),
+    );
   }, [dispatch, today, companyId]);
 
   // Pre-populate entries when shift changes or cash counts are loaded
@@ -208,7 +216,13 @@ export function useCashCountScreen() {
 
       // Refresh dashboard and cash counts
       dispatch(fetchDashboard({}));
-      dispatch(fetchCashCounts({ companyId: companyId, dateFrom: today, dateTo: today }));
+      dispatch(
+        fetchCashCounts({
+          companyId: companyId,
+          dateFrom: today,
+          dateTo: today,
+        }),
+      );
 
       return {
         success: true,

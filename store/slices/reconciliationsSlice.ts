@@ -588,6 +588,16 @@ export const {
 export const selectBalanceHistory = (state: {
   reconciliations: ReconciliationsState;
 }) => {
+  // Defensive check to prevent errors during state initialization
+  if (
+    !state ||
+    !state.reconciliations ||
+    !state.reconciliations.history ||
+    !Array.isArray(state.reconciliations.history)
+  ) {
+    return [];
+  }
+
   return state.reconciliations.history.map((item) => ({
     id: item.id?.toString() || "",
     date: item.date,

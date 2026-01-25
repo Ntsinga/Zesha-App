@@ -1,8 +1,11 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { useLocalSearchParams } from "expo-router";
 import {
   createCommissionsBulk,
   fetchCommissions,
+  saveDraftEntries,
+  clearDraftEntries,
 } from "../../store/slices/commissionsSlice";
 import { fetchDashboard } from "../../store/slices/dashboardSlice";
 import { fetchAccounts } from "../../store/slices/accountsSlice";
@@ -49,15 +52,25 @@ const createEmptyEntry = (shift: ShiftEnum = "AM"): CommissionEntry => ({
 
 export function useAddCommissionScreen() {
   const dispatch = useDispatch<AppDispatch>();
+  const params = useLocalSearchParams();
+  const shiftFromParams = (params.shift as ShiftEnum) || null;
 
   // Selectors
   const companyId = useSelector(selectCompanyId);
   const { items: accounts, isLoading: accountsLoading } = useSelector(
     (state: RootState) => state.accounts,
   );
-  const { items: commissions } = useSelector(
-    (state: RootState) => state.commissions,
-  );
+  const {
+    items: commissions,
+    draftEntries,
+    isLoading: commissionsLoading,
+  } = useSelector((state: RootState) => state.commissions);
+
+  // Combined loading state - wait for both to finish
+  const isDataLoading = accountsLoading || commissionsLoading;
+
+  // Today's date
+  const today = useMemo(() => new Date().toISOString().split("T")[0], []);
 
   // State
   const [entries, setEntries] = useState<CommissionEntry[]>([
@@ -73,81 +86,144 @@ export function useAddCommissionScreen() {
     string | null
   >(null);
 
-  // Today's date
-  const today = useMemo(() => new Date().toISOString().split("T")[0], []);
-
-  // Fetch data on mount
+  // Fetch data on mount - force refresh to get latest commissions
   useEffect(() => {
-    dispatch(fetchAccounts({ isActive: true }));
-    dispatch(fetchCommissions({}));
-  }, [dispatch]);
+    dispatch(fetchAccounts({ isActive: true, forceRefresh: true }));
+    dispatch(
+      fetchCommissions({ dateFrom: today, dateTo: today, forceRefresh: true }),
+    );
+  }, [dispatch, today]);
+
+  // Compute which shift has data
+  const { hasAMData, hasPMData } = useMemo(() => {
+    const amCommissions = commissions.filter(
+      (com) => com.date.startsWith(today) && com.shift === "AM",
+    );
+    const pmCommissions = commissions.filter(
+      (com) => com.date.startsWith(today) && com.shift === "PM",
+    );
+    return {
+      hasAMData: amCommissions.length > 0,
+      hasPMData: pmCommissions.length > 0,
+    };
+  }, [commissions, today]);
+
+  // Determine the correct shift to use
+  const correctShift = useMemo((): ShiftEnum => {
+    // If shift is provided via params, use it
+    if (shiftFromParams) return shiftFromParams;
+    // Otherwise, determine from data
+    if (hasPMData && !hasAMData) return "PM";
+    if (hasAMData && !hasPMData) return "AM";
+    return "AM"; // Default to AM if both or neither have data
+  }, [hasAMData, hasPMData, shiftFromParams]);
 
   // Initialize entries from existing commissions
   useEffect(() => {
-    if (isInitialized || accountsLoading || accounts.length === 0) return;
+    if (isInitialized || isDataLoading || accounts.length === 0) return;
 
-    const activeAccounts = accounts.filter((acc) => acc.isActive);
+    // Auto-select the correct shift based on data
+    setCurrentShift(correctShift);
 
-    // Get commissions for today and current shift
+    console.log("[AddCommission] Prepopulation check:", {
+      commissionsCount: commissions.length,
+      today,
+      correctShift,
+      currentShift,
+      accountsLoaded: accounts.length,
+    });
+
+    // Use correctShift for prepopulation
     const shiftCommissions = commissions.filter(
-      (com) => com.date.startsWith(today) && com.shift === currentShift,
+      (com) => com.date.startsWith(today) && com.shift === correctShift,
     );
+
+    console.log("[AddCommission] Shift commissions:", {
+      shift: currentShift,
+      count: shiftCommissions.length,
+      commissions: shiftCommissions.map((c) => ({
+        accountId: c.accountId,
+        amount: c.amount,
+        date: c.date,
+      })),
+    });
 
     if (shiftCommissions.length > 0) {
       const prepopulatedEntries: CommissionEntry[] = shiftCommissions.map(
-        (com) => ({
-          id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-          accountId: com.accountId,
-          accountName:
-            com.account?.name ||
-            accounts.find((acc) => acc.id === com.accountId)?.name ||
-            `Account ${com.accountId}`,
-          shift: currentShift,
-          amount: com.amount.toString(),
-          imageUrl: com.imageData
-            ? `data:image/jpeg;base64,${com.imageData}`
-            : "",
-          extractedBalance: com.amount,
-          isExtracting: false,
-          validationResult: {
-            isValid: true,
-            extractedBalance: com.amount,
-            inputBalance: com.amount,
-            difference: 0,
-            extractedAmount: com.amount,
-            enteredAmount: com.amount,
-            message: "Existing commission",
-          },
-        }),
+        (com) => {
+          // Get account name from relationship or find by id
+          let accountName = "";
+          if (com.account) {
+            accountName = com.account.name;
+          } else {
+            const account = accounts.find((acc) => acc.id === com.accountId);
+            accountName = account?.name || `Account ${com.accountId}`;
+          }
+
+          // Determine the image URL - prioritize imageData (base64) over imageUrl
+          let imageUri = "";
+          if (com.imageData) {
+            imageUri = `data:image/jpeg;base64,${com.imageData}`;
+          } else if (com.imageUrl) {
+            imageUri = com.imageUrl;
+          }
+
+          return {
+            id: `existing-${com.id}`,
+            accountId: com.accountId,
+            accountName: accountName,
+            shift: correctShift,
+            amount: com.amount.toString(),
+            imageUrl: imageUri,
+            extractedBalance: null,
+            isExtracting: false,
+            validationResult: null,
+          };
+        },
       );
 
-      // Add empty entries for accounts without commissions
-      const accountsWithCommissions = new Set(
-        shiftCommissions.map((com) => com.accountId),
+      console.log(
+        "[AddCommission] Prepopulating entries:",
+        prepopulatedEntries.length,
       );
-      const accountsWithoutCommissions = activeAccounts.filter(
-        (acc) => !accountsWithCommissions.has(acc.id),
+      setEntries(prepopulatedEntries);
+      setIsInitialized(true);
+    } else if (draftEntries.length > 0) {
+      // Load draft entries if no existing commissions
+      console.log(
+        "[AddCommission] Loading draft entries:",
+        draftEntries.length,
       );
-
-      const emptyEntries: CommissionEntry[] = accountsWithoutCommissions.map(
-        () => createEmptyEntry(currentShift),
-      );
-
-      setEntries([...prepopulatedEntries, ...emptyEntries]);
+      setEntries(draftEntries as CommissionEntry[]);
+      setIsInitialized(true);
     } else {
-      // No existing commissions, create one empty entry
-      setEntries([createEmptyEntry(currentShift)]);
+      console.log(
+        "[AddCommission] No existing commissions or drafts, initializing empty",
+      );
+      setEntries([createEmptyEntry(correctShift)]);
+      setIsInitialized(true);
     }
-
-    setIsInitialized(true);
   }, [
     commissions,
+    draftEntries,
     today,
+    correctShift,
     currentShift,
     isInitialized,
-    accountsLoading,
+    isDataLoading,
     accounts,
   ]);
+
+  // Auto-save draft entries to Redux whenever they change (only if not from existing commissions)
+  useEffect(() => {
+    if (
+      isInitialized &&
+      entries.length > 0 &&
+      !entries.some((e) => e.id.startsWith("existing-"))
+    ) {
+      dispatch(saveDraftEntries(entries as any[]));
+    }
+  }, [entries, dispatch, isInitialized]);
 
   // Active accounts
   const activeAccounts = useMemo(
@@ -471,6 +547,9 @@ export function useAddCommissionScreen() {
 
       await dispatch(createCommissionsBulk(commissionsData)).unwrap();
 
+      // Clear draft entries after successful submission
+      dispatch(clearDraftEntries());
+
       // Refresh dashboard
       await dispatch(fetchDashboard({})).unwrap();
 
@@ -493,7 +572,7 @@ export function useAddCommissionScreen() {
     entries,
     errors,
     isSubmitting,
-    accountsLoading,
+    accountsLoading: isDataLoading,
     isInitialized,
     currentShift,
     today,

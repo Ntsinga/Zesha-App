@@ -192,7 +192,13 @@ export function useExpensesScreen() {
         dispatch(fetchDashboard({}));
         return { success: true };
       } catch (error) {
-        return { success: false, error: error as string };
+        const errorMessage =
+          typeof error === "string"
+            ? error
+            : error instanceof Error
+              ? error.message
+              : "Failed to delete expense";
+        return { success: false, error: errorMessage };
       }
     },
     [dispatch],

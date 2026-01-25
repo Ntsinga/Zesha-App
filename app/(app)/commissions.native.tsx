@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -17,7 +17,7 @@ import {
   ChevronUp,
   TrendingUp,
 } from "lucide-react-native";
-import { useNavigation, useRouter } from "expo-router";
+import { useNavigation, useRouter, useFocusEffect } from "expo-router";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchCommissions } from "../../store/slices/commissionsSlice";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
@@ -48,13 +48,16 @@ export default function CommissionsPage() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [expandedDates, setExpandedDates] = useState<Set<string>>(new Set());
 
-  useEffect(() => {
-    dispatch(fetchCommissions({}));
-  }, [dispatch]);
+  // Refresh commissions when screen gains focus
+  useFocusEffect(
+    useCallback(() => {
+      dispatch(fetchCommissions({ forceRefresh: true }));
+    }, [dispatch]),
+  );
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await dispatch(fetchCommissions({}));
+    await dispatch(fetchCommissions({ forceRefresh: true }));
     setRefreshing(false);
   };
 
@@ -260,8 +263,7 @@ export default function CommissionsPage() {
                             <Text className="font-bold text-gray-700 mr-3">
                               {formatCurrency(commission.amount)}
                             </Text>
-                            {(commission.imageData ||
-                              commission.imageUrl) && (
+                            {(commission.imageData || commission.imageUrl) && (
                               <ImageIcon size={16} color="#9CA3AF" />
                             )}
                           </TouchableOpacity>

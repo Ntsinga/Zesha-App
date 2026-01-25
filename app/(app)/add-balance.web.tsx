@@ -14,6 +14,7 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import { useAddBalanceScreen } from "../../hooks/screens/useAddBalanceScreen";
+import { useCurrencyFormatter } from "../../hooks/useCurrency";
 import "../../styles/web.css";
 
 /**
@@ -23,6 +24,7 @@ export default function AddBalanceWeb() {
   const router = useRouter();
   const fileInputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const { formatCurrency } = useCurrencyFormatter();
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const {
@@ -402,20 +404,35 @@ export default function AddBalanceWeb() {
             </div>
           </div>
           <div className="form-actions-right">
+            <div className="form-total">
+              <span className="form-total-label">Total Float Balance:</span>
+              <span className="form-total-value">
+                {formatCurrency(
+                  entries.reduce(
+                    (sum, entry) => sum + (parseFloat(entry.amount) || 0),
+                    0,
+                  ),
+                )}
+              </span>
+            </div>
             <button
               className="btn-submit"
               onClick={onSubmit}
-              disabled={isSubmitting || completeCount === 0}
+              disabled={
+                isSubmitting ||
+                completeCount === 0 ||
+                missingAccounts.length > 0
+              }
             >
               {isSubmitting ? (
                 <>
                   <Loader2 className="spinning" size={18} />
-                  Saving...
+                  Submitting...
                 </>
               ) : (
                 <>
                   <Save size={18} />
-                  Save Balances
+                  Submit Balances
                 </>
               )}
             </button>

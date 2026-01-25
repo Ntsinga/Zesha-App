@@ -8,10 +8,34 @@ import {
   Plus,
   Search,
   Filter,
-  ChevronRight,
+  FileEdit,
+  Calculator,
+  Lock,
+  CheckCheck,
+  XCircle,
 } from "lucide-react";
+import type { BalanceHistoryEntry } from "../../types";
 import { useBalanceHistoryScreen } from "../../hooks/screens/useBalanceHistoryScreen";
 import "../../styles/web.css";
+
+// Helper to determine reconciliation status display
+const getReconciliationStatus = (record: BalanceHistoryEntry) => {
+  if (!record.isFinalized) {
+    return record.reconciliationStatus === "CALCULATED"
+      ? { label: "Calculated", color: "blue", icon: Calculator }
+      : { label: "Draft", color: "gray", icon: FileEdit };
+  }
+
+  if (record.approvalStatus === "APPROVED") {
+    return { label: "Approved", color: "green", icon: CheckCheck };
+  }
+
+  if (record.approvalStatus === "REJECTED") {
+    return { label: "Rejected", color: "red", icon: XCircle };
+  }
+
+  return { label: "Awaiting Review", color: "yellow", icon: Lock };
+};
 
 /**
  * Web Balance History - Table view with filters
@@ -148,8 +172,8 @@ export default function BalanceHistoryWeb() {
                 <th>Float</th>
                 <th>Cash</th>
                 <th>Total</th>
-                <th>Status</th>
-                <th>Action</th>
+                <th>Validation</th>
+                <th>Workflow Status</th>
               </tr>
             </thead>
             <tbody>
@@ -161,55 +185,71 @@ export default function BalanceHistoryWeb() {
                   </td>
                 </tr>
               ) : (
-                history.map((record, index) => (
-                  <tr key={record.id || `history-${index}`}>
-                    <td className="font-medium">
-                      {formatDate(record.date, "short")}
-                    </td>
-                    <td>
-                      <span
-                        className={`shift-badge ${
-                          record.shift === "AM" ? "am" : "pm"
-                        }`}
-                      >
-                        {record.shift}
-                      </span>
-                    </td>
-                    <td>{formatCurrency(record.totalFloat)}</td>
-                    <td>{formatCurrency(record.totalCash)}</td>
-                    <td className="font-semibold">
-                      {formatCurrency(record.totalFloat + record.totalCash)}
-                    </td>
-                    <td>
-                      <span
-                        className={`status-badge ${record.status?.toLowerCase()}`}
-                      >
-                        {record.status === "PASSED" && (
-                          <CheckCircle size={12} />
-                        )}
-                        {record.status === "FAILED" && (
-                          <AlertTriangle size={12} />
-                        )}
-                        {record.status === "FLAGGED" && <Clock size={12} />}
-                        {record.status === "PASSED"
-                          ? "OK"
-                          : record.status === "FAILED"
-                          ? "Fail"
-                          : "Flag"}
-                      </span>
-                    </td>
-                    <td>
-                      <button
-                        onClick={() => {
-                          router.push(`/reconciliation?date=${record.date}&shift=${record.shift}`);
-                        }}
-                        className="btn-view"
-                      >
-                        View <ChevronRight size={14} />
-                      </button>
-                    </td>
-                  </tr>
-                ))
+                history.map((record, index) => {
+                  const statusInfo = getReconciliationStatus(record);
+                  const StatusIcon = statusInfo.icon;
+                  return (
+                    <tr
+                      key={record.id || `history-${index}`}
+                      onClick={() => {
+                        router.push(
+                          `/reconciliation?date=${record.date}&shift=${record.shift}`,
+                        );
+                      }}
+                      style={{ cursor: "pointer" }}
+                      className="hover:bg-gray-50"
+                    >
+                      <td className="font-medium">
+                        {formatDate(record.date, "short")}
+                      </td>
+                      <td>
+                        <span
+                          className={`shift-badge ${
+                            record.shift === "AM" ? "am" : "pm"
+                          }`}
+                        >
+                          {record.shift}
+                        </span>
+                      </td>
+                      <td>{formatCurrency(record.totalFloat)}</td>
+                      <td>{formatCurrency(record.totalCash)}</td>
+                      <td className="font-semibold">
+                        {formatCurrency(record.totalFloat + record.totalCash)}
+                      </td>
+                      <td>
+                        <span
+                          className={`status-badge ${record.status?.toLowerCase()}`}
+                        >
+                          {record.status === "PASSED" && (
+                            <CheckCircle size={12} />
+                          )}
+                          {record.status === "FAILED" && (
+                            <AlertTriangle size={12} />
+                          )}
+                          {record.status === "FLAGGED" && <Clock size={12} />}
+                          {record.status === "PASSED"
+                            ? "OK"
+                            : record.status === "FAILED"
+                              ? "Fail"
+                              : "Flag"}
+                        </span>
+                      </td>
+                      <td>
+                        <span
+                          className={`status-badge ${statusInfo.color}`}
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "4px",
+                          }}
+                        >
+                          <StatusIcon size={12} />
+                          {statusInfo.label}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>

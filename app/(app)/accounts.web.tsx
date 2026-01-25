@@ -23,6 +23,7 @@ export default function Accounts() {
     accounts,
     isLoading,
     refreshing,
+    isSubmitting,
     isModalOpen,
     editingAccount,
     showDeleteConfirm,
@@ -273,7 +274,10 @@ export default function Accounts() {
       {/* Add/Edit Modal */}
       {isModalOpen && (
         <div className="modal-overlay" onClick={closeModal}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="modal-content modal-sm"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="modal-header">
               <h2>{editingAccount ? "Edit Account" : "Add Account"}</h2>
               <button className="btn-icon" onClick={closeModal}>
@@ -335,12 +339,28 @@ export default function Accounts() {
             </div>
 
             <div className="modal-footer">
-              <button className="btn-secondary" onClick={closeModal}>
+              <button
+                className="btn-secondary"
+                onClick={closeModal}
+                disabled={isSubmitting}
+              >
                 Cancel
               </button>
-              <button className="btn-primary" onClick={onSubmit}>
-                <Check size={16} />
-                {editingAccount ? "Update" : "Create"}
+              <button
+                className="btn-primary"
+                onClick={onSubmit}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <RefreshCw size={16} className="spin" />
+                ) : (
+                  <Check size={16} />
+                )}
+                {isSubmitting
+                  ? "Saving..."
+                  : editingAccount
+                    ? "Update"
+                    : "Create"}
               </button>
             </div>
           </div>

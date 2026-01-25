@@ -124,11 +124,19 @@ export const createAccount = createAsyncThunk<
 export const updateAccount = createAsyncThunk<
   Account,
   { id: number; data: AccountUpdate },
-  { rejectValue: string }
->("accounts/update", async ({ id, data }, { rejectWithValue }) => {
+  { state: RootState; rejectValue: string }
+>("accounts/update", async ({ id, data }, { getState, rejectWithValue }) => {
   try {
+    const state = getState();
+    const companyId = data.companyId || state.auth.user?.companyId;
+
+    if (!companyId) {
+      return rejectWithValue("No companyId found. Please log in again.");
+    }
+
+    const query = buildTypedQueryString({ companyId });
     const account = await apiRequest<Account>(
-      API_ENDPOINTS.accounts.update(id),
+      `${API_ENDPOINTS.accounts.update(id)}${query}`,
       {
         method: "PATCH",
         body: JSON.stringify(mapApiRequest(data)),
