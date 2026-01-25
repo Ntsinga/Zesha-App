@@ -78,7 +78,7 @@ export default function BalanceDetailWeb() {
       <div className="page-wrapper">
         <div className="loading-container">
           <div className="spinner"></div>
-          <p>Loading balance details...</p>
+          <p>Loading reconciliation details...</p>
         </div>
       </div>
     );

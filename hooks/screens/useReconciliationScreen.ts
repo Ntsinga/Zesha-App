@@ -40,9 +40,11 @@ export function useReconciliationScreen({
   } = useSelector((state: RootState) => state.reconciliations);
   const { user: backendUser } = useSelector((state: RootState) => state.auth);
 
-  // Check if user is supervisor or admin
+  // Check if user can review reconciliations (supervisor or admin)
   const canReview =
-    backendUser?.role === "manager" || backendUser?.role === "admin";
+    backendUser?.role === "Agent Supervisor" ||
+    backendUser?.role === "Administrator" ||
+    backendUser?.role === "Super Administrator";
 
   // Fetch details on mount
   useEffect(() => {
