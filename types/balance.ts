@@ -1,7 +1,11 @@
 /**
  * Balance types matching backend models/balances.py
  */
-import type { BaseModel, BulkOperationResponse } from "./base";
+import type {
+  BaseModel,
+  BulkOperationResponse,
+  BulkUpdateOperationResponse,
+} from "./base";
 import type { ShiftEnum, SourceEnum } from "./enums";
 import type { Account } from "./account";
 
@@ -83,6 +87,37 @@ export interface BulkBalanceCreate {
 export type BulkBalanceResponse = BulkOperationResponse<
   Balance,
   { index: number; accountId: number; error: string }
+>;
+
+/**
+ * Balance item for bulk update
+ */
+export interface BalanceItemUpdate {
+  id: number;
+  accountId?: number;
+  shift?: ShiftEnum;
+  amount?: number;
+  imageUrl?: string;
+  mediaId?: string | null;
+  messageId?: string | null;
+  source?: SourceEnum;
+  sha256?: string | null;
+  date?: string;
+}
+
+/**
+ * Bulk balance update payload
+ */
+export interface BulkBalanceUpdate {
+  balances: BalanceItemUpdate[];
+}
+
+/**
+ * Bulk balance update response
+ */
+export type BulkBalanceUpdateResponse = BulkUpdateOperationResponse<
+  Balance,
+  { index: number; id: number; error: string }
 >;
 
 /**

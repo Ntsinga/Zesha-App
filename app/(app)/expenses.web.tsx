@@ -64,7 +64,7 @@ export default function ExpensesWeb() {
     }
   };
 
-  if (isLoading && !refreshing && expenses.length === 0) {
+  if (isLoading && !refreshing) {
     return (
       <div className="loading-container">
         <div className="loading-content">

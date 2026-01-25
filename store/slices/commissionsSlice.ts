@@ -4,6 +4,8 @@ import type {
   CommissionCreate,
   CommissionUpdate,
   CommissionFilters,
+  BulkCommissionUpdate,
+  BulkCommissionUpdateResponse,
 } from "@/types";
 import { mapApiResponse, mapApiRequest, buildTypedQueryString } from "@/types";
 import { API_ENDPOINTS } from "@/config/api";
@@ -180,6 +182,27 @@ export const createCommissionsBulk = createAsyncThunk<
     console.error("[CommissionsSlice] Bulk create error:", error);
     return rejectWithValue(
       error instanceof Error ? error.message : "Failed to create commissions",
+    );
+  }
+});
+
+export const updateCommissionsBulk = createAsyncThunk<
+  BulkCommissionUpdateResponse,
+  BulkCommissionUpdate,
+  { rejectValue: string }
+>("commissions/updateBulk", async (data, { rejectWithValue }) => {
+  try {
+    const response = await apiRequest<BulkCommissionUpdateResponse>(
+      API_ENDPOINTS.commissions.bulkUpdate,
+      {
+        method: "PATCH",
+        body: JSON.stringify(mapApiRequest(data)),
+      },
+    );
+    return response;
+  } catch (error) {
+    return rejectWithValue(
+      error instanceof Error ? error.message : "Failed to update commissions",
     );
   }
 });

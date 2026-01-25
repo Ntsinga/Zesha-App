@@ -46,3 +46,17 @@ export interface BulkOperationResponse<
   totalCreated: number;
   totalFailed: number;
 }
+
+/**
+ * Bulk update operation response for batch updates
+ */
+export interface BulkUpdateOperationResponse<
+  T,
+  F = { index: number; id: number; error: string },
+> {
+  updated: T[];
+  failed: F[];
+  totalSubmitted: number;
+  totalUpdated: number;
+  totalFailed: number;
+}

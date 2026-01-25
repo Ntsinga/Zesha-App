@@ -70,7 +70,7 @@ export default function Settings() {
     }
   };
 
-  if (isLoading && !refreshing && !company) {
+  if (isLoading && !refreshing) {
     return (
       <div className="page-wrapper">
         <div className="loading-container">

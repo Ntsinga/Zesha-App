@@ -7,6 +7,8 @@ import type {
   BulkBalanceCreate,
   BulkBalanceResponse,
   DraftBalanceEntry,
+  BulkBalanceUpdate,
+  BulkBalanceUpdateResponse,
 } from "@/types";
 import { mapApiResponse, mapApiRequest, buildTypedQueryString } from "@/types";
 import { API_ENDPOINTS } from "@/config/api";
@@ -151,6 +153,27 @@ export const createBalancesBulk = createAsyncThunk<
   } catch (error) {
     return rejectWithValue(
       error instanceof Error ? error.message : "Failed to create balances",
+    );
+  }
+});
+
+export const updateBalancesBulk = createAsyncThunk<
+  BulkBalanceUpdateResponse,
+  BulkBalanceUpdate,
+  { rejectValue: string }
+>("balances/updateBulk", async (data, { rejectWithValue }) => {
+  try {
+    const response = await apiRequest<BulkBalanceUpdateResponse>(
+      API_ENDPOINTS.balances.bulkUpdate,
+      {
+        method: "PATCH",
+        body: JSON.stringify(mapApiRequest(data)),
+      },
+    );
+    return response;
+  } catch (error) {
+    return rejectWithValue(
+      error instanceof Error ? error.message : "Failed to update balances",
     );
   }
 });

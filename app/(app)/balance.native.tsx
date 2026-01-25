@@ -91,6 +91,7 @@ export default function BalancePage() {
               {/* Cash Count Option */}
               <TouchableOpacity
                 onPress={handleNavigateCashCount}
+                style={{ borderRadius: 16 }}
                 className={`rounded-2xl p-5 shadow-sm ${
                   hasSelectedCashCount
                     ? "bg-green-50 border-2 border-green-500"
@@ -99,6 +100,7 @@ export default function BalancePage() {
               >
                 <View className="flex-row items-center">
                   <View
+                    style={{ borderRadius: 12 }}
                     className={`p-4 rounded-xl mr-4 ${
                       hasSelectedCashCount ? "bg-green-100" : "bg-brand-red/10"
                     }`}
@@ -159,6 +161,7 @@ export default function BalancePage() {
               {/* Add Balances Option */}
               <TouchableOpacity
                 onPress={handleNavigateAddBalance}
+                style={{ borderRadius: 16 }}
                 className={`rounded-2xl p-5 shadow-sm ${
                   hasSelectedBalances
                     ? "bg-green-50 border-2 border-green-500"
@@ -167,6 +170,7 @@ export default function BalancePage() {
               >
                 <View className="flex-row items-center">
                   <View
+                    style={{ borderRadius: 12 }}
                     className={`p-4 rounded-xl mr-4 ${
                       hasSelectedBalances ? "bg-green-100" : "bg-brand-gold/30"
                     }`}
@@ -223,6 +227,7 @@ export default function BalancePage() {
               {/* Add Commissions Option */}
               <TouchableOpacity
                 onPress={handleNavigateCommissions}
+                style={{ borderRadius: 16 }}
                 className={`rounded-2xl p-5 shadow-sm ${
                   hasSelectedCommissions
                     ? "bg-green-50 border-2 border-green-500"
@@ -231,6 +236,7 @@ export default function BalancePage() {
               >
                 <View className="flex-row items-center">
                   <View
+                    style={{ borderRadius: 12 }}
                     className={`p-4 rounded-xl mr-4 ${
                       hasSelectedCommissions ? "bg-green-100" : "bg-red-100"
                     }`}

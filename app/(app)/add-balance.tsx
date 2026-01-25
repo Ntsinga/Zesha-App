@@ -35,6 +35,7 @@ import {
   saveDraftEntries,
   clearDraftEntries,
   createBalancesBulk,
+  updateBalancesBulk,
   fetchBalances,
 } from "../../store/slices/balancesSlice";
 import { fetchDashboard } from "../../store/slices/dashboardSlice";
@@ -655,6 +656,9 @@ export default function AddBalancePage() {
     return isValid;
   };
 
+  // Check if we have existing entries (for update vs create)
+  const hasExistingEntries = entries.some((e) => e.id.startsWith("existing-"));
+
   const handleSubmit = async () => {
     if (!validateEntries()) return;
 
@@ -666,66 +670,129 @@ export default function AddBalancePage() {
     setIsSubmitting(true);
 
     try {
-      // Convert all entries to balance data with base64 images
-      const balanceDataArray = await Promise.all(
-        entries.map(async (entry) => {
-          let imageData: string | null = null;
-
-          // Convert image to base64 if present
-          if (entry.imageUrl) {
-            try {
-              imageData = await FileSystem.readAsStringAsync(entry.imageUrl, {
-                encoding: FileSystem.EncodingType.Base64,
-              });
-            } catch (error) {
-              console.error("[AddBalance] Failed to read image:", error);
-              // Continue without image data
-            }
-          }
-
-          return {
-            accountId: entry.accountId!,
-            shift: currentShift,
-            amount: parseFloat(entry.amount),
-            source: "mobile_app" as const,
-            date: today,
-            imageData: imageData,
-            companyId: companyId || 0,
-          };
-        }),
+      // Separate entries into existing (to update) vs new (to create)
+      const existingEntries = entries.filter((e) =>
+        e.id.startsWith("existing-"),
       );
+      const newEntries = entries.filter((e) => !e.id.startsWith("existing-"));
 
-      // Use bulk create endpoint
-      const result = await dispatch(
-        createBalancesBulk({ balances: balanceDataArray }),
-      ).unwrap();
+      let totalCreated = 0;
+      let totalUpdated = 0;
+      let totalFailed = 0;
 
-      // Refresh dashboard after adding balances
+      // Handle updates for existing entries
+      if (existingEntries.length > 0) {
+        const updateDataArray = await Promise.all(
+          existingEntries.map(async (entry) => {
+            // Extract the numeric id from "existing-{id}"
+            const numericId = parseInt(entry.id.replace("existing-", ""), 10);
+
+            let imageData: string | null = null;
+
+            // Convert image to base64 if present and it's a local file
+            if (entry.imageUrl && !entry.imageUrl.startsWith("data:image")) {
+              try {
+                imageData = await FileSystem.readAsStringAsync(entry.imageUrl, {
+                  encoding: FileSystem.EncodingType.Base64,
+                });
+              } catch (error) {
+                console.error("[AddBalance] Failed to read image:", error);
+              }
+            } else if (
+              entry.imageUrl &&
+              entry.imageUrl.startsWith("data:image")
+            ) {
+              // Already base64
+              imageData = entry.imageUrl.split(",")[1];
+            }
+
+            return {
+              id: numericId,
+              accountId: entry.accountId!,
+              shift: currentShift,
+              amount: parseFloat(entry.amount),
+              imageData: imageData || undefined,
+            };
+          }),
+        );
+
+        const updateResult = await dispatch(
+          updateBalancesBulk({ balances: updateDataArray }),
+        ).unwrap();
+
+        totalUpdated = updateResult.totalUpdated;
+        totalFailed += updateResult.totalFailed;
+      }
+
+      // Handle creates for new entries
+      if (newEntries.length > 0) {
+        const balanceDataArray = await Promise.all(
+          newEntries.map(async (entry) => {
+            let imageData: string | null = null;
+
+            // Convert image to base64 if present
+            if (entry.imageUrl) {
+              try {
+                imageData = await FileSystem.readAsStringAsync(entry.imageUrl, {
+                  encoding: FileSystem.EncodingType.Base64,
+                });
+              } catch (error) {
+                console.error("[AddBalance] Failed to read image:", error);
+              }
+            }
+
+            return {
+              accountId: entry.accountId!,
+              shift: currentShift,
+              amount: parseFloat(entry.amount),
+              source: "mobile_app" as const,
+              date: today,
+              imageData: imageData,
+              companyId: companyId || 0,
+            };
+          }),
+        );
+
+        const createResult = await dispatch(
+          createBalancesBulk({ balances: balanceDataArray }),
+        ).unwrap();
+
+        totalCreated = createResult.totalCreated;
+        totalFailed += createResult.totalFailed;
+      }
+
+      // Refresh dashboard after adding/updating balances
       dispatch(fetchDashboard({}));
 
       // Clear draft entries after successful submission
       dispatch(clearDraftEntries());
 
-      // Show success/partial success message
-      if (result.totalFailed > 0) {
+      // Build success message
+      const operations: string[] = [];
+      if (totalCreated > 0)
+        operations.push(
+          `${totalCreated} balance${totalCreated > 1 ? "s" : ""} created`,
+        );
+      if (totalUpdated > 0)
+        operations.push(
+          `${totalUpdated} balance${totalUpdated > 1 ? "s" : ""} updated`,
+        );
+
+      if (totalFailed > 0) {
         Alert.alert(
           "Partial Success",
-          `${result.totalCreated} of ${result.totalSubmitted} balances created successfully. ${result.totalFailed} failed.`,
+          `${operations.join(", ")}. ${totalFailed} failed.`,
           [{ text: "OK", onPress: () => router.back() }],
         );
       } else {
-        Alert.alert(
-          "Success",
-          `${result.totalCreated} balance${
-            result.totalCreated > 1 ? "s" : ""
-          } added successfully!`,
-          [{ text: "OK", onPress: () => router.back() }],
-        );
+        Alert.alert("Success", `Successfully ${operations.join(" and ")}!`, [
+          { text: "OK", onPress: () => router.back() },
+        ]);
       }
     } catch (error) {
       Alert.alert(
         "Error",
-        error instanceof Error ? error.message : "Failed to add balances",
+        error instanceof Error ? error.message : "Failed to save balances",
       );
     } finally {
       setIsSubmitting(false);
@@ -979,10 +1046,16 @@ export default function AddBalancePage() {
             <Save color="white" size={20} />
             <Text className="text-white font-bold text-base ml-2">
               {isSubmitting
-                ? "Submitting..."
-                : `Submit ${entries.length} Balance${
-                    entries.length > 1 ? "s" : ""
-                  }`}
+                ? hasExistingEntries
+                  ? "Updating..."
+                  : "Submitting..."
+                : hasExistingEntries
+                  ? `Update ${entries.length} Balance${
+                      entries.length > 1 ? "s" : ""
+                    }`
+                  : `Submit ${entries.length} Balance${
+                      entries.length > 1 ? "s" : ""
+                    }`}
             </Text>
           </TouchableOpacity>
         </View>

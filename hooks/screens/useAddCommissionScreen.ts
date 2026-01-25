@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { useLocalSearchParams } from "expo-router";
 import {
   createCommissionsBulk,
+  updateCommissionsBulk,
   fetchCommissions,
   saveDraftEntries,
   clearDraftEntries,
@@ -513,39 +514,101 @@ export function useAddCommissionScreen() {
     setIsSubmitting(true);
 
     try {
-      const commissionsData = await Promise.all(
-        entries.map(async (entry) => {
-          let imageData: string | undefined;
-
-          // Handle file upload for web
-          if (entry.imageFile) {
-            const reader = new FileReader();
-            imageData = await new Promise((resolve) => {
-              reader.onloadend = () => {
-                const base64 = (reader.result as string).split(",")[1];
-                resolve(base64);
-              };
-              reader.readAsDataURL(entry.imageFile!);
-            });
-          } else if (
-            entry.imageUrl &&
-            entry.imageUrl.startsWith("data:image")
-          ) {
-            imageData = entry.imageUrl.split(",")[1];
-          }
-
-          return {
-            companyId: companyId,
-            accountId: entry.accountId!,
-            shift: currentShift,
-            amount: parseFloat(entry.amount),
-            date: today,
-            imageData: imageData,
-          };
-        }),
+      // Separate entries into existing (to update) vs new (to create)
+      const existingEntries = entries.filter((e) =>
+        e.id.startsWith("existing-"),
       );
+      const newEntries = entries.filter((e) => !e.id.startsWith("existing-"));
 
-      await dispatch(createCommissionsBulk(commissionsData)).unwrap();
+      let totalCreated = 0;
+      let totalUpdated = 0;
+      let totalFailed = 0;
+
+      // Handle updates for existing entries
+      if (existingEntries.length > 0) {
+        const updateDataArray = await Promise.all(
+          existingEntries.map(async (entry) => {
+            // Extract the numeric id from "existing-{id}"
+            const numericId = parseInt(entry.id.replace("existing-", ""), 10);
+
+            let imageData: string | undefined;
+
+            // Handle file upload for web
+            if (entry.imageFile) {
+              const reader = new FileReader();
+              imageData = await new Promise((resolve) => {
+                reader.onloadend = () => {
+                  const base64 = (reader.result as string).split(",")[1];
+                  resolve(base64);
+                };
+                reader.readAsDataURL(entry.imageFile!);
+              });
+            } else if (
+              entry.imageUrl &&
+              entry.imageUrl.startsWith("data:image")
+            ) {
+              imageData = entry.imageUrl.split(",")[1];
+            }
+
+            return {
+              id: numericId,
+              accountId: entry.accountId!,
+              shift: currentShift,
+              amount: parseFloat(entry.amount),
+              imageData: imageData,
+            };
+          }),
+        );
+
+        const updateResult = await dispatch(
+          updateCommissionsBulk({ commissions: updateDataArray }),
+        ).unwrap();
+
+        totalUpdated = updateResult.totalUpdated;
+        totalFailed += updateResult.totalFailed;
+      }
+
+      // Handle creates for new entries
+      if (newEntries.length > 0) {
+        const commissionsData = await Promise.all(
+          newEntries.map(async (entry) => {
+            let imageData: string | undefined;
+
+            // Handle file upload for web
+            if (entry.imageFile) {
+              const reader = new FileReader();
+              imageData = await new Promise((resolve) => {
+                reader.onloadend = () => {
+                  const base64 = (reader.result as string).split(",")[1];
+                  resolve(base64);
+                };
+                reader.readAsDataURL(entry.imageFile!);
+              });
+            } else if (
+              entry.imageUrl &&
+              entry.imageUrl.startsWith("data:image")
+            ) {
+              imageData = entry.imageUrl.split(",")[1];
+            }
+
+            return {
+              companyId: companyId,
+              accountId: entry.accountId!,
+              shift: currentShift,
+              amount: parseFloat(entry.amount),
+              date: today,
+              imageData: imageData,
+            };
+          }),
+        );
+
+        const createResult = await dispatch(
+          createCommissionsBulk(commissionsData),
+        ).unwrap();
+
+        // createCommissionsBulk returns Commission[], count the successes
+        totalCreated = Array.isArray(createResult) ? createResult.length : 0;
+      }
 
       // Clear draft entries after successful submission
       dispatch(clearDraftEntries());
@@ -553,10 +616,22 @@ export function useAddCommissionScreen() {
       // Refresh dashboard
       await dispatch(fetchDashboard({})).unwrap();
 
-      return {
-        success: true,
-        message: "Commissions saved successfully!",
-      };
+      // Build success message
+      const operations: string[] = [];
+      if (totalCreated > 0) operations.push(`${totalCreated} created`);
+      if (totalUpdated > 0) operations.push(`${totalUpdated} updated`);
+
+      if (totalFailed > 0) {
+        return {
+          success: true,
+          message: `${operations.join(", ")}. ${totalFailed} failed.`,
+        };
+      } else {
+        return {
+          success: true,
+          message: `Commissions successfully ${operations.join(" and ")}!`,
+        };
+      }
     } catch (error: any) {
       return {
         success: false,
@@ -566,6 +641,12 @@ export function useAddCommissionScreen() {
       setIsSubmitting(false);
     }
   }, [entries, currentShift, today, companyId, dispatch, validateEntries]);
+
+  // Compute if we have existing entries (for update vs create UI)
+  const hasExistingEntries = useMemo(
+    () => entries.some((e) => e.id.startsWith("existing-")),
+    [entries],
+  );
 
   return {
     // State
@@ -581,6 +662,7 @@ export function useAddCommissionScreen() {
     // Computed
     activeAccounts,
     getAvailableAccounts,
+    hasExistingEntries,
 
     // Actions
     updateEntry,

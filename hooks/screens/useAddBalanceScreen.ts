@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { useLocalSearchParams } from "expo-router";
 import {
   createBalancesBulk,
+  updateBalancesBulk,
   fetchBalances,
   clearDraftEntries,
 } from "../../store/slices/balancesSlice";
@@ -502,62 +503,126 @@ export function useAddBalanceScreen() {
     setIsSubmitting(true);
 
     try {
-      const balanceDataArray = await Promise.all(
-        entries.map(async (entry) => {
-          let imageData: string | null = null;
-
-          // Handle file upload for web
-          if (entry.imageFile) {
-            const reader = new FileReader();
-            imageData = await new Promise((resolve) => {
-              reader.onloadend = () => {
-                const base64 = (reader.result as string).split(",")[1];
-                resolve(base64);
-              };
-              reader.readAsDataURL(entry.imageFile!);
-            });
-          } else if (
-            entry.imageUrl &&
-            entry.imageUrl.startsWith("data:image")
-          ) {
-            // Already base64
-            imageData = entry.imageUrl.split(",")[1];
-          }
-
-          return {
-            companyId: companyId,
-            accountId: entry.accountId!,
-            shift: currentShift,
-            amount: parseFloat(entry.amount),
-            source: "mobile_app" as const,
-            date: today,
-            imageData: imageData,
-          };
-        }),
+      // Separate entries into existing (to update) vs new (to create)
+      const existingEntries = entries.filter((e) =>
+        e.id.startsWith("existing-"),
       );
+      const newEntries = entries.filter((e) => !e.id.startsWith("existing-"));
 
-      const result = await dispatch(
-        createBalancesBulk({ balances: balanceDataArray }),
-      ).unwrap();
+      let totalCreated = 0;
+      let totalUpdated = 0;
+      let totalFailed = 0;
+
+      // Handle updates for existing entries
+      if (existingEntries.length > 0) {
+        const updateDataArray = await Promise.all(
+          existingEntries.map(async (entry) => {
+            // Extract the numeric id from "existing-{id}"
+            const numericId = parseInt(entry.id.replace("existing-", ""), 10);
+
+            let imageData: string | null = null;
+
+            // Handle file upload for web
+            if (entry.imageFile) {
+              const reader = new FileReader();
+              imageData = await new Promise((resolve) => {
+                reader.onloadend = () => {
+                  const base64 = (reader.result as string).split(",")[1];
+                  resolve(base64);
+                };
+                reader.readAsDataURL(entry.imageFile!);
+              });
+            } else if (
+              entry.imageUrl &&
+              entry.imageUrl.startsWith("data:image")
+            ) {
+              // Already base64
+              imageData = entry.imageUrl.split(",")[1];
+            }
+
+            return {
+              id: numericId,
+              accountId: entry.accountId!,
+              shift: currentShift,
+              amount: parseFloat(entry.amount),
+              imageData: imageData || undefined,
+            };
+          }),
+        );
+
+        const updateResult = await dispatch(
+          updateBalancesBulk({ balances: updateDataArray }),
+        ).unwrap();
+
+        totalUpdated = updateResult.totalUpdated;
+        totalFailed += updateResult.totalFailed;
+      }
+
+      // Handle creates for new entries
+      if (newEntries.length > 0) {
+        const balanceDataArray = await Promise.all(
+          newEntries.map(async (entry) => {
+            let imageData: string | null = null;
+
+            // Handle file upload for web
+            if (entry.imageFile) {
+              const reader = new FileReader();
+              imageData = await new Promise((resolve) => {
+                reader.onloadend = () => {
+                  const base64 = (reader.result as string).split(",")[1];
+                  resolve(base64);
+                };
+                reader.readAsDataURL(entry.imageFile!);
+              });
+            } else if (
+              entry.imageUrl &&
+              entry.imageUrl.startsWith("data:image")
+            ) {
+              // Already base64
+              imageData = entry.imageUrl.split(",")[1];
+            }
+
+            return {
+              companyId: companyId,
+              accountId: entry.accountId!,
+              shift: currentShift,
+              amount: parseFloat(entry.amount),
+              source: "mobile_app" as const,
+              date: today,
+              imageData: imageData,
+            };
+          }),
+        );
+
+        const createResult = await dispatch(
+          createBalancesBulk({ balances: balanceDataArray }),
+        ).unwrap();
+
+        totalCreated = createResult.totalCreated;
+        totalFailed += createResult.totalFailed;
+      }
 
       // Refresh data
       dispatch(fetchDashboard({}));
       dispatch(clearDraftEntries());
 
-      if (result.totalFailed > 0) {
+      // Build success message
+      const operations: string[] = [];
+      if (totalCreated > 0) operations.push(`${totalCreated} created`);
+      if (totalUpdated > 0) operations.push(`${totalUpdated} updated`);
+
+      if (totalFailed > 0) {
         return {
           success: true,
-          message: `${result.totalCreated} of ${result.totalSubmitted} balances created successfully. ${result.totalFailed} failed.`,
-          totalCreated: result.totalCreated,
-          totalFailed: result.totalFailed,
+          message: `${operations.join(", ")}. ${totalFailed} failed.`,
+          totalCreated,
+          totalFailed,
         };
       } else {
         return {
           success: true,
-          message: `${result.totalCreated} balance${
-            result.totalCreated > 1 ? "s" : ""
-          } added successfully!`,
-          totalCreated: result.totalCreated,
+          message: `Successfully ${operations.join(" and ")}!`,
+          totalCreated,
           totalFailed: 0,
         };
       }
@@ -571,6 +636,12 @@ export function useAddBalanceScreen() {
       setIsSubmitting(false);
     }
   }, [entries, currentShift, today, companyId, dispatch, validateEntries]);
+
+  // Compute if we have existing entries (for update vs create UI)
+  const hasExistingEntries = useMemo(
+    () => entries.some((e) => e.id.startsWith("existing-")),
+    [entries],
+  );
 
   return {
     // State
@@ -587,6 +658,7 @@ export function useAddBalanceScreen() {
     activeAccounts,
     missingAccounts,
     getAvailableAccounts,
+    hasExistingEntries,
 
     // Actions
     updateEntry,
