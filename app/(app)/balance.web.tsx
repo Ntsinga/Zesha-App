@@ -76,7 +76,7 @@ export default function BalancePage() {
         {isLoading ? (
           <div className="loading-container">
             <div className="spinner"></div>
-            <p className="loading-text">Loading balance data...</p>
+            <p className="loading-text">Loading reconciliation data...</p>
           </div>
         ) : (
           <>
