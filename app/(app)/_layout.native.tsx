@@ -32,7 +32,13 @@ export default function AppLayout() {
 
   // Redirect superadmin to agencies page if they try to access agency-specific pages without viewing an agency
   useEffect(() => {
-    if (isSuperAdmin && !isViewingAgency && pathname !== "/agencies" && pathname !== "/agency-form" && pathname !== "/settings") {
+    if (
+      isSuperAdmin &&
+      !isViewingAgency &&
+      pathname !== "/agencies" &&
+      pathname !== "/agency-form" &&
+      pathname !== "/settings"
+    ) {
       router.replace("/agencies");
     }
   }, [isSuperAdmin, isViewingAgency, pathname, router]);
@@ -54,7 +60,8 @@ export default function AppLayout() {
                 <Building2 size={16} color="#fff" />
               </View>
               <Text style={styles.bannerText}>
-                Viewing: <Text style={styles.bannerBold}>{viewingAgencyName}</Text>
+                Viewing:{" "}
+                <Text style={styles.bannerBold}>{viewingAgencyName}</Text>
               </Text>
             </View>
             <TouchableOpacity
@@ -92,6 +99,7 @@ export default function AppLayout() {
             <Stack.Screen name="accounts" />
             <Stack.Screen name="settings" />
             <Stack.Screen name="agencies" />
+            <Stack.Screen name="agency-form" />
           </Stack>
         </View>
         <BottomNav />

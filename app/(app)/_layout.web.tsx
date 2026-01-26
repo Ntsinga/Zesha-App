@@ -72,7 +72,13 @@ export default function AppLayoutWeb() {
 
   // Redirect superadmin to agencies page if they try to access agency-specific pages without viewing an agency
   useEffect(() => {
-    if (isSuperAdmin && !isViewingAgency && pathname !== "/agencies" && pathname !== "/agency-form" && pathname !== "/settings") {
+    if (
+      isSuperAdmin &&
+      !isViewingAgency &&
+      pathname !== "/agencies" &&
+      pathname !== "/agency-form" &&
+      pathname !== "/settings"
+    ) {
       router.replace("/agencies");
     }
   }, [isSuperAdmin, isViewingAgency, pathname, router]);

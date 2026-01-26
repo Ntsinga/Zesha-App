@@ -7,16 +7,13 @@ import {
   createCompanyInfo,
   updateCompanyInfo,
 } from "@/store/slices/companyInfoSlice";
-import type { CompanyInfo, CompanyInfoCreate, CompanyInfoUpdate } from "@/types";
+import type {
+  CompanyInfo,
+  CompanyInfoCreate,
+  CompanyInfoUpdate,
+} from "@/types";
 import { CURRENCIES } from "@/hooks/screens/useSettingsScreen";
-import {
-  ArrowLeft,
-  Building2,
-  Save,
-  X,
-  Plus,
-  Mail,
-} from "lucide-react";
+import { ArrowLeft, Building2, Save, X, Plus, Mail } from "lucide-react";
 import "../../styles/web.css";
 
 export default function AgencyFormScreen() {
@@ -25,7 +22,7 @@ export default function AgencyFormScreen() {
   const dispatch = useAppDispatch();
   const userRole = useAppSelector(selectUserRole);
   const { items: agencies, isLoading } = useAppSelector(
-    (state) => state.companyInfo
+    (state) => state.companyInfo,
   );
 
   const isEditing = Boolean(id);
@@ -122,7 +119,7 @@ export default function AgencyFormScreen() {
           emails: formData.emails,
         };
         await dispatch(
-          updateCompanyInfo({ id: Number(id), data: updateData })
+          updateCompanyInfo({ id: Number(id), data: updateData }),
         ).unwrap();
       } else {
         await dispatch(createCompanyInfo(formData)).unwrap();
@@ -133,7 +130,7 @@ export default function AgencyFormScreen() {
       router.back();
     } catch (err) {
       setFormError(
-        err instanceof Error ? err.message : "Failed to save agency"
+        err instanceof Error ? err.message : "Failed to save agency",
       );
     } finally {
       setIsSaving(false);
@@ -164,153 +161,151 @@ export default function AgencyFormScreen() {
           </div>
 
           <form onSubmit={handleSubmit} className="agency-form">
-          {formError && (
-            <div className="alert alert-error">{formError}</div>
-          )}
+            {formError && <div className="alert alert-error">{formError}</div>}
 
-          {/* Agency Name */}
-          <div className="form-group">
-            <label htmlFor="name">Agency Name *</label>
-            <input
-              type="text"
-              id="name"
-              value={formData.name}
-              onChange={(e) =>
-                setFormData((prev) => ({ ...prev, name: e.target.value }))
-              }
-              placeholder="Enter agency name"
-              className="form-input"
-              required
-            />
-          </div>
-
-          {/* Currency */}
-          <div className="form-group">
-            <label htmlFor="currency">Currency</label>
-            <select
-              id="currency"
-              value={formData.currency}
-              onChange={(e) =>
-                setFormData((prev) => ({ ...prev, currency: e.target.value }))
-              }
-              className="form-select"
-            >
-              {CURRENCIES.map((curr) => (
-                <option key={curr.code} value={curr.code}>
-                  {curr.code} - {curr.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Working Capital */}
-          <div className="form-group">
-            <label htmlFor="capital">Total Working Capital</label>
-            <input
-              type="number"
-              id="capital"
-              value={formData.totalWorkingCapital || ""}
-              onChange={(e) =>
-                setFormData((prev) => ({
-                  ...prev,
-                  totalWorkingCapital: Number(e.target.value) || 0,
-                }))
-              }
-              placeholder="0"
-              className="form-input"
-              min="0"
-            />
-          </div>
-
-          {/* Description */}
-          <div className="form-group">
-            <label htmlFor="description">Description</label>
-            <textarea
-              id="description"
-              value={formData.description || ""}
-              onChange={(e) =>
-                setFormData((prev) => ({
-                  ...prev,
-                  description: e.target.value,
-                }))
-              }
-              placeholder="Brief description of the agency"
-              className="form-textarea"
-              rows={3}
-            />
-          </div>
-
-          {/* Notification Emails */}
-          <div className="form-group">
-            <label>Notification Emails</label>
-            <div className="email-input-row">
+            {/* Agency Name */}
+            <div className="form-group">
+              <label htmlFor="name">Agency Name *</label>
               <input
-                type="email"
-                value={emailInput}
-                onChange={(e) => setEmailInput(e.target.value)}
-                placeholder="Add email address"
+                type="text"
+                id="name"
+                value={formData.name}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, name: e.target.value }))
+                }
+                placeholder="Enter agency name"
                 className="form-input"
-                onKeyPress={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    handleAddEmail();
-                  }
-                }}
+                required
               />
+            </div>
+
+            {/* Currency */}
+            <div className="form-group">
+              <label htmlFor="currency">Currency</label>
+              <select
+                id="currency"
+                value={formData.currency}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, currency: e.target.value }))
+                }
+                className="form-select"
+              >
+                {CURRENCIES.map((curr) => (
+                  <option key={curr.code} value={curr.code}>
+                    {curr.code} - {curr.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Working Capital */}
+            <div className="form-group">
+              <label htmlFor="capital">Total Working Capital</label>
+              <input
+                type="number"
+                id="capital"
+                value={formData.totalWorkingCapital || ""}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    totalWorkingCapital: Number(e.target.value) || 0,
+                  }))
+                }
+                placeholder="0"
+                className="form-input"
+                min="0"
+              />
+            </div>
+
+            {/* Description */}
+            <div className="form-group">
+              <label htmlFor="description">Description</label>
+              <textarea
+                id="description"
+                value={formData.description || ""}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    description: e.target.value,
+                  }))
+                }
+                placeholder="Brief description of the agency"
+                className="form-textarea"
+                rows={3}
+              />
+            </div>
+
+            {/* Notification Emails */}
+            <div className="form-group">
+              <label>Notification Emails</label>
+              <div className="email-input-row">
+                <input
+                  type="email"
+                  value={emailInput}
+                  onChange={(e) => setEmailInput(e.target.value)}
+                  placeholder="Add email address"
+                  className="form-input"
+                  onKeyPress={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleAddEmail();
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={handleAddEmail}
+                >
+                  <Plus size={18} />
+                  Add
+                </button>
+              </div>
+
+              {formData.emails && formData.emails.length > 0 && (
+                <div className="email-tags">
+                  {formData.emails.map((email, index) => (
+                    <div key={index} className="email-tag">
+                      <Mail size={14} />
+                      <span>{email}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveEmail(index)}
+                        className="email-tag-remove"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Form Actions */}
+            <div className="form-actions">
               <button
                 type="button"
                 className="btn btn-secondary"
-                onClick={handleAddEmail}
+                onClick={handleCancel}
+                disabled={isSaving}
               >
-                <Plus size={18} />
-                Add
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={isSaving}
+              >
+                <Save size={18} />
+                {isSaving
+                  ? "Saving..."
+                  : isEditing
+                    ? "Update Agency"
+                    : "Create Agency"}
               </button>
             </div>
-
-            {formData.emails && formData.emails.length > 0 && (
-              <div className="email-tags">
-                {formData.emails.map((email, index) => (
-                  <div key={index} className="email-tag">
-                    <Mail size={14} />
-                    <span>{email}</span>
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveEmail(index)}
-                      className="email-tag-remove"
-                    >
-                      <X size={14} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Form Actions */}
-          <div className="form-actions">
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={handleCancel}
-              disabled={isSaving}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="btn btn-primary"
-              disabled={isSaving}
-            >
-              <Save size={18} />
-              {isSaving
-                ? "Saving..."
-                : isEditing
-                  ? "Update Agency"
-                  : "Create Agency"}
-            </button>
-          </div>
-        </form>
-      </div>
+          </form>
+        </div>
       </div>
     </div>
   );

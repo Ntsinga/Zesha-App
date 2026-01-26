@@ -192,7 +192,7 @@ const authSlice = createSlice({
     // Superadmin actions for viewing agencies
     enterAgency: (
       state,
-      action: PayloadAction<{ agencyId: number; agencyName: string }>
+      action: PayloadAction<{ agencyId: number; agencyName: string }>,
     ) => {
       state.viewingAgencyId = action.payload.agencyId;
       state.viewingAgencyName = action.payload.agencyName;
