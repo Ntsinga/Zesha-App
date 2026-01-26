@@ -20,7 +20,9 @@
       "package": "com.zesha.agentbanking"
     },
     "web": {
-      "bundler": "metro"
+      "bundler": "metro",
+      "favicon": "./assets/icon.png",
+      "output": "static"
     },
     "plugins": ["expo-router"],
     "scheme": "zesha",
