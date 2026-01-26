@@ -117,19 +117,22 @@ export default function AgencyFormScreen() {
           name: formData.name,
           currency: formData.currency,
           totalWorkingCapital: formData.totalWorkingCapital,
+          outstandingBalance: formData.outstandingBalance,
           description: formData.description,
           emails: formData.emails,
         };
         await dispatch(
           updateCompanyInfo({ id: Number(id), data: updateData }),
         ).unwrap();
+        alert("Agency updated successfully!");
       } else {
         await dispatch(createCompanyInfo(formData)).unwrap();
+        alert("Agency created successfully!");
       }
 
-      // Refresh list and go back
-      dispatch(fetchCompanyInfoList({}));
-      router.back();
+      // Refresh list and navigate back to agencies page
+      await dispatch(fetchCompanyInfoList({}));
+      router.push("/agencies");
     } catch (err) {
       setFormError(
         err instanceof Error ? err.message : "Failed to save agency",
@@ -141,7 +144,7 @@ export default function AgencyFormScreen() {
 
   // Handle cancel
   const handleCancel = () => {
-    router.back();
+    router.push("/agencies");
   };
 
   return (

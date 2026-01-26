@@ -48,9 +48,9 @@ export const fetchCashCounts = createAsyncThunk<
   { state: RootState; rejectValue: string }
 >("cashCount/fetchAll", async (filters = {}, { getState, rejectWithValue }) => {
   try {
-    // Get companyId from auth state
+    // Get companyId from auth state - use viewingAgencyId if superadmin viewing agency
     const state = getState();
-    const companyId = state.auth.user?.companyId;
+    const companyId = state.auth.viewingAgencyId || state.auth.user?.companyId;
 
     if (!companyId) {
       return rejectWithValue("No companyId found. Please log in again.");

@@ -85,7 +85,12 @@ export const fetchDashboard = createAsyncThunk<
 >("dashboard/fetch", async (params = {}, { getState, rejectWithValue }) => {
   try {
     const state = getState();
-    const companyId = params.companyId || state.auth.user?.companyId || 1;
+    // Use viewingAgencyId if set (superadmin viewing agency), otherwise use user's companyId
+    const companyId =
+      params.companyId ||
+      state.auth.viewingAgencyId ||
+      state.auth.user?.companyId ||
+      1;
 
     // IMPORTANT: Always default to TODAY if no date is explicitly provided
     // This prevents using stale persisted dates from Redux state

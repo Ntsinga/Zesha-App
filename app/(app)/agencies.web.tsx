@@ -157,17 +157,21 @@ export default function AgenciesScreen() {
                 <div className="agency-stats">
                   <div className="agency-stat">
                     <DollarSign size={16} />
-                    <span>Working Capital</span>
-                    <strong>
-                      {formatCurrency(
-                        agency.totalWorkingCapital,
-                        agency.currency,
-                      )}
-                    </strong>
+                    <div className="stat-content">
+                      <span className="stat-label">Working Capital</span>
+                      <strong className="stat-value">
+                        {formatCurrency(
+                          agency.totalWorkingCapital,
+                          agency.currency,
+                        )}
+                      </strong>
+                    </div>
                   </div>
                   <div className="agency-stat">
-                    <span>Currency</span>
-                    <strong>{agency.currency}</strong>
+                    <div className="stat-content">
+                      <span className="stat-label">Currency</span>
+                      <strong className="stat-value">{agency.currency}</strong>
+                    </div>
                   </div>
                 </div>
 
