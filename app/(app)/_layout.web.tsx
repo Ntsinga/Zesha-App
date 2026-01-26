@@ -51,6 +51,8 @@ export default function AppLayoutWeb() {
   const userRole = useSelector(selectUserRole);
   const viewingAgencyId = useSelector(selectViewingAgencyId);
   const viewingAgencyName = useSelector(selectViewingAgencyName);
+  const backendUser = useSelector((state: RootState) => state.auth.user);
+  const isSyncing = useSelector((state: RootState) => state.auth.isSyncing);
   const isSuperAdmin = userRole === "Super Administrator";
   const isViewingAgency = viewingAgencyId !== null;
 
@@ -71,7 +73,11 @@ export default function AppLayoutWeb() {
   }, [pathname]);
 
   // Redirect superadmin to agencies page if they try to access agency-specific pages without viewing an agency
+  // Wait for user sync to complete before redirecting
   useEffect(() => {
+    // Don't redirect if still syncing or no backend user yet
+    if (isSyncing || !backendUser) return;
+
     if (
       isSuperAdmin &&
       !isViewingAgency &&
@@ -79,9 +85,10 @@ export default function AppLayoutWeb() {
       pathname !== "/agency-form" &&
       pathname !== "/settings"
     ) {
+      console.log("[Layout] Redirecting superadmin to /agencies");
       router.replace("/agencies");
     }
-  }, [isSuperAdmin, isViewingAgency, pathname, router]);
+  }, [isSuperAdmin, isViewingAgency, pathname, router, isSyncing, backendUser]);
 
   // Prevent body scroll when mobile menu is open
   useEffect(() => {

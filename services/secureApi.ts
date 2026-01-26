@@ -77,7 +77,7 @@ export async function secureRequest(
   // Check if it's a full URL or an endpoint
   const url = urlOrEndpoint.startsWith("http")
     ? urlOrEndpoint
-    : `${API_BASE_URL}${urlOrEndpoint}`;
+    : `${API_BASE_URL.replace(/\/$/, "")}${urlOrEndpoint}`;
   const authHeaders = await getAuthHeaders();
 
   return fetch(url, {
@@ -97,7 +97,7 @@ export async function secureApiRequest<T>(
   endpoint: string,
   options: RequestInit = {},
 ): Promise<T> {
-  const url = `${API_BASE_URL}${endpoint}`;
+  const url = `${API_BASE_URL.replace(/\/$/, "")}${endpoint}`;
   const authHeaders = await getAuthHeaders();
 
   try {
