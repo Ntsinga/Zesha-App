@@ -442,8 +442,10 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
   },
   pickerButtonText: {
+    flex: 1,
     fontSize: 15,
     color: "#1F2937",
+    marginRight: 8,
   },
   pickerOptions: {
     marginTop: 8,
