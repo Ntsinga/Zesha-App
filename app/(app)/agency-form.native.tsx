@@ -36,7 +36,7 @@ export default function AgencyFormScreen() {
   const dispatch = useAppDispatch();
   const userRole = useAppSelector(selectUserRole);
   const { items: agencies, isLoading } = useAppSelector(
-    (state) => state.companyInfo
+    (state) => state.companyInfo,
   );
 
   const isEditing = Boolean(id);
@@ -125,7 +125,7 @@ export default function AgencyFormScreen() {
           emails,
         };
         await dispatch(
-          updateCompanyInfo({ id: Number(id), data: updateData })
+          updateCompanyInfo({ id: Number(id), data: updateData }),
         ).unwrap();
       } else {
         const createData: CompanyInfoCreate = {
@@ -142,7 +142,7 @@ export default function AgencyFormScreen() {
       router.back();
     } catch (err) {
       setFormError(
-        err instanceof Error ? err.message : "Failed to save agency"
+        err instanceof Error ? err.message : "Failed to save agency",
       );
     } finally {
       setIsSaving(false);
@@ -162,7 +162,10 @@ export default function AgencyFormScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => router.back()}
+        >
           <ArrowLeft size={20} color="#6B7280" />
           <Text style={styles.backButtonText}>Back to Agencies</Text>
         </TouchableOpacity>
@@ -226,7 +229,8 @@ export default function AgencyFormScreen() {
                     <Text
                       style={[
                         styles.pickerOptionText,
-                        currency === curr.code && styles.pickerOptionTextSelected,
+                        currency === curr.code &&
+                          styles.pickerOptionTextSelected,
                       ]}
                     >
                       {curr.code} - {curr.name}

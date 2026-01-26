@@ -28,9 +28,11 @@ export default function AgenciesScreen() {
   const dispatch = useAppDispatch();
   const userRole = useAppSelector(selectUserRole);
   const viewingAgencyId = useAppSelector(selectViewingAgencyId);
-  const { items: agencies, isLoading, error } = useAppSelector(
-    (state) => state.companyInfo
-  );
+  const {
+    items: agencies,
+    isLoading,
+    error,
+  } = useAppSelector((state) => state.companyInfo);
 
   // Delete confirmation state
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
@@ -157,7 +159,10 @@ export default function AgenciesScreen() {
                     <DollarSign size={16} />
                     <span>Working Capital</span>
                     <strong>
-                      {formatCurrency(agency.totalWorkingCapital, agency.currency)}
+                      {formatCurrency(
+                        agency.totalWorkingCapital,
+                        agency.currency,
+                      )}
                     </strong>
                   </div>
                   <div className="agency-stat">

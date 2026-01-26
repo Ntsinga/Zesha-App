@@ -64,8 +64,7 @@ export default function BottomNav() {
   ];
 
   // Choose tabs based on superadmin status and agency view
-  const tabs =
-    isSuperAdmin && !isViewingAgency ? superAdminTabs : regularTabs;
+  const tabs = isSuperAdmin && !isViewingAgency ? superAdminTabs : regularTabs;
 
   const isActive = (route: string) => {
     if (route === "/") return pathname === "/index" || pathname === "/";
