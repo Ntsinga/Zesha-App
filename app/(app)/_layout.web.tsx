@@ -14,9 +14,16 @@ import {
   X,
   Home,
   User,
+  LogIn,
 } from "lucide-react";
-import { useSelector } from "react-redux";
-import type { RootState } from "../../store";
+import { useSelector, useDispatch } from "react-redux";
+import type { RootState, AppDispatch } from "../../store";
+import {
+  selectUserRole,
+  selectViewingAgencyId,
+  selectViewingAgencyName,
+  exitAgency,
+} from "../../store/slices/authSlice";
 import TopBarWeb from "../../components/TopBar.web";
 import "../../styles/web.css";
 
@@ -34,15 +41,41 @@ export default function AppLayoutWeb() {
   const router = useRouter();
   const pathname = usePathname();
   const { signOut } = useAuth();
+  const dispatch = useDispatch<AppDispatch>();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const companyName = useSelector(
+  const dashboardCompanyName = useSelector(
     (state: RootState) => state.dashboard.companyInfo?.name ?? "Company",
   );
+
+  // Superadmin state
+  const userRole = useSelector(selectUserRole);
+  const viewingAgencyId = useSelector(selectViewingAgencyId);
+  const viewingAgencyName = useSelector(selectViewingAgencyName);
+  const isSuperAdmin = userRole === "Super Administrator";
+  const isViewingAgency = viewingAgencyId !== null;
+
+  // Determine what to show in sidebar subtitle
+  // Superadmin NOT viewing agency: "Admin Portal"
+  // Superadmin viewing agency: the agency name
+  // Regular user: their company name
+  const sidebarSubtitle =
+    isSuperAdmin && !isViewingAgency
+      ? "Admin Portal"
+      : isViewingAgency
+        ? viewingAgencyName
+        : dashboardCompanyName;
 
   // Close mobile menu on route change
   useEffect(() => {
     setIsMobileMenuOpen(false);
   }, [pathname]);
+
+  // Redirect superadmin to agencies page if they try to access agency-specific pages without viewing an agency
+  useEffect(() => {
+    if (isSuperAdmin && !isViewingAgency && pathname !== "/agencies" && pathname !== "/agency-form" && pathname !== "/settings") {
+      router.replace("/agencies");
+    }
+  }, [isSuperAdmin, isViewingAgency, pathname, router]);
 
   // Prevent body scroll when mobile menu is open
   useEffect(() => {
@@ -56,7 +89,17 @@ export default function AppLayoutWeb() {
     };
   }, [isMobileMenuOpen]);
 
-  const navItems: NavItem[] = [
+  // Superadmin-only nav items (shown when NOT viewing an agency)
+  const superAdminNavItems: NavItem[] = [
+    {
+      href: "/agencies",
+      label: "Manage Agencies",
+      icon: <Building2 size={20} />,
+    },
+  ];
+
+  // Regular agency nav items (shown for regular users OR superadmin viewing an agency)
+  const agencyNavItems: NavItem[] = [
     {
       href: "/",
       label: "Dashboard",
@@ -92,6 +135,13 @@ export default function AppLayoutWeb() {
     },
   ];
 
+  // Determine which nav items to show based on user role and viewing state
+  // Superadmin NOT viewing agency = only see Manage Agencies
+  // Superadmin viewing agency = see agency nav items
+  // Regular user = see agency nav items
+  const navItems: NavItem[] =
+    isSuperAdmin && !isViewingAgency ? superAdminNavItems : agencyNavItems;
+
   // Bottom nav items (subset for mobile)
   const mobileNavItems = [
     { href: "/", label: "Home", icon: <Home size={24} /> },
@@ -119,6 +169,12 @@ export default function AppLayoutWeb() {
     setIsMobileMenuOpen(false);
   };
 
+  // Handle exiting agency view
+  const handleExitAgency = () => {
+    dispatch(exitAgency());
+    router.push("/agencies");
+  };
+
   return (
     <div className="web-layout">
       {/* Mobile Menu Overlay */}
@@ -136,7 +192,7 @@ export default function AppLayoutWeb() {
             </div>
             <div>
               <div className="mobile-menu-title">Zesha</div>
-              <div className="mobile-menu-subtitle">{companyName}</div>
+              <div className="mobile-menu-subtitle">{sidebarSubtitle}</div>
             </div>
           </div>
           <button
@@ -186,7 +242,7 @@ export default function AppLayoutWeb() {
             </div>
             <div>
               <div className="sidebar-title">Zesha</div>
-              <div className="sidebar-subtitle">{companyName}</div>
+              <div className="sidebar-subtitle">{sidebarSubtitle}</div>
             </div>
           </div>
         </div>
@@ -221,6 +277,24 @@ export default function AppLayoutWeb() {
 
       {/* Main Content Area */}
       <main className="content-area">
+        {/* Agency Viewing Banner - only shown when superadmin is viewing an agency */}
+        {isSuperAdmin && isViewingAgency && (
+          <div className="agency-viewing-banner">
+            <div className="banner-content">
+              <div className="banner-icon">
+                <Building2 size={18} color="white" />
+              </div>
+              <span className="banner-text">
+                Viewing: <strong>{viewingAgencyName}</strong>
+              </span>
+            </div>
+            <button className="btn-exit-agency" onClick={handleExitAgency}>
+              <LogIn size={16} style={{ transform: "scaleX(-1)" }} />
+              <span>Exit Agency</span>
+            </button>
+          </div>
+        )}
+
         {/* Mobile Header - only visible on mobile */}
         <header className="mobile-header">
           <div className="mobile-header-brand">
@@ -241,8 +315,10 @@ export default function AppLayoutWeb() {
         {/* Desktop TopBar - hidden on mobile */}
         <TopBarWeb />
 
-        {/* Page Content */}
-        <Slot />
+        {/* Page Content - scrollable container */}
+        <div className="page-scroll-container">
+          <Slot />
+        </div>
       </main>
 
       {/* Mobile Bottom Navigation */}

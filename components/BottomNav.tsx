@@ -9,13 +9,39 @@ import {
 import { useRouter, usePathname } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useAppSelector } from "../store/hooks";
+import {
+  selectUserRole,
+  selectViewingAgencyId,
+} from "../store/slices/authSlice";
 
 export default function BottomNav() {
   const router = useRouter();
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
+  const userRole = useAppSelector(selectUserRole);
+  const viewingAgencyId = useAppSelector(selectViewingAgencyId);
+  const isSuperAdmin = userRole === "Super Administrator";
+  const isViewingAgency = viewingAgencyId !== null;
 
-  const tabs = [
+  // Superadmin-only tabs (when NOT viewing an agency)
+  const superAdminTabs = [
+    {
+      name: "Agencies",
+      icon: "business-outline",
+      activeIcon: "business",
+      route: "/agencies",
+    },
+    {
+      name: "Profile",
+      icon: "person-outline",
+      activeIcon: "person",
+      route: "/settings",
+    },
+  ];
+
+  // Regular tabs (for regular users OR superadmin viewing agency)
+  const regularTabs = [
     { name: "Home", icon: "home-outline", activeIcon: "home", route: "/" },
     {
       name: "Reconcile",
@@ -36,6 +62,10 @@ export default function BottomNav() {
       route: "/settings",
     },
   ];
+
+  // Choose tabs based on superadmin status and agency view
+  const tabs =
+    isSuperAdmin && !isViewingAgency ? superAdminTabs : regularTabs;
 
   const isActive = (route: string) => {
     if (route === "/") return pathname === "/index" || pathname === "/";

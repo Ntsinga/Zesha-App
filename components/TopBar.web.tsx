@@ -1,8 +1,31 @@
 import React, { useMemo, useEffect } from "react";
 import { useSelector } from "react-redux";
 import { useUser } from "@clerk/clerk-react";
-import { selectUser, selectUserRole } from "../store/slices/authSlice";
+import { usePathname } from "expo-router";
+import {
+  selectUser,
+  selectUserRole,
+  selectViewingAgencyId,
+  selectViewingAgencyName,
+} from "../store/slices/authSlice";
 import "../styles/web.css";
+
+// Map routes to page titles
+const PAGE_TITLES: Record<string, string> = {
+  "/": "Dashboard",
+  "/agencies": "Manage Agencies",
+  "/agency-form": "Agency Details",
+  "/balance": "Daily Reconciliation",
+  "/history": "Reconciliation History",
+  "/commissions": "Commissions",
+  "/expenses": "Expenses",
+  "/accounts": "Accounts",
+  "/settings": "Settings",
+  "/add-balance": "Add Balance",
+  "/add-commission": "Add Commission",
+  "/add-cash-count": "Cash Count",
+  "/reconciliation": "Reconciliation",
+};
 
 /**
  * Modern top bar component showing user name and role
@@ -16,9 +39,18 @@ import "../styles/web.css";
  * - Proper color contrast (WCAG AA compliant)
  */
 export default function TopBarWeb() {
+  const pathname = usePathname();
   const backendUser = useSelector(selectUser);
   const role = useSelector(selectUserRole);
+  const viewingAgencyId = useSelector(selectViewingAgencyId);
+  const viewingAgencyName = useSelector(selectViewingAgencyName);
   const { user: clerkUser, isLoaded: isClerkLoaded } = useUser();
+
+  const isSuperAdmin = role === "Super Administrator";
+  const isViewingAgency = viewingAgencyId !== null;
+
+  // Get current page title
+  const pageTitle = PAGE_TITLES[pathname] || "";
 
   // Debug: Log user state
   useEffect(() => {
@@ -91,10 +123,10 @@ export default function TopBarWeb() {
   return (
     <header className="topbar" role="banner" aria-label="User information bar">
       <div className="topbar-container">
-        {/* Left side - Reserved for breadcrumbs or page title */}
-        <nav className="topbar-left" aria-label="Breadcrumb navigation">
-          {/* Empty for now, can add breadcrumbs later */}
-        </nav>
+        {/* Left side - Page title */}
+        <div className="topbar-left" aria-label="Page context">
+          <h1 className="topbar-page-title">{pageTitle}</h1>
+        </div>
 
         {/* Right side - User info */}
         <div className="topbar-right">
