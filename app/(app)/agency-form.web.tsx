@@ -35,6 +35,7 @@ export default function AgencyFormScreen() {
     name: "",
     currency: "UGX",
     totalWorkingCapital: 0,
+    outstandingBalance: 0,
     description: "",
     emails: [],
   });
@@ -52,6 +53,7 @@ export default function AgencyFormScreen() {
         name: editingAgency.name,
         currency: editingAgency.currency,
         totalWorkingCapital: editingAgency.totalWorkingCapital,
+        outstandingBalance: editingAgency.outstandingBalance,
         description: editingAgency.description || "",
         emails: editingAgency.emails || [],
       });
@@ -209,6 +211,25 @@ export default function AgencyFormScreen() {
                   setFormData((prev) => ({
                     ...prev,
                     totalWorkingCapital: Number(e.target.value) || 0,
+                  }))
+                }
+                placeholder="0"
+                className="form-input"
+                min="0"
+              />
+            </div>
+
+            {/* Outstanding Balance */}
+            <div className="form-group">
+              <label htmlFor="balance">Outstanding Balance</label>
+              <input
+                type="number"
+                id="balance"
+                value={formData.outstandingBalance || ""}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    outstandingBalance: Number(e.target.value) || 0,
                   }))
                 }
                 placeholder="0"

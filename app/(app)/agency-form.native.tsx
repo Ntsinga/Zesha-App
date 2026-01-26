@@ -48,6 +48,7 @@ export default function AgencyFormScreen() {
   const [name, setName] = useState("");
   const [currency, setCurrency] = useState("UGX");
   const [totalWorkingCapital, setTotalWorkingCapital] = useState("");
+  const [outstandingBalance, setOutstandingBalance] = useState("");
   const [description, setDescription] = useState("");
   const [emails, setEmails] = useState<string[]>([]);
   const [emailInput, setEmailInput] = useState("");
@@ -64,6 +65,7 @@ export default function AgencyFormScreen() {
       setName(editingAgency.name);
       setCurrency(editingAgency.currency);
       setTotalWorkingCapital(editingAgency.totalWorkingCapital.toString());
+      setOutstandingBalance(editingAgency.outstandingBalance.toString());
       setDescription(editingAgency.description || "");
       setEmails(editingAgency.emails || []);
     }
@@ -121,6 +123,7 @@ export default function AgencyFormScreen() {
           name,
           currency,
           totalWorkingCapital: Number(totalWorkingCapital) || 0,
+          outstandingBalance: Number(outstandingBalance) || 0,
           description,
           emails,
         };
@@ -132,6 +135,7 @@ export default function AgencyFormScreen() {
           name,
           currency,
           totalWorkingCapital: Number(totalWorkingCapital) || 0,
+          outstandingBalance: Number(outstandingBalance) || 0,
           description,
           emails,
         };
@@ -248,6 +252,19 @@ export default function AgencyFormScreen() {
               style={styles.input}
               value={totalWorkingCapital}
               onChangeText={setTotalWorkingCapital}
+              placeholder="0"
+              placeholderTextColor="#9CA3AF"
+              keyboardType="numeric"
+            />
+          </View>
+
+          {/* Outstanding Balance */}
+          <View style={styles.formGroup}>
+            <Text style={styles.label}>Outstanding Balance</Text>
+            <TextInput
+              style={styles.input}
+              value={outstandingBalance}
+              onChangeText={setOutstandingBalance}
               placeholder="0"
               placeholderTextColor="#9CA3AF"
               keyboardType="numeric"

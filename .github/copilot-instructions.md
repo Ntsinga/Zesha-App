@@ -296,3 +296,17 @@ utils/                # Utility functions
 | Selector     | `useAppSelector((state) => state.slice.field)`                             |
 | Dispatch     | `dispatch(fetchItems(filters))`                                            |
 | API response | `mapApiResponse<Type>(data)`                                               |
+
+---
+
+## Development Workflow
+
+### After Completing Tasks
+
+**ALWAYS run error checks after completing any task:**
+
+1. Use the error checking tool to verify no TypeScript/compilation errors
+2. Review and fix any errors in user code (ignore `node_modules` errors)
+3. Confirm successful completion only after error check passes
+
+This ensures code quality and prevents broken deployments.
