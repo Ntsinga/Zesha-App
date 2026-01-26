@@ -16,6 +16,9 @@ export interface AuthState {
   isSyncing: boolean;
   isInitialized: boolean;
   error: string | null;
+  // Superadmin agency viewing state
+  viewingAgencyId: number | null;
+  viewingAgencyName: string | null;
 }
 
 const initialState: AuthState = {
@@ -26,6 +29,9 @@ const initialState: AuthState = {
   isSyncing: false,
   isInitialized: false,
   error: null,
+  // Superadmin agency viewing state
+  viewingAgencyId: null,
+  viewingAgencyName: null,
 };
 
 // Secure storage helpers (with web fallback)
@@ -183,6 +189,18 @@ const authSlice = createSlice({
     setClerkUserId: (state, action: PayloadAction<string | null>) => {
       state.clerkUserId = action.payload;
     },
+    // Superadmin actions for viewing agencies
+    enterAgency: (
+      state,
+      action: PayloadAction<{ agencyId: number; agencyName: string }>
+    ) => {
+      state.viewingAgencyId = action.payload.agencyId;
+      state.viewingAgencyName = action.payload.agencyName;
+    },
+    exitAgency: (state) => {
+      state.viewingAgencyId = null;
+      state.viewingAgencyName = null;
+    },
   },
   extraReducers: (builder) => {
     // Initialize auth
@@ -275,5 +293,22 @@ export const selectIsAuthenticated = (state: { auth: AuthState }) =>
 export const selectUserRole = (state: { auth: AuthState }) =>
   state.auth.user?.role ?? null;
 
-export const { clearError, setUser, setClerkUserId } = authSlice.actions;
+// Superadmin selectors
+export const selectViewingAgencyId = (state: { auth: AuthState }) =>
+  state.auth.viewingAgencyId;
+export const selectViewingAgencyName = (state: { auth: AuthState }) =>
+  state.auth.viewingAgencyName;
+export const selectIsViewingAgency = (state: { auth: AuthState }) =>
+  state.auth.viewingAgencyId !== null;
+
+/**
+ * Returns the effective company ID for data queries.
+ * If superadmin is viewing an agency, returns that agency's ID.
+ * Otherwise, returns the user's own company ID.
+ */
+export const selectEffectiveCompanyId = (state: { auth: AuthState }) =>
+  state.auth.viewingAgencyId ?? state.auth.user?.companyId ?? null;
+
+export const { clearError, setUser, setClerkUserId, enterAgency, exitAgency } =
+  authSlice.actions;
 export default authSlice.reducer;
