@@ -7,7 +7,7 @@ import {
   deleteExpense,
 } from "../../store/slices/expensesSlice";
 import { fetchDashboard } from "../../store/slices/dashboardSlice";
-import { selectCompanyId } from "../../store/slices/authSlice";
+import { selectEffectiveCompanyId } from "../../store/slices/authSlice";
 import { useCurrencyFormatter } from "../useCurrency";
 import type { AppDispatch, RootState } from "../../store";
 import type { Expense } from "../../types";
@@ -32,7 +32,7 @@ export const EXPENSE_CATEGORIES = [
 export function useExpensesScreen() {
   const dispatch = useDispatch<AppDispatch>();
   const { formatCurrency } = useCurrencyFormatter();
-  const companyId = useSelector(selectCompanyId);
+  const companyId = useSelector(selectEffectiveCompanyId);
 
   const {
     items: expenses,

@@ -6,7 +6,7 @@ import {
   updateAccount,
   deleteAccount,
 } from "../../store/slices/accountsSlice";
-import { selectCompanyId } from "../../store/slices/authSlice";
+import { selectEffectiveCompanyId } from "../../store/slices/authSlice";
 import type { AppDispatch, RootState } from "../../store";
 import type { Account, AccountTypeEnum } from "../../types";
 
@@ -17,7 +17,7 @@ export const ACCOUNT_TYPES: { value: AccountTypeEnum; label: string }[] = [
 
 export function useAccountsScreen() {
   const dispatch = useDispatch<AppDispatch>();
-  const companyId = useSelector(selectCompanyId);
+  const companyId = useSelector(selectEffectiveCompanyId);
   const { items: accounts, isLoading } = useSelector(
     (state: RootState) => state.accounts,
   );

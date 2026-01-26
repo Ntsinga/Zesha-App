@@ -68,7 +68,7 @@ export const fetchReconciliations = createAsyncThunk<
     try {
       // Get companyId from auth state
       const state = getState();
-      const companyId = state.auth.user?.companyId;
+      const companyId = state.auth.viewingAgencyId || state.auth.user?.companyId;
 
       if (!companyId) {
         return rejectWithValue("No companyId found. Please log in again.");
@@ -191,7 +191,7 @@ export const fetchReconciliationHistory = createAsyncThunk<
     try {
       // Get companyId from auth state
       const state = getState();
-      const companyId = state.auth.user?.companyId;
+      const companyId = state.auth.viewingAgencyId || state.auth.user?.companyId;
 
       if (!companyId) {
         return rejectWithValue("No companyId found. Please log in again.");
@@ -223,7 +223,7 @@ export const calculateReconciliation = createAsyncThunk<
     try {
       // Get companyId from auth state
       const state = getState();
-      const companyId = state.auth.user?.companyId;
+      const companyId = state.auth.viewingAgencyId || state.auth.user?.companyId;
 
       if (!companyId) {
         return rejectWithValue("No companyId found. Please log in again.");
@@ -263,7 +263,7 @@ export const finalizeReconciliation = createAsyncThunk<
   try {
     // Get companyId from auth state
     const state = getState();
-    const companyId = state.auth.user?.companyId;
+    const companyId = state.auth.viewingAgencyId || state.auth.user?.companyId;
 
     if (!companyId) {
       return rejectWithValue("No companyId found. Please log in again.");
@@ -312,7 +312,7 @@ export const approveReconciliation = createAsyncThunk<
   try {
     // Get companyId from auth state
     const state = getState();
-    const companyId = state.auth.user?.companyId;
+    const companyId = state.auth.viewingAgencyId || state.auth.user?.companyId;
 
     if (!companyId) {
       return rejectWithValue("No companyId found. Please log in again.");
@@ -358,7 +358,7 @@ export const fetchReconciliationDetails = createAsyncThunk<
     try {
       // Get companyId from auth state
       const state = getState();
-      const companyId = state.auth.user?.companyId;
+      const companyId = state.auth.viewingAgencyId || state.auth.user?.companyId;
 
       if (!companyId) {
         return rejectWithValue("No companyId found. Please log in again.");

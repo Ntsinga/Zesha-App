@@ -50,9 +50,9 @@ export const fetchExpenses = createAsyncThunk<
   { state: RootState; rejectValue: string }
 >("expenses/fetchAll", async (filters = {}, { getState, rejectWithValue }) => {
   try {
-    // Get companyId from auth state
+    // Get companyId from auth state - use viewingAgencyId if superadmin viewing agency
     const state = getState();
-    const companyId = state.auth.user?.companyId;
+    const companyId = state.auth.viewingAgencyId || state.auth.user?.companyId;
 
     if (!companyId) {
       return rejectWithValue("No companyId found. Please log in again.");
@@ -133,7 +133,7 @@ export const updateExpense = createAsyncThunk<
 >("expenses/update", async ({ id, data }, { getState, rejectWithValue }) => {
   try {
     const state = getState();
-    const companyId = state.auth.user?.companyId;
+    const companyId = state.auth.viewingAgencyId || state.auth.user?.companyId;
 
     if (!companyId) {
       return rejectWithValue("No companyId found. Please log in again.");
@@ -161,7 +161,7 @@ export const deleteExpense = createAsyncThunk<
 >("expenses/delete", async (id, { getState, rejectWithValue }) => {
   try {
     const state = getState();
-    const companyId = state.auth.user?.companyId;
+    const companyId = state.auth.viewingAgencyId || state.auth.user?.companyId;
 
     if (!companyId) {
       return rejectWithValue("No companyId found. Please log in again.");

@@ -9,7 +9,7 @@ import {
 } from "../../store/slices/balancesSlice";
 import { fetchDashboard } from "../../store/slices/dashboardSlice";
 import { fetchAccounts } from "../../store/slices/accountsSlice";
-import { selectCompanyId } from "../../store/slices/authSlice";
+import { selectEffectiveCompanyId } from "../../store/slices/authSlice";
 import {
   extractBalanceFromImage,
   validateBalance,
@@ -46,7 +46,7 @@ export function useAddBalanceScreen() {
   const shiftFromParams = (params.shift as ShiftEnum) || null;
 
   // Selectors
-  const companyId = useSelector(selectCompanyId);
+  const companyId = useSelector(selectEffectiveCompanyId);
   const { items: accounts, isLoading: accountsLoading } = useSelector(
     (state: RootState) => state.accounts,
   );

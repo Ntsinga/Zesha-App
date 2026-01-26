@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import { inviteUser, clearInviteState } from "../../store/slices/usersSlice";
-import { selectCompanyId } from "../../store/slices/authSlice";
+import { selectEffectiveCompanyId } from "../../store/slices/authSlice";
 import type { UserInviteRequest } from "@/types";
 
 interface FormData {
@@ -14,7 +14,7 @@ interface FormData {
 
 export const useUserManagementScreen = () => {
   const dispatch = useAppDispatch();
-  const companyId = useAppSelector(selectCompanyId);
+  const companyId = useAppSelector(selectEffectiveCompanyId);
   const { isInviting, inviteSuccess, inviteError, lastInvitedEmail } =
     useAppSelector((state) => state.users);
 

@@ -7,7 +7,7 @@ import {
   deleteCashCount,
 } from "../../store/slices/cashCountSlice";
 import { fetchDashboard } from "../../store/slices/dashboardSlice";
-import { selectCompanyId } from "../../store/slices/authSlice";
+import { selectEffectiveCompanyId } from "../../store/slices/authSlice";
 import { useCurrencyFormatter } from "../useCurrency";
 import type { AppDispatch, RootState } from "../../store";
 import type { ShiftEnum, CashCountCreate } from "../../types";
@@ -39,7 +39,7 @@ export function useCashCountScreen() {
   const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
   const { formatCurrency } = useCurrencyFormatter();
-  const companyId = useSelector(selectCompanyId);
+  const companyId = useSelector(selectEffectiveCompanyId);
   const params = useLocalSearchParams();
 
   // Get today's date
