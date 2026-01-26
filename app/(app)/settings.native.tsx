@@ -60,7 +60,8 @@ export default function Settings() {
   } = useSelector((state: RootState) => state.companyInfo);
 
   const userRole = useSelector(selectUserRole);
-  const isAdmin = userRole === "admin";
+  const isAdmin =
+    userRole === "Administrator" || userRole === "Super Administrator";
 
   const [refreshing, setRefreshing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
