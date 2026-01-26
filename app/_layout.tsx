@@ -1,8 +1,9 @@
 import "../global.css";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { Stack } from "expo-router";
 import { Provider } from "react-redux";
 import { StatusBar } from "expo-status-bar";
+import * as SplashScreen from "expo-splash-screen";
 import ErrorBoundary from "../components/ErrorBoundary";
 import { store } from "../store";
 import { useAppDispatch } from "../store/hooks";
@@ -10,9 +11,12 @@ import { initializeAuth } from "../store/slices/authSlice";
 import { ClerkProvider, useAuth, useUser } from "@clerk/clerk-expo";
 import { tokenCache } from "@clerk/clerk-expo/token-cache";
 import { useRouter, useSegments, useLocalSearchParams } from "expo-router";
-import { ActivityIndicator, View } from "react-native";
+import { View } from "react-native";
 import { useClerkUserSync } from "../hooks/useClerkUserSync";
 import { initializeSecureApi } from "../services/secureApi";
+
+// Keep the splash screen visible while we fetch resources
+SplashScreen.preventAutoHideAsync();
 
 // Inner component that uses Redux hooks
 function AppContent() {
@@ -99,24 +103,26 @@ function AppContent() {
   // Determine if we're on an auth page
   const inAuthGroup = segments[0] === "(auth)";
 
-  // Show loading spinner while Clerk is loading or secure API initializing
-  // Don't block on isSyncing for auth pages - let them render while sync happens in background
+  // Hide splash screen when app is ready
+  const onLayoutRootView = useCallback(async () => {
+    if (isLoaded && isSecureApiReady && (!isSyncing || inAuthGroup)) {
+      await SplashScreen.hideAsync();
+    }
+  }, [isLoaded, isSecureApiReady, isSyncing, inAuthGroup]);
+
+  // Keep showing splash screen while loading
   if (!isLoaded || !isSecureApiReady || (isSyncing && !inAuthGroup)) {
-    return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator size="large" color="#C62828" />
-      </View>
-    );
+    return null; // Splash screen stays visible
   }
 
   return (
-    <>
+    <View style={{ flex: 1 }} onLayout={onLayoutRootView}>
       <StatusBar style="dark" />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="(app)" />
       </Stack>
-    </>
+    </View>
   );
 }
 
