@@ -37,9 +37,11 @@ export default function AgenciesScreen() {
   const dispatch = useAppDispatch();
   const userRole = useAppSelector(selectUserRole);
   const viewingAgencyId = useAppSelector(selectViewingAgencyId);
-  const { items: agencies, isLoading, error } = useAppSelector(
-    (state) => state.companyInfo
-  );
+  const {
+    items: agencies,
+    isLoading,
+    error,
+  } = useAppSelector((state) => state.companyInfo);
 
   const [refreshing, setRefreshing] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
@@ -110,7 +112,7 @@ export default function AgenciesScreen() {
             }
           },
         },
-      ]
+      ],
     );
   };
 
@@ -197,14 +199,22 @@ export default function AgenciesScreen() {
               <View style={styles.statsRow}>
                 <View style={styles.statItem}>
                   <DollarSign size={14} color="#B8860B" />
-                  <Text style={styles.statLabel}>Working Capital</Text>
-                  <Text style={styles.statValue}>
-                    {formatCurrency(agency.totalWorkingCapital, agency.currency)}
-                  </Text>
+                  <View style={styles.statContent}>
+                    <Text style={styles.statLabel}>Working Capital</Text>
+                    <Text style={styles.statValue}>
+                      {formatCurrency(
+                        agency.totalWorkingCapital,
+                        agency.currency,
+                      )}
+                    </Text>
+                  </View>
                 </View>
                 <View style={styles.statItem}>
-                  <Text style={styles.statLabel}>Currency</Text>
-                  <Text style={styles.statValue}>{agency.currency}</Text>
+                  <DollarSign size={14} color="#B8860B" />
+                  <View style={styles.statContent}>
+                    <Text style={styles.statLabel}>Currency</Text>
+                    <Text style={styles.statValue}>{agency.currency}</Text>
+                  </View>
                 </View>
               </View>
 
@@ -387,19 +397,21 @@ const styles = StyleSheet.create({
   statItem: {
     flex: 1,
     flexDirection: "row",
-    flexWrap: "wrap",
-    alignItems: "center",
+    alignItems: "flex-start",
     gap: 6,
+  },
+  statContent: {
+    flex: 1,
   },
   statLabel: {
     fontSize: 12,
     color: "#6B7280",
-    width: "100%",
   },
   statValue: {
     fontSize: 16,
     fontWeight: "600",
     color: "#B8860B",
+    marginTop: 2,
   },
   emailsRow: {
     flexDirection: "row",

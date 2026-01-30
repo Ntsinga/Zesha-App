@@ -3,6 +3,7 @@ import { CompanyInfo, CompanyInfoCreate, CompanyInfoUpdate } from "../../types";
 import { mapApiResponse } from "../../types";
 import { API_ENDPOINTS, buildQueryString } from "../../config/api";
 import { secureApiRequest } from "../../services/secureApi";
+import type { RootState } from "../index";
 
 // Types
 export interface CompanyInfoState {
@@ -31,14 +32,26 @@ async function apiRequest<T>(
 }
 
 // Async thunks
-export const fetchCompanyInfoList = createAsyncThunk(
+export const fetchCompanyInfoList = createAsyncThunk<
+  CompanyInfo[],
+  { skip?: number; limit?: number; companyId?: number },
+  { state: RootState; rejectValue: string }
+>(
   "companyInfo/fetchAll",
-  async (
-    params: { skip?: number; limit?: number } = {},
-    { rejectWithValue },
-  ) => {
+  async (params = {}, { getState, rejectWithValue }) => {
     try {
-      const query = buildQueryString(params);
+      // Get companyId from auth state - use viewingAgencyId if superadmin viewing agency
+      const state = getState();
+      const companyId =
+        params.companyId ||
+        state.auth.viewingAgencyId ||
+        state.auth.user?.companyId;
+
+      if (!companyId) {
+        return rejectWithValue("No companyId found. Please log in again.");
+      }
+
+      const query = buildQueryString({ ...params, company_id: companyId });
       const companies = await apiRequest<CompanyInfo[]>(
         `${API_ENDPOINTS.companyInfo.list}${query}`,
       );
