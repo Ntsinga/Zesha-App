@@ -3,21 +3,25 @@
 
 // Get API URL from environment or use development fallback
 const getApiBaseUrl = (): string => {
-  // Check for environment variable first (production)
+  // Production and development: always prefer explicit env var
   const envUrl = process.env.EXPO_PUBLIC_API_URL;
   if (envUrl) {
     return envUrl;
   }
 
-  // Development fallback - ngrok URL
+  // Development-only fallback - ngrok tunnel URL
   // WARNING: Update this when your ngrok URL changes
   if (__DEV__) {
     return "https://19d272460273.ngrok-free.app";
   }
 
-  // Production fallback - should be set via environment variable
-  console.warn("[API] EXPO_PUBLIC_API_URL not set - using development URL");
-  return "https://a4b2560e208b.ngrok-free.app";
+  // In a production build EXPO_PUBLIC_API_URL MUST be set.
+  // Throwing here surfaces the misconfiguration immediately rather than
+  // letting the app silently hit an expired ngrok URL.
+  throw new Error(
+    "[API] EXPO_PUBLIC_API_URL is not set. " +
+      "Add it to your EAS build environment or Render env vars before deploying."
+  );
 };
 
 export const API_BASE_URL = getApiBaseUrl();

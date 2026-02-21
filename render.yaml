@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: zesha-app
+    name: teleba-app
     buildCommand: npx expo export:web
     staticPublishPath: ./dist
     routes:

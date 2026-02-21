@@ -23,6 +23,7 @@ import { useAuth } from "@clerk/clerk-expo";
 import { useRouter } from "expo-router";
 import { useAppDispatch } from "../store/hooks";
 import { clearLocalAuth } from "../store/slices/authSlice";
+import { Colors } from "../constants/theme";
 
 const CustomDrawerContent = (props: DrawerContentComponentProps) => {
   const { state, navigation } = props;
@@ -105,7 +106,7 @@ const CustomDrawerContent = (props: DrawerContentComponentProps) => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerText}>Zesha App</Text>
+        <Text style={styles.headerText}>Teleba</Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -123,7 +124,7 @@ const CustomDrawerContent = (props: DrawerContentComponentProps) => {
                 }}
                 style={[styles.menuItem, isActive && styles.menuItemActive]}
               >
-                <item.icon size={20} color={isActive ? "#C62828" : "#FECACA"} />
+                <item.icon size={20} color={isActive ? Colors.primary.main : Colors.secondary.light} />
                 <Text
                   style={[
                     styles.menuItemText,
@@ -141,7 +142,7 @@ const CustomDrawerContent = (props: DrawerContentComponentProps) => {
             onPress={handleSignOut}
             style={[styles.menuItem, styles.signOutButton]}
           >
-            <LogOut size={20} color="#FECACA" />
+            <LogOut size={20} color={Colors.secondary.light} />
             <Text style={styles.menuItemText}>Sign Out</Text>
           </TouchableOpacity>
         </View>
@@ -165,14 +166,14 @@ const CustomDrawerContent = (props: DrawerContentComponentProps) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#C62828",
+    backgroundColor: Colors.primary.main,
   },
   header: {
     height: 96,
     justifyContent: "center",
     alignItems: "center",
     borderBottomWidth: 1,
-    borderBottomColor: "#991B1B",
+    borderBottomColor: Colors.primary.dark,
     paddingTop: 32,
   },
   headerText: {
@@ -208,24 +209,24 @@ const styles = StyleSheet.create({
   signOutButton: {
     marginTop: 16,
     borderTopWidth: 1,
-    borderTopColor: "#991B1B",
+    borderTopColor: Colors.primary.dark,
     paddingTop: 24,
   },
   menuItemText: {
     marginLeft: 12,
     fontSize: 14,
     fontWeight: "500",
-    color: "#FECACA",
+    color: Colors.secondary.light,
   },
   menuItemTextActive: {
-    color: "#C62828",
+    color: Colors.primary.main,
   },
   footer: {
     padding: 16,
     marginBottom: 16,
   },
   footerCard: {
-    backgroundColor: "#991B1B",
+    backgroundColor: Colors.primary.dark,
     borderRadius: 12,
     padding: 16,
   },
@@ -237,17 +238,17 @@ const styles = StyleSheet.create({
   },
   footerIconContainer: {
     padding: 4,
-    backgroundColor: "#7F1D1D",
+    backgroundColor: Colors.secondary.dark,
     borderRadius: 9999,
   },
   footerTitle: {
     fontSize: 12,
     fontWeight: "600",
-    color: "#FECACA",
+    color: Colors.secondary.light,
   },
   footerSubtitle: {
     fontSize: 12,
-    color: "#FECACA",
+    color: Colors.secondary.light,
   },
 });
 

@@ -1,6 +1,7 @@
 import React, { Component, ErrorInfo, ReactNode } from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { AlertTriangle, RefreshCw } from "lucide-react-native";
+import { Colors } from "@/constants/theme";
 
 interface Props {
   children: ReactNode;
@@ -45,7 +46,7 @@ class ErrorBoundary extends Component<Props, State> {
         <View style={styles.container}>
           <View style={styles.content}>
             <View style={styles.iconContainer}>
-              <AlertTriangle size={48} color="#DC2626" />
+              <AlertTriangle size={48} color={Colors.status.error.icon} />
             </View>
 
             <Text style={styles.title}>Something went wrong</Text>
@@ -102,7 +103,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: "#FEE2E2",
+    backgroundColor: Colors.status.error.bg,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 24,
@@ -122,7 +123,7 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
   errorDetails: {
-    backgroundColor: "#FEF2F2",
+    backgroundColor: Colors.status.error.bg,
     borderRadius: 8,
     padding: 16,
     marginBottom: 24,
@@ -131,18 +132,18 @@ const styles = StyleSheet.create({
   errorTitle: {
     fontSize: 12,
     fontWeight: "600",
-    color: "#991B1B",
+    color: Colors.status.error.text,
     marginBottom: 8,
   },
   errorText: {
     fontSize: 12,
-    color: "#DC2626",
+    color: Colors.status.error.main,
     fontFamily: "monospace",
   },
   retryButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#C62828",
+    backgroundColor: Colors.primary.main,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,

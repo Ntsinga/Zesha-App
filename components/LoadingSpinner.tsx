@@ -1,5 +1,6 @@
 import React from "react";
 import { View, ActivityIndicator, Text, StyleSheet } from "react-native";
+import { Colors } from "../constants/theme";
 
 interface LoadingSpinnerProps {
   size?: "small" | "large";
@@ -10,7 +11,7 @@ interface LoadingSpinnerProps {
 
 export function LoadingSpinner({
   size = "large",
-  color = "#C62828",
+  color = Colors.primary.main,
   message,
   fullScreen = false,
 }: LoadingSpinnerProps) {
@@ -39,7 +40,7 @@ export function LoadingOverlay({ visible, message }: LoadingOverlayProps) {
   return (
     <View style={styles.overlay}>
       <View style={styles.overlayContent}>
-        <ActivityIndicator size="large" color="#C62828" />
+        <ActivityIndicator size="large" color={Colors.primary.main} />
         {message && <Text style={styles.overlayMessage}>{message}</Text>}
       </View>
     </View>
@@ -56,12 +57,12 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#F9FAFB",
+    backgroundColor: Colors.background.primary,
   },
   message: {
     marginTop: 12,
     fontSize: 14,
-    color: "#6B7280",
+    color: Colors.text.secondary,
     textAlign: "center",
   },
   overlay: {
@@ -81,7 +82,7 @@ const styles = StyleSheet.create({
   overlayMessage: {
     marginTop: 16,
     fontSize: 14,
-    color: "#374151",
+    color: Colors.text.primary,
     textAlign: "center",
   },
 });
