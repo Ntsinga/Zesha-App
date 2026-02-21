@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchDashboard, setShift } from "../../store/slices/dashboardSlice";
 import { useCurrencyFormatter } from "../useCurrency";
+import { useAutoRefreshOnReconnect } from "../useAutoRefreshOnReconnect";
 import type { ShiftEnum } from "../../types";
 import type { AppDispatch, RootState } from "../../store";
 
@@ -31,6 +32,11 @@ export function useDashboardScreen() {
   useEffect(() => {
     dispatch(fetchDashboard({}));
   }, [dispatch]);
+
+  // Auto-refresh after offline → online transition + sync complete
+  useAutoRefreshOnReconnect(
+    useCallback(() => fetchDashboard({ forceRefresh: true }), []),
+  );
 
   // Refresh handler - forces cache bypass
   const onRefresh = useCallback(async () => {

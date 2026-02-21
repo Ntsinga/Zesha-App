@@ -90,69 +90,132 @@ export async function secureRequest(
   });
 }
 
+// Transient HTTP status codes that are worth retrying
+const RETRYABLE_STATUS_CODES = new Set([408, 429, 500, 502, 503, 504]);
+const MAX_RETRIES = 3;
+const BASE_RETRY_DELAY_MS = 1_000;
+const MAX_RETRY_DELAY_MS = 10_000;
+
+/** Calculate delay with exponential backoff + jitter */
+function getRetryDelay(attempt: number): number {
+  const exponential = BASE_RETRY_DELAY_MS * Math.pow(2, attempt);
+  const capped = Math.min(exponential, MAX_RETRY_DELAY_MS);
+  return Math.round(capped * (0.75 + Math.random() * 0.5));
+}
+
+function retryDelay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 /**
- * Make an authenticated API request with JSON parsing and error handling
+ * Make an authenticated API request with JSON parsing, error handling,
+ * and automatic retry with exponential backoff for transient errors.
  */
 export async function secureApiRequest<T>(
   endpoint: string,
   options: RequestInit = {},
 ): Promise<T> {
   const url = `${API_BASE_URL.replace(/\/$/, "")}${endpoint}`;
-  const authHeaders = await getAuthHeaders();
+  let lastError: ApiError | null = null;
 
-  try {
-    const response = await fetch(url, {
-      ...options,
-      headers: {
-        ...API_HEADERS,
-        ...authHeaders,
-        ...options.headers,
-      },
-    });
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    const authHeaders = await getAuthHeaders();
 
-    // Handle authentication errors
-    if (response.status === 401) {
-      throw new ApiError(
-        "Authentication required. Please sign in again.",
-        401,
-        "UNAUTHORIZED",
+    try {
+      const response = await fetch(url, {
+        ...options,
+        headers: {
+          ...API_HEADERS,
+          ...authHeaders,
+          ...options.headers,
+        },
+      });
+
+      // Handle authentication errors — not retryable
+      if (response.status === 401) {
+        throw new ApiError(
+          "Authentication required. Please sign in again.",
+          401,
+          "UNAUTHORIZED",
+        );
+      }
+
+      if (response.status === 403) {
+        throw new ApiError(
+          "You don't have permission to perform this action.",
+          403,
+          "FORBIDDEN",
+        );
+      }
+
+      // Check for retryable server errors
+      if (RETRYABLE_STATUS_CODES.has(response.status) && attempt < MAX_RETRIES) {
+        const errorData = await response
+          .json()
+          .catch(() => ({ detail: `HTTP ${response.status}` }));
+        lastError = new ApiError(
+          errorData.detail || errorData.message || `HTTP ${response.status}`,
+          response.status,
+          "TRANSIENT",
+        );
+        await retryDelay(getRetryDelay(attempt));
+        continue;
+      }
+
+      if (!response.ok) {
+        const errorData = await response
+          .json()
+          .catch(() => ({ detail: "Request failed" }));
+        throw new ApiError(
+          errorData.detail || errorData.message || `HTTP ${response.status}`,
+          response.status,
+        );
+      }
+
+      // Handle 204 No Content
+      if (response.status === 204) {
+        return undefined as T;
+      }
+
+      return await response.json();
+    } catch (error) {
+      if (error instanceof ApiError) {
+        // Don't retry auth errors or non-transient errors
+        if (error.code === "UNAUTHORIZED" || error.code === "FORBIDDEN") {
+          throw error;
+        }
+        // Retry transient errors
+        if (error.code === "TRANSIENT" && attempt < MAX_RETRIES) {
+          continue; // Already delayed above
+        }
+        // Retry network errors (status 0)
+        if (error.status === 0 && attempt < MAX_RETRIES) {
+          lastError = error;
+          await retryDelay(getRetryDelay(attempt));
+          continue;
+        }
+        throw error;
+      }
+
+      // Network-level errors (fetch threw)
+      const networkError = new ApiError(
+        error instanceof Error ? error.message : "Network error occurred",
+        0,
+        "NETWORK_ERROR",
       );
-    }
 
-    if (response.status === 403) {
-      throw new ApiError(
-        "You don't have permission to perform this action.",
-        403,
-        "FORBIDDEN",
-      );
-    }
+      if (attempt < MAX_RETRIES) {
+        lastError = networkError;
+        await retryDelay(getRetryDelay(attempt));
+        continue;
+      }
 
-    if (!response.ok) {
-      const errorData = await response
-        .json()
-        .catch(() => ({ detail: "Request failed" }));
-      throw new ApiError(
-        errorData.detail || errorData.message || `HTTP ${response.status}`,
-        response.status,
-      );
+      throw networkError;
     }
-
-    // Handle 204 No Content
-    if (response.status === 204) {
-      return undefined as T;
-    }
-
-    return await response.json();
-  } catch (error) {
-    if (error instanceof ApiError) {
-      throw error;
-    }
-    throw new ApiError(
-      error instanceof Error ? error.message : "Network error occurred",
-      0,
-      "NETWORK_ERROR",
-    );
   }
+
+  // If we exhausted all retries, throw the last error
+  throw lastError ?? new ApiError("Request failed after retries", 0, "RETRY_EXHAUSTED");
 }
 
 /**

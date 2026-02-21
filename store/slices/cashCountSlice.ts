@@ -9,6 +9,7 @@ import type {
 import { mapApiResponse, mapApiRequest, buildTypedQueryString } from "@/types";
 import { API_ENDPOINTS } from "@/config/api";
 import { secureApiRequest } from "@/services/secureApi";
+import { isDeviceOffline } from "@/utils/offlineCheck";
 import type { RootState } from "../index";
 
 // Types
@@ -54,6 +55,15 @@ export const fetchCashCounts = createAsyncThunk<
 
     if (!companyId) {
       return rejectWithValue("No companyId found. Please log in again.");
+    }
+
+    // Offline bypass — return persisted data when no connectivity
+    const offline = await isDeviceOffline();
+    if (offline) {
+      if (state.cashCount.items.length > 0) {
+        return state.cashCount.items;
+      }
+      return rejectWithValue("You're offline and no cached data is available.");
     }
 
     // Build query with camelCase filters, convert to snake_case for API

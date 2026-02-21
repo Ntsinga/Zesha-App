@@ -10,6 +10,7 @@ import { useSelector } from "react-redux";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { selectUser, selectUserRole } from "../store/slices/authSlice";
+import SyncStatusIndicator from "./SyncStatusIndicator";
 
 /**
  * Modern top bar component showing user name and role
@@ -102,6 +103,9 @@ export default function TopBar() {
 
         {/* Right side - Actions */}
         <View style={styles.actionsSection}>
+          {/* Sync Status */}
+          <SyncStatusIndicator compact />
+
           {/* Notification Bell */}
           <TouchableOpacity
             style={styles.iconButton}
