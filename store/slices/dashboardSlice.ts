@@ -11,6 +11,7 @@ import type {
 import { mapApiResponse, buildTypedQueryString } from "@/types";
 import { API_ENDPOINTS } from "@/config/api";
 import { secureApiRequest } from "@/services/secureApi";
+import { isDeviceOffline } from "@/utils/offlineCheck";
 import type { RootState } from "../index";
 
 // Types
@@ -96,6 +97,21 @@ export const fetchDashboard = createAsyncThunk<
     // This prevents using stale persisted dates from Redux state
     const snapshotDate = params.date || getTodayDate();
     const shift = params.shift || getCurrentShift();
+
+    // Offline bypass — return persisted data when no connectivity
+    const offline = await isDeviceOffline();
+    if (offline) {
+      if (state.dashboard.summary) {
+        return {
+          companyInfo: state.dashboard.companyInfo!,
+          summary: state.dashboard.summary!,
+          accounts: state.dashboard.accounts,
+          snapshotDate: state.dashboard.snapshotDate,
+          shift: state.dashboard.currentShift,
+        };
+      }
+      return rejectWithValue("You're offline and no cached data is available.");
+    }
 
     // Check cache - skip fetch if data is fresh and same params (unless forced)
     if (!params.forceRefresh) {

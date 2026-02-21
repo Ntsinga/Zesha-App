@@ -7,6 +7,8 @@ import {
   fetchBalances,
   clearDraftEntries,
 } from "../../store/slices/balancesSlice";
+import { useNetworkContext } from "@/hooks/useNetworkStatus";
+import { queueOfflineMutation } from "@/utils/offlineQueue";
 import { fetchDashboard } from "../../store/slices/dashboardSlice";
 import { fetchAccounts } from "../../store/slices/accountsSlice";
 import { selectEffectiveCompanyId } from "../../store/slices/authSlice";
@@ -48,6 +50,7 @@ export function useAddBalanceScreen() {
 
   // Selectors
   const companyId = useSelector(selectEffectiveCompanyId);
+  const { isConnected } = useNetworkContext();
   const { items: accounts, isLoading: accountsLoading } = useSelector(
     (state: RootState) => state.accounts,
   );
@@ -442,6 +445,49 @@ export function useAddBalanceScreen() {
       };
     }
 
+    // Offline queue — only supports creating new entries (not updates)
+    if (!isConnected) {
+      const existingEntries = entries.filter((e) => e.id.startsWith("existing-"));
+      if (existingEntries.length > 0) {
+        return {
+          success: false,
+          message: "Updating existing balances requires an internet connection.",
+        };
+      }
+
+      const newEntries = entries.filter((e) => !e.id.startsWith("existing-"));
+      const imageUris: string[] = [];
+      const balanceDataArray = newEntries.map((entry) => {
+        if (entry.imageUrl) imageUris.push(entry.imageUrl);
+        return {
+          companyId,
+          accountId: entry.accountId!,
+          shift: currentShift,
+          amount: parseFloat(entry.amount),
+          source: "mobile_app" as const,
+          date: today,
+        };
+      });
+
+      try {
+        await queueOfflineMutation({
+          entityType: "balanceBulk",
+          method: "POST",
+          endpoint: "/balances/bulk",
+          payload: { balances: balanceDataArray },
+          imageUris: imageUris.length > 0 ? imageUris : undefined,
+        });
+        dispatch(clearDraftEntries());
+        return {
+          success: true,
+          message: `${newEntries.length} balance(s) queued for sync when back online.`,
+          totalCreated: newEntries.length,
+        };
+      } catch {
+        return { success: false, message: "Failed to queue balances for offline sync." };
+      }
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -577,7 +623,7 @@ export function useAddBalanceScreen() {
     } finally {
       setIsSubmitting(false);
     }
-  }, [entries, currentShift, today, companyId, dispatch, validateEntries]);
+  }, [entries, currentShift, today, companyId, dispatch, validateEntries, isConnected]);
 
   // Compute if we have existing entries (for update vs create UI)
   const hasExistingEntries = useMemo(

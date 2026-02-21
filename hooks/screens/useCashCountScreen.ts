@@ -6,6 +6,8 @@ import {
   fetchCashCounts,
   deleteCashCount,
 } from "../../store/slices/cashCountSlice";
+import { useNetworkContext } from "@/hooks/useNetworkStatus";
+import { queueOfflineMutation } from "@/utils/offlineQueue";
 import { fetchDashboard } from "../../store/slices/dashboardSlice";
 import { selectEffectiveCompanyId } from "../../store/slices/authSlice";
 import { useCurrencyFormatter } from "../useCurrency";
@@ -40,6 +42,7 @@ export function useCashCountScreen() {
   const dispatch = useDispatch<AppDispatch>();
   const { formatCurrency } = useCurrencyFormatter();
   const companyId = useSelector(selectEffectiveCompanyId);
+  const { isConnected } = useNetworkContext();
   const params = useLocalSearchParams();
 
   // Get today's date
@@ -184,6 +187,40 @@ export function useCashCountScreen() {
         success: false,
         message: "Company not found. Please log in again.",
       };
+    }
+
+    // Offline queue — only supports creating new entries (not edit mode)
+    if (!isConnected) {
+      if (isEditing) {
+        return {
+          success: false,
+          message: "Editing cash counts requires an internet connection.",
+        };
+      }
+
+      const cashCountData = validEntries.map((entry) => ({
+        companyId,
+        denomination: entry.denomination,
+        quantity: parseInt(entry.quantity),
+        amount: entry.displayValue * parseInt(entry.quantity),
+        date: today,
+        shift,
+      }));
+
+      try {
+        await queueOfflineMutation({
+          entityType: "cashCountBulk",
+          method: "POST",
+          endpoint: "/cash-counts/bulk",
+          payload: { cashCounts: cashCountData },
+        });
+        return {
+          success: true,
+          message: `Cash count queued for sync when back online. Total: ${formatCurrency(totalAmount)}`,
+        };
+      } catch {
+        return { success: false, message: "Failed to queue cash count for offline sync." };
+      }
     }
 
     setIsSubmitting(true);

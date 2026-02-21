@@ -8,6 +8,8 @@ import {
   saveDraftEntries,
   clearDraftEntries,
 } from "../../store/slices/commissionsSlice";
+import { useNetworkContext } from "@/hooks/useNetworkStatus";
+import { queueOfflineMutation } from "@/utils/offlineQueue";
 import { fetchDashboard } from "../../store/slices/dashboardSlice";
 import { fetchAccounts } from "../../store/slices/accountsSlice";
 import { selectEffectiveCompanyId } from "../../store/slices/authSlice";
@@ -59,6 +61,7 @@ export function useAddCommissionScreen() {
 
   // Selectors
   const companyId = useSelector(selectEffectiveCompanyId);
+  const { isConnected } = useNetworkContext();
   const { items: accounts, isLoading: accountsLoading } = useSelector(
     (state: RootState) => state.accounts,
   );
@@ -447,6 +450,47 @@ export function useAddCommissionScreen() {
       };
     }
 
+    // Offline queue — only supports creating new entries (not updates)
+    if (!isConnected) {
+      const existingEntries = entries.filter((e) => e.id.startsWith("existing-"));
+      if (existingEntries.length > 0) {
+        return {
+          success: false,
+          message: "Updating existing commissions requires an internet connection.",
+        };
+      }
+
+      const newEntries = entries.filter((e) => !e.id.startsWith("existing-"));
+      const imageUris: string[] = [];
+      const commissionsData = newEntries.map((entry) => {
+        if (entry.imageUrl) imageUris.push(entry.imageUrl);
+        return {
+          companyId,
+          accountId: entry.accountId!,
+          shift: currentShift,
+          amount: parseFloat(entry.amount),
+          date: today,
+        };
+      });
+
+      try {
+        await queueOfflineMutation({
+          entityType: "commissionBulk",
+          method: "POST",
+          endpoint: "/commissions/bulk",
+          payload: { commissions: commissionsData },
+          imageUris: imageUris.length > 0 ? imageUris : undefined,
+        });
+        dispatch(clearDraftEntries());
+        return {
+          success: true,
+          message: `${newEntries.length} commission(s) queued for sync when back online.`,
+        };
+      } catch {
+        return { success: false, message: "Failed to queue commissions for offline sync." };
+      }
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -576,7 +620,7 @@ export function useAddCommissionScreen() {
     } finally {
       setIsSubmitting(false);
     }
-  }, [entries, currentShift, today, companyId, dispatch, validateEntries]);
+  }, [entries, currentShift, today, companyId, dispatch, validateEntries, isConnected]);
 
   // Compute if we have existing entries (for update vs create UI)
   const hasExistingEntries = useMemo(

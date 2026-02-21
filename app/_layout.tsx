@@ -2,10 +2,12 @@ import "../global.css";
 import React, { useEffect, useState, useCallback } from "react";
 import { Stack } from "expo-router";
 import { Provider } from "react-redux";
+import { PersistGate } from "redux-persist/integration/react";
 import { StatusBar } from "expo-status-bar";
 import * as SplashScreen from "expo-splash-screen";
 import ErrorBoundary from "../components/ErrorBoundary";
-import { store } from "../store";
+import OfflineBanner from "../components/OfflineBanner";
+import { store, persistor } from "../store";
 import { useAppDispatch } from "../store/hooks";
 import { initializeAuth } from "../store/slices/authSlice";
 import { ClerkProvider, useAuth, useUser } from "@clerk/clerk-expo";
@@ -14,6 +16,8 @@ import { useRouter, useSegments, useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
 import { useClerkUserSync } from "../hooks/useClerkUserSync";
 import { initializeSecureApi } from "../services/secureApi";
+import { startSyncEngine, stopSyncEngine } from "../services/syncEngine";
+import { useNetworkStatus, NetworkContext } from "../hooks/useNetworkStatus";
 
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
@@ -35,6 +39,18 @@ function AppContent() {
       setIsSecureApiReady(true);
     }
   }, [isLoaded, getToken]);
+
+  // Start sync engine once secure API is ready and user is signed in
+  useEffect(() => {
+    if (isSecureApiReady && isSignedIn) {
+      startSyncEngine();
+    }
+    // Always stop on cleanup — avoids stale closure where the previous
+    // render's isSignedIn (true) prevents stopSyncEngine from running.
+    return () => {
+      stopSyncEngine();
+    };
+  }, [isSecureApiReady, isSignedIn]);
 
   // Sync Clerk user with backend (only after secure API is ready)
   const { isSyncing } = useClerkUserSync();
@@ -108,6 +124,7 @@ function AppContent() {
   return (
     <View style={{ flex: 1 }} onLayout={onLayoutRootView}>
       <StatusBar style="dark" />
+      <OfflineBanner />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="(app)" />
@@ -118,6 +135,7 @@ function AppContent() {
 
 export default function RootLayoutNav() {
   const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!;
+  const networkStatus = useNetworkStatus();
 
   if (!publishableKey) {
     throw new Error(
@@ -129,7 +147,17 @@ export default function RootLayoutNav() {
     <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
       <ErrorBoundary>
         <Provider store={store}>
-          <AppContent />
+          {persistor ? (
+            <PersistGate loading={null} persistor={persistor}>
+              <NetworkContext.Provider value={networkStatus}>
+                <AppContent />
+              </NetworkContext.Provider>
+            </PersistGate>
+          ) : (
+            <NetworkContext.Provider value={networkStatus}>
+              <AppContent />
+            </NetworkContext.Provider>
+          )}
         </Provider>
       </ErrorBoundary>
     </ClerkProvider>

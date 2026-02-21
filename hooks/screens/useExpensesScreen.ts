@@ -6,6 +6,8 @@ import {
   updateExpense,
   deleteExpense,
 } from "../../store/slices/expensesSlice";
+import { useNetworkContext } from "@/hooks/useNetworkStatus";
+import { queueOfflineMutation } from "@/utils/offlineQueue";
 import { fetchDashboard } from "../../store/slices/dashboardSlice";
 import { selectEffectiveCompanyId } from "../../store/slices/authSlice";
 import { useCurrencyFormatter } from "../useCurrency";
@@ -33,6 +35,7 @@ export function useExpensesScreen() {
   const dispatch = useDispatch<AppDispatch>();
   const { formatCurrency } = useCurrencyFormatter();
   const companyId = useSelector(selectEffectiveCompanyId);
+  const { isConnected } = useNetworkContext();
 
   const {
     items: expenses,
@@ -135,6 +138,33 @@ export function useExpensesScreen() {
 
     const amountNum = parseFloat(amount);
 
+    // Offline queue
+    if (!isConnected) {
+      if (editingExpense) {
+        return { success: false, error: "Editing expenses requires an internet connection." };
+      }
+
+      try {
+        await queueOfflineMutation({
+          entityType: "expense",
+          method: "POST",
+          endpoint: "/expenses/",
+          payload: {
+            companyId,
+            name: name.trim(),
+            amount: amountNum,
+            description: description.trim() || undefined,
+            expenseDate,
+            category: category || undefined,
+          },
+        });
+        closeModal();
+        return { success: true };
+      } catch {
+        return { success: false, error: "Failed to queue expense for offline sync." };
+      }
+    }
+
     try {
       if (editingExpense) {
         await dispatch(
@@ -180,6 +210,7 @@ export function useExpensesScreen() {
     dispatch,
     closeModal,
     validateForm,
+    isConnected,
   ]);
 
   // Delete expense
