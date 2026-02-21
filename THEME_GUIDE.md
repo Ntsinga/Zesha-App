@@ -1,180 +1,197 @@
-# Zesha App Theme Management Guide
+# Teleba App Theme Management Guide
 
 This document explains how the app's theme system works and how to change colors in the future.
 
+## Teleba Design System Specification
+
+### Brand Colors
+
+| Color | Hex | Purpose |
+|-------|-----|---------|
+| 🟦 **Primary (Deep Blue)** | `#0B3C5D` | Trust, stability, banking, telecom. Main actions, primary buttons |
+| 🟩 **Secondary (Teal)** | `#1CB5BD` | Connectivity, data flow, modern fintech. Secondary actions, accents |
+| 🟨 **Accent (Soft Gold)** | `#F2C94C` | Value, money, success. Use sparingly for financial highlights |
+| ⬛ **Dark Neutral** | `#0F172A` | Slate/almost black. Primary text, dark backgrounds |
+| ⬜ **Light Neutral** | `#F8FAFC` | Clean white. Main app background |
+
+### UI Philosophy
+
+- **Minimal, structured layouts** - Clean, organized information hierarchy
+- **Lots of white/neutral space** - Reduces cognitive load for ops teams
+- **Card-based design** - Clear content separation
+- **Subtle gradients (blue → teal)** - Professional visual interest
+- **Rounded corners (8-12px)** - Modern but not bubbly
+- **Icons: outline or thin solid** - Clean, professional appearance
+- **Feel:** "Calm, powerful, won't break when millions transact"
+
+### Dark Mode Colors
+
+| Element | Hex | Purpose |
+|---------|-----|---------|
+| Background | `#020617` | Very dark blue-black |
+| Cards | `#0F172A` | Slate 900 |
+| Elevated | `#1E293B` | Slate 800 |
+| Primary Text | `#E5E7EB` | Gray 200 |
+| Accents | Teal & Gold | Same as light mode |
+
+---
+
 ## Theme Architecture
 
-The theme system has two main components:
+The theme system has three main components:
 
 ### 1. Tailwind Configuration (`tailwind.config.js`)
 
-- Defines custom brand colors that can be used with Tailwind classes
-- Colors: `brand-red`, `brand-gold`, `brand-lightRed`, `brand-darkGold`
-- These are compiled at build time
+- Defines custom brand colors (`brand-primary`, `brand-secondary`, `brand-accent`)
+- Dark mode colors (`dark-bg`, `dark-card`, etc.)
+- Gradients (`bg-teleba-gradient`)
+- Configured with `darkMode: 'class'` for dark mode support
 
 ### 2. Theme Constants (`constants/theme.ts`)
 
 - Centralized color definitions for the entire app
-- Provides both hex values and Tailwind class mappings
-- Import this file when you need dynamic colors or icon colors
+- `Colors` object - All hex values organized by category
+- `TailwindClasses` - Tailwind class mappings
+- `IconColors` - Pre-built icon color references
+- `Gradients` - Arrays for LinearGradient components
 
-## How to Change Theme Colors
+### 3. Web CSS Variables (`styles/web.css`)
 
-### Option 1: Quick Color Change (Recommended for minor tweaks)
+- CSS custom properties for web-specific styling
+- All CSS variables updated to Teleba palette
 
-1. **Update Tailwind Config** (`tailwind.config.js`):
+---
 
-```javascript
-colors: {
-  brand: {
-    red: "#YOUR_NEW_PRIMARY_COLOR",     // Change primary brand color
-    gold: "#YOUR_NEW_SECONDARY_COLOR",  // Change secondary brand color
-  },
-}
-```
-
-2. **Update Theme Constants** (`constants/theme.ts`):
-
-```typescript
-export const Colors = {
-  primary: {
-    main: "#YOUR_NEW_PRIMARY_COLOR",
-  },
-  secondary: {
-    main: "#YOUR_NEW_SECONDARY_COLOR",
-  },
-  // ... update other colors as needed
-};
-```
-
-3. **Rebuild the app**:
-
-```bash
-npm start -- --clear
-```
-
-### Option 2: Complete Theme Overhaul
-
-For a complete redesign, update all color definitions in `constants/theme.ts`:
-
-```typescript
-export const Colors = {
-  primary: { main: '#NEW_COLOR', light: '#NEW_COLOR', dark: '#NEW_COLOR' },
-  secondary: { main: '#NEW_COLOR', light: '#NEW_COLOR', dark: '#NEW_COLOR' },
-  shift: { am: {...}, pm: {...} },
-  status: { success: {...}, warning: {...}, error: {...} },
-  feature: { balance: {...}, commission: {...}, cash: {...} },
-};
-```
-
-## Color Usage Patterns
+## How to Use Theme Colors
 
 ### Pattern 1: Tailwind Classes (Most Common)
 
 ```tsx
-<View className="bg-brand-red">           // Primary background
-<Text className="text-brand-gold">        // Secondary text
-<View className="bg-blue-100">            // AM shift background
-<View className="bg-red-100">             // PM shift / Commission background
+<View className="bg-brand-primary">           // Deep Blue background
+<Text className="text-brand-secondary">       // Teal text
+<View className="bg-brand-accent">            // Gold background
+<View className="bg-brand-light">             // Light neutral background
 ```
 
 ### Pattern 2: Dynamic Colors (Icons, Charts)
 
 ```tsx
-import { Colors } from '../constants/theme';
+import { Colors, IconColors } from '../constants/theme';
 
-<Icon color={Colors.primary.main} />      // Primary color icon
-<Icon color={Colors.shift.am.icon} />     // AM shift icon
-<Icon color={Colors.feature.commission.icon} /> // Commission icon
+<Icon color={Colors.primary.main} />          // Deep Blue icon
+<Icon color={IconColors.secondary} />         // Teal icon
+<Icon color={Colors.accent.main} />           // Gold icon
 ```
 
-### Pattern 3: Conditional Styling
+### Pattern 3: Gradients
 
 ```tsx
-import { TailwindClasses } from '../constants/theme';
+import { Gradients } from '../constants/theme';
+import { LinearGradient } from 'expo-linear-gradient';
 
-className={shift === "AM" ? TailwindClasses.shift.am.bg : TailwindClasses.shift.pm.bg}
+<LinearGradient 
+  colors={Gradients.primary}           // Blue → Teal
+  start={{ x: 0, y: 0 }}
+  end={{ x: 1, y: 1 }}
+/>
+
+// Or extended with middle step:
+<LinearGradient colors={Gradients.primaryExtended} />  // Blue → Mid → Teal
 ```
 
-## Color Mapping Reference
+### Pattern 4: Conditional Styling
 
-### Current Theme Colors
+```tsx
+import { TailwindClasses, Colors } from '../constants/theme';
 
-| Feature                 | Background             | Text                   | Icon                   | Purpose                          |
-| ----------------------- | ---------------------- | ---------------------- | ---------------------- | -------------------------------- |
-| **Primary (Brand Red)** | `#C62828`              | `#C62828`              | `#C62828`              | Main actions, buttons, PM shifts |
-| **Secondary (Gold)**    | `#B8860B`              | `#B8860B`              | `#B8860B`              | Financial stats, balances        |
-| **AM Shift**            | `#DBEAFE` (Blue 100)   | `#1D4ED8` (Blue 700)   | `#3B82F6` (Blue 500)   | Morning shift indicators         |
-| **PM Shift**            | `#FEE2E2` (Red 100)    | `#B91C1C` (Red 700)    | `#EF4444` (Red 500)    | Evening shift indicators         |
-| **Commissions**         | `#FEE2E2` (Red 100)    | `#C62828` (Red)        | `#C62828` (Red)        | Commission features              |
-| **Cash**                | `#DCFCE7` (Green 100)  | `#15803D` (Green 700)  | `#16A34A` (Green 600)  | Cash counting                    |
-| **Success**             | `#DCFCE7` (Green 100)  | `#15803D` (Green 700)  | `#22C55E` (Green 500)  | Success states                   |
-| **Warning**             | `#FEF3C7` (Yellow 100) | `#A16207` (Yellow 700) | `#F59E0B` (Yellow 500) | Warning states                   |
-| **Error**               | `#FEE2E2` (Red 100)    | `#B91C1C` (Red 700)    | `#EF4444` (Red 500)    | Error states                     |
+// Tailwind classes
+className={shift === "AM" ? TailwindClasses.shift.am.bg : TailwindClasses.shift.pm.bg}
 
-### Files That Use Theme Colors
+// Inline styles
+style={{ color: active ? Colors.primary.main : Colors.text.tertiary }}
+```
 
-#### Core Pages
+### Pattern 5: Dark Mode (NativeWind)
 
-- `app/index.tsx` - Dashboard (uses primary, secondary, status colors)
-- `app/balance.tsx` - Balance management (uses primary, secondary, shift colors)
-- `app/history.tsx` - History view (uses shift, status colors)
-- `app/balance-detail.tsx` - Detail view (uses all color types)
-- `app/commissions.tsx` - Commission view (uses commission colors)
-- `app/add-balance.tsx` - Balance entry (uses primary, validation colors)
-- `app/add-commission.tsx` - Commission entry (uses commission colors)
+```tsx
+<View className="bg-white dark:bg-dark-bg">
+<Text className="text-slate-900 dark:text-dark-text">
+```
 
-#### Components
+---
 
-- `components/CustomDrawerContent.tsx` - Navigation (uses primary color)
-- `components/LoadingSpinner.tsx` - Loading states (uses primary color)
+## Current Theme Colors
+
+| Feature | Background | Text | Icon | Purpose |
+|---------|------------|------|------|---------|
+| **Primary (Deep Blue)** | `#0B3C5D` | `#0B3C5D` | `#0B3C5D` | Main actions, buttons, headers |
+| **Secondary (Teal)** | `#1CB5BD` | `#1CB5BD` | `#1CB5BD` | Links, accents, connectivity |
+| **Accent (Gold)** | `#F2C94C` | `#D4A83A` | `#F2C94C` | Financial stats, balances |
+| **AM Shift** | `#DBEAFE` | `#1D4ED8` | `#3B82F6` | Morning shift indicators |
+| **PM Shift** | `#E0F2FE` | `#0369A1` | `#0EA5E9` | Evening shift indicators |
+| **Balance** | `#FEF9E7` | `#D4A83A` | `#F2C94C` | Balance features |
+| **Commission** | `#E0F7F8` | `#148F95` | `#1CB5BD` | Commission features |
+| **Cash** | `#DCFCE7` | `#15803D` | `#16A34A` | Cash counting |
+| **Success** | `#DCFCE7` | `#15803D` | `#22C55E` | Success states |
+| **Warning** | `#FEF3C7` | `#A16207` | `#F59E0B` | Warning states |
+| **Error** | `#FEE2E2` | `#B91C1C` | `#EF4444` | Error states |
+
+---
+
+## Files That Use Theme Colors
+
+### Core Components (Import Colors)
+
+- `components/BottomNav.tsx` - Navigation bar (uses Colors import)
+- `components/TopBar.tsx` - User info header (uses Colors import)
+- `components/CustomDrawerContent.tsx` - Side drawer (uses Colors import)
+- `components/LoadingSpinner.tsx` - Loading states (uses Colors import)
+
+### Auth Screens (Import Gradients)
+
+- `app/(auth)/sign-in.tsx` - Sign in page (uses Gradients.primaryExtended)
+- `app/(auth)/sign-up.tsx` - Sign up page (uses Gradients.primaryExtended)
+
+### Configuration Files
+
+- `tailwind.config.js` - Tailwind custom colors
+- `constants/theme.ts` - Central color definitions
+- `styles/web.css` - Web-specific CSS variables
+
+---
 
 ## Best Practices
 
 ### ✅ DO
 
-- Use theme constants for all colors
-- Use Tailwind classes for static styling
-- Use `Colors` object for dynamic/conditional colors
-- Document any new color additions
-- Test theme changes on both light backgrounds
+- Import `Colors` from `constants/theme` for all dynamic colors
+- Use `IconColors` for icon color props
+- Use `Gradients` for LinearGradient components
+- Use `TailwindClasses` for class name mappings
+- Test changes in both light and dark mode
 
 ### ❌ DON'T
 
 - Hardcode hex values directly in components
 - Use inconsistent color values for the same purpose
 - Mix different shades without documenting why
-- Create new color variations without updating theme.ts
+- Skip the theme system for "just one component"
+
+---
 
 ## Testing Theme Changes
 
 After updating colors, test these key screens:
 
-1. Dashboard - Check primary/secondary colors
-2. Balance page - Check AM/PM shift colors
-3. History - Check shift badges and status indicators
-4. Commissions page - Check commission-specific colors
-5. Add Balance/Commission - Check validation states
+1. **Auth screens** - Check gradient headers
+2. **Dashboard** - Check primary/secondary colors
+3. **Bottom navigation** - Check active/inactive states
+4. **Balance page** - Check AM/PM shift colors
+5. **History** - Check shift badges and status indicators
+6. **Commissions page** - Check teal commission colors
+7. **Settings** - Check avatar and user info colors
 
-## Future Considerations
-
-### Dark Mode Support
-
-To add dark mode in the future:
-
-1. Extend `Colors` object with dark variants
-2. Create a theme context/hook to toggle between light/dark
-3. Update Tailwind config with dark mode strategy
-4. Use conditional classes: `className="bg-white dark:bg-gray-900"`
-
-### Multiple Themes
-
-To support multiple theme presets:
-
-1. Create theme objects in `constants/theme.ts`
-2. Use React Context to provide active theme
-3. Create a theme switcher in settings
-4. Update components to use theme from context
+---
 
 ## Quick Reference Commands
 
@@ -185,9 +202,11 @@ npm start -- --clear
 # Rebuild Tailwind classes
 npm run build
 
-# Check for hardcoded colors
-grep -r "#[0-9A-Fa-f]{6}" app/ components/
+# Check for hardcoded colors (should return minimal results)
+grep -r "#DC2626\|#C62828\|#B91C1C" app/ components/
 ```
+
+---
 
 ## Support
 

@@ -35,14 +35,14 @@ export default function SignInWeb() {
         {/* Logo and branding */}
         <div className="auth-brand-content">
           <div className="auth-brand-logo">
-            {/* Rounded square logo with Z */}
+            {/* Rounded square logo with T */}
             <div className="auth-logo-box">
-              <span className="auth-logo-letter">Z</span>
+              <span className="auth-logo-letter">T</span>
             </div>
           </div>
-          <h1 className="auth-brand-title">ZESHA AGENT</h1>
+          <h1 className="auth-brand-title">TELEBA</h1>
           <p className="auth-brand-tagline">
-            Your trusted financial management partner
+            Your trusted financial reconciliation partner
           </p>
         </div>
       </div>

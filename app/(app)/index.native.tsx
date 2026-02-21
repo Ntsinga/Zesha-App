@@ -67,7 +67,7 @@ export default function DashboardNative() {
             <TouchableOpacity
               onPress={() => handleShiftChange("AM")}
               className={`flex-1 py-3 rounded-xl ${
-                currentShift === "AM" ? "bg-red-600" : "bg-transparent"
+                currentShift === "AM" ? "bg-brand-primary" : "bg-transparent"
               }`}
             >
               <Text
@@ -81,7 +81,7 @@ export default function DashboardNative() {
             <TouchableOpacity
               onPress={() => handleShiftChange("PM")}
               className={`flex-1 py-3 rounded-xl ${
-                currentShift === "PM" ? "bg-red-600" : "bg-transparent"
+                currentShift === "PM" ? "bg-brand-primary" : "bg-transparent"
               }`}
             >
               <Text

@@ -16,6 +16,7 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { validateEmail } from "../../utils/validators";
+import { Colors, Gradients } from "../../constants/theme";
 
 export default function SignInPage() {
   const { signIn, setActive, isLoaded } = useSignIn();
@@ -126,16 +127,16 @@ export default function SignInPage() {
     <View className="flex-1">
       <StatusBar barStyle="light-content" />
 
-      {/* Red Gradient Header */}
+      {/* Teleba Blue→Teal Gradient Header */}
       <LinearGradient
-        colors={["#DC2626", "#B91C1C", "#991B1B"]}
+        colors={Gradients.primaryExtended}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         className="pt-16 pb-32 px-6"
       >
         <View className="items-center pt-12">
           <Text className="text-4xl font-bold text-white mb-2">
-            Zesha Agent
+            Teleba
           </Text>
           <Text className="text-white/90 text-lg">
             Sign in to manage your account
@@ -162,7 +163,7 @@ export default function SignInPage() {
                     {usePhone ? "Phone number" : "Email address"}
                   </Text>
                   <TouchableOpacity onPress={() => setUsePhone(!usePhone)}>
-                    <Text className="text-sm font-semibold text-red-500">
+                    <Text className="text-sm font-semibold text-brand-secondary">
                       {usePhone ? "Use email" : "Use phone"}
                     </Text>
                   </TouchableOpacity>
@@ -194,7 +195,7 @@ export default function SignInPage() {
                 {/* Continue Button */}
                 <TouchableOpacity
                   onPress={onContinuePress}
-                  className="bg-red-600 rounded-2xl py-4 mb-6 flex-row items-center justify-center"
+                  className="bg-brand-primary rounded-2xl py-4 mb-6 flex-row items-center justify-center"
                   activeOpacity={0.8}
                 >
                   <Text className="text-white font-bold text-lg mr-2">
@@ -206,11 +207,11 @@ export default function SignInPage() {
                 {/* Terms Text */}
                 <Text className="text-center text-gray-500 text-sm leading-5">
                   By continuing, you agree to our{" "}
-                  <Text className="text-red-500 font-medium">
+                  <Text className="text-brand-secondary font-medium">
                     Terms of Service
                   </Text>{" "}
                   and{" "}
-                  <Text className="text-red-500 font-medium">
+                  <Text className="text-brand-secondary font-medium">
                     Privacy Policy
                   </Text>
                   .
@@ -223,8 +224,8 @@ export default function SignInPage() {
                   onPress={() => setStep("identifier")}
                   className="flex-row items-center mb-6"
                 >
-                  <Ionicons name="chevron-back" size={24} color="#DC2626" />
-                  <Text className="text-red-600 font-semibold ml-1">Back</Text>
+                  <Ionicons name="chevron-back" size={24} color={Colors.primary.main} />
+                  <Text className="text-brand-primary font-semibold ml-1">Back</Text>
                 </TouchableOpacity>
 
                 {/* Password Label */}
@@ -254,7 +255,7 @@ export default function SignInPage() {
                 <TouchableOpacity
                   onPress={onSignInPress}
                   disabled={loading}
-                  className={`bg-red-600 rounded-2xl py-4 mb-6 flex-row items-center justify-center ${
+                  className={`bg-brand-primary rounded-2xl py-4 mb-6 flex-row items-center justify-center ${
                     loading ? "opacity-50" : ""
                   }`}
                   activeOpacity={0.8}
@@ -277,7 +278,7 @@ export default function SignInPage() {
 
                 {/* Forgot Password */}
                 <TouchableOpacity className="items-center">
-                  <Text className="text-red-500 font-medium text-sm">
+                  <Text className="text-brand-secondary font-medium text-sm">
                     Forgot password?
                   </Text>
                 </TouchableOpacity>
@@ -289,8 +290,8 @@ export default function SignInPage() {
                   onPress={() => setStep("password")}
                   className="flex-row items-center mb-6"
                 >
-                  <Ionicons name="chevron-back" size={24} color="#DC2626" />
-                  <Text className="text-red-600 font-semibold ml-1">Back</Text>
+                  <Ionicons name="chevron-back" size={24} color={Colors.primary.main} />
+                  <Text className="text-brand-primary font-semibold ml-1">Back</Text>
                 </TouchableOpacity>
 
                 {/* 2FA Instructions */}
@@ -332,7 +333,7 @@ export default function SignInPage() {
                 <TouchableOpacity
                   onPress={onVerify2FAPress}
                   disabled={loading}
-                  className={`bg-red-600 rounded-2xl py-4 mb-6 flex-row items-center justify-center ${
+                  className={`bg-brand-primary rounded-2xl py-4 mb-6 flex-row items-center justify-center ${
                     loading ? "opacity-50" : ""
                   }`}
                   activeOpacity={0.8}
@@ -368,7 +369,7 @@ export default function SignInPage() {
                     }
                   }}
                 >
-                  <Text className="text-red-500 font-medium text-sm">
+                  <Text className="text-brand-secondary font-medium text-sm">
                     Resend code
                   </Text>
                 </TouchableOpacity>

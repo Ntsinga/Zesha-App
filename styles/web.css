@@ -1,18 +1,37 @@
 /* ============================================
-   ZESHA WEB APP - GLOBAL STYLES
+   TELEBA WEB APP - GLOBAL STYLES
    ============================================ */
 
 /* CSS Variables for easy theming */
 :root {
-  /* Primary Colors */
-  --color-primary: #dc2626;
-  --color-primary-dark: #b91c1c;
-  --color-primary-light: #fecaca;
+  /**
+   * TELEBA DESIGN SYSTEM
+   * ====================
+   * Primary: Vibrant Blue #2563EB - Trust, stability, banking (bright & vivid)
+   * Secondary: Teal/Cyan #14B8A6 - Connectivity, data flow, modern fintech
+   * Accent: Soft Gold #F2C94C - Value, money, success (used sparingly)
+   * Terracotta: #D97706 - Warmth, urgency, reddish-gold highlights
+   */
 
-  /* Secondary/Accent Colors */
-  --color-gold: #f59e0b;
-  --color-gold-dark: #d97706;
-  --color-gold-light: #fef3c7;
+  /* Primary Colors - Vibrant Blue (much brighter!) */
+  --color-primary: #2563EB;
+  --color-primary-dark: #1D4ED8;
+  --color-primary-light: #3B82F6;
+
+  /* Secondary Colors - Teal */
+  --color-secondary: #1CB5BD;
+  --color-secondary-dark: #148F95;
+  --color-secondary-light: #4DD4DB;
+
+  /* Accent Colors - Soft Gold */
+  --color-accent: #F2C94C;
+  --color-accent-dark: #D4A83A;
+  --color-accent-light: #F7DC8C;
+
+  /* Terracotta - Reddish Gold */
+  --color-terracotta: #D97706;
+  --color-terracotta-light: #F59E0B;
+  --color-terracotta-dark: #B45309;
 
   /* Status Colors */
   --color-success: #16a34a;
@@ -21,21 +40,21 @@
   --color-danger-light: #fee2e2;
   --color-warning: #f59e0b;
   --color-warning-light: #fef3c7;
-  --color-info: #2563eb;
-  --color-info-light: #dbeafe;
+  --color-info: #0284c7;
+  --color-info-light: #e0f2fe;
 
   /* Neutral Colors */
-  --color-bg: #f8fafc;
+  --color-bg: #F8FAFC;
   --color-bg-card: #ffffff;
-  --color-border: #e5e7eb;
-  --color-border-light: #f3f4f6;
-  --color-text: #111827;
-  --color-text-secondary: #6b7280;
-  --color-text-muted: #9ca3af;
+  --color-border: #e2e8f0;
+  --color-border-light: #f1f5f9;
+  --color-text: #0F172A;
+  --color-text-secondary: #475569;
+  --color-text-muted: #94a3b8;
 
-  /* Sidebar */
+  /* Sidebar - Teleba gradient (vibrant blue to teal) */
   --sidebar-width: 260px;
-  --sidebar-bg: linear-gradient(180deg, #dc2626 0%, #991b1b 100%);
+  --sidebar-bg: linear-gradient(180deg, #2563EB 0%, #0D9488 100%);
 
   /* Spacing */
   --space-xs: 4px;
@@ -45,18 +64,18 @@
   --space-xl: 32px;
   --space-2xl: 48px;
 
-  /* Border Radius */
+  /* Border Radius - Teleba: 8-12px, not bubbly */
   --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 16px;
-  --radius-xl: 20px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
 
   /* Shadows */
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
   --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.1);
-  --shadow-primary: 0 4px 14px rgba(220, 38, 38, 0.25);
-  --shadow-gold: 0 10px 40px rgba(245, 158, 11, 0.3);
+  --shadow-primary: 0 4px 14px rgba(11, 60, 93, 0.25);
+  --shadow-accent: 0 10px 40px rgba(242, 201, 76, 0.3);
 }
 
 /* Reset & Base */
@@ -166,7 +185,7 @@ body {
   font-size: 11px;
   font-weight: 500;
   color: var(--color-primary);
-  background-color: #fee2e2;
+  background-color: #E0F7F8;
   padding: 2px 8px;
   border-radius: 12px;
   text-transform: capitalize;
@@ -179,7 +198,7 @@ body {
   background: linear-gradient(
     135deg,
     var(--color-primary) 0%,
-    var(--color-primary-dark) 100%
+    var(--color-secondary) 100%
   );
   display: flex;
   align-items: center;
@@ -187,7 +206,7 @@ body {
   color: white;
   font-weight: 700;
   font-size: 15px;
-  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.2);
+  box-shadow: 0 2px 8px rgba(11, 60, 93, 0.2);
   transition:
     transform 0.2s ease,
     box-shadow 0.2s ease;
@@ -195,7 +214,7 @@ body {
 
 .topbar-avatar:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+  box-shadow: 0 4px 12px rgba(11, 60, 93, 0.3);
 }
 
 .topbar-avatar:focus {
@@ -3889,7 +3908,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+  background: linear-gradient(135deg, #2563EB 0%, #14B8A6 100%);
   padding: 40px 20px;
   overflow-y: auto;
 }
@@ -3915,7 +3934,7 @@ body {
   min-height: 100vh;
   /* Background image will be set via inline styles */
   /* Fallback color if no background image */
-  background-color: #dc2626;
+  background-color: #2563EB;
 }
 
 /* Wave Decorations */
@@ -4047,7 +4066,7 @@ body {
 .auth-form-title {
   font-size: 32px;
   font-weight: 700;
-  color: #dc2626;
+  color: #2563EB;
   margin-bottom: 8px;
   font-style: italic;
 }
@@ -4069,7 +4088,7 @@ body {
 }
 
 .auth-signup-link {
-  color: #dc2626;
+  color: #1CB5BD;
   font-weight: 600;
   text-decoration: none;
   transition: all 0.2s;
@@ -4097,21 +4116,21 @@ body {
 }
 
 .clerk-social-button-split {
-  border: 1px solid #fecaca !important;
+  border: 1px solid #E0F7F8 !important;
   border-radius: 50px !important;
   padding: 16px 28px !important;
   font-weight: 500 !important;
   font-size: 15px !important;
   transition: all 0.2s !important;
   height: auto !important;
-  background: #fef2f2 !important;
+  background: #F0F9FF !important;
   width: 100% !important;
   box-sizing: border-box !important;
 }
 
 .clerk-social-button-split:hover {
-  background: #fee2e2 !important;
-  border-color: #dc2626 !important;
+  background: #E0F7F8 !important;
+  border-color: #1CB5BD !important;
 }
 
 .clerk-input-split {
@@ -4126,19 +4145,19 @@ body {
 }
 
 .clerk-input-split:focus {
-  border-color: #dc2626 !important;
-  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1) !important;
+  border-color: #2563EB !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1) !important;
   outline: none !important;
   background: white !important;
 }
 
 .clerk-primary-button-split {
-  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%) !important;
+  background: linear-gradient(135deg, #2563EB 0%, #14B8A6 100%) !important;
   border-radius: 50px !important;
   padding: 16px 28px !important;
   font-weight: 600 !important;
   font-size: 15px !important;
-  box-shadow: 0 4px 14px rgba(220, 38, 38, 0.3) !important;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3) !important;
   transition: all 0.2s !important;
   height: auto !important;
   width: 100% !important;
@@ -4183,7 +4202,7 @@ body {
 }
 
 .clerk-field-action-split {
-  color: #dc2626 !important;
+  color: #1CB5BD !important;
   font-size: 13px !important;
   text-decoration: none !important;
   font-weight: 500 !important;
@@ -4709,7 +4728,7 @@ body {
 }
 
 .stat-card.highlight {
-  background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+  background: linear-gradient(135deg, #2563EB 0%, #14B8A6 100%);
   color: white;
   padding: var(--space-xl);
   grid-column: 1 / -1;
@@ -6373,7 +6392,7 @@ body {
 
 /* Agency viewing banner */
 .agency-viewing-banner {
-  background: linear-gradient(135deg, #c62828 0%, #b8860b 100%);
+  background: linear-gradient(135deg, #2563EB 0%, #14B8A6 100%);
   color: #fff;
   padding: 12px 20px;
   display: flex;

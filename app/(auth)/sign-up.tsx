@@ -18,6 +18,7 @@ import * as Linking from "expo-linking";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import Svg, { Path } from "react-native-svg";
+import { Colors, Gradients } from "../../constants/theme";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -201,9 +202,9 @@ export default function SignUpPage() {
       <View className="flex-1">
         <StatusBar barStyle="light-content" />
 
-        {/* Red Gradient Header */}
+        {/* Teleba Blue→Teal Gradient Header */}
         <LinearGradient
-          colors={["#DC2626", "#B91C1C", "#991B1B"]}
+          colors={Gradients.primaryExtended}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           className="pt-16 pb-32 px-6"
@@ -250,7 +251,7 @@ export default function SignUpPage() {
             <TouchableOpacity
               onPress={onVerifyPress}
               disabled={loading}
-              className={`bg-red-600 rounded-2xl py-4 mb-6 flex-row items-center justify-center ${
+              className={`bg-brand-primary rounded-2xl py-4 mb-6 flex-row items-center justify-center ${
                 loading ? "opacity-50" : ""
               }`}
               activeOpacity={0.8}
@@ -275,7 +276,7 @@ export default function SignUpPage() {
               }}
               className="items-center"
             >
-              <Text className="text-red-500 font-medium text-sm">Go back</Text>
+              <Text className="text-brand-secondary font-medium text-sm">Go back</Text>
             </TouchableOpacity>
 
             {/* Spacer */}
@@ -284,9 +285,9 @@ export default function SignUpPage() {
         </KeyboardAvoidingView>
 
         {/* Footer */}
-        <View className="bg-red-600 py-4">
+        <View style={{ backgroundColor: Colors.primary.main }} className="py-4">
           <View className="flex-row justify-center items-center">
-            <Text className="text-red-200 text-sm">Need help? </Text>
+            <Text className="text-brand-secondary-light text-sm">Need help? </Text>
             <TouchableOpacity>
               <Text className="text-white text-sm font-medium underline">
                 Contact Support
@@ -303,9 +304,9 @@ export default function SignUpPage() {
     <View className="flex-1">
       <StatusBar barStyle="light-content" />
 
-      {/* Red Gradient Header */}
+      {/* Teleba Blue→Teal Gradient Header */}
       <LinearGradient
-        colors={["#DC2626", "#B91C1C", "#991B1B"]}
+        colors={Gradients.primaryExtended}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         className="pt-16 pb-32 px-6"
@@ -334,7 +335,7 @@ export default function SignUpPage() {
                 {/* Google Sign Up Button */}
                 <TouchableOpacity
                   onPress={onGoogleSignUp}
-                  className="bg-red-50 border border-red-100 rounded-2xl py-4 mb-6 flex-row items-center justify-center"
+                  className="bg-slate-50 border border-slate-200 rounded-2xl py-4 mb-6 flex-row items-center justify-center"
                   activeOpacity={0.7}
                 >
                   <View className="flex-row items-center justify-center">
@@ -360,7 +361,7 @@ export default function SignUpPage() {
                     {usePhone ? "Phone number" : "Email address"}
                   </Text>
                   <TouchableOpacity onPress={() => setUsePhone(!usePhone)}>
-                    <Text className="text-sm font-semibold text-red-500">
+                    <Text className="text-sm font-semibold text-brand-secondary">
                       {usePhone ? "Use email" : "Use phone"}
                     </Text>
                   </TouchableOpacity>
@@ -392,7 +393,7 @@ export default function SignUpPage() {
                 {/* Continue Button */}
                 <TouchableOpacity
                   onPress={onContinuePress}
-                  className="bg-red-600 rounded-2xl py-4 mb-6 flex-row items-center justify-center"
+                  className="bg-brand-primary rounded-2xl py-4 mb-6 flex-row items-center justify-center"
                   activeOpacity={0.8}
                 >
                   <Text className="text-white font-bold text-lg mr-2">
@@ -404,11 +405,11 @@ export default function SignUpPage() {
                 {/* Terms Text */}
                 <Text className="text-center text-gray-500 text-sm leading-5">
                   By continuing, you agree to our{" "}
-                  <Text className="text-red-500 font-medium">
+                  <Text className="text-brand-secondary font-medium">
                     Terms of Service
                   </Text>{" "}
                   and{" "}
-                  <Text className="text-red-500 font-medium">
+                  <Text className="text-brand-secondary font-medium">
                     Privacy Policy
                   </Text>
                   .
@@ -421,8 +422,8 @@ export default function SignUpPage() {
                   onPress={() => setStep("identifier")}
                   className="flex-row items-center mb-6"
                 >
-                  <Ionicons name="chevron-back" size={24} color="#DC2626" />
-                  <Text className="text-red-600 font-semibold ml-1">Back</Text>
+                  <Ionicons name="chevron-back" size={24} color={Colors.primary.main} />
+                  <Text className="text-brand-primary font-semibold ml-1">Back</Text>
                 </TouchableOpacity>
 
                 {/* Password Label */}
@@ -452,7 +453,7 @@ export default function SignUpPage() {
                 <TouchableOpacity
                   onPress={onSignUpPress}
                   disabled={loading}
-                  className={`bg-red-600 rounded-2xl py-4 mb-6 flex-row items-center justify-center ${
+                  className={`bg-brand-primary rounded-2xl py-4 mb-6 flex-row items-center justify-center ${
                     loading ? "opacity-50" : ""
                   }`}
                   activeOpacity={0.8}
@@ -480,7 +481,7 @@ export default function SignUpPage() {
                   </Text>
                   <Link href="/(auth)/sign-in" asChild>
                     <TouchableOpacity>
-                      <Text className="text-red-500 font-medium text-sm">
+                      <Text className="text-brand-secondary font-medium text-sm">
                         Sign In
                       </Text>
                     </TouchableOpacity>
@@ -497,7 +498,7 @@ export default function SignUpPage() {
               <View className="flex-row justify-center items-center">
                 <Text className="text-gray-500 text-sm">Need help? </Text>
                 <TouchableOpacity>
-                  <Text className="text-red-500 font-medium text-sm underline">
+                  <Text className="text-brand-secondary font-medium text-sm underline">
                     Contact Support
                   </Text>
                 </TouchableOpacity>

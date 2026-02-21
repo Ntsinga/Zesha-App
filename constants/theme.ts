@@ -1,26 +1,73 @@
 /**
- * Zesha App Theme Configuration
+ * TELEBA APP THEME CONFIGURATION
+ * ==============================
  *
- * This file centralizes all color definitions for the app.
- * To change the app's theme, simply update the colors here.
+ * DESIGN SYSTEM SPECIFICATION:
+ * ----------------------------
+ * Primary:    Bright Blue #1E6091 - Trust, stability, banking, telecom (lighter & brighter)
+ * Secondary:  Teal/Cyan #1CB5BD - Connectivity, data flow, modern fintech
+ * Accent:     Soft Gold #F2C94C - Value, money, success (used sparingly)
+ * Terracotta: Reddish Gold #D97706 - Warmth, urgency, key highlights
+ * Dark:       #0F172A (slate/almost black)
+ * Light:      #F8FAFC (clean white)
+ *
+ * UI PHILOSOPHY:
+ * - Minimal, structured layouts
+ * - Lots of white/neutral space
+ * - Card-based design
+ * - Subtle gradients (blue → teal)
+ * - Rounded corners (8-12px, not bubbly)
+ * - Icons: outline or thin solid
+ * - Feel: "Calm, powerful, won't break when millions transact"
+ *
+ * DARK MODE:
+ * - Background: #020617
+ * - Cards: #0F172A
+ * - Primary text: #E5E7EB
+ * - Accents: teal & gold
  */
 
 export const Colors = {
-  // Primary Brand Colors
+  // Primary Brand Colors - Vibrant Blue (Trust, Stability) - Brighter!
   primary: {
-    main: "#C62828", // Brand Red - Main actions, primary buttons
-    light: "#FFEBEE", // Light Red - Hover states, backgrounds
-    dark: "#B71C1C", // Dark Red - Active states
+    main: "#2563EB", // Vibrant Blue - Main actions, primary buttons
+    light: "#3B82F6", // Light Blue - Hover states
+    dark: "#1D4ED8", // Dark Blue - Active states
+    contrast: "#FFFFFF", // White text on primary
   },
 
-  // Secondary Brand Colors
+  // Secondary Brand Colors - Teal (Connectivity, Fintech)
   secondary: {
-    main: "#B8860B", // Brand Gold - Financial stats, balances
-    light: "#FDD835", // Light Gold - Highlights
-    dark: "#FBC02D", // Dark Gold - Borders, dividers
+    main: "#1CB5BD", // Teal - Secondary actions, accents
+    light: "#4DD4DB", // Light Teal - Highlights
+    dark: "#148F95", // Dark Teal - Borders, active
+    contrast: "#FFFFFF", // White text on secondary
   },
 
-  // Shift Colors
+  // Accent Colors - Soft Gold (Money, Value, Success)
+  accent: {
+    main: "#F2C94C", // Soft Gold - Financial stats, money
+    light: "#F7DC8C", // Light Gold - Backgrounds
+    dark: "#D4A83A", // Dark Gold - Borders
+    contrast: "#0F172A", // Dark text on accent
+  },
+
+  // Terracotta Accent - Reddish Gold (Warmth, Urgency)
+  terracotta: {
+    main: "#D97706", // Amber/Terracotta - Warm highlights
+    light: "#F59E0B", // Light Amber - Backgrounds
+    dark: "#B45309", // Dark Amber - Borders
+    contrast: "#FFFFFF", // White text
+  },
+
+  // Gradient Colors (Vibrant Blue → Teal)
+  gradient: {
+    start: "#2563EB", // Vibrant Blue
+    middle: "#0891B2", // Cyan mid transition
+    end: "#14B8A6", // Teal
+  },
+
+  // Shift Colors (Keep distinct for operational clarity)
   shift: {
     am: {
       bg: "#DBEAFE", // Blue 100 - AM shift background
@@ -28,13 +75,13 @@ export const Colors = {
       icon: "#3B82F6", // Blue 500 - AM shift icon
     },
     pm: {
-      bg: "#FEE2E2", // Red 100 - PM shift background
-      text: "#B91C1C", // Red 700 - PM shift text
-      icon: "#EF4444", // Red 500 - PM shift icon
+      bg: "#E0F2FE", // Sky 100 - PM shift background
+      text: "#0369A1", // Sky 700 - PM shift text
+      icon: "#0EA5E9", // Sky 500 - PM shift icon
     },
   },
 
-  // Status Colors
+  // Status Colors (Universal, kept standard)
   status: {
     success: {
       bg: "#DCFCE7", // Green 100
@@ -55,34 +102,39 @@ export const Colors = {
       main: "#DC2626", // Red 600
     },
     info: {
-      bg: "#DBEAFE", // Blue 100
-      text: "#1E40AF", // Blue 800
-      icon: "#3B82F6", // Blue 500
-      main: "#2563EB", // Blue 600
+      bg: "#E0F2FE", // Sky 100
+      text: "#0369A1", // Sky 700
+      icon: "#0EA5E9", // Sky 500
+      main: "#0284C7", // Sky 600
     },
   },
 
-  // Feature Colors
+  // Feature Colors - Cash Count and Commissions use RED for emphasis
   feature: {
     balance: {
-      bg: "#FEF3C7", // Yellow 100 - Balance card backgrounds
-      text: "#B8860B", // Gold - Balance amounts
-      icon: "#B8860B", // Gold - Balance icons
+      bg: "#FEF9E7", // Warm light gold background
+      text: "#D4A83A", // Gold - Balance amounts
+      icon: "#F2C94C", // Soft Gold - Balance icons
     },
     commission: {
-      bg: "#FEE2E2", // Red 100 - Commission card backgrounds
-      text: "#C62828", // Red - Commission amounts
-      icon: "#C62828", // Red - Commission icons
+      bg: "#FEE2E2", // Light red background
+      text: "#B91C1C", // Dark Red - Commission amounts
+      icon: "#DC2626", // Red - Commission icons
     },
     cash: {
-      bg: "#DCFCE7", // Green 100 - Cash card backgrounds
-      text: "#15803D", // Green 700 - Cash amounts
-      icon: "#16A34A", // Green 600 - Cash icons
+      bg: "#FEE2E2", // Light red background
+      text: "#B91C1C", // Dark Red - Cash amounts
+      icon: "#DC2626", // Red - Cash icons
     },
     expense: {
-      bg: "#FFEDD5", // Orange 100 - Expense backgrounds
-      text: "#EA580C", // Orange 600 - Expense amounts
-      icon: "#F97316", // Orange 500 - Expense icons
+      bg: "#E8F4F8", // Light blue-gray
+      text: "#1D4ED8", // Vibrant Blue - Expense amounts
+      icon: "#2563EB", // Vibrant Blue - Expense icons
+    },
+    reconciliation: {
+      bg: "#F0F9FF", // Sky 50
+      text: "#0369A1", // Sky 700
+      icon: "#0EA5E9", // Sky 500
     },
   },
 
@@ -106,25 +158,44 @@ export const Colors = {
 
   // Background Colors
   background: {
-    primary: "#F9FAFB", // Gray 50 - Main app background
+    primary: "#F8FAFC", // Light neutral - Main app background
+    secondary: "#F1F5F9", // Slightly darker - Section backgrounds
     card: "#FFFFFF", // White - Card backgrounds
     elevated: "#FFFFFF", // White - Elevated card backgrounds
   },
 
   // Text Colors
   text: {
-    primary: "#111827", // Gray 900 - Main text
-    secondary: "#6B7280", // Gray 500 - Secondary text
-    tertiary: "#9CA3AF", // Gray 400 - Tertiary text/placeholders
+    primary: "#0F172A", // Slate 900 - Main text (dark neutral)
+    secondary: "#475569", // Slate 600 - Secondary text
+    tertiary: "#94A3B8", // Slate 400 - Tertiary text/placeholders
     inverse: "#FFFFFF", // White - Text on dark backgrounds
-    disabled: "#D1D5DB", // Gray 300 - Disabled text
+    disabled: "#CBD5E1", // Slate 300 - Disabled text
   },
 
   // Border Colors
   border: {
-    light: "#F3F4F6", // Gray 100 - Light borders
-    default: "#E5E7EB", // Gray 200 - Default borders
-    dark: "#D1D5DB", // Gray 300 - Dark borders
+    light: "#F1F5F9", // Slate 100 - Light borders
+    default: "#E2E8F0", // Slate 200 - Default borders
+    dark: "#CBD5E1", // Slate 300 - Dark borders
+  },
+
+  // Dark Mode Colors
+  dark: {
+    background: {
+      primary: "#020617", // Very dark blue-black
+      card: "#0F172A", // Slate 900
+      elevated: "#1E293B", // Slate 800
+    },
+    text: {
+      primary: "#E5E7EB", // Gray 200
+      secondary: "#9CA3AF", // Gray 400
+      tertiary: "#6B7280", // Gray 500
+    },
+    border: {
+      default: "#1E293B", // Slate 800
+      light: "#334155", // Slate 700
+    },
   },
 };
 
@@ -135,20 +206,28 @@ export const Colors = {
  * Use these in your components for easier theme changes.
  */
 export const TailwindClasses = {
-  // Primary
+  // Primary (Deep Blue)
   primary: {
-    bg: "bg-brand-red",
-    bgLight: "bg-red-50",
-    text: "text-brand-red",
-    border: "border-brand-red",
+    bg: "bg-brand-primary",
+    bgLight: "bg-brand-primary-light",
+    text: "text-brand-primary",
+    border: "border-brand-primary",
   },
 
-  // Secondary (Gold)
+  // Secondary (Teal)
   secondary: {
-    bg: "bg-brand-gold",
-    bgLight: "bg-yellow-50",
-    text: "text-brand-gold",
-    border: "border-brand-gold",
+    bg: "bg-brand-secondary",
+    bgLight: "bg-brand-secondary-light",
+    text: "text-brand-secondary",
+    border: "border-brand-secondary",
+  },
+
+  // Accent (Gold)
+  accent: {
+    bg: "bg-brand-accent",
+    bgLight: "bg-brand-accent-light",
+    text: "text-brand-accent",
+    border: "border-brand-accent",
   },
 
   // Shifts
@@ -159,9 +238,9 @@ export const TailwindClasses = {
       border: "border-blue-500",
     },
     pm: {
-      bg: "bg-red-100",
-      text: "text-red-700",
-      border: "border-red-500",
+      bg: "bg-sky-100",
+      text: "text-sky-700",
+      border: "border-sky-500",
     },
   },
 
@@ -185,37 +264,108 @@ export const TailwindClasses = {
       icon: "text-red-500",
       main: "bg-red-500",
     },
+    info: {
+      bg: "bg-sky-100",
+      text: "text-sky-700",
+      icon: "text-sky-500",
+      main: "bg-sky-500",
+    },
   },
 
   // Features
   feature: {
     commission: {
-      bg: "bg-red-100",
-      text: "text-red-700",
+      bg: "bg-teal-50",
+      text: "text-teal-700",
     },
     balance: {
-      bg: "bg-yellow-100",
-      text: "text-brand-gold",
+      bg: "bg-amber-50",
+      text: "text-brand-accent",
     },
     cash: {
       bg: "bg-green-100",
       text: "text-green-700",
     },
+    expense: {
+      bg: "bg-slate-100",
+      text: "text-brand-primary",
+    },
   },
+
+  // Dark mode
+  dark: {
+    bg: "dark:bg-dark-bg",
+    card: "dark:bg-dark-card",
+    text: "dark:text-dark-text",
+    border: "dark:border-dark-border",
+  },
+};
+
+/**
+ * Icon Colors - Use these for icon color props
+ * Import: import { IconColors } from '../constants/theme';
+ * Usage: <Icon color={IconColors.primary} />
+ */
+export const IconColors = {
+  primary: Colors.primary.main,
+  secondary: Colors.secondary.main,
+  accent: Colors.accent.main,
+  success: Colors.status.success.icon,
+  warning: Colors.status.warning.icon,
+  error: Colors.status.error.icon,
+  info: Colors.status.info.icon,
+  muted: Colors.text.tertiary,
+  inverse: Colors.text.inverse,
+};
+
+/**
+ * Gradient Arrays - Use with LinearGradient
+ * Import: import { Gradients } from '../constants/theme';
+ * Usage: <LinearGradient colors={Gradients.primary} />
+ */
+export const Gradients = {
+  // Main Teleba gradient (blue → teal)
+  primary: [Colors.gradient.start, Colors.gradient.end] as const,
+
+  // Extended gradient with middle step
+  primaryExtended: [
+    Colors.gradient.start,
+    Colors.gradient.middle,
+    Colors.gradient.end,
+  ] as const,
+
+  // Darker variant for headers
+  dark: [Colors.primary.dark, Colors.secondary.dark] as const,
+
+  // Light variant for backgrounds
+  light: [Colors.primary.light, Colors.secondary.light] as const,
+
+  // Success gradient
+  success: ["#16A34A", "#22C55E"] as const,
+
+  // Warning gradient
+  warning: ["#D97706", "#F59E0B"] as const,
 };
 
 /**
  * Usage Examples:
  *
  * 1. For inline styles (React Native components):
+ *    import { Colors } from '../constants/theme';
  *    <View style={{ backgroundColor: Colors.primary.main }}>
  *
  * 2. For Tailwind classes (NativeWind):
+ *    import { TailwindClasses } from '../constants/theme';
  *    <View className={TailwindClasses.primary.bg}>
  *
  * 3. For icon colors:
- *    <Icon color={Colors.primary.main} />
+ *    import { IconColors } from '../constants/theme';
+ *    <Icon color={IconColors.primary} />
  *
- * 4. For custom components:
- *    const buttonColor = Colors.primary.main;
+ * 4. For gradients:
+ *    import { Gradients } from '../constants/theme';
+ *    <LinearGradient colors={Gradients.primary} />
+ *
+ * 5. For dark mode (with NativeWind):
+ *    <View className="bg-white dark:bg-dark-bg">
  */

@@ -10,6 +10,7 @@ import { useRouter, usePathname } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAppSelector } from "../store/hooks";
+import { Colors } from "../constants/theme";
 import {
   selectUserRole,
   selectViewingAgencyId,
@@ -99,7 +100,7 @@ export default function BottomNav() {
             <Ionicons
               name={(active ? tab.activeIcon : tab.icon) as any}
               size={24}
-              color={active ? "#DC2626" : "#9CA3AF"}
+              color={active ? Colors.primary.main : Colors.text.tertiary}
             />
             <Text style={[styles.tabLabel, active && styles.tabLabelActive]}>
               {tab.name}
@@ -118,11 +119,11 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     flexDirection: "row",
-    backgroundColor: "#FFFFFF",
+    backgroundColor: Colors.neutral.white,
     paddingTop: 10,
     paddingHorizontal: 10,
     borderTopWidth: 1,
-    borderTopColor: "#E5E7EB",
+    borderTopColor: Colors.border.default,
     alignItems: "center",
     justifyContent: "space-around",
     ...Platform.select({
@@ -145,11 +146,11 @@ const styles = StyleSheet.create({
   tabLabel: {
     fontSize: 11,
     marginTop: 4,
-    color: "#9CA3AF",
+    color: Colors.text.tertiary,
     fontWeight: "500",
   },
   tabLabelActive: {
-    color: "#DC2626",
+    color: Colors.primary.main,
     fontWeight: "600",
   },
 });

@@ -10,6 +10,7 @@ import { useSelector } from "react-redux";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { selectUser, selectUserRole } from "../store/slices/authSlice";
+import { Colors } from "../constants/theme";
 
 /**
  * Modern top bar component showing user name and role
@@ -110,7 +111,7 @@ export default function TopBar() {
             accessibilityLabel="Notifications"
             accessibilityRole="button"
           >
-            <Ionicons name="notifications-outline" size={24} color="#6B7280" />
+            <Ionicons name="notifications-outline" size={24} color={Colors.text.secondary} />
           </TouchableOpacity>
         </View>
       </View>
@@ -121,9 +122,9 @@ export default function TopBar() {
 // StyleSheet for proper React Native styling (better performance than inline styles)
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: Colors.neutral.white,
     borderBottomWidth: 1,
-    borderBottomColor: "#E5E7EB",
+    borderBottomColor: Colors.border.default,
     paddingHorizontal: 20,
     paddingVertical: 12,
     zIndex: 1000,
@@ -156,25 +157,25 @@ const styles = StyleSheet.create({
   roleText: {
     fontSize: 11,
     fontWeight: "500",
-    color: "#6B7280",
+    color: Colors.text.secondary,
     textTransform: "capitalize",
   },
   userName: {
     fontSize: 15,
     fontWeight: "600",
-    color: "#111827",
+    color: Colors.text.primary,
     lineHeight: 20,
   },
   avatar: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: "#DC2626",
+    backgroundColor: Colors.primary.main,
     alignItems: "center",
     justifyContent: "center",
     ...Platform.select({
       ios: {
-        shadowColor: "#DC2626",
+        shadowColor: Colors.primary.main,
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.2,
         shadowRadius: 4,
@@ -185,7 +186,7 @@ const styles = StyleSheet.create({
     }),
   },
   avatarText: {
-    color: "#FFFFFF",
+    color: Colors.text.inverse,
     fontSize: 16,
     fontWeight: "700",
     letterSpacing: 0.5,

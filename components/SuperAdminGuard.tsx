@@ -2,6 +2,7 @@ import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { useAppSelector } from "@/store/hooks";
 import { selectUserRole } from "@/store/slices/authSlice";
+import { Colors } from "@/constants/theme";
 
 interface SuperAdminGuardProps {
   children: React.ReactNode;
@@ -51,7 +52,7 @@ const styles = StyleSheet.create({
   text: {
     fontSize: 20,
     fontWeight: "600",
-    color: "#C62828",
+    color: Colors.status.error.main,
     marginBottom: 8,
   },
   subtext: {
