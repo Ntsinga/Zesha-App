@@ -44,7 +44,6 @@ export default function AddBalanceWeb() {
     removeEntry,
     clearImage,
     handleImageUpload,
-    handleShiftChange,
     handleSubmit,
     setAccountPickerVisible,
   } = useAddBalanceScreen();
@@ -119,19 +118,11 @@ export default function AddBalanceWeb() {
           </div>
         </div>
         <div className="header-right">
-          <div className="shift-toggle">
-            {(["AM", "PM"] as const).map((shift) => (
-              <button
-                key={shift}
-                onClick={() => handleShiftChange(shift)}
-                className={`shift-btn ${
-                  currentShift === shift ? "active" : ""
-                }`}
-              >
-                {shift}
-              </button>
-            ))}
-          </div>
+          <span
+            className={`shift-badge ${currentShift === "AM" ? "am" : "pm"}`}
+          >
+            {currentShift} Shift
+          </span>
           <button onClick={addEntry} className="btn-primary">
             <Plus size={18} />
             Add Entry

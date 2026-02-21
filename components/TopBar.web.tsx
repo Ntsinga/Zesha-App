@@ -1,4 +1,4 @@
-import React, { useMemo, useEffect } from "react";
+import React, { useMemo } from "react";
 import { useSelector } from "react-redux";
 import { useUser } from "@clerk/clerk-react";
 import { usePathname } from "expo-router";
@@ -51,13 +51,6 @@ export default function TopBarWeb() {
 
   // Get current page title
   const pageTitle = PAGE_TITLES[pathname] || "";
-
-  // Debug: Log user state
-  useEffect(() => {
-    console.log("[TopBar Web] Backend user:", backendUser);
-    console.log("[TopBar Web] Clerk user:", clerkUser?.id);
-    console.log("[TopBar Web] Role:", role);
-  }, [backendUser, clerkUser, role]);
 
   // Memoize computed values to prevent unnecessary recalculations
   // Use backend user if available, otherwise fall back to Clerk user

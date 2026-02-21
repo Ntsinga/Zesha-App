@@ -43,7 +43,8 @@ const createEmptyEntry = (shift: ShiftEnum = "AM"): BalanceEntry => ({
 export function useAddBalanceScreen() {
   const dispatch = useDispatch<AppDispatch>();
   const params = useLocalSearchParams();
-  const shiftFromParams = (params.shift as ShiftEnum) || null;
+  // Shift is passed from the balance menu screen - use it as-is
+  const currentShift: ShiftEnum = (params.shift as ShiftEnum) || "AM";
 
   // Selectors
   const companyId = useSelector(selectEffectiveCompanyId);
@@ -68,7 +69,6 @@ export function useAddBalanceScreen() {
   const [errors, setErrors] = useState<Record<string, Record<string, string>>>(
     {},
   );
-  const [currentShift, setCurrentShift] = useState<ShiftEnum>("AM");
   const [isInitialized, setIsInitialized] = useState(false);
   const [accountPickerVisible, setAccountPickerVisible] = useState<
     string | null
@@ -82,57 +82,14 @@ export function useAddBalanceScreen() {
     );
   }, [dispatch, today]);
 
-  // Compute which shift has data
-  const { hasAMData, hasPMData } = useMemo(() => {
-    const amBalances = balances.filter(
-      (bal) => bal.date.startsWith(today) && bal.shift === "AM",
-    );
-    const pmBalances = balances.filter(
-      (bal) => bal.date.startsWith(today) && bal.shift === "PM",
-    );
-    return {
-      hasAMData: amBalances.length > 0,
-      hasPMData: pmBalances.length > 0,
-    };
-  }, [balances, today]);
-
-  // Determine the correct shift to use
-  const correctShift = useMemo((): ShiftEnum => {
-    // If shift is provided via params, use it
-    if (shiftFromParams) return shiftFromParams;
-    // Otherwise, determine from data
-    if (hasPMData && !hasAMData) return "PM";
-    if (hasAMData && !hasPMData) return "AM";
-    return "AM"; // Default to AM if both or neither have data
-  }, [hasAMData, hasPMData, shiftFromParams]);
-
   // Initialize entries from existing balances or draft entries
   useEffect(() => {
     if (isInitialized || isDataLoading || accounts.length === 0) return;
 
-    // Auto-select the correct shift based on data
-    setCurrentShift(correctShift);
-
-    console.log("[AddBalance] Prepopulation check:", {
-      balancesCount: balances.length,
-      today,
-      correctShift,
-      accountsLoaded: accounts.length,
-    });
-
-    // Use correctShift for prepopulation
+    // Use currentShift (from params) for prepopulation
     const todayBalances = balances.filter(
-      (bal) => bal.date.startsWith(today) && bal.shift === correctShift,
+      (bal) => bal.date.startsWith(today) && bal.shift === currentShift,
     );
-
-    console.log("[AddBalance] Today balances for shift:", {
-      shift: correctShift,
-      count: todayBalances.length,
-      balances: todayBalances.map((b) => ({
-        accountId: b.accountId,
-        amount: b.amount,
-      })),
-    });
 
     if (todayBalances.length > 0) {
       const prepopulatedEntries: BalanceEntry[] = todayBalances.map((bal) => {
@@ -164,27 +121,19 @@ export function useAddBalanceScreen() {
         };
       });
 
-      console.log(
-        "[AddBalance] Prepopulating with existing balances:",
-        prepopulatedEntries.length,
-      );
       setEntries(prepopulatedEntries);
       setIsInitialized(true);
     } else if (draftEntries.length > 0) {
-      console.log("[AddBalance] Restoring draft entries:", draftEntries.length);
       setEntries(draftEntries);
       setIsInitialized(true);
     } else {
-      console.log(
-        "[AddBalance] No existing balances or drafts, initializing empty",
-      );
       setIsInitialized(true);
     }
   }, [
     balances,
     draftEntries,
     today,
-    correctShift,
+    currentShift,
     isInitialized,
     isDataLoading,
     accounts,
@@ -426,13 +375,6 @@ export function useAddBalanceScreen() {
     [],
   );
 
-  // Change shift and reinitialize
-  const handleShiftChange = useCallback((shift: ShiftEnum) => {
-    setCurrentShift(shift);
-    setIsInitialized(false);
-    setEntries([createEmptyEntry(shift)]);
-  }, []);
-
   // Validate all entries
   const validateEntries = useCallback((): boolean => {
     const newErrors: Record<string, Record<string, string>> = {};
@@ -668,7 +610,6 @@ export function useAddBalanceScreen() {
     removeEntry,
     clearImage,
     handleImageUpload,
-    handleShiftChange,
     handleSubmit,
     setAccountPickerVisible,
   };

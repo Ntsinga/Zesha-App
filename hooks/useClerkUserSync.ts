@@ -32,21 +32,17 @@ export function useClerkUserSync() {
 
   const syncUser = useCallback(async () => {
     if (!clerkUser) {
-      console.log("[UserSync] No Clerk user available");
       return;
     }
 
     // Prevent multiple simultaneous sync calls
     if (syncInProgressRef.current) {
-      console.log("[UserSync] Sync already in progress, skipping");
       return;
     }
 
     // Mark this clerk user as synced to prevent duplicate syncs
     syncedClerkIdRef.current = clerkUser.id;
     syncInProgressRef.current = true;
-
-    console.log("[UserSync] Starting sync for Clerk user:", clerkUser.id);
 
     // Extract companyId and role from Clerk public metadata (set during invite)
     const publicMetadata = clerkUser.publicMetadata as
@@ -70,21 +66,16 @@ export function useClerkUserSync() {
       role: role,
     };
 
-    console.log("[UserSync] Sync data:", JSON.stringify(syncData, null, 2));
-
     // Only sync if we have required data
     if (syncData.email && syncData.clerkUserId) {
-      console.log("[UserSync] Dispatching syncUserWithBackend...");
       try {
-        const result = await dispatch(syncUserWithBackend(syncData));
-        console.log("[UserSync] Sync result:", result);
+        await dispatch(syncUserWithBackend(syncData));
       } catch (err) {
         console.error("[UserSync] Sync error:", err);
       } finally {
         syncInProgressRef.current = false;
       }
     } else {
-      console.log("[UserSync] Missing required data - email or clerkUserId");
       syncInProgressRef.current = false;
     }
   }, [clerkUser, dispatch]);
@@ -92,35 +83,22 @@ export function useClerkUserSync() {
   useEffect(() => {
     // Wait for Clerk to load
     if (!isAuthLoaded || !isUserLoaded) {
-      console.log("[UserSync] Waiting for Clerk to load...", {
-        isAuthLoaded,
-        isUserLoaded,
-      });
       return;
     }
 
     // Wait for secure API to be initialized (needs token getter from Clerk)
     if (!isSecureApiInitialized()) {
-      console.log("[UserSync] Waiting for secure API to initialize...");
       return;
     }
-
-    console.log("[UserSync] Clerk loaded. Checking auth state...", {
-      isSignedIn,
-      hasClerkUser: !!clerkUser,
-      hasBackendUser: !!backendUser,
-    });
 
     if (isSignedIn && clerkUser) {
       // Skip if we already synced this clerk user (prevents loops)
       if (syncedClerkIdRef.current === clerkUser.id) {
-        console.log("[UserSync] Already synced this clerk user, skipping");
         return;
       }
 
       // Skip if currently syncing
       if (isSyncing) {
-        console.log("[UserSync] Already syncing, skipping");
         return;
       }
 
@@ -129,19 +107,14 @@ export function useClerkUserSync() {
         !backendUser || backendUser.clerkUserId !== clerkUser.id;
 
       if (needsSync) {
-        console.log(
-          "[UserSync] Triggering sync - no backend user or user changed",
-        );
         syncUser();
       } else {
         // Backend user is already synced, mark it in the ref
-        console.log("[UserSync] Backend user already synced");
         syncedClerkIdRef.current = clerkUser.id;
       }
     } else if (!isSignedIn) {
       // User signed out, clear local auth data and reset ref
       if (backendUser) {
-        console.log("[UserSync] User signed out, clearing local auth");
         dispatch(clearLocalAuth());
       }
       syncedClerkIdRef.current = null;

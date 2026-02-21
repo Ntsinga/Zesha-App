@@ -68,11 +68,6 @@ export const fetchExpenses = createAsyncThunk<
       JSON.stringify(cachedFilters) === JSON.stringify(filterParams);
 
     if (!forceRefresh && isCacheValid && isSameFilters && items.length > 0) {
-      console.log(
-        "[Expenses] Using cached data, age:",
-        Date.now() - lastFetched,
-        "ms",
-      );
       return items;
     }
 

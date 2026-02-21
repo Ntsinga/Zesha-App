@@ -45,17 +45,11 @@ export default function SetPasswordWeb() {
 
     // If user is already authenticated (ticket might have auto-signed them in), skip ticket processing
     if (user) {
-      console.log(
-        "[SetPassword] User already authenticated, skipping ticket processing",
-      );
       return;
     }
 
     // If signUp already has an email (from a previous ticket process), we're ready
     if (signUp?.emailAddress) {
-      console.log(
-        "[SetPassword] SignUp already has email, skipping ticket processing",
-      );
       setInviteEmail(signUp.emailAddress);
       setTicketProcessed(true);
       // Check if username is required from existing signUp state
@@ -66,10 +60,6 @@ export default function SetPasswordWeb() {
     }
 
     if (ticket) {
-      console.log(
-        "[SetPassword] Processing invite ticket...",
-        ticket.substring(0, 20) + "...",
-      );
       setIsProcessingInvite(true);
 
       // Create a sign-up with the ticket - Clerk will auto-populate user info
@@ -79,12 +69,6 @@ export default function SetPasswordWeb() {
           ticket,
         })
         .then((result) => {
-          console.log("[SetPassword] Invite result:", {
-            status: result.status,
-            email: result.emailAddress,
-            missingFields: result.missingFields,
-          });
-
           if (result.emailAddress) {
             setInviteEmail(result.emailAddress);
           }
@@ -95,7 +79,6 @@ export default function SetPasswordWeb() {
             result.missingFields?.includes("username") ||
             result.status === "missing_requirements"
           ) {
-            console.log("[SetPassword] Username is required, showing field");
             setRequiresUsername(true);
           }
 
@@ -103,12 +86,7 @@ export default function SetPasswordWeb() {
 
           // If status is complete, the user might already be signed in
           if (result.status === "complete" && result.createdSessionId) {
-            console.log(
-              "[SetPassword] Ticket auto-completed, activating session...",
-            );
-            setActive?.({ session: result.createdSessionId }).then(() => {
-              console.log("[SetPassword] Session activated");
-            });
+            setActive?.({ session: result.createdSessionId }).then(() => {});
           }
           // 'missing_requirements' is expected - user needs to set password/username
           // The form will handle this
@@ -184,11 +162,6 @@ export default function SetPasswordWeb() {
     try {
       if (hasInviteData && signUp) {
         // Invite flow: Update signUp with password (and username if required) and complete registration
-        console.log("[SetPassword] Setting password for invite flow...", {
-          requiresUsername,
-          username,
-        });
-
         // Build update payload
         const updatePayload: { password: string; username?: string } = {
           password,
@@ -199,29 +172,15 @@ export default function SetPasswordWeb() {
 
         const result = await signUp.update(updatePayload);
 
-        console.log(
-          "[SetPassword] SignUp status:",
-          result.status,
-          "sessionId:",
-          result.createdSessionId,
-          "missingFields:",
-          result.missingFields,
-        );
-
         if (result.status === "complete" && result.createdSessionId) {
           // Activate the session
           await setActive({ session: result.createdSessionId });
-          console.log("[SetPassword] Session activated for invited user");
           setSuccess(true);
           setTimeout(() => {
             window.location.href = "/";
           }, 1500);
         } else {
           // Maybe needs verification or other step
-          console.log(
-            "[SetPassword] Status not complete, missing fields:",
-            result.missingFields,
-          );
           setError(
             `Registration incomplete. Missing: ${result.missingFields?.join(", ") || "unknown"}. Please try again.`,
           );
@@ -235,10 +194,6 @@ export default function SetPasswordWeb() {
         // Reload user to ensure passwordEnabled is updated
         await user.reload();
 
-        console.log(
-          "[SetPassword] Password set successfully, passwordEnabled:",
-          user.passwordEnabled,
-        );
         setSuccess(true);
 
         // Use window.location for a clean redirect that avoids router race conditions
@@ -307,37 +262,9 @@ export default function SetPasswordWeb() {
   // Check if there's an error that should show the form with error message
   const hasError = !!error;
 
-  // Debug logging - runs on every render to track state
-  React.useEffect(() => {
-    console.log("[SetPassword] State:", {
-      isUserLoaded,
-      isSignUpLoaded,
-      hasUser: !!user,
-      userEmail: user?.primaryEmailAddress?.emailAddress,
-      inviteEmail,
-      signUpEmail,
-      isInviteFlow,
-      passwordEnabled: user?.passwordEnabled,
-      isRedirecting,
-      isProcessingInvite,
-      pathname: window.location.pathname,
-    });
-  }, [
-    isUserLoaded,
-    isSignUpLoaded,
-    user,
-    inviteEmail,
-    isInviteFlow,
-    isRedirecting,
-    isProcessingInvite,
-  ]);
-
   // If user already has password, redirect to app
   React.useEffect(() => {
     if (isUserLoaded && user?.passwordEnabled && !isRedirecting) {
-      console.log(
-        "[SetPassword] User already has password, initiating redirect...",
-      );
       setIsRedirecting(true);
       // Small delay to ensure state updates are visible in logs
       setTimeout(() => {
@@ -357,9 +284,6 @@ export default function SetPasswordWeb() {
       !isProcessingInvite
     ) {
       const timer = setTimeout(() => {
-        console.log(
-          "[SetPassword] Clerk loaded but no user/invite after 15s, redirecting to sign-in",
-        );
         window.location.href = "/sign-in";
       }, 15000); // 15 seconds
       return () => clearTimeout(timer);
@@ -389,9 +313,6 @@ export default function SetPasswordWeb() {
 
   // Show loading while Clerk initializes or processing invite
   if (!isUserLoaded || !isSignUpLoaded || isProcessingInvite) {
-    console.log(
-      "[SetPassword] Rendering: Loading (Clerk not loaded or processing invite)",
-    );
     return (
       <div
         style={{

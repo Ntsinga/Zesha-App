@@ -74,7 +74,7 @@ export default function SignUpPage() {
         "Error",
         usePhone
           ? "Please enter your phone number"
-          : "Please enter your email address"
+          : "Please enter your email address",
       );
       return;
     }
@@ -140,7 +140,6 @@ export default function SignUpPage() {
 
       setPendingVerification(true);
     } catch (err: any) {
-      console.error(JSON.stringify(err, null, 2));
       Alert.alert("Error", err.errors?.[0]?.message || "Sign up failed");
     } finally {
       setLoading(false);
@@ -160,11 +159,9 @@ export default function SignUpPage() {
         await setActive({ session: signUpAttempt.createdSessionId });
         router.replace("/(app)");
       } else {
-        console.error(JSON.stringify(signUpAttempt, null, 2));
         Alert.alert("Error", "Verification failed");
       }
     } catch (err: any) {
-      console.error(JSON.stringify(err, null, 2));
       Alert.alert("Error", err.errors?.[0]?.message || "Verification failed");
     } finally {
       setLoading(false);
@@ -173,24 +170,16 @@ export default function SignUpPage() {
 
   const onGoogleSignUp = async () => {
     try {
-      console.log("OAuth Redirect URL:", redirectUrl);
       const { createdSessionId, setActive: oAuthSetActive } =
         await startOAuthFlow({ redirectUrl });
 
-      console.log("OAuth Response:", { createdSessionId });
-
       if (createdSessionId) {
-        console.log("Setting active session...");
         await oAuthSetActive!({ session: createdSessionId });
-        console.log("Session set, navigating to home...");
         router.replace("/(app)");
       } else {
-        console.log("No session created");
         Alert.alert("Error", "No session was created. Please try again.");
       }
     } catch (err: any) {
-      console.error("OAuth error:", err);
-      console.error("OAuth error details:", JSON.stringify(err, null, 2));
       Alert.alert("Error", err.message || "Google sign up failed");
     }
   };

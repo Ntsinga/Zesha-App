@@ -32,21 +32,17 @@ export function useClerkUserSync() {
 
   const syncUser = useCallback(async () => {
     if (!clerkUser) {
-      console.log("[UserSync Web] No Clerk user available");
       return;
     }
 
     // Prevent multiple simultaneous sync calls
     if (syncInProgressRef.current) {
-      console.log("[UserSync Web] Sync already in progress, skipping");
       return;
     }
 
     // Mark this clerk user as synced to prevent duplicate syncs
     syncedClerkIdRef.current = clerkUser.id;
     syncInProgressRef.current = true;
-
-    console.log("[UserSync Web] Syncing user:", clerkUser.id);
 
     // Extract companyId and role from Clerk metadata (set during invite)
     // Try publicMetadata first, then unsafeMetadata as fallback
@@ -80,14 +76,12 @@ export function useClerkUserSync() {
     if (syncData.email && syncData.clerkUserId) {
       try {
         await dispatch(syncUserWithBackend(syncData));
-        console.log("[UserSync Web] Sync complete");
       } catch (err) {
         console.error("[UserSync Web] Sync failed:", err);
       } finally {
         syncInProgressRef.current = false;
       }
     } else {
-      console.log("[UserSync Web] Missing required data");
       syncInProgressRef.current = false;
     }
   }, [clerkUser, dispatch]);

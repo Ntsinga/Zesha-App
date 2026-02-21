@@ -75,11 +75,6 @@ export const fetchCommissions = createAsyncThunk<
         JSON.stringify(cachedFilters) === JSON.stringify(filterParams);
 
       if (!forceRefresh && isCacheValid && isSameFilters && items.length > 0) {
-        console.log(
-          "[Commissions] Using cached data, age:",
-          Date.now() - lastFetched,
-          "ms",
-        );
         return items;
       }
 
@@ -145,35 +140,17 @@ export const createCommissionsBulk = createAsyncThunk<
   { rejectValue: string }
 >("commissions/createBulk", async (data, { rejectWithValue }) => {
   try {
-    console.log(
-      "[CommissionsSlice] Bulk create payload:",
-      JSON.stringify({ commissions: mapApiRequest(data) }, null, 2),
-    );
     const response = await apiRequest<
       Commission[] | { commissions: Commission[] }
     >(API_ENDPOINTS.commissions.bulk, {
       method: "POST",
       body: JSON.stringify({ commissions: mapApiRequest(data) }),
     });
-    console.log("[CommissionsSlice] Bulk create response:", response);
-    console.log("[CommissionsSlice] Response type:", typeof response);
-    console.log("[CommissionsSlice] Is array:", Array.isArray(response));
-    if (response && typeof response === "object" && !Array.isArray(response)) {
-      console.log("[CommissionsSlice] Response keys:", Object.keys(response));
-    }
 
     // Backend may return array directly or wrapped in { commissions: [] }
     if (Array.isArray(response)) {
-      console.log(
-        "[CommissionsSlice] Returning direct array, length:",
-        response.length,
-      );
       return response;
     } else if (response && Array.isArray(response.commissions)) {
-      console.log(
-        "[CommissionsSlice] Returning wrapped array, length:",
-        response.commissions.length,
-      );
       return response.commissions;
     } else {
       console.error("[CommissionsSlice] Invalid response structure:", response);

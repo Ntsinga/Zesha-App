@@ -54,22 +54,12 @@ function AppContent() {
     const isOnWelcome = authSegments[1] === "welcome";
     const isOnSignUp = authSegments[1] === "sign-up";
 
-    console.log("[Layout] Auth state:", {
-      isSignedIn,
-      hasUser: !!user,
-      passwordEnabled: user?.passwordEnabled,
-      segments: authSegments,
-    });
-
     // Check for invite ticket in URL params
     const hasInviteTicket = !!params.__clerk_ticket;
 
     // If there's an invite ticket and not on set-password, redirect to set-password
     // Invited users are already created in Clerk - they just need to set their password
     if (hasInviteTicket && !isOnSetPassword) {
-      console.log(
-        "[Layout] Invite ticket detected, redirecting to set-password",
-      );
       router.replace({
         pathname: "/(auth)/set-password",
         params: { __clerk_ticket: params.__clerk_ticket as string },

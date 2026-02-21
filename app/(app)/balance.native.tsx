@@ -76,6 +76,37 @@ export default function BalancePage() {
               Choose an option to continue
             </Text>
           </View>
+          {/* Shift Selector */}
+          <View className="flex-row mt-4 bg-white rounded-xl p-1 shadow-sm border border-gray-200">
+            <TouchableOpacity
+              onPress={() => setSelectedShift("AM")}
+              className={`flex-1 py-3 rounded-lg ${
+                selectedShift === "AM" ? "bg-brand-red" : "bg-transparent"
+              }`}
+            >
+              <Text
+                className={`text-center font-bold ${
+                  selectedShift === "AM" ? "text-white" : "text-gray-600"
+                }`}
+              >
+                AM Shift
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setSelectedShift("PM")}
+              className={`flex-1 py-3 rounded-lg ${
+                selectedShift === "PM" ? "bg-brand-red" : "bg-transparent"
+              }`}
+            >
+              <Text
+                className={`text-center font-bold ${
+                  selectedShift === "PM" ? "text-white" : "text-gray-600"
+                }`}
+              >
+                PM Shift
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Show loading state while fetching data */}
@@ -294,41 +325,6 @@ export default function BalancePage() {
 
               {/* Calculate Reconciliation Button */}
               <View className="mt-6 pt-6 border-t border-gray-200">
-                {/* Shift Selector */}
-                <Text className="text-sm font-medium text-gray-700 mb-3">
-                  Select Shift to Reconcile
-                </Text>
-                <View className="flex-row mb-4 bg-white rounded-xl p-1 shadow-sm border border-gray-200">
-                  <TouchableOpacity
-                    onPress={() => setSelectedShift("AM")}
-                    className={`flex-1 py-3 rounded-lg ${
-                      selectedShift === "AM" ? "bg-brand-red" : "bg-transparent"
-                    }`}
-                  >
-                    <Text
-                      className={`text-center font-bold ${
-                        selectedShift === "AM" ? "text-white" : "text-gray-600"
-                      }`}
-                    >
-                      AM Shift
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => setSelectedShift("PM")}
-                    className={`flex-1 py-3 rounded-lg ${
-                      selectedShift === "PM" ? "bg-brand-red" : "bg-transparent"
-                    }`}
-                  >
-                    <Text
-                      className={`text-center font-bold ${
-                        selectedShift === "PM" ? "text-white" : "text-gray-600"
-                      }`}
-                    >
-                      PM Shift
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-
                 <TouchableOpacity
                   onPress={handleCalculatePress}
                   disabled={

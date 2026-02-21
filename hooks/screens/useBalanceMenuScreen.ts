@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useRouter } from "expo-router";
 import { fetchCashCounts } from "../../store/slices/cashCountSlice";
@@ -48,31 +48,43 @@ export function useBalanceMenuScreen() {
     commissionsLoading ||
     accountsLoading;
 
+  // Track the last companyId we fetched for, to prevent re-fetching when
+  // the backendUser object reference changes but companyId stays the same
+  // (e.g. after Clerk sync completes and updates the Redux auth state).
+  const lastFetchedCompanyId = useRef<number | null>(null);
+
   // Fetch data on mount
   useEffect(() => {
+    // Don't fetch until we have a real companyId
+    if (!backendUser?.companyId) return;
+    // Skip if we already fetched for this companyId (prevents the
+    // isLoading flicker when auth sync re-triggers this effect)
+    if (lastFetchedCompanyId.current === backendUser.companyId) return;
+    lastFetchedCompanyId.current = backendUser.companyId;
+
     dispatch(
       fetchCashCounts({
-        companyId: backendUser?.companyId || 0,
+        companyId: backendUser.companyId,
         dateFrom: today,
         dateTo: today,
       }),
     );
     dispatch(
       fetchBalances({
-        companyId: backendUser?.companyId || 0,
+        companyId: backendUser.companyId,
         dateFrom: today,
         dateTo: today,
       }),
     );
     dispatch(
       fetchCommissions({
-        companyId: backendUser?.companyId || 0,
+        companyId: backendUser.companyId,
         dateFrom: today,
         dateTo: today,
       }),
     );
     dispatch(
-      fetchAccounts({ companyId: backendUser?.companyId || 0, isActive: true }),
+      fetchAccounts({ companyId: backendUser.companyId, isActive: true }),
     );
   }, [dispatch, today, backendUser?.companyId]);
 
@@ -237,57 +249,15 @@ export function useBalanceMenuScreen() {
   ]);
 
   const handleNavigateCashCount = () => {
-    // Auto-select shift based on data availability before navigating
-    const hasAMData = cashCountStatus.hasAMShift;
-    const hasPMData = cashCountStatus.hasPMShift;
-
-    let shiftToNavigate = selectedShift;
-    if (hasAMData && !hasPMData) {
-      shiftToNavigate = "AM";
-      setSelectedShift("AM");
-    } else if (hasPMData && !hasAMData) {
-      shiftToNavigate = "PM";
-      setSelectedShift("PM");
-    }
-    // If both have data or neither, keep current selection
-
-    router.push(`/add-cash-count?shift=${shiftToNavigate}` as any);
+    router.push(`/add-cash-count?shift=${selectedShift}` as any);
   };
 
   const handleNavigateAddBalance = () => {
-    // Auto-select shift based on data availability before navigating
-    const hasAMData = balanceStatus.hasAMBalances;
-    const hasPMData = balanceStatus.hasPMBalances;
-
-    let shiftToNavigate = selectedShift;
-    if (hasAMData && !hasPMData) {
-      shiftToNavigate = "AM";
-      setSelectedShift("AM");
-    } else if (hasPMData && !hasAMData) {
-      shiftToNavigate = "PM";
-      setSelectedShift("PM");
-    }
-    // If both have data or neither, keep current selection
-
-    router.push(`/add-balance?shift=${shiftToNavigate}` as any);
+    router.push(`/add-balance?shift=${selectedShift}` as any);
   };
 
   const handleNavigateCommissions = () => {
-    // Auto-select shift based on data availability before navigating
-    const hasAMData = commissionStatus.hasAMCommissions;
-    const hasPMData = commissionStatus.hasPMCommissions;
-
-    let shiftToNavigate = selectedShift;
-    if (hasAMData && !hasPMData) {
-      shiftToNavigate = "AM";
-      setSelectedShift("AM");
-    } else if (hasPMData && !hasAMData) {
-      shiftToNavigate = "PM";
-      setSelectedShift("PM");
-    }
-    // If both have data or neither, keep current selection
-
-    router.push(`/add-commission?shift=${shiftToNavigate}` as any);
+    router.push(`/add-commission?shift=${selectedShift}` as any);
   };
 
   const handleBack = () => {

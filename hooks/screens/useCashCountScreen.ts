@@ -45,12 +45,9 @@ export function useCashCountScreen() {
   // Get today's date
   const today = new Date().toISOString().split("T")[0];
 
-  // Determine initial shift: use params if available, otherwise use time-based logic
-  const currentHour = new Date().getHours();
-  const timeBasedShift: ShiftEnum = currentHour >= 12 ? "PM" : "AM";
-  const initialShift: ShiftEnum = (params.shift as ShiftEnum) || timeBasedShift;
+  // Shift is passed from the balance menu screen - use it as-is
+  const shift: ShiftEnum = (params.shift as ShiftEnum) || "AM";
 
-  const [shift, setShift] = useState<ShiftEnum>(initialShift);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [entries, setEntries] = useState<DenominationEntry[]>(
@@ -252,7 +249,6 @@ export function useCashCountScreen() {
   return {
     // State
     shift,
-    setShift,
     entries,
     isSubmitting,
     isEditing,
@@ -269,7 +265,6 @@ export function useCashCountScreen() {
     updateQuantity,
     incrementQuantity,
     decrementQuantity,
-    hasDataForShift,
     handleSubmit,
     clearAll,
     handleBack,

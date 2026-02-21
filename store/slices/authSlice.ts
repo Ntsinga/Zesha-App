@@ -88,16 +88,12 @@ export const syncUserWithBackend = createAsyncThunk(
   "auth/syncUser",
   async (syncData: UserSyncRequest, { rejectWithValue }) => {
     try {
-      console.log("[Auth Sync] Syncing to: /users/sync");
-      console.log("[Auth Sync] Sync data:", syncData);
-
       const data = await secureApiRequest<any>("/users/sync", {
         method: "POST",
         body: JSON.stringify(mapApiRequest(syncData)),
       });
 
       const user: User = mapApiResponse<User>(data);
-      console.log("[Auth Sync] User synced successfully:", user.id);
 
       // Store user data locally
       await setSecureItem(USER_KEY, JSON.stringify(user));

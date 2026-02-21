@@ -79,7 +79,8 @@ export default function AddBalancePage() {
   const dispatch = useDispatch<AppDispatch>();
   const { formatCurrency } = useCurrencyFormatter();
   const params = useLocalSearchParams();
-  const shiftFromParams = (params.shift as ShiftEnum) || "AM";
+  // Shift is passed from the balance menu screen - use it as-is
+  const currentShift: ShiftEnum = (params.shift as ShiftEnum) || "AM";
 
   // Get companyId from auth state
   const { user } = useSelector((state: RootState) => state.auth);
@@ -102,7 +103,6 @@ export default function AddBalancePage() {
   const [accountPickerVisible, setAccountPickerVisible] = useState<
     string | null
   >(null);
-  const [currentShift, setCurrentShift] = useState<ShiftEnum>(shiftFromParams);
   const [isInitialized, setIsInitialized] = useState(false);
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
 
@@ -124,27 +124,10 @@ export default function AddBalancePage() {
   useEffect(() => {
     if (isInitialized || accountsLoading) return;
 
-    console.log("[AddBalance] Prepopulation check:", {
-      balancesCount: balances.length,
-      today,
-      currentShift,
-      accountsLoaded: accounts.length,
-    });
-
     // Check if there are balances for today with the current shift
     const todayBalances = balances.filter(
       (bal) => bal.date.startsWith(today) && bal.shift === currentShift,
     );
-
-    console.log("[AddBalance] Today balances for shift:", {
-      shift: currentShift,
-      count: todayBalances.length,
-      balances: todayBalances.map((b) => ({
-        accountId: b.accountId,
-        amount: b.amount,
-        date: b.date,
-      })),
-    });
 
     if (todayBalances.length > 0) {
       // Prepopulate with existing balances
@@ -185,21 +168,13 @@ export default function AddBalancePage() {
         };
       });
 
-      console.log(
-        "[AddBalance] Prepopulating entries:",
-        prepopulatedEntries.length,
-      );
       setEntries(prepopulatedEntries);
       setIsInitialized(true);
     } else if (draftEntries.length > 0) {
       // Load draft entries if no existing balances
-      console.log("[AddBalance] Loading draft entries:", draftEntries.length);
       setEntries(draftEntries);
       setIsInitialized(true);
     } else {
-      console.log(
-        "[AddBalance] No existing balances or drafts, initializing empty",
-      );
       setIsInitialized(true);
     }
   }, [
@@ -310,21 +285,13 @@ export default function AddBalancePage() {
     );
 
     try {
-      console.log(
-        `[AddBalance] Calling extractBalanceFromImage for entry ${entryId}...`,
-      );
       const result = await extractBalanceFromImage(imageUri);
-      console.log(`[AddBalance] Extraction result:`, result);
 
       setEntries((prev) =>
         prev.map((entry) => {
           if (entry.id !== entryId) return entry;
 
           const extractedBalance = result.balance;
-          console.log(
-            `[AddBalance] Extracted balance for entry ${entryId}:`,
-            extractedBalance,
-          );
 
           // If user has already entered an amount, validate it
           let validationResult: BalanceValidationResult | null = null;
@@ -339,7 +306,6 @@ export default function AddBalancePage() {
                 extractedBalance,
                 inputBalance,
               );
-              console.log(`[AddBalance] Validation result:`, validationResult);
             }
           }
 
@@ -362,9 +328,6 @@ export default function AddBalancePage() {
       }
     } catch (error) {
       console.error(`[AddBalance] Exception during extraction:`, error);
-      if (error instanceof Error) {
-        console.error(`[AddBalance] Error stack:`, error.stack);
-      }
       setEntries((prev) =>
         prev.map((entry) =>
           entry.id === entryId ? { ...entry, isExtracting: false } : entry,
@@ -846,44 +809,15 @@ export default function AddBalancePage() {
             </TouchableOpacity>
           </View>
 
-          {/* Shift Selector */}
-          <View className="flex-row bg-white rounded-xl p-1 shadow-sm mb-4">
-            <TouchableOpacity
-              onPress={() => {
-                setCurrentShift("AM");
-                setIsInitialized(false);
-                setEntries([createEmptyEntry()]);
-              }}
-              className={`flex-1 py-2 rounded-lg ${
-                currentShift === "AM" ? "bg-brand-red" : "bg-transparent"
-              }`}
+          {/* Shift Badge (read-only, set from reconciliation screen) */}
+          <View
+            className={`px-4 py-2 rounded-full self-start mb-4 ${currentShift === "AM" ? "bg-blue-100" : "bg-red-100"}`}
+          >
+            <Text
+              className={`font-bold ${currentShift === "AM" ? "text-blue-700" : "text-red-700"}`}
             >
-              <Text
-                className={`text-center font-bold ${
-                  currentShift === "AM" ? "text-white" : "text-gray-600"
-                }`}
-              >
-                AM Shift
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => {
-                setCurrentShift("PM");
-                setIsInitialized(false);
-                setEntries([createEmptyEntry()]);
-              }}
-              className={`flex-1 py-2 rounded-lg ${
-                currentShift === "PM" ? "bg-brand-red" : "bg-transparent"
-              }`}
-            >
-              <Text
-                className={`text-center font-bold ${
-                  currentShift === "PM" ? "text-white" : "text-gray-600"
-                }`}
-              >
-                PM Shift
-              </Text>
-            </TouchableOpacity>
+              {currentShift} Shift
+            </Text>
           </View>
 
           {/* Missing Accounts Warning */}

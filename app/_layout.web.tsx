@@ -1,10 +1,11 @@
 import "../global.css";
+import "../styles/web.css";
 import React, { useEffect, useState } from "react";
 import { Stack } from "expo-router";
 import { Provider } from "react-redux";
 import ErrorBoundary from "../components/ErrorBoundary";
 import { store } from "../store";
-import { useAppDispatch } from "../store/hooks";
+import { useAppDispatch, useAppSelector } from "../store/hooks";
 import { initializeAuth } from "../store/slices/authSlice";
 import { ClerkProvider, useAuth, useUser } from "@clerk/clerk-react";
 import { useRouter } from "expo-router";
@@ -28,10 +29,14 @@ function AppContent() {
   }, [isLoaded, getToken]);
 
   // Sync Clerk user with backend (only after secure API is ready)
-  const { isSyncing } = useClerkUserSync();
+  const { isSyncing, backendUser: syncedUser } = useClerkUserSync();
+
+  // Also read the Redux auth state directly (populated by initializeAuth from cache)
+  const cachedUser = useAppSelector((state) => state.auth.user);
+  const isAuthInitialized = useAppSelector((state) => state.auth.isInitialized);
 
   useEffect(() => {
-    // Initialize auth state on app load
+    // Initialize auth state on app load (reads from localStorage cache)
     dispatch(initializeAuth());
   }, [dispatch]);
 
@@ -119,8 +124,14 @@ function AppContent() {
     );
   }
 
-  // For non-auth pages, also wait for secure API and sync to complete
-  if (!isOnAuthPage && (!isSecureApiReady || isSyncing)) {
+  // For non-auth pages, wait for secure API and auth initialization.
+  // Once we have a cached user from localStorage (via initializeAuth), proceed immediately.
+  // Don't block on backend sync — the cached user has role info needed for routing.
+  const hasUserData = !!cachedUser || !!syncedUser;
+  const shouldBlockRendering =
+    !isSecureApiReady || (!hasUserData && !isAuthInitialized);
+
+  if (!isOnAuthPage && shouldBlockRendering) {
     return (
       <div
         style={{

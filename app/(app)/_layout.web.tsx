@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useRouter, usePathname, Slot } from "expo-router";
-import { useAuth } from "@clerk/clerk-react";
+import { useAuth, useUser } from "@clerk/clerk-react";
 import {
   LayoutDashboard,
   History,
@@ -41,6 +41,7 @@ export default function AppLayoutWeb() {
   const router = useRouter();
   const pathname = usePathname();
   const { signOut } = useAuth();
+  const { user: clerkUser } = useUser();
   const dispatch = useDispatch<AppDispatch>();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const dashboardCompanyName = useSelector(
@@ -53,7 +54,13 @@ export default function AppLayoutWeb() {
   const viewingAgencyName = useSelector(selectViewingAgencyName);
   const backendUser = useSelector((state: RootState) => state.auth.user);
   const isSyncing = useSelector((state: RootState) => state.auth.isSyncing);
-  const isSuperAdmin = userRole === "Super Administrator";
+
+  // Fallback to Clerk metadata role when backend user is unavailable
+  // This handles the case where backend is down but Clerk has the role in publicMetadata
+  const clerkMetadataRole =
+    (clerkUser?.publicMetadata as { role?: string } | undefined)?.role ?? null;
+  const effectiveRole = userRole ?? clerkMetadataRole;
+  const isSuperAdmin = effectiveRole === "Super Administrator";
   const isViewingAgency = viewingAgencyId !== null;
 
   // Determine what to show in sidebar subtitle
@@ -73,10 +80,12 @@ export default function AppLayoutWeb() {
   }, [pathname]);
 
   // Redirect superadmin to agencies page if they try to access agency-specific pages without viewing an agency
-  // Wait for user sync to complete before redirecting
+  // Uses effectiveRole which falls back to Clerk metadata when backend is unavailable
   useEffect(() => {
-    // Don't redirect if still syncing or no backend user yet
-    if (isSyncing || !backendUser) return;
+    // Need at least Clerk user loaded to determine role from metadata
+    if (!backendUser && !clerkUser) {
+      return;
+    }
 
     if (
       isSuperAdmin &&
@@ -85,10 +94,18 @@ export default function AppLayoutWeb() {
       pathname !== "/agency-form" &&
       pathname !== "/settings"
     ) {
-      console.log("[Layout] Redirecting superadmin to /agencies");
       router.replace("/agencies");
     }
-  }, [isSuperAdmin, isViewingAgency, pathname, router, isSyncing, backendUser]);
+  }, [
+    isSuperAdmin,
+    isViewingAgency,
+    pathname,
+    router,
+    backendUser,
+    clerkUser,
+    clerkMetadataRole,
+    effectiveRole,
+  ]);
 
   // Prevent body scroll when mobile menu is open
   useEffect(() => {

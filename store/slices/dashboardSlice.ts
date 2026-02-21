@@ -109,11 +109,6 @@ export const fetchDashboard = createAsyncThunk<
         lastFetched && Date.now() - lastFetched < CACHE_DURATION;
 
       if (isSameParams && isCacheValid && state.dashboard.summary) {
-        console.log(
-          "[Dashboard] Using cached data, age:",
-          Date.now() - lastFetched,
-          "ms",
-        );
         return {
           companyInfo: state.dashboard.companyInfo!,
           summary: state.dashboard.summary!,
@@ -147,24 +142,19 @@ export const fetchDashboard = createAsyncThunk<
     });
 
     // Fetch snapshot and balances in PARALLEL for better performance
-    console.log("[Dashboard] Fetching data in parallel...");
     const [snapshot, balances] = await Promise.all([
       apiRequest<CompanySnapshot>(snapshotEndpoint),
       apiRequest<Balance[]>(`${API_ENDPOINTS.balances.list}${balanceQuery}`),
     ]);
-    console.log("[Dashboard] Parallel fetch complete");
 
     // Transform balances to AccountSummary format
-    const accounts: AccountSummary[] = balances.map((b) => {
-      console.log("[DashboardSlice] Processing balance:", b);
-      return {
+    const accounts: AccountSummary[] = balances.map((b) => ({
         accountId: b.accountId,
         accountName: b.account?.name || `Account ${b.accountId}`,
         balance: b.amount,
         shift: b.shift,
         imageUrl: b.imageUrl,
-      };
-    });
+    }));
 
     // Build summary from snapshot (including commission data)
     const summary: DashboardSummary = {

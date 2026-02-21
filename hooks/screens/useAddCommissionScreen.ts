@@ -54,7 +54,8 @@ const createEmptyEntry = (shift: ShiftEnum = "AM"): CommissionEntry => ({
 export function useAddCommissionScreen() {
   const dispatch = useDispatch<AppDispatch>();
   const params = useLocalSearchParams();
-  const shiftFromParams = (params.shift as ShiftEnum) || null;
+  // Shift is passed from the balance menu screen - use it as-is
+  const currentShift: ShiftEnum = (params.shift as ShiftEnum) || "AM";
 
   // Selectors
   const companyId = useSelector(selectEffectiveCompanyId);
@@ -81,7 +82,6 @@ export function useAddCommissionScreen() {
   const [errors, setErrors] = useState<Record<string, Record<string, string>>>(
     {},
   );
-  const [currentShift, setCurrentShift] = useState<ShiftEnum>("AM");
   const [isInitialized, setIsInitialized] = useState(false);
   const [accountPickerVisible, setAccountPickerVisible] = useState<
     string | null
@@ -95,59 +95,14 @@ export function useAddCommissionScreen() {
     );
   }, [dispatch, today]);
 
-  // Compute which shift has data
-  const { hasAMData, hasPMData } = useMemo(() => {
-    const amCommissions = commissions.filter(
-      (com) => com.date.startsWith(today) && com.shift === "AM",
-    );
-    const pmCommissions = commissions.filter(
-      (com) => com.date.startsWith(today) && com.shift === "PM",
-    );
-    return {
-      hasAMData: amCommissions.length > 0,
-      hasPMData: pmCommissions.length > 0,
-    };
-  }, [commissions, today]);
-
-  // Determine the correct shift to use
-  const correctShift = useMemo((): ShiftEnum => {
-    // If shift is provided via params, use it
-    if (shiftFromParams) return shiftFromParams;
-    // Otherwise, determine from data
-    if (hasPMData && !hasAMData) return "PM";
-    if (hasAMData && !hasPMData) return "AM";
-    return "AM"; // Default to AM if both or neither have data
-  }, [hasAMData, hasPMData, shiftFromParams]);
-
   // Initialize entries from existing commissions
   useEffect(() => {
     if (isInitialized || isDataLoading || accounts.length === 0) return;
 
-    // Auto-select the correct shift based on data
-    setCurrentShift(correctShift);
-
-    console.log("[AddCommission] Prepopulation check:", {
-      commissionsCount: commissions.length,
-      today,
-      correctShift,
-      currentShift,
-      accountsLoaded: accounts.length,
-    });
-
-    // Use correctShift for prepopulation
+    // Use currentShift (from params) for prepopulation
     const shiftCommissions = commissions.filter(
-      (com) => com.date.startsWith(today) && com.shift === correctShift,
+      (com) => com.date.startsWith(today) && com.shift === currentShift,
     );
-
-    console.log("[AddCommission] Shift commissions:", {
-      shift: currentShift,
-      count: shiftCommissions.length,
-      commissions: shiftCommissions.map((c) => ({
-        accountId: c.accountId,
-        amount: c.amount,
-        date: c.date,
-      })),
-    });
 
     if (shiftCommissions.length > 0) {
       const prepopulatedEntries: CommissionEntry[] = shiftCommissions.map(
@@ -173,7 +128,7 @@ export function useAddCommissionScreen() {
             id: `existing-${com.id}`,
             accountId: com.accountId,
             accountName: accountName,
-            shift: correctShift,
+            shift: currentShift,
             amount: com.amount.toString(),
             imageUrl: imageUri,
             extractedBalance: null,
@@ -183,32 +138,20 @@ export function useAddCommissionScreen() {
         },
       );
 
-      console.log(
-        "[AddCommission] Prepopulating entries:",
-        prepopulatedEntries.length,
-      );
       setEntries(prepopulatedEntries);
       setIsInitialized(true);
     } else if (draftEntries.length > 0) {
       // Load draft entries if no existing commissions
-      console.log(
-        "[AddCommission] Loading draft entries:",
-        draftEntries.length,
-      );
       setEntries(draftEntries as CommissionEntry[]);
       setIsInitialized(true);
     } else {
-      console.log(
-        "[AddCommission] No existing commissions or drafts, initializing empty",
-      );
-      setEntries([createEmptyEntry(correctShift)]);
+      setEntries([createEmptyEntry(currentShift)]);
       setIsInitialized(true);
     }
   }, [
     commissions,
     draftEntries,
     today,
-    correctShift,
     currentShift,
     isInitialized,
     isDataLoading,
@@ -453,13 +396,6 @@ export function useAddCommissionScreen() {
     [],
   );
 
-  // Change shift and reinitialize
-  const handleShiftChange = useCallback((shift: ShiftEnum) => {
-    setCurrentShift(shift);
-    setIsInitialized(false);
-    setEntries([createEmptyEntry(shift)]);
-  }, []);
-
   // Validate all entries
   const validateEntries = useCallback((): boolean => {
     const newErrors: Record<string, Record<string, string>> = {};
@@ -672,7 +608,6 @@ export function useAddCommissionScreen() {
     removeEntry,
     clearImage,
     handleImageUpload,
-    handleShiftChange,
     handleSubmit,
     setAccountPickerVisible,
   };

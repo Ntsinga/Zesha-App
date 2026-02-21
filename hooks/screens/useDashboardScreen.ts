@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import Constants from "expo-constants";
 import { fetchDashboard, setShift } from "../../store/slices/dashboardSlice";
 import { useCurrencyFormatter } from "../useCurrency";
 import type { ShiftEnum } from "../../types";
@@ -27,22 +26,6 @@ export function useDashboardScreen() {
 
   // Currency formatter
   const { formatCurrency, formatCompactCurrency } = useCurrencyFormatter();
-
-  // Debug API keys on mount
-  useEffect(() => {
-    const geminiKey = Constants.expoConfig?.extra?.geminiApiKey;
-    const openaiKey = Constants.expoConfig?.extra?.openaiApiKey;
-
-    console.log("[Dashboard] API Keys Check:");
-    console.log(
-      "  - Gemini:",
-      geminiKey ? `${geminiKey.substring(0, 10)}...` : "NOT SET",
-    );
-    console.log(
-      "  - OpenAI:",
-      openaiKey ? `${openaiKey.substring(0, 10)}...` : "NOT SET",
-    );
-  }, []);
 
   // Fetch dashboard data on mount
   useEffect(() => {

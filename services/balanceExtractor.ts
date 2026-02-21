@@ -41,7 +41,7 @@ async function imageToBase64(imageUri: string): Promise<string> {
     if (__DEV__) {
       console.log(
         "[BalanceExtractor] Image converted to base64, length:",
-        base64.length
+        base64.length,
       );
     }
     return base64;
@@ -50,7 +50,7 @@ async function imageToBase64(imageUri: string): Promise<string> {
     throw new Error(
       `Failed to read image file: ${
         error instanceof Error ? error.message : "Unknown error"
-      }`
+      }`,
     );
   }
 }
@@ -81,12 +81,12 @@ function getMimeType(imageUri: string): string {
  */
 export async function extractBalanceFromImage(
   imageUri: string,
-  type: ExtractionType = "balance"
+  type: ExtractionType = "balance",
 ): Promise<BalanceExtractionResult> {
   if (__DEV__) {
     console.log(
       `[BalanceExtractor] Starting ${type} extraction for image:`,
-      imageUri
+      imageUri,
     );
   }
 
@@ -116,7 +116,7 @@ export async function extractBalanceFromImage(
         image_data: base64Image,
         mime_type: mimeType,
         extraction_type: type,
-      }
+      },
     );
 
     if (__DEV__) {
@@ -125,12 +125,6 @@ export async function extractBalanceFromImage(
         success: response.success,
         provider: response.provider,
       });
-    }
-
-    if (response.success && response.balance !== null) {
-      console.log(
-        `[BalanceExtractor] ✓ ${type} extraction successful via ${response.provider}`
-      );
     }
 
     return {
@@ -187,7 +181,7 @@ export interface BalanceValidationResult {
 
 export function validateBalance(
   extractedBalance: number | null,
-  inputBalance: number
+  inputBalance: number,
 ): BalanceValidationResult {
   if (extractedBalance === null) {
     return {
