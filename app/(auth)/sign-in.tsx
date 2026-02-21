@@ -72,12 +72,9 @@ export default function SignInPage() {
         });
         setStep("2fa");
       } else {
-        console.error(JSON.stringify(signInAttempt, null, 2));
         Alert.alert("Error", "Sign in failed. Please try again.");
       }
     } catch (err: any) {
-      console.error(JSON.stringify(err, null, 2));
-
       // Handle session_exists error - user is already signed in
       if (err.errors?.[0]?.code === "session_exists") {
         Alert.alert(
@@ -111,11 +108,9 @@ export default function SignInPage() {
         await setActive({ session: signInAttempt.createdSessionId });
         router.replace("/(app)");
       } else {
-        console.error(JSON.stringify(signInAttempt, null, 2));
         Alert.alert("Error", "Verification failed. Please try again.");
       }
     } catch (err: any) {
-      console.error(JSON.stringify(err, null, 2));
       Alert.alert("Error", err.errors?.[0]?.message || "Verification failed");
     } finally {
       setLoading(false);

@@ -78,7 +78,8 @@ export default function AddCommissionPage() {
   const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
   const params = useLocalSearchParams();
-  const shiftFromParams = (params.shift as ShiftEnum) || "AM";
+  // Shift is passed from the balance menu screen - use it as-is
+  const currentShift: ShiftEnum = (params.shift as ShiftEnum) || "AM";
 
   // Get companyId from auth state
   const { user } = useSelector((state: RootState) => state.auth);
@@ -104,7 +105,6 @@ export default function AddCommissionPage() {
   const [accountPickerVisible, setAccountPickerVisible] = useState<
     string | null
   >(null);
-  const [currentShift, setCurrentShift] = useState<ShiftEnum>(shiftFromParams);
   const [isInitialized, setIsInitialized] = useState(false);
 
   // Get today's date
@@ -122,29 +122,12 @@ export default function AddCommissionPage() {
   useEffect(() => {
     if (isInitialized || accountsLoading) return;
 
-    console.log("[AddCommission] Prepopulation check:", {
-      commissionsCount: commissions.length,
-      today,
-      currentShift,
-      accountsLoaded: accounts.length,
-    });
-
     const activeAccounts = accounts.filter((acc) => acc.isActive);
 
     // Get commissions for today and current shift
     const shiftCommissions = commissions.filter(
       (com) => com.date.startsWith(today) && com.shift === currentShift,
     );
-
-    console.log("[AddCommission] Shift commissions:", {
-      shift: currentShift,
-      count: shiftCommissions.length,
-      commissions: shiftCommissions.map((c) => ({
-        accountId: c.accountId,
-        amount: c.amount,
-        date: c.date,
-      })),
-    });
 
     if (shiftCommissions.length > 0) {
       // Create entries for accounts that have commissions
@@ -181,24 +164,13 @@ export default function AddCommissionPage() {
         },
       );
 
-      console.log(
-        "[AddCommission] Prepopulating entries:",
-        prepopulatedEntries.length,
-      );
       setEntries(prepopulatedEntries);
       setIsInitialized(true);
     } else if (draftEntries.length > 0) {
       // Load draft entries if no existing commissions
-      console.log(
-        "[AddCommission] Loading draft entries:",
-        draftEntries.length,
-      );
       setEntries(draftEntries);
       setIsInitialized(true);
     } else {
-      console.log(
-        "[AddCommission] No existing commissions or drafts, initializing empty",
-      );
       setIsInitialized(true);
     }
   }, [
@@ -260,21 +232,13 @@ export default function AddCommissionPage() {
     );
 
     try {
-      console.log(
-        `[AddCommission] Calling extractBalanceFromImage for entry ${entryId}...`,
-      );
       const result = await extractBalanceFromImage(imageUri, "commission");
-      console.log(`[AddCommission] Extraction result:`, result);
 
       setEntries((prev) =>
         prev.map((entry) => {
           if (entry.id !== entryId) return entry;
 
           const extractedBalance = result.balance;
-          console.log(
-            `[AddCommission] Extracted commission for entry ${entryId}:`,
-            extractedBalance,
-          );
 
           // If user has already entered an amount, validate it against extracted balance
           let validationResult: BalanceValidationResult | null = null;
@@ -288,10 +252,6 @@ export default function AddCommissionPage() {
               validationResult = validateBalance(
                 extractedBalance,
                 inputBalance,
-              );
-              console.log(
-                `[AddCommission] Validation result:`,
-                validationResult,
               );
             }
           }
@@ -649,27 +609,19 @@ export default function AddCommissionPage() {
           }),
         );
 
-        console.log(
-          "[AddCommission] Submitting new commissions:",
-          JSON.stringify(commissionsWithImages, null, 2),
-        );
-
         const result = await dispatch(
           createCommissionsBulk(commissionsWithImages),
         ).unwrap();
-        console.log("[AddCommission] Commission creation result:", result);
 
         // createCommissionsBulk returns Commission[], count the successes
         totalCreated = Array.isArray(result) ? result.length : 0;
       }
 
       // Refresh dashboard and commissions list
-      console.log("[AddCommission] Refreshing dashboard and commissions...");
       await Promise.all([
         dispatch(fetchDashboard({})).unwrap(),
         dispatch(fetchCommissions({ forceRefresh: true })).unwrap(),
       ]);
-      console.log("[AddCommission] Data refreshed");
 
       // Clear draft entries after successful submission
       dispatch(clearDraftEntries());
@@ -698,7 +650,6 @@ export default function AddCommissionPage() {
       }
     } catch (error: any) {
       console.error("[AddCommission] Error saving commissions:", error);
-      console.error("[AddCommission] Error stack:", error?.stack);
       Alert.alert(
         "Error",
         error?.message || "Failed to save commissions. Please try again.",
@@ -736,45 +687,16 @@ export default function AddCommissionPage() {
             <View className="w-10" />
           </View>
 
-          {/* Shift Selector */}
+          {/* Shift Badge (read-only, set from reconciliation screen) */}
           <View className="px-4 pb-4">
-            <View className="flex-row bg-white rounded-xl p-1 shadow-sm">
-              <TouchableOpacity
-                onPress={() => {
-                  setCurrentShift("AM");
-                  setIsInitialized(false);
-                  setEntries([createEmptyEntry()]);
-                }}
-                className={`flex-1 py-3 rounded-lg ${
-                  currentShift === "AM" ? "bg-brand-gold" : "bg-transparent"
-                }`}
+            <View
+              className={`px-4 py-2 rounded-full self-start ${currentShift === "AM" ? "bg-blue-100" : "bg-red-100"}`}
+            >
+              <Text
+                className={`font-bold ${currentShift === "AM" ? "text-blue-700" : "text-red-700"}`}
               >
-                <Text
-                  className={`text-center font-semibold ${
-                    currentShift === "AM" ? "text-white" : "text-gray-500"
-                  }`}
-                >
-                  AM Shift
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => {
-                  setCurrentShift("PM");
-                  setIsInitialized(false);
-                  setEntries([createEmptyEntry()]);
-                }}
-                className={`flex-1 py-3 rounded-lg ${
-                  currentShift === "PM" ? "bg-brand-gold" : "bg-transparent"
-                }`}
-              >
-                <Text
-                  className={`text-center font-semibold ${
-                    currentShift === "PM" ? "text-white" : "text-gray-500"
-                  }`}
-                >
-                  PM Shift
-                </Text>
-              </TouchableOpacity>
+                {currentShift} Shift
+              </Text>
             </View>
           </View>
         </View>

@@ -11,12 +11,10 @@ import {
 } from "react-native";
 import { ArrowLeft, Save, Plus, Minus, Banknote } from "lucide-react-native";
 import { useCashCountScreen } from "../../hooks/screens/useCashCountScreen";
-import type { ShiftEnum } from "../../types";
 
 export default function AddCashCountPage() {
   const {
     shift,
-    setShift,
     entries,
     isSubmitting,
     isEditing,
@@ -28,7 +26,6 @@ export default function AddCashCountPage() {
     updateQuantity,
     incrementQuantity,
     decrementQuantity,
-    hasDataForShift,
     handleSubmit,
     clearAll,
     handleBack,
@@ -87,43 +84,13 @@ export default function AddCashCountPage() {
             </TouchableOpacity>
           </View>
 
-          {/* Shift Selection */}
-          <View className="flex-row space-x-1" style={{ gap: 5 }}>
-            {(["AM", "PM"] as ShiftEnum[]).map((s) => {
-              const hasData = hasDataForShift(s);
-              const isSelected = shift === s;
-
-              return (
-                <TouchableOpacity
-                  key={s}
-                  onPress={() => setShift(s)}
-                  className={`flex-1 py-3 rounded-xl flex-row items-center justify-center ${
-                    isSelected
-                      ? hasData
-                        ? "bg-green-600"
-                        : "bg-brand-red"
-                      : hasData
-                        ? "bg-green-50 border-2 border-green-500"
-                        : "bg-gray-100 border border-gray-200"
-                  }`}
-                >
-                  {hasData && !isSelected && (
-                    <View className="w-2 h-2 rounded-full bg-green-500 mr-2" />
-                  )}
-                  <Text
-                    className={`text-center font-bold ${
-                      isSelected
-                        ? "text-white"
-                        : hasData
-                          ? "text-green-700"
-                          : "text-gray-600"
-                    }`}
-                  >
-                    {s} Shift {hasData && !isSelected ? "✓" : ""}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
+          {/* Shift Badge (read-only, set from reconciliation screen) */}
+          <View className="flex-row mt-3" style={{ gap: 5 }}>
+            <View className="flex-1 py-3 rounded-xl flex-row items-center justify-center bg-brand-red">
+              <Text className="text-center font-bold text-white">
+                {shift} Shift
+              </Text>
+            </View>
           </View>
         </View>
 

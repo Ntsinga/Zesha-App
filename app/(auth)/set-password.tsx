@@ -47,17 +47,11 @@ export default function SetPasswordPage() {
 
     // If user is already authenticated, skip ticket processing
     if (user) {
-      console.log(
-        "[SetPassword] User already authenticated, skipping ticket processing",
-      );
       return;
     }
 
     // If signUp already has an email, we're ready
     if (signUp?.emailAddress) {
-      console.log(
-        "[SetPassword] SignUp already has email, skipping ticket processing",
-      );
       setInviteEmail(signUp.emailAddress);
       setTicketProcessed(true);
       // Check if username is required from existing signUp state
@@ -68,7 +62,6 @@ export default function SetPasswordPage() {
     }
 
     if (ticket) {
-      console.log("[SetPassword] Processing invite ticket...");
       setIsProcessingInvite(true);
 
       // Create a sign-up with the ticket - Clerk will auto-populate user info
@@ -78,12 +71,6 @@ export default function SetPasswordPage() {
           ticket,
         })
         .then((result) => {
-          console.log("[SetPassword] Invite result:", {
-            status: result.status,
-            email: result.emailAddress,
-            missingFields: result.missingFields,
-          });
-
           if (result.emailAddress) {
             setInviteEmail(result.emailAddress);
           }
@@ -94,7 +81,6 @@ export default function SetPasswordPage() {
             result.missingFields?.includes("username") ||
             result.status === "missing_requirements"
           ) {
-            console.log("[SetPassword] Username is required, showing field");
             setRequiresUsername(true);
           }
 
@@ -102,9 +88,6 @@ export default function SetPasswordPage() {
 
           // If status is complete, the user might already be signed in
           if (result.status === "complete" && result.createdSessionId) {
-            console.log(
-              "[SetPassword] Ticket auto-completed, activating session...",
-            );
             setActive?.({ session: result.createdSessionId });
           }
         })
@@ -198,7 +181,6 @@ export default function SetPasswordPage() {
     try {
       if (hasInviteData && signUp) {
         // Invite flow: Update signUp with password (and username if required) and complete registration
-        console.log("[SetPassword] Setting password for invite flow...");
         const updatePayload: { password: string; username?: string } = {
           password,
         };
@@ -207,25 +189,13 @@ export default function SetPasswordPage() {
         }
         const result = await signUp.update(updatePayload);
 
-        console.log(
-          "[SetPassword] SignUp status:",
-          result.status,
-          "sessionId:",
-          result.createdSessionId,
-        );
-
         if (result.status === "complete" && result.createdSessionId) {
           // Activate the session
           await setActive({ session: result.createdSessionId });
-          console.log("[SetPassword] Session activated for invited user");
           Alert.alert("Success", "Password set successfully!", [
             { text: "Continue", onPress: () => router.replace("/(app)") },
           ]);
         } else {
-          console.log(
-            "[SetPassword] Status not complete, missing fields:",
-            result.missingFields,
-          );
           Alert.alert(
             "Error",
             `Registration incomplete. Status: ${result.status}. Please contact support.`,

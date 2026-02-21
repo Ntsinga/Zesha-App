@@ -12,7 +12,7 @@ const getApiBaseUrl = (): string => {
   // Development fallback - ngrok URL
   // WARNING: Update this when your ngrok URL changes
   if (__DEV__) {
-    return "https://19d272460273.ngrok-free.app";
+    return "https://cb87-196-250-65-167.ngrok-free.app";
   }
 
   // Production fallback - should be set via environment variable

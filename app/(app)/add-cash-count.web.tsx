@@ -5,14 +5,12 @@ import {
   useCashCountScreen,
   type DenominationEntry,
 } from "../../hooks/screens/useCashCountScreen";
-import type { ShiftEnum } from "../../types";
 import "../../styles/web.css";
 
 export default function AddCashCountPage() {
   const router = useRouter();
   const {
     shift,
-    setShift,
     entries,
     isSubmitting,
     isEditing,
@@ -24,7 +22,6 @@ export default function AddCashCountPage() {
     updateQuantity,
     incrementQuantity,
     decrementQuantity,
-    hasDataForShift,
     handleSubmit,
     clearAll,
     handleBack,
@@ -88,29 +85,11 @@ export default function AddCashCountPage() {
           </div>
         )}
 
-        {/* Shift Selection */}
+        {/* Shift Badge (read-only, set from reconciliation screen) */}
         <div className="shift-selector">
-          <label className="form-label">Select Shift</label>
+          <label className="form-label">Shift</label>
           <div className="shift-buttons">
-            {(["AM", "PM"] as ShiftEnum[]).map((s) => {
-              const hasData = hasDataForShift(s);
-              const isSelected = shift === s;
-
-              return (
-                <button
-                  key={s}
-                  className={`shift-button ${isSelected ? "selected" : ""} ${
-                    hasData ? "has-data" : ""
-                  }`}
-                  onClick={() => setShift(s)}
-                >
-                  {hasData && !isSelected && (
-                    <span className="shift-indicator" />
-                  )}
-                  {s} Shift {hasData && !isSelected && "✓"}
-                </button>
-              );
-            })}
+            <span className={`shift-button selected`}>{shift} Shift</span>
           </div>
         </div>
 
@@ -207,8 +186,8 @@ export default function AddCashCountPage() {
             {isSubmitting
               ? "Saving..."
               : isEditing
-              ? "Update Cash Count"
-              : "Save Cash Count"}
+                ? "Update Cash Count"
+                : "Save Cash Count"}
           </button>
         </div>
       </div>

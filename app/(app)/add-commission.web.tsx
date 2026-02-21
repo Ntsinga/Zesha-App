@@ -41,7 +41,6 @@ export default function AddCommissionWeb() {
     removeEntry,
     clearImage,
     handleImageUpload,
-    handleShiftChange,
     handleSubmit,
     setAccountPickerVisible,
   } = useAddCommissionScreen();
@@ -116,19 +115,11 @@ export default function AddCommissionWeb() {
           </div>
         </div>
         <div className="header-right">
-          <div className="shift-toggle">
-            {(["AM", "PM"] as const).map((shift) => (
-              <button
-                key={shift}
-                onClick={() => handleShiftChange(shift)}
-                className={`shift-btn ${
-                  currentShift === shift ? "active" : ""
-                }`}
-              >
-                {shift}
-              </button>
-            ))}
-          </div>
+          <span
+            className={`shift-badge ${currentShift === "AM" ? "am" : "pm"}`}
+          >
+            {currentShift} Shift
+          </span>
           <button onClick={addEntry} className="btn-primary">
             <Plus size={18} />
             Add Entry

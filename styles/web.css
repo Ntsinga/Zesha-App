@@ -2464,11 +2464,15 @@ body {
   align-items: center;
   justify-content: center;
   width: 64px;
+  min-width: 64px;
   height: 64px;
+  min-height: 64px;
+  aspect-ratio: 1;
   border-radius: var(--radius-lg);
   background: var(--color-primary-light);
   color: var(--color-primary);
   flex-shrink: 0;
+  contain: layout style;
 }
 
 .balance-menu-icon.completed {
@@ -5628,7 +5632,9 @@ body {
 
   .balance-menu-icon {
     width: 52px;
+    min-width: 52px;
     height: 52px;
+    min-height: 52px;
   }
 
   .balance-menu-icon svg {
