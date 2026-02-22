@@ -54,6 +54,12 @@ const CustomDrawerContent = (props: DrawerContentComponentProps) => {
       icon: History,
     },
     {
+      route: "/transactions",
+      routeName: "transactions",
+      label: "Transactions",
+      icon: ArrowRightLeft,
+    },
+    {
       route: "/commissions",
       routeName: "commissions",
       label: "Commissions",

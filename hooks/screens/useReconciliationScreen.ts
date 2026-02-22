@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useRouter } from "expo-router";
 import { useCurrencyFormatter } from "../useCurrency";
@@ -9,9 +9,19 @@ import {
   finalizeReconciliation,
   approveReconciliation,
   calculateReconciliation,
+  fetchBalanceValidation,
+  clearBalanceValidation,
 } from "../../store/slices/reconciliationsSlice";
+import { fetchTransactions } from "../../store/slices/transactionsSlice";
 import type { AppDispatch, RootState } from "../../store";
-import type { ShiftEnum, Balance, Commission, CashCount } from "../../types";
+import type {
+  ShiftEnum,
+  Balance,
+  Commission,
+  CashCount,
+  BalanceValidationEnum,
+} from "../../types";
+import type { Transaction } from "../../types/transaction";
 
 interface UseReconciliationScreenProps {
   date: string;
@@ -37,8 +47,12 @@ export function useReconciliationScreen({
     isFinalizing,
     isCalculating,
     error,
+    balanceValidation,
   } = useSelector((state: RootState) => state.reconciliations);
   const { user: backendUser } = useSelector((state: RootState) => state.auth);
+  const { items: transactions } = useSelector(
+    (state: RootState) => state.transactions,
+  );
 
   // Check if user can review reconciliations (supervisor or admin)
   const canReview =
@@ -56,10 +70,26 @@ export function useReconciliationScreen({
           shift,
         }),
       );
+      dispatch(
+        fetchBalanceValidation({
+          companyId: backendUser.companyId,
+          date,
+          shift,
+        }),
+      );
+      dispatch(
+        fetchTransactions({
+          companyId: backendUser.companyId,
+          startDate: date,
+          endDate: date,
+          shift,
+        }),
+      );
     }
 
     return () => {
       dispatch(clearReconciliationDetails());
+      dispatch(clearBalanceValidation());
     };
   }, [dispatch, date, shift, backendUser?.companyId]);
 
@@ -87,16 +117,94 @@ export function useReconciliationScreen({
   const isFinalized = reconciliation?.isFinalized || false;
   const isApproved = reconciliation?.approvalStatus === "APPROVED" || false;
 
+  // --- Balance validation computed values ---
+  const { hasDiscrepancies, discrepancyCount, totalDiscrepancyAmount } =
+    useMemo(() => {
+      let count = 0;
+      let totalVariance = 0;
+      const validationList = Array.isArray(balanceValidation)
+        ? balanceValidation
+        : [];
+      for (const v of validationList) {
+        if (
+          v.validationStatus === "SHORTAGE" ||
+          v.validationStatus === "EXCESS"
+        ) {
+          count++;
+          totalVariance += Math.abs(v.variance ?? 0);
+        }
+      }
+      return {
+        hasDiscrepancies: count > 0,
+        discrepancyCount: count,
+        totalDiscrepancyAmount: totalVariance,
+      };
+    }, [balanceValidation]);
+
+  // Build a lookup map: accountId → validation result
+  const validationByAccountId = useMemo(() => {
+    const map: Record<
+      number,
+      {
+        calculatedBalance: number;
+        variance: number;
+        validationStatus: BalanceValidationEnum;
+      }
+    > = {};
+    const validationList = Array.isArray(balanceValidation)
+      ? balanceValidation
+      : [];
+    for (const v of validationList) {
+      if (v.accountId != null) {
+        map[v.accountId] = {
+          calculatedBalance: v.calculatedBalance ?? 0,
+          variance: v.variance ?? 0,
+          validationStatus:
+            (v.validationStatus as BalanceValidationEnum) ?? "PENDING",
+        };
+      }
+    }
+    return map;
+  }, [balanceValidation]);
+
+  // --- Linked transactions for this shift ---
+  const shiftTransactions: Transaction[] = useMemo(() => {
+    return transactions
+      .filter((t) => t.transactionTime?.startsWith(date) && t.shift === shift)
+      .sort(
+        (a, b) =>
+          new Date(b.transactionTime || "").getTime() -
+          new Date(a.transactionTime || "").getTime(),
+      );
+  }, [transactions, date, shift]);
+
   const onRefresh = async () => {
     if (!date || !shift || !backendUser?.companyId) return;
     setRefreshing(true);
-    await dispatch(
-      fetchReconciliationDetails({
-        companyId: backendUser.companyId,
-        date,
-        shift,
-      }),
-    );
+    await Promise.all([
+      dispatch(
+        fetchReconciliationDetails({
+          companyId: backendUser.companyId,
+          date,
+          shift,
+        }),
+      ),
+      dispatch(
+        fetchBalanceValidation({
+          companyId: backendUser.companyId,
+          date,
+          shift,
+        }),
+      ),
+      dispatch(
+        fetchTransactions({
+          companyId: backendUser.companyId,
+          startDate: date,
+          endDate: date,
+          shift,
+        }),
+      ),
+    ]);
     setRefreshing(false);
   };
 
@@ -137,9 +245,19 @@ export function useReconciliationScreen({
   };
 
   // Finalize reconciliation (lock it)
-  const handleFinalize = async () => {
+  const handleFinalize = async (forceWithDiscrepancies = false) => {
     if (!date || !shift || !backendUser?.id || !backendUser?.companyId) {
       return { success: false, error: "Missing required data" };
+    }
+
+    // If there are discrepancies and the user hasn't confirmed, warn them
+    if (hasDiscrepancies && !forceWithDiscrepancies) {
+      return {
+        success: false,
+        error: "HAS_DISCREPANCIES",
+        discrepancyCount,
+        totalDiscrepancyAmount,
+      };
     }
 
     try {
@@ -150,6 +268,7 @@ export function useReconciliationScreen({
           shift,
           reconciledBy: backendUser.id,
           notes: notes.trim() || undefined,
+          forceWithDiscrepancies: hasDiscrepancies ? true : undefined,
         }),
       ).unwrap();
       return { success: true };
@@ -247,6 +366,16 @@ export function useReconciliationScreen({
     status,
     isFinalized,
     isApproved,
+
+    // Balance validation
+    balanceValidation,
+    hasDiscrepancies,
+    discrepancyCount,
+    totalDiscrepancyAmount,
+    validationByAccountId,
+
+    // Linked transactions
+    shiftTransactions,
 
     // Actions
     onRefresh,

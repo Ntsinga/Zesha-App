@@ -17,6 +17,8 @@ export {
   type ApprovalStatusEnum,
   type ReconciliationStatusEnum,
   type ReconciliationTypeEnum,
+  type TransactionTypeEnum,
+  type BalanceValidationEnum,
 } from "./enums";
 
 // ============= Base Types =============
@@ -114,6 +116,8 @@ export {
   type ReconciliationFinalizeParams,
   type ReconciliationApproveParams,
   type ReconciliationApproveResult,
+  type BalanceValidationResult as ReconciliationBalanceValidation,
+  type BalanceValidationParams,
 } from "./reconciliation";
 
 // ============= Company Types =============
@@ -123,6 +127,24 @@ export {
   type CompanyInfoUpdate,
   type CompanySnapshot,
 } from "./company";
+
+// ============= Transaction Types =============
+export {
+  type Transaction as TransactionRecord,
+  type TransactionCreate,
+  type FloatPurchaseCreate,
+  type FloatPurchaseRead,
+  type TransactionUpdate,
+  type TransactionFilters,
+  type AccountStatement,
+  type AccountStatementSummary,
+  type CompanyStatement,
+  type TransactionAnalyticsSummary,
+  type TransactionDailyAnalytics,
+  type BulkTransactionCreate,
+  type BulkTransactionResponse,
+  type AccountBalanceResponse,
+} from "./transaction";
 
 // ============= Dashboard Types =============
 export {

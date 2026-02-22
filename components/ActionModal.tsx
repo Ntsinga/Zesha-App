@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import {
   View,
   Text,
@@ -11,18 +11,24 @@ import {
   Alert,
   ActivityIndicator,
 } from "react-native";
-import { X, Camera, ChevronDown, Check } from "lucide-react-native";
-import { useDispatch } from "react-redux";
+import {
+  X,
+  ArrowDownLeft,
+  ArrowUpRight,
+  ArrowLeftRight,
+  ChevronDown,
+} from "lucide-react-native";
+import { useDispatch, useSelector } from "react-redux";
 import { useCurrencyFormatter } from "../hooks/useCurrency";
-import { TransactionCategory } from "../types";
-import { createTransaction } from "../store/slices/transactionsSlice";
-import type { AppDispatch } from "../store";
+import {
+  createTransaction,
+  createFloatPurchase,
+} from "../store/slices/transactionsSlice";
+import { fetchAccounts } from "../store/slices/accountsSlice";
+import type { AppDispatch, RootState } from "../store";
+import type { ShiftEnum } from "../types";
 
-type TransactionType = "income" | "expense";
-
-interface FormErrors {
-  [key: string]: string | undefined;
-}
+type TxMode = "DEPOSIT" | "WITHDRAW" | "FLOAT";
 
 interface ActionModalProps {
   visible: boolean;
@@ -46,17 +52,31 @@ export const ActionModal: React.FC<ActionModalProps> = ({
     >
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
-        className="flex-1 justify-end sm:justify-center bg-black/50"
+        className="flex-1 justify-end bg-black/50"
       >
-        <View className="bg-white w-full sm:w-[90%] sm:self-center sm:rounded-2xl rounded-t-3xl overflow-hidden h-[85%] sm:h-auto">
-          <View className="flex-row justify-between items-center p-6 border-b border-gray-100">
-            <View className="w-6" />
+        <TouchableOpacity
+          style={{ flex: 1 }}
+          activeOpacity={1}
+          onPress={onClose}
+        />
+        <View
+          className="bg-white w-full rounded-t-3xl overflow-hidden"
+          style={{ maxHeight: "90%" }}
+        >
+          <View className="flex-row justify-between items-center px-6 pt-6 pb-4 border-b border-gray-100">
             <Text className="text-xl font-bold text-brand-red">{title}</Text>
-            <TouchableOpacity onPress={onClose} className="p-1">
-              <X size={24} color="#9CA3AF" />
+            <TouchableOpacity
+              onPress={onClose}
+              className="w-8 h-8 bg-gray-100 rounded-full items-center justify-center"
+            >
+              <X size={18} color="#6B7280" />
             </TouchableOpacity>
           </View>
-          <ScrollView contentContainerStyle={{ padding: 24 }}>
+          <ScrollView
+            contentContainerStyle={{ padding: 24, paddingBottom: 40 }}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
             {children}
           </ScrollView>
         </View>
@@ -65,299 +85,357 @@ export const ActionModal: React.FC<ActionModalProps> = ({
   );
 };
 
-// Available categories
-const CATEGORIES: TransactionCategory[] = [
-  "Food & Dining",
-  "Transportation",
-  "Entertainment",
-  "Shopping",
-  "Bills & Utilities",
-  "Healthcare",
-  "Education",
-  "Other",
-];
-
 interface AddTransactionFormProps {
   onSuccess?: () => void;
   onClose?: () => void;
-  selectedAccount?: string;
 }
 
 export const AddTransactionForm: React.FC<AddTransactionFormProps> = ({
   onSuccess,
   onClose,
-  selectedAccount = "AURTEZ",
 }) => {
   const dispatch = useDispatch<AppDispatch>();
   const { formatCurrency } = useCurrencyFormatter();
-  const [transactionType, setTransactionType] =
-    useState<TransactionType>("expense");
+
+  const { items: accounts } = useSelector((state: RootState) => state.accounts);
+  const companyId = useSelector(
+    (state: RootState) =>
+      state.auth.viewingAgencyId || state.auth.user?.companyId,
+  );
+  const isCreating = useSelector(
+    (state: RootState) => state.transactions.isCreating,
+  );
+
+  const [mode, setMode] = useState<TxMode>("DEPOSIT");
+  const [accountId, setAccountId] = useState<number | null>(null);
+  const [sourceAccountId, setSourceAccountId] = useState<number | null>(null);
+  const [destAccountId, setDestAccountId] = useState<number | null>(null);
   const [amount, setAmount] = useState("");
-  const [description, setDescription] = useState("");
-  const [category, setCategory] = useState<TransactionCategory | "">("");
-  const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
-  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errors, setErrors] = useState<FormErrors>({});
+  const [reference, setReference] = useState("");
+  const [notes, setNotes] = useState("");
+  const [shift, setShift] = useState<ShiftEnum>(() => {
+    return new Date().getHours() < 12 ? "AM" : "PM";
+  });
 
-  const handleAmountChange = (text: string) => {
-    const cleanedText = text.replace(/[^0-9.]/g, "");
-    const parts = cleanedText.split(".");
-    if (parts.length > 2) return;
-    if (parts[1]?.length > 2) return;
-    setAmount(cleanedText);
-    if (errors.amount) {
-      setErrors((prev: FormErrors) => {
-        const newErrors = { ...prev };
-        delete newErrors.amount;
-        return newErrors;
-      });
+  const activeAccounts = accounts.filter((a) => a.isActive);
+
+  // Fetch accounts if not loaded
+  useEffect(() => {
+    if (accounts.length === 0 && companyId) {
+      dispatch(fetchAccounts({ companyId, isActive: true }));
     }
+  }, [companyId]);
+
+  const reset = () => {
+    setMode("DEPOSIT");
+    setAccountId(null);
+    setSourceAccountId(null);
+    setDestAccountId(null);
+    setAmount("");
+    setReference("");
+    setNotes("");
   };
 
-  const handleSelectCategory = (selectedCategory: TransactionCategory) => {
-    setCategory(selectedCategory);
-    setShowCategoryDropdown(false);
-    if (errors.category) {
-      setErrors((prev: FormErrors) => {
-        const newErrors = { ...prev };
-        delete newErrors.category;
-        return newErrors;
-      });
+  const pickAccount = (
+    title: string,
+    exclude: number | null,
+    onPick: (id: number) => void,
+  ) => {
+    const options = activeAccounts
+      .filter((a) => a.id !== exclude)
+      .map((a) => ({
+        text: `${a.name} (${a.accountType})`,
+        onPress: () => onPick(a.id),
+      }));
+    if (options.length === 0) {
+      Alert.alert("No Accounts", "No active accounts available.");
+      return;
     }
+    Alert.alert(title, undefined, [
+      ...options,
+      { text: "Cancel", style: "cancel" as const },
+    ]);
   };
 
-  const validateForm = (): boolean => {
-    const newErrors: FormErrors = {};
-    if (!amount || parseFloat(amount) <= 0)
-      newErrors.amount = "Please enter a valid amount";
-    if (!description.trim())
-      newErrors.description = "Please enter a description";
-    if (!category) newErrors.category = "Please select a category";
-    if (!date) newErrors.date = "Please enter a date";
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+  const getAccountName = (id: number | null) =>
+    id ? (activeAccounts.find((a) => a.id === id)?.name ?? "Unknown") : null;
 
   const handleSubmit = useCallback(async () => {
-    if (!validateForm()) return;
-
-    setIsSubmitting(true);
+    if (!companyId) {
+      Alert.alert("Error", "Company not found. Please log in again.");
+      return;
+    }
+    if (!amount || parseFloat(amount) <= 0) {
+      Alert.alert("Validation", "Please enter a valid amount.");
+      return;
+    }
 
     try {
-      const parsedAmount = parseFloat(amount);
-      await dispatch(
-        createTransaction({
-          date,
-          description,
-          category: category as TransactionCategory,
-          amount: parsedAmount,
-          type: transactionType,
-          hasReceipt: false,
-          account: selectedAccount,
-        }),
-      ).unwrap();
+      if (mode === "FLOAT") {
+        if (!sourceAccountId || !destAccountId) {
+          Alert.alert(
+            "Validation",
+            "Please select both source and destination accounts.",
+          );
+          return;
+        }
+        await dispatch(
+          createFloatPurchase({
+            companyId,
+            sourceAccountId,
+            destinationAccountId: destAccountId,
+            amount: parseFloat(amount),
+            transactionTime: new Date().toISOString(),
+            shift,
+            reference: reference || undefined,
+            notes: notes || undefined,
+          }),
+        ).unwrap();
+      } else {
+        if (!accountId) {
+          Alert.alert("Validation", "Please select an account.");
+          return;
+        }
+        await dispatch(
+          createTransaction({
+            companyId,
+            accountId,
+            transactionType: mode,
+            amount: parseFloat(amount),
+            transactionTime: new Date().toISOString(),
+            shift,
+            reference: reference || undefined,
+            notes: notes || undefined,
+          }),
+        ).unwrap();
+      }
 
-      const typeLabel = transactionType === "expense" ? "Expense" : "Income";
+      reset();
+      onSuccess?.();
+      onClose?.();
+    } catch (err) {
       Alert.alert(
-        "Success",
-        `${typeLabel} of ${formatCurrency(parsedAmount)} recorded`,
-        [
-          {
-            text: "OK",
-            onPress: () => {
-              setAmount("");
-              setDescription("");
-              setCategory("");
-              setDate(new Date().toISOString().split("T")[0]);
-              onSuccess?.();
-              onClose?.();
-            },
-          },
-        ],
+        "Error",
+        err instanceof Error ? err.message : "Failed to save transaction.",
       );
-    } catch (error) {
-      Alert.alert("Error", "Failed to save transaction. Please try again.");
-    } finally {
-      setIsSubmitting(false);
     }
   }, [
-    dispatch,
+    companyId,
+    mode,
+    accountId,
+    sourceAccountId,
+    destAccountId,
     amount,
-    description,
-    category,
-    date,
-    transactionType,
-    selectedAccount,
-    onSuccess,
-    onClose,
+    shift,
+    reference,
+    notes,
   ]);
 
+  const modeColors = {
+    DEPOSIT: {
+      bg: "#dcfce7",
+      border: "#16a34a",
+      text: "#16a34a",
+      solid: "#16a34a",
+    },
+    WITHDRAW: {
+      bg: "#fee2e2",
+      border: "#dc2626",
+      text: "#dc2626",
+      solid: "#dc2626",
+    },
+    FLOAT: {
+      bg: "#dbeafe",
+      border: "#2563eb",
+      text: "#2563eb",
+      solid: "#2563eb",
+    },
+  };
+  const c = modeColors[mode];
+
   return (
-    <View className="space-y-4">
-      <View className="bg-gray-50 p-3 rounded-lg mb-2">
-        <Text className="text-sm text-gray-500">
-          Adding to Account:{" "}
-          <Text className="font-bold text-brand-red">{selectedAccount}</Text>
-        </Text>
-      </View>
-
-      {/* Transaction Type Toggle */}
-      <View className="flex-row space-x-4">
-        <TouchableOpacity
-          onPress={() => setTransactionType("expense")}
-          className={`flex-1 ${
-            transactionType === "expense"
-              ? "bg-brand-red"
-              : "border border-brand-red"
-          } rounded-lg justify-center items-center h-12`}
-        >
-          <Text
-            className={
-              transactionType === "expense"
-                ? "text-white font-bold"
-                : "text-brand-red font-medium"
-            }
-          >
-            Expense
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => setTransactionType("income")}
-          className={`flex-1 ${
-            transactionType === "income"
-              ? "bg-green-600"
-              : "border border-green-600"
-          } rounded-lg justify-center items-center h-12`}
-        >
-          <Text
-            className={
-              transactionType === "income"
-                ? "text-white font-bold"
-                : "text-green-600 font-medium"
-            }
-          >
-            Income
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Amount Input */}
-      <View className="space-y-1">
-        <Text className="text-xs font-bold text-gray-800">Amount</Text>
-        <TextInput
-          placeholder="0.00"
-          keyboardType="numeric"
-          value={amount}
-          onChangeText={handleAmountChange}
-          className={`w-full p-3 border ${
-            errors.amount ? "border-red-500" : "border-gray-200"
-          } rounded text-gray-700`}
-        />
-        {errors.amount && (
-          <Text className="text-red-500 text-xs">{errors.amount}</Text>
-        )}
-      </View>
-
-      {/* Description Input */}
-      <View className="space-y-1">
-        <Text className="text-xs font-bold text-gray-800">Description</Text>
-        <TextInput
-          placeholder="What was this for?"
-          value={description}
-          onChangeText={(text) => {
-            setDescription(text);
-            if (errors.description) {
-              setErrors((prev) => ({ ...prev, description: undefined }));
-            }
-          }}
-          className={`w-full p-3 border ${
-            errors.description ? "border-red-500" : "border-gray-200"
-          } rounded text-gray-700`}
-        />
-        {errors.description && (
-          <Text className="text-red-500 text-xs">{errors.description}</Text>
-        )}
-      </View>
-
-      {/* Date and Category Row */}
-      <View className="flex-row space-x-4">
-        <View className="flex-1 space-y-1">
-          <Text className="text-xs font-bold text-gray-800">Date</Text>
-          <TextInput
-            placeholder="YYYY-MM-DD"
-            value={date}
-            onChangeText={(text) => {
-              setDate(text);
-              if (errors.date) {
-                setErrors((prev) => ({ ...prev, date: undefined }));
-              }
-            }}
-            className={`w-full p-3 border ${
-              errors.date ? "border-red-500" : "border-gray-200"
-            } rounded text-gray-700`}
-          />
-          {errors.date && (
-            <Text className="text-red-500 text-xs">{errors.date}</Text>
-          )}
-        </View>
-        <View className="flex-1 space-y-1">
-          <Text className="text-xs font-bold text-gray-800">Category</Text>
-          <TouchableOpacity
-            onPress={() => setShowCategoryDropdown(!showCategoryDropdown)}
-            className={`w-full p-3 border ${
-              errors.category ? "border-red-500" : "border-gray-200"
-            } rounded flex-row justify-between items-center`}
-          >
-            <Text className={category ? "text-gray-700" : "text-gray-400"}>
-              {category || "Select"}
-            </Text>
-            <ChevronDown size={16} color="#9CA3AF" />
-          </TouchableOpacity>
-          {errors.category && (
-            <Text className="text-red-500 text-xs">{errors.category}</Text>
-          )}
-        </View>
-      </View>
-
-      {/* Category Dropdown */}
-      {showCategoryDropdown && (
-        <View className="bg-white border border-gray-200 rounded-lg shadow-lg max-h-48">
-          <ScrollView nestedScrollEnabled>
-            {CATEGORIES.map((cat) => (
-              <TouchableOpacity
-                key={cat}
-                onPress={() => handleSelectCategory(cat)}
-                className="p-3 border-b border-gray-100 flex-row justify-between items-center"
+    <View>
+      {/* Type selector */}
+      <View className="flex-row mb-5" style={{ gap: 8 }}>
+        {(["DEPOSIT", "WITHDRAW", "FLOAT"] as TxMode[]).map((m) => {
+          const mc = modeColors[m];
+          const active = mode === m;
+          return (
+            <TouchableOpacity
+              key={m}
+              onPress={() => setMode(m)}
+              className="flex-1 rounded-xl py-3 items-center flex-row justify-center"
+              style={{
+                gap: 5,
+                backgroundColor: active ? mc.bg : "#f9fafb",
+                borderWidth: 2,
+                borderColor: active ? mc.border : "#e5e7eb",
+              }}
+            >
+              {m === "DEPOSIT" && (
+                <ArrowDownLeft size={14} color={active ? mc.text : "#9ca3af"} />
+              )}
+              {m === "WITHDRAW" && (
+                <ArrowUpRight size={14} color={active ? mc.text : "#9ca3af"} />
+              )}
+              {m === "FLOAT" && (
+                <ArrowLeftRight
+                  size={14}
+                  color={active ? mc.text : "#9ca3af"}
+                />
+              )}
+              <Text
+                style={{
+                  color: active ? mc.text : "#9ca3af",
+                  fontWeight: "600",
+                  fontSize: 12,
+                }}
               >
-                <Text className="text-gray-700">{cat}</Text>
-                {category === cat && <Check size={16} color="#C62828" />}
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
+                {m === "FLOAT"
+                  ? "Float"
+                  : m.charAt(0) + m.slice(1).toLowerCase()}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
+      {/* Account selector(s) */}
+      {mode === "FLOAT" ? (
+        <>
+          <Text className="text-sm font-medium text-gray-600 mb-1">
+            Source Account
+          </Text>
+          <TouchableOpacity
+            onPress={() =>
+              pickAccount("Select Source", destAccountId, setSourceAccountId)
+            }
+            className="border border-gray-200 rounded-xl px-4 py-3 mb-4 flex-row justify-between items-center"
+          >
+            <Text
+              className={sourceAccountId ? "text-gray-800" : "text-gray-400"}
+            >
+              {getAccountName(sourceAccountId) ?? "Select source account..."}
+            </Text>
+            <ChevronDown size={16} color="#9ca3af" />
+          </TouchableOpacity>
+
+          <Text className="text-sm font-medium text-gray-600 mb-1">
+            Destination Account
+          </Text>
+          <TouchableOpacity
+            onPress={() =>
+              pickAccount(
+                "Select Destination",
+                sourceAccountId,
+                setDestAccountId,
+              )
+            }
+            className="border border-gray-200 rounded-xl px-4 py-3 mb-4 flex-row justify-between items-center"
+          >
+            <Text className={destAccountId ? "text-gray-800" : "text-gray-400"}>
+              {getAccountName(destAccountId) ?? "Select destination account..."}
+            </Text>
+            <ChevronDown size={16} color="#9ca3af" />
+          </TouchableOpacity>
+        </>
+      ) : (
+        <>
+          <Text className="text-sm font-medium text-gray-600 mb-1">
+            Account
+          </Text>
+          <TouchableOpacity
+            onPress={() => pickAccount("Select Account", null, setAccountId)}
+            className="border border-gray-200 rounded-xl px-4 py-3 mb-4 flex-row justify-between items-center"
+          >
+            <Text className={accountId ? "text-gray-800" : "text-gray-400"}>
+              {getAccountName(accountId) ?? "Select account..."}
+            </Text>
+            <ChevronDown size={16} color="#9ca3af" />
+          </TouchableOpacity>
+        </>
       )}
 
-      {/* Receipt Upload */}
-      <View className="flex-row justify-end">
-        <TouchableOpacity className="p-3 border border-brand-red rounded flex-row items-center justify-center space-x-2">
-          <Text className="text-brand-red font-medium">Receipt</Text>
-          <Camera size={16} color="#C62828" />
-        </TouchableOpacity>
+      {/* Amount */}
+      <Text className="text-sm font-medium text-gray-600 mb-1">Amount *</Text>
+      <TextInput
+        className="border border-gray-200 rounded-xl px-4 py-3 mb-4 text-gray-800 text-base"
+        value={amount}
+        onChangeText={setAmount}
+        keyboardType="decimal-pad"
+        placeholder="0.00"
+        placeholderTextColor="#9ca3af"
+      />
+
+      {/* Shift */}
+      <Text className="text-sm font-medium text-gray-600 mb-1">Shift</Text>
+      <View className="flex-row mb-4" style={{ gap: 8 }}>
+        {(["AM", "PM"] as ShiftEnum[]).map((s) => (
+          <TouchableOpacity
+            key={s}
+            onPress={() => setShift(s)}
+            className="flex-1 rounded-xl py-3 items-center"
+            style={{
+              backgroundColor: shift === s ? "#dbeafe" : "#f9fafb",
+              borderWidth: 2,
+              borderColor: shift === s ? "#2563eb" : "#e5e7eb",
+            }}
+          >
+            <Text
+              style={{
+                color: shift === s ? "#2563eb" : "#9ca3af",
+                fontWeight: "600",
+              }}
+            >
+              {s}
+            </Text>
+          </TouchableOpacity>
+        ))}
       </View>
 
+      {/* Reference */}
+      <Text className="text-sm font-medium text-gray-600 mb-1">
+        Reference <Text className="text-gray-400 font-normal">(optional)</Text>
+      </Text>
+      <TextInput
+        className="border border-gray-200 rounded-xl px-4 py-3 mb-4 text-gray-800"
+        value={reference}
+        onChangeText={setReference}
+        placeholder="Receipt no., voucher..."
+        placeholderTextColor="#9ca3af"
+      />
+
+      {/* Notes */}
+      <Text className="text-sm font-medium text-gray-600 mb-1">
+        Notes <Text className="text-gray-400 font-normal">(optional)</Text>
+      </Text>
+      <TextInput
+        className="border border-gray-200 rounded-xl px-4 py-3 mb-6 text-gray-800"
+        value={notes}
+        onChangeText={setNotes}
+        placeholder="Additional details..."
+        placeholderTextColor="#9ca3af"
+        multiline
+        numberOfLines={2}
+        textAlignVertical="top"
+      />
+
+      {/* Submit */}
       <TouchableOpacity
         onPress={handleSubmit}
-        disabled={isSubmitting}
-        className={`w-full mt-6 ${
-          isSubmitting ? "bg-gray-400" : "bg-brand-red"
-        } py-4 rounded-lg shadow-md items-center flex-row justify-center`}
+        disabled={isCreating}
+        className="rounded-xl py-4 items-center"
+        style={{ backgroundColor: isCreating ? "#d1d5db" : c.solid }}
       >
-        {isSubmitting ? (
+        {isCreating ? (
           <ActivityIndicator color="white" />
         ) : (
           <Text className="text-white font-bold text-base">
-            Save Transaction
+            {mode === "DEPOSIT"
+              ? "Record Deposit"
+              : mode === "WITHDRAW"
+                ? "Record Withdrawal"
+                : "Execute Float Transfer"}
           </Text>
         )}
       </TouchableOpacity>

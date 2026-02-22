@@ -35,6 +35,7 @@
 
   /* Sidebar */
   --sidebar-width: 260px;
+  --sidebar-collapsed-width: 68px;
   --sidebar-bg: linear-gradient(180deg, #dc2626 0%, #991b1b 100%);
 
   /* Spacing */
@@ -94,6 +95,11 @@ body {
   flex-direction: column;
   position: relative;
   overflow: hidden;
+  transition: margin-left 0.25s ease;
+}
+
+.content-area.sidebar-collapsed {
+  margin-left: var(--sidebar-collapsed-width);
 }
 
 /* Scrollable page container */
@@ -254,11 +260,67 @@ body {
   display: flex;
   flex-direction: column;
   box-shadow: 4px 0 20px rgba(0, 0, 0, 0.15);
+  transition: width 0.25s ease;
+  overflow: hidden;
+}
+
+.sidebar.collapsed {
+  width: var(--sidebar-collapsed-width);
+}
+
+.sidebar.collapsed .sidebar-brand {
+  display: none;
+}
+
+.sidebar.collapsed .sidebar-logo {
+  margin: 0;
+}
+
+.sidebar.collapsed .sidebar-nav {
+  padding: var(--space-md) 6px;
+}
+
+.sidebar.collapsed .nav-link {
+  justify-content: center;
+  gap: 0;
+  padding: 12px 0;
+}
+
+.sidebar.collapsed .sidebar-footer {
+  padding: var(--space-md) 6px;
+}
+
+.sidebar-collapse-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background-color: rgba(255, 255, 255, 0.15);
+  color: white;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.sidebar-collapse-btn:hover {
+  background-color: rgba(255, 255, 255, 0.3);
 }
 
 .sidebar-header {
   padding: var(--space-lg) var(--space-md);
   border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.sidebar.collapsed .sidebar-header {
+  justify-content: center;
+  padding: var(--space-lg) 0;
 }
 
 .sidebar-brand {
@@ -2192,7 +2254,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 9999;
   padding: 20px;
 }
 
@@ -4789,7 +4851,8 @@ body {
   border-color: var(--color-primary);
 }
 
-.modal-overlay {
+/* Dark overlay specifically for full-screen image viewer modals */
+.image-modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
@@ -4803,14 +4866,14 @@ body {
   cursor: pointer;
 }
 
-.modal-content {
+.image-modal-overlay .modal-content {
   position: relative;
   max-width: 90vw;
   max-height: 90vh;
   cursor: default;
 }
 
-.modal-close {
+.image-modal-overlay .modal-close {
   position: absolute;
   top: -50px;
   right: 0;
@@ -4826,7 +4889,7 @@ body {
   transition: background 0.2s;
 }
 
-.modal-close:hover {
+.image-modal-overlay .modal-close:hover {
   background: rgba(255, 255, 255, 0.3);
 }
 

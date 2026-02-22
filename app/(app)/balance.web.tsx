@@ -6,6 +6,7 @@ import {
   CheckCircle,
   RefreshCw,
   Calculator,
+  ArrowLeftRight,
 } from "lucide-react";
 import { useRouter } from "expo-router";
 import { useBalanceMenuScreen } from "../../hooks/screens/useBalanceMenuScreen";
@@ -27,15 +28,21 @@ export default function BalancePage() {
     hasPMBalances,
     hasAMCommissions,
     hasPMCommissions,
+    hasAMTransactions,
+    hasPMTransactions,
     hasSelectedCashCount,
     hasSelectedBalances,
     hasSelectedCommissions,
+    hasSelectedTransactions,
     selectedShiftTotal,
     selectedBalanceTotal,
     selectedCommissionTotal,
+    selectedTransactionCount,
+    selectedTransactionTotal,
     handleNavigateCashCount,
     handleNavigateAddBalance,
     handleNavigateCommissions,
+    handleNavigateTransactions,
     handleBack,
     handleRefresh,
     handleCalculate,
@@ -284,6 +291,62 @@ export default function BalancePage() {
               size={24}
               className={`balance-menu-arrow ${
                 hasSelectedCommissions ? "completed" : ""
+              }`}
+            />
+          </div>
+
+          {/* Record Transactions Card */}
+          <div
+            className={`balance-menu-card ${
+              hasSelectedTransactions ? "completed" : ""
+            }`}
+            onClick={handleNavigateTransactions}
+          >
+            <div
+              style={{
+                ...iconBase,
+                background: hasSelectedTransactions ? "#dcfce7" : "#e0e7ff",
+                color: hasSelectedTransactions ? "#16a34a" : "#4f46e5",
+              }}
+            >
+              {hasSelectedTransactions ? (
+                <CheckCircle size={32} />
+              ) : (
+                <ArrowLeftRight size={32} />
+              )}
+            </div>
+            <div className="balance-menu-content">
+              <div className="balance-menu-title-row">
+                <h3
+                  className={`balance-menu-title ${
+                    hasSelectedTransactions ? "completed" : ""
+                  }`}
+                >
+                  Record Transactions
+                </h3>
+                <div className="shift-badges">
+                  {hasAMTransactions && (
+                    <span className="shift-badge completed">AM</span>
+                  )}
+                  {hasPMTransactions && (
+                    <span className="shift-badge completed">PM</span>
+                  )}
+                </div>
+              </div>
+              <p
+                className={`balance-menu-description ${
+                  hasSelectedTransactions ? "completed" : ""
+                }`}
+              >
+                {hasSelectedTransactions
+                  ? `${selectedShift}: ${selectedTransactionCount} transaction${selectedTransactionCount !== 1 ? "s" : ""} (${formatCurrency(selectedTransactionTotal)})`
+                  : "Log deposits, withdrawals & float purchases"}
+              </p>
+            </div>
+            <ChevronRight
+              size={24}
+              className={`balance-menu-arrow ${
+                hasSelectedTransactions ? "completed" : ""
               }`}
             />
           </div>

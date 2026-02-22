@@ -10,18 +10,15 @@ import { useRouter, usePathname } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAppSelector } from "../store/hooks";
-import {
-  selectUserRole,
-  selectViewingAgencyId,
-} from "../store/slices/authSlice";
+import { selectViewingAgencyId } from "../store/slices/authSlice";
+import { useIsSuperAdmin } from "../hooks/useEffectiveRole";
 
 export default function BottomNav() {
   const router = useRouter();
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
-  const userRole = useAppSelector(selectUserRole);
+  const isSuperAdmin = useIsSuperAdmin();
   const viewingAgencyId = useAppSelector(selectViewingAgencyId);
-  const isSuperAdmin = userRole === "Super Administrator";
   const isViewingAgency = viewingAgencyId !== null;
 
   // Superadmin-only tabs (when NOT viewing an agency)
@@ -50,10 +47,10 @@ export default function BottomNav() {
       route: "/balance",
     },
     {
-      name: "Expenses",
-      icon: "receipt-outline",
-      activeIcon: "receipt",
-      route: "/expenses",
+      name: "Transactions",
+      icon: "swap-horizontal-outline",
+      activeIcon: "swap-horizontal",
+      route: "/transactions",
     },
     {
       name: "Profile",

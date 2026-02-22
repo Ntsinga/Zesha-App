@@ -14,6 +14,7 @@ import {
   ChevronRight,
   CheckCircle2,
   Calculator,
+  ArrowLeftRight,
 } from "lucide-react-native";
 import { useBalanceMenuScreen } from "../../hooks/screens/useBalanceMenuScreen";
 
@@ -33,15 +34,21 @@ export default function BalancePage() {
     hasPMBalances,
     hasAMCommissions,
     hasPMCommissions,
+    hasAMTransactions,
+    hasPMTransactions,
     hasSelectedCashCount,
     hasSelectedBalances,
     hasSelectedCommissions,
+    hasSelectedTransactions,
     selectedShiftTotal,
     selectedBalanceTotal,
     selectedCommissionTotal,
+    selectedTransactionCount,
+    selectedTransactionTotal,
     handleNavigateCashCount,
     handleNavigateAddBalance,
     handleNavigateCommissions,
+    handleNavigateTransactions,
     handleRefresh,
     handleCalculate,
   } = useBalanceMenuScreen();
@@ -318,6 +325,74 @@ export default function BalancePage() {
                   </View>
                   <ChevronRight
                     color={hasSelectedCommissions ? "#22C55E" : "#9CA3AF"}
+                    size={24}
+                  />
+                </View>
+              </TouchableOpacity>
+
+              {/* Record Transactions Option */}
+              <TouchableOpacity
+                onPress={handleNavigateTransactions}
+                style={{ borderRadius: 16 }}
+                className={`rounded-2xl p-5 shadow-sm ${
+                  hasSelectedTransactions
+                    ? "bg-green-50 border-2 border-green-500"
+                    : "bg-white border border-gray-100"
+                }`}
+              >
+                <View className="flex-row items-center">
+                  <View
+                    style={{ borderRadius: 12 }}
+                    className={`p-4 rounded-xl mr-4 ${
+                      hasSelectedTransactions ? "bg-green-100" : "bg-indigo-100"
+                    }`}
+                  >
+                    {hasSelectedTransactions ? (
+                      <CheckCircle2 color="#22C55E" size={32} />
+                    ) : (
+                      <ArrowLeftRight color="#4F46E5" size={32} />
+                    )}
+                  </View>
+                  <View className="flex-1">
+                    <View className="flex-row items-center flex-wrap">
+                      <Text
+                        className={`text-lg font-bold ${
+                          hasSelectedTransactions
+                            ? "text-green-700"
+                            : "text-gray-800"
+                        }`}
+                      >
+                        Record Transactions
+                      </Text>
+                      {hasAMTransactions && (
+                        <View className="ml-2 px-2 py-0.5 bg-green-500 rounded-full">
+                          <Text className="text-white text-xs font-bold">
+                            AM
+                          </Text>
+                        </View>
+                      )}
+                      {hasPMTransactions && (
+                        <View className="ml-2 px-2 py-0.5 bg-green-500 rounded-full">
+                          <Text className="text-white text-xs font-bold">
+                            PM
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                    <Text
+                      className={`text-sm mt-1 ${
+                        hasSelectedTransactions
+                          ? "text-green-600"
+                          : "text-gray-500"
+                      }`}
+                    >
+                      {hasSelectedTransactions
+                        ? `${selectedShift}: ${selectedTransactionCount} txn${selectedTransactionCount !== 1 ? "s" : ""} (${formatCurrency(selectedTransactionTotal)})`
+                        : "Log deposits, withdrawals & float purchases"}
+                    </Text>
+                  </View>
+                  <ChevronRight
+                    color={hasSelectedTransactions ? "#22C55E" : "#9CA3AF"}
                     size={24}
                   />
                 </View>

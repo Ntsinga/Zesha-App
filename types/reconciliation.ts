@@ -11,6 +11,7 @@ import type {
 import type { Balance } from "./balance";
 import type { Commission } from "./commission";
 import type { CashCount } from "./cashCount";
+import type { Transaction } from "./transaction";
 
 /**
  * Reconciliation history entry - simplified view for lists
@@ -45,6 +46,7 @@ export interface ReconciliationDetail {
   balances: Balance[];
   commissions: Commission[];
   cashCounts: CashCount[];
+  transactions?: Transaction[];
 }
 
 /**
@@ -196,6 +198,31 @@ export interface ReconciliationFinalizeParams {
   companyId: number;
   reconciledBy?: number;
   notes?: string;
+  forceWithDiscrepancies?: boolean;
+}
+
+/**
+ * Balance validation result from balance-validation endpoint
+ */
+export interface BalanceValidationResult {
+  balanceId: number;
+  accountId: number;
+  accountName: string;
+  snapshotAmount: number;
+  calculatedBalance: number;
+  variance: number;
+  validationStatus: string;
+  hasNotes: boolean;
+  discrepancyNotes?: string | null;
+}
+
+/**
+ * Parameters for fetching balance validation
+ */
+export interface BalanceValidationParams {
+  date: string;
+  shift: ShiftEnum;
+  companyId: number;
 }
 
 /**

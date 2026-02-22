@@ -11,11 +11,8 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import {
-  selectUserRole,
-  enterAgency,
-  selectViewingAgencyId,
-} from "@/store/slices/authSlice";
+import { enterAgency, selectViewingAgencyId } from "@/store/slices/authSlice";
+import { useIsSuperAdmin } from "@/hooks/useEffectiveRole";
 import {
   fetchCompanyInfoList,
   deleteCompanyInfo,
@@ -35,7 +32,7 @@ import {
 export default function AgenciesScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
-  const userRole = useAppSelector(selectUserRole);
+  const isSuperAdmin = useIsSuperAdmin();
   const viewingAgencyId = useAppSelector(selectViewingAgencyId);
   const {
     items: agencies,
@@ -45,8 +42,6 @@ export default function AgenciesScreen() {
 
   const [refreshing, setRefreshing] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
-
-  const isSuperAdmin = userRole === "Super Administrator";
 
   // Load agencies on mount
   useEffect(() => {

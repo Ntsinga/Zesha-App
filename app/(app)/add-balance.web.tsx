@@ -434,7 +434,7 @@ export default function AddBalanceWeb() {
 
       {/* Image Preview Modal */}
       {previewImage && (
-        <div className="modal-overlay" onClick={() => setPreviewImage(null)}>
+        <div className="image-modal-overlay" onClick={() => setPreviewImage(null)}>
           <div className="image-modal" onClick={(e) => e.stopPropagation()}>
             <button
               className="modal-close"

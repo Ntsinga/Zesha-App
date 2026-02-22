@@ -20,8 +20,8 @@ import NetInfo, {
 export interface NetworkStatus {
   /** Whether the device has an active network connection */
   isConnected: boolean;
-  /** Whether internet is actually reachable (not just connected to WiFi) */
-  isInternetReachable: boolean;
+  /** Whether internet is actually reachable (not just connected to WiFi). null = unknown */
+  isInternetReachable: boolean | null;
   /** Connection type (wifi, cellular, etc.) */
   connectionType: NetInfoStateType;
   /** Whether network status has been determined at least once */
@@ -30,7 +30,7 @@ export interface NetworkStatus {
 
 const defaultStatus: NetworkStatus = {
   isConnected: true, // Assume connected until proven otherwise
-  isInternetReachable: true,
+  isInternetReachable: null, // null = unknown, avoids false "offline" at startup
   connectionType: NetInfoStateType.unknown,
   isStatusKnown: false,
 };
@@ -52,8 +52,7 @@ export function useNetworkStatus(): NetworkStatus {
   const handleNetInfoChange = useCallback((state: NetInfoState) => {
     setStatus({
       isConnected: state.isConnected ?? true,
-      isInternetReachable:
-        state.isInternetReachable ?? state.isConnected ?? true,
+      isInternetReachable: state.isInternetReachable, // Keep null when unknown
       connectionType: state.type,
       isStatusKnown: true,
     });

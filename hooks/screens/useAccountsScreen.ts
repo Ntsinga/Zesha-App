@@ -37,6 +37,7 @@ export function useAccountsScreen() {
   const [name, setName] = useState("");
   const [accountType, setAccountType] = useState<AccountTypeEnum>("BANK");
   const [isActive, setIsActive] = useState(true);
+  const [initialBalance, setInitialBalance] = useState<string>("");
 
   useEffect(() => {
     dispatch(fetchAccounts({}));
@@ -52,6 +53,7 @@ export function useAccountsScreen() {
     setName("");
     setAccountType("BANK");
     setIsActive(true);
+    setInitialBalance("");
     setEditingAccount(null);
     setShowTypeDropdown(false);
   };
@@ -115,6 +117,7 @@ export function useAccountsScreen() {
             name: name.trim(),
             accountType: accountType,
             isActive: isActive,
+            ...(initialBalance ? { initialBalance: parseFloat(initialBalance) } : {}),
           }),
         ).unwrap();
 
@@ -227,6 +230,8 @@ export function useAccountsScreen() {
     setAccountType,
     isActive,
     setIsActive,
+    initialBalance,
+    setInitialBalance,
 
     // Stats
     stats,
