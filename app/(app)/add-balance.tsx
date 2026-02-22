@@ -15,6 +15,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   ArrowLeft,
   Camera,
@@ -773,6 +774,8 @@ export default function AddBalancePage() {
     );
   };
 
+  const insets = useSafeAreaInsets();
+
   const missingAccounts = getMissingAccounts();
 
   return (
@@ -840,7 +843,7 @@ export default function AddBalancePage() {
         {/* Entry List */}
         <ScrollView
           className="flex-1"
-          contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 20 }}
+          contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}
           showsVerticalScrollIndicator={false}
         >
           {entries.map((entry, index) => {
@@ -954,7 +957,10 @@ export default function AddBalancePage() {
         </ScrollView>
 
         {/* Total and Submit Button - Fixed at bottom */}
-        <View className="my-20 px-5 pb-6 pt-2 bg-gray-50">
+        <View
+          className="px-5 pt-3 bg-gray-50 border-t border-gray-200"
+          style={{ paddingBottom: insets.bottom + 70 }}
+        >
           {/* Total Display */}
           <View className="flex-row justify-between items-center mb-3 px-2">
             <Text className="text-gray-600 font-medium">

@@ -22,6 +22,7 @@ import {
   LogOut,
   Users,
   ChevronRight,
+  Receipt,
 } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { useDispatch, useSelector } from "react-redux";
@@ -487,6 +488,25 @@ export default function Settings() {
               <ChevronRight color="#9CA3AF" size={20} />
             </TouchableOpacity>
           )}
+
+          {/* Expenses */}
+          <TouchableOpacity
+            onPress={() => router.push("/expenses" as any)}
+            className="bg-white rounded-xl p-4 flex-row items-center justify-between mb-3 shadow-sm"
+          >
+            <View className="flex-row items-center">
+              <View className="bg-red-100 p-2 rounded-lg mr-3">
+                <Receipt color="#DC2626" size={20} />
+              </View>
+              <View>
+                <Text className="font-semibold text-gray-900">Expenses</Text>
+                <Text className="text-xs text-gray-500">
+                  View and record expenses
+                </Text>
+              </View>
+            </View>
+            <ChevronRight color="#9CA3AF" size={20} />
+          </TouchableOpacity>
 
           {/* Sign Out */}
           <TouchableOpacity

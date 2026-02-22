@@ -9,7 +9,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { Stack, useRouter, usePathname } from "expo-router";
-import { Building2, LogIn } from "lucide-react-native";
+import { Building2, LogOut } from "lucide-react-native";
 import { useAppSelector, useAppDispatch } from "../../store/hooks";
 import {
   selectViewingAgencyId,
@@ -67,11 +67,7 @@ export default function AppLayout() {
               style={styles.exitButton}
               onPress={handleExitAgency}
             >
-              <LogIn
-                size={14}
-                color="#fff"
-                style={{ transform: [{ scaleX: -1 }] }}
-              />
+              <LogOut size={14} color="#fff" />
               <Text style={styles.exitButtonText}>Exit</Text>
             </TouchableOpacity>
           </View>

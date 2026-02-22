@@ -225,158 +225,153 @@ export default function Expenses() {
       {/* Add/Edit Modal */}
       <Modal
         visible={isModalOpen}
-        transparent
         animationType="slide"
+        presentationStyle="pageSheet"
         onRequestClose={onCloseModal}
       >
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : "height"}
-          className="flex-1"
+          className="flex-1 bg-white"
         >
-          <TouchableOpacity
-            style={{ flex: 1 }}
-            activeOpacity={1}
-            onPress={onCloseModal}
-            className="bg-black/50 justify-end"
-          >
-            <TouchableOpacity activeOpacity={1} onPress={() => {}}>
-              <View className="bg-white rounded-t-3xl p-6 max-h-[85%]">
-                {/* Modal Header */}
-                <View className="flex-row justify-between items-center mb-6">
-                  <Text className="text-xl font-bold text-gray-800">
-                    {editingExpense ? "Edit Expense" : "Add Expense"}
-                  </Text>
-                  <TouchableOpacity onPress={onCloseModal}>
-                    <X color="#6B7280" size={24} />
-                  </TouchableOpacity>
-                </View>
-
-                <ScrollView showsVerticalScrollIndicator={false}>
-                  {/* Name Input */}
-                  <View className="mb-4">
-                    <Text className="text-gray-700 font-semibold mb-2">
-                      Name *
-                    </Text>
-                    <TextInput
-                      value={name}
-                      onChangeText={setName}
-                      placeholder="e.g., Office Rent"
-                      className="bg-gray-50 rounded-xl px-4 py-3 text-gray-800 border border-gray-200"
-                    />
-                  </View>
-
-                  {/* Amount Input */}
-                  <View className="mb-4">
-                    <Text className="text-gray-700 font-semibold mb-2">
-                      Amount *
-                    </Text>
-                    <TextInput
-                      value={amount}
-                      onChangeText={setAmount}
-                      placeholder="0.00"
-                      keyboardType="decimal-pad"
-                      className="bg-gray-50 rounded-xl px-4 py-3 text-gray-800 border border-gray-200 text-lg"
-                    />
-                  </View>
-
-                  {/* Date Input */}
-                  <View className="mb-4">
-                    <Text className="text-gray-700 font-semibold mb-2">
-                      Date
-                    </Text>
-                    <View className="flex-row items-center bg-gray-50 rounded-xl px-4 py-3 border border-gray-200">
-                      <Calendar color="#6B7280" size={20} />
-                      <TextInput
-                        value={expenseDate}
-                        onChangeText={setExpenseDate}
-                        placeholder="YYYY-MM-DD"
-                        className="flex-1 ml-2 text-gray-800"
-                      />
-                    </View>
-                  </View>
-
-                  {/* Category Picker */}
-                  <View className="mb-4">
-                    <Text className="text-gray-700 font-semibold mb-2">
-                      Category
-                    </Text>
-                    <TouchableOpacity
-                      onPress={() => setShowCategoryPicker(!showCategoryPicker)}
-                      className="bg-gray-50 rounded-xl px-4 py-3 border border-gray-200 flex-row justify-between items-center"
-                    >
-                      <View className="flex-row items-center">
-                        <Tag color="#6B7280" size={20} />
-                        <Text
-                          className={`ml-2 ${
-                            category ? "text-gray-800" : "text-gray-400"
-                          }`}
-                        >
-                          {category || "Select category"}
-                        </Text>
-                      </View>
-                      <Text className="text-gray-400">▼</Text>
-                    </TouchableOpacity>
-
-                    {showCategoryPicker && (
-                      <View className="bg-white border border-gray-200 rounded-xl mt-2">
-                        {EXPENSE_CATEGORIES.map((cat) => (
-                          <TouchableOpacity
-                            key={cat}
-                            onPress={() => {
-                              setCategory(cat);
-                              setShowCategoryPicker(false);
-                            }}
-                            className={`px-4 py-3 border-b border-gray-100 ${
-                              category === cat ? "bg-red-50" : ""
-                            }`}
-                          >
-                            <Text
-                              className={`${
-                                category === cat
-                                  ? "text-brand-red font-bold"
-                                  : "text-gray-700"
-                              }`}
-                            >
-                              {cat}
-                            </Text>
-                          </TouchableOpacity>
-                        ))}
-                      </View>
-                    )}
-                  </View>
-
-                  {/* Description Input */}
-                  <View className="mb-6">
-                    <Text className="text-gray-700 font-semibold mb-2">
-                      Description
-                    </Text>
-                    <View className="flex-row items-start bg-gray-50 rounded-xl px-4 py-3 border border-gray-200">
-                      <FileText color="#6B7280" size={20} />
-                      <TextInput
-                        value={description}
-                        onChangeText={setDescription}
-                        placeholder="Optional notes..."
-                        multiline
-                        numberOfLines={3}
-                        textAlignVertical="top"
-                        className="flex-1 ml-2 text-gray-800 min-h-[60px]"
-                      />
-                    </View>
-                  </View>
-
-                  {/* Submit Button */}
-                  <TouchableOpacity
-                    onPress={onSubmit}
-                    className="bg-brand-red py-4 rounded-xl items-center mb-4"
-                  >
-                    <Text className="text-white font-bold text-base">
-                      {editingExpense ? "Update Expense" : "Add Expense"}
-                    </Text>
-                  </TouchableOpacity>
-                </ScrollView>
-              </View>
+          {/* Modal Header */}
+          <View className="flex-row items-center justify-between px-5 pt-4 pb-3 border-b border-gray-200">
+            <TouchableOpacity onPress={onCloseModal} className="p-2">
+              <X color="#6B7280" size={24} />
             </TouchableOpacity>
-          </TouchableOpacity>
+            <Text className="text-lg font-bold text-gray-800">
+              {editingExpense ? "Edit Expense" : "Add Expense"}
+            </Text>
+            <TouchableOpacity
+              onPress={onSubmit}
+              className="bg-brand-red px-4 py-2 rounded-xl"
+            >
+              <Text className="text-white font-semibold">
+                {editingExpense ? "Update" : "Add"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView
+            className="flex-1"
+            contentContainerStyle={{ padding: 20, paddingBottom: 40 }}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            {/* Name Input */}
+            <View className="mb-4">
+              <Text className="text-gray-700 font-semibold mb-2">Name *</Text>
+              <TextInput
+                value={name}
+                onChangeText={setName}
+                placeholder="e.g., Office Rent"
+                autoFocus
+                className="bg-gray-50 rounded-xl px-4 py-3 text-gray-800 border border-gray-200"
+              />
+            </View>
+
+            {/* Amount Input */}
+            <View className="mb-4">
+              <Text className="text-gray-700 font-semibold mb-2">Amount *</Text>
+              <TextInput
+                value={amount}
+                onChangeText={setAmount}
+                placeholder="0.00"
+                keyboardType="decimal-pad"
+                className="bg-gray-50 rounded-xl px-4 py-3 text-gray-800 border border-gray-200 text-lg"
+              />
+            </View>
+
+            {/* Category Picker */}
+            <View className="mb-4">
+              <Text className="text-gray-700 font-semibold mb-2">Category</Text>
+              <TouchableOpacity
+                onPress={() => setShowCategoryPicker(!showCategoryPicker)}
+                className="bg-gray-50 rounded-xl px-4 py-3 border border-gray-200 flex-row justify-between items-center"
+              >
+                <View className="flex-row items-center">
+                  <Tag color="#6B7280" size={20} />
+                  <Text
+                    className={`ml-2 ${
+                      category ? "text-gray-800" : "text-gray-400"
+                    }`}
+                  >
+                    {category || "Select category"}
+                  </Text>
+                </View>
+                <Text className="text-gray-400">▼</Text>
+              </TouchableOpacity>
+
+              {showCategoryPicker && (
+                <View className="bg-white border border-gray-200 rounded-xl mt-2">
+                  {EXPENSE_CATEGORIES.map((cat) => (
+                    <TouchableOpacity
+                      key={cat}
+                      onPress={() => {
+                        setCategory(cat);
+                        setShowCategoryPicker(false);
+                      }}
+                      className={`px-4 py-3 border-b border-gray-100 ${
+                        category === cat ? "bg-red-50" : ""
+                      }`}
+                    >
+                      <Text
+                        className={`${
+                          category === cat
+                            ? "text-brand-red font-bold"
+                            : "text-gray-700"
+                        }`}
+                      >
+                        {cat}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+            </View>
+
+            {/* Date Input */}
+            <View className="mb-4">
+              <Text className="text-gray-700 font-semibold mb-2">Date</Text>
+              <View className="flex-row items-center bg-gray-50 rounded-xl px-4 py-3 border border-gray-200">
+                <Calendar color="#6B7280" size={20} />
+                <TextInput
+                  value={expenseDate}
+                  onChangeText={setExpenseDate}
+                  placeholder="YYYY-MM-DD"
+                  className="flex-1 ml-2 text-gray-800"
+                />
+              </View>
+            </View>
+
+            {/* Description Input */}
+            <View className="mb-6">
+              <Text className="text-gray-700 font-semibold mb-2">
+                Description
+              </Text>
+              <View className="flex-row items-start bg-gray-50 rounded-xl px-4 py-3 border border-gray-200">
+                <FileText color="#6B7280" size={20} />
+                <TextInput
+                  value={description}
+                  onChangeText={setDescription}
+                  placeholder="Optional notes..."
+                  multiline
+                  numberOfLines={3}
+                  textAlignVertical="top"
+                  className="flex-1 ml-2 text-gray-800 min-h-[60px]"
+                />
+              </View>
+            </View>
+
+            {/* Submit Button */}
+            <TouchableOpacity
+              onPress={onSubmit}
+              className="bg-brand-red py-4 rounded-xl items-center mb-4"
+            >
+              <Text className="text-white font-bold text-base">
+                {editingExpense ? "Update Expense" : "Add Expense"}
+              </Text>
+            </TouchableOpacity>
+          </ScrollView>
         </KeyboardAvoidingView>
       </Modal>
 
