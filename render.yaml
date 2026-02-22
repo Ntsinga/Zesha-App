@@ -1,7 +1,7 @@
 services:
   - type: web
     name: zesha-app
-    buildCommand: npx expo export:web
+    buildCommand: npx expo export --platform web
     staticPublishPath: ./dist
     routes:
       - type: rewrite
