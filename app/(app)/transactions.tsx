@@ -6,39 +6,71 @@ import {
   TouchableOpacity,
   RefreshControl,
 } from "react-native";
-import { Plus, Filter } from "lucide-react-native";
+import { Plus, SlidersHorizontal } from "lucide-react-native";
 import { useDispatch, useSelector } from "react-redux";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ActionModal, AddTransactionForm } from "../../components/ActionModal";
 import { fetchTransactions } from "../../store/slices/transactionsSlice";
+import { fetchAccounts } from "../../store/slices/accountsSlice";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { formatDate } from "../../utils/formatters";
 import { useCurrencyFormatter } from "../../hooks/useCurrency";
 import type { AppDispatch, RootState } from "../../store";
-import type { TransactionRecord as Transaction } from "../../types";
+import type {
+  TransactionRecord as Transaction,
+  TransactionTypeEnum,
+  ShiftEnum,
+} from "../../types";
+import type { Account } from "../../types";
+
+type TypeFilter = "ALL" | TransactionTypeEnum;
+type ShiftFilter = "ALL" | ShiftEnum;
 
 export default function Transactions() {
   const dispatch = useDispatch<AppDispatch>();
   const { formatCurrency } = useCurrencyFormatter();
+  const insets = useSafeAreaInsets();
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const {
-    items: transactions,
-    isLoading,
-    error,
-  } = useSelector((state: RootState) => state.transactions);
+  const [showFilters, setShowFilters] = useState(false);
+  const [filterType, setFilterType] = useState<TypeFilter>("ALL");
+  const [filterShift, setFilterShift] = useState<ShiftFilter>("ALL");
+  const [filterAccountId, setFilterAccountId] = useState<number | undefined>(
+    undefined,
+  );
+  const { items: transactions, isLoading } = useSelector(
+    (state: RootState) => state.transactions,
+  );
+  const accounts = useSelector((state: RootState) => state.accounts.items);
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    dispatch(fetchTransactions());
+    dispatch(fetchAccounts({}));
   }, [dispatch]);
+
+  const buildFilters = () => ({
+    transactionType:
+      filterType !== "ALL" ? (filterType as TransactionTypeEnum) : undefined,
+    shift: filterShift !== "ALL" ? (filterShift as ShiftEnum) : undefined,
+    accountId: filterAccountId,
+  });
+
+  useEffect(() => {
+    dispatch(fetchTransactions(buildFilters()));
+  }, [dispatch, filterType, filterShift, filterAccountId]);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await dispatch(fetchTransactions());
+    await dispatch(fetchTransactions(buildFilters()));
     setRefreshing(false);
   };
 
+  const activeFilterCount =
+    (filterType !== "ALL" ? 1 : 0) +
+    (filterShift !== "ALL" ? 1 : 0) +
+    (filterAccountId !== undefined ? 1 : 0);
+
   const handleFormSuccess = () => {
-    dispatch(fetchTransactions());
+    dispatch(fetchTransactions(buildFilters()));
   };
 
   if (isLoading && !refreshing) {
@@ -59,11 +91,179 @@ export default function Transactions() {
           </Text>
         </View>
 
-        <View className="flex-row justify-end items-center mb-4">
-          <TouchableOpacity className="p-2 bg-white rounded-lg border border-gray-200">
-            <Filter size={20} color="#9CA3AF" />
+        {/* Filter row */}
+        <View className="flex-row justify-between items-center mb-3">
+          <Text className="text-sm text-gray-500">
+            {transactions.length} transaction
+            {transactions.length !== 1 ? "s" : ""}
+            {activeFilterCount > 0
+              ? ` · ${activeFilterCount} filter${activeFilterCount > 1 ? "s" : ""} active`
+              : ""}
+          </Text>
+          <TouchableOpacity
+            onPress={() => setShowFilters(!showFilters)}
+            className="flex-row items-center gap-1 px-3 py-1.5 rounded-lg border"
+            style={{
+              backgroundColor:
+                showFilters || activeFilterCount > 0 ? "#FEF2F2" : "#FFFFFF",
+              borderColor:
+                showFilters || activeFilterCount > 0 ? "#DC2626" : "#E5E7EB",
+            }}
+          >
+            <SlidersHorizontal
+              size={16}
+              color={
+                showFilters || activeFilterCount > 0 ? "#DC2626" : "#9CA3AF"
+              }
+            />
+            <Text
+              className="text-xs font-medium ml-1"
+              style={{
+                color:
+                  showFilters || activeFilterCount > 0 ? "#DC2626" : "#6B7280",
+              }}
+            >
+              Filters
+            </Text>
           </TouchableOpacity>
         </View>
+
+        {/* Collapsible filter panel */}
+        {showFilters && (
+          <View className="bg-white rounded-2xl border border-gray-100 p-4 mb-4 shadow-sm">
+            {/* Transaction type */}
+            <Text className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+              Type
+            </Text>
+            <View className="flex-row flex-wrap gap-2 mb-4">
+              {(
+                ["ALL", "DEPOSIT", "WITHDRAW", "FLOAT_PURCHASE"] as TypeFilter[]
+              ).map((t) => (
+                <TouchableOpacity
+                  key={t}
+                  onPress={() => setFilterType(t)}
+                  className="px-3 py-1.5 rounded-full border"
+                  style={{
+                    backgroundColor: filterType === t ? "#DC2626" : "#F9FAFB",
+                    borderColor: filterType === t ? "#DC2626" : "#E5E7EB",
+                  }}
+                >
+                  <Text
+                    className="text-xs font-medium"
+                    style={{ color: filterType === t ? "#FFFFFF" : "#374151" }}
+                  >
+                    {t === "ALL"
+                      ? "All"
+                      : t === "FLOAT_PURCHASE"
+                        ? "Float"
+                        : t[0] + t.slice(1).toLowerCase()}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* Shift */}
+            <Text className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+              Shift
+            </Text>
+            <View className="flex-row gap-2 mb-4">
+              {(["ALL", "AM", "PM"] as ShiftFilter[]).map((s) => (
+                <TouchableOpacity
+                  key={s}
+                  onPress={() => setFilterShift(s)}
+                  className="px-4 py-1.5 rounded-full border"
+                  style={{
+                    backgroundColor: filterShift === s ? "#DC2626" : "#F9FAFB",
+                    borderColor: filterShift === s ? "#DC2626" : "#E5E7EB",
+                  }}
+                >
+                  <Text
+                    className="text-xs font-medium"
+                    style={{ color: filterShift === s ? "#FFFFFF" : "#374151" }}
+                  >
+                    {s === "ALL" ? "All Shifts" : s}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* Account */}
+            <Text className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+              Account
+            </Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              className="-mx-1"
+            >
+              <View className="flex-row gap-2 px-1 pb-1">
+                <TouchableOpacity
+                  onPress={() => setFilterAccountId(undefined)}
+                  className="px-3 py-1.5 rounded-full border"
+                  style={{
+                    backgroundColor:
+                      filterAccountId === undefined ? "#DC2626" : "#F9FAFB",
+                    borderColor:
+                      filterAccountId === undefined ? "#DC2626" : "#E5E7EB",
+                  }}
+                >
+                  <Text
+                    className="text-xs font-medium"
+                    style={{
+                      color:
+                        filterAccountId === undefined ? "#FFFFFF" : "#374151",
+                    }}
+                  >
+                    All
+                  </Text>
+                </TouchableOpacity>
+                {accounts.map((acc) => (
+                  <TouchableOpacity
+                    key={acc.id}
+                    onPress={() =>
+                      setFilterAccountId(
+                        filterAccountId === acc.id ? undefined : acc.id,
+                      )
+                    }
+                    className="px-3 py-1.5 rounded-full border"
+                    style={{
+                      backgroundColor:
+                        filterAccountId === acc.id ? "#DC2626" : "#F9FAFB",
+                      borderColor:
+                        filterAccountId === acc.id ? "#DC2626" : "#E5E7EB",
+                    }}
+                  >
+                    <Text
+                      className="text-xs font-medium"
+                      style={{
+                        color:
+                          filterAccountId === acc.id ? "#FFFFFF" : "#374151",
+                      }}
+                    >
+                      {acc.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </ScrollView>
+
+            {/* Clear filters */}
+            {activeFilterCount > 0 && (
+              <TouchableOpacity
+                onPress={() => {
+                  setFilterType("ALL");
+                  setFilterShift("ALL");
+                  setFilterAccountId(undefined);
+                }}
+                className="mt-3 self-end"
+              >
+                <Text className="text-xs text-red-500 font-medium">
+                  Clear filters
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
 
         <View className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
           <Text className="text-lg font-bold text-brand-red mb-4">
@@ -126,8 +326,9 @@ export default function Transactions() {
       {/* FAB */}
       <TouchableOpacity
         onPress={() => setIsModalOpen(true)}
-        className="absolute bottom-32 right-5 w-14 h-14 bg-brand-red rounded-full items-center justify-center"
+        className="absolute right-5 w-14 h-14 bg-brand-red rounded-full items-center justify-center"
         style={{
+          bottom: insets.bottom + 80,
           elevation: 8,
           shadowColor: "#DC2626",
           shadowOffset: { width: 0, height: 4 },
