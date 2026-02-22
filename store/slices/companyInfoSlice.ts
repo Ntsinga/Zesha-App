@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import { CompanyInfo, CompanyInfoCreate, CompanyInfoUpdate } from "../../types";
-import { mapApiResponse } from "../../types";
+import { mapApiResponse, mapApiRequest } from "../../types";
 import { API_ENDPOINTS, buildQueryString } from "../../config/api";
 import { secureApiRequest } from "../../services/secureApi";
 import type { RootState } from "../index";
@@ -107,7 +107,7 @@ export const createCompanyInfo = createAsyncThunk(
         API_ENDPOINTS.companyInfo.create,
         {
           method: "POST",
-          body: JSON.stringify(data),
+          body: JSON.stringify(mapApiRequest(data)),
         },
       );
       return company;
@@ -132,7 +132,7 @@ export const updateCompanyInfo = createAsyncThunk(
         API_ENDPOINTS.companyInfo.update(id),
         {
           method: "PATCH",
-          body: JSON.stringify(data),
+          body: JSON.stringify(mapApiRequest(data)),
         },
       );
       return company;

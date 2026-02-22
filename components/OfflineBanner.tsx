@@ -74,6 +74,11 @@ export default function OfflineBanner() {
     }
   };
 
+  // Clean up all timers on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => clearTimers();
+  }, []);
+
   // Single effect — debounce handled via the cleanup return value
   useEffect(() => {
     if (!isStatusKnown) return;

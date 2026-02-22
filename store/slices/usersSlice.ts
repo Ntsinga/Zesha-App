@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
-import { UserInviteRequest, UserInviteResponse } from "../../types";
+import { UserInviteRequest, UserInviteResponse, mapApiRequest } from "../../types";
 import { secureApiRequest } from "../../services/secureApi";
 
 export interface UsersState {
@@ -31,7 +31,7 @@ export const inviteUser = createAsyncThunk(
     try {
       const response = await apiRequest<UserInviteResponse>("/users/invite", {
         method: "POST",
-        body: JSON.stringify(inviteData),
+        body: JSON.stringify(mapApiRequest(inviteData)),
       });
       return response;
     } catch (error) {

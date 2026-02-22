@@ -8,6 +8,7 @@ import type {
 import { mapApiResponse, mapApiRequest, buildTypedQueryString } from "@/types";
 import { API_ENDPOINTS } from "@/config/api";
 import { secureApiRequest } from "@/services/secureApi";
+import { enterAgency, exitAgency } from "./authSlice";
 import { isDeviceOffline } from "@/utils/offlineCheck";
 import type { RootState } from "../index";
 
@@ -292,6 +293,15 @@ const expensesSlice = createSlice({
       })
       .addCase(deleteExpense.rejected, (state, action) => {
         state.error = action.payload as string;
+      });
+
+    // Invalidate cache when SuperAdmin switches agencies
+    builder
+      .addCase(enterAgency, (state) => {
+        state.lastFetched = null;
+      })
+      .addCase(exitAgency, (state) => {
+        state.lastFetched = null;
       });
   },
 });
