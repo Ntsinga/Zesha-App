@@ -7,7 +7,7 @@
 export type ShiftEnum = "AM" | "PM";
 
 // Data source tracking
-export type SourceEnum = "whatsapp" | "mobile_app" | "manual";
+export type SourceEnum = "whatsapp" | "mobile_app" | "manual" | "system";
 
 // Account categories
 export type AccountTypeEnum = "BANK" | "TELECOM";
