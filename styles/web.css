@@ -4092,7 +4092,7 @@ body {
   flex: 1;
   background: white;
   display: flex;
-  align-items: center;
+  align-items: flex-start; /* flex-start prevents top clipping when content overflows */
   justify-content: center;
   padding: 60px 40px;
   min-height: 100vh;
@@ -4103,6 +4103,7 @@ body {
   width: 100%;
   max-width: 480px;
   padding: 0 20px;
+  margin: 0 auto; /* horizontal centering only — vertical auto would clip tall content at top */
 }
 
 .auth-form-header {
