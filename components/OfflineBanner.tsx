@@ -11,49 +11,29 @@ import React, { useEffect, useRef, useState } from "react";
 import { Animated, Text, View, StyleSheet } from "react-native";
 import { useNetworkContext } from "@/hooks/useNetworkStatus";
 
-const SHOW_DURATION = 4000; // Show for 4 seconds
-const RECONNECT_SHOW_DURATION = 2500; // Show "back online" for 2.5 seconds
-const RE_SHOW_INTERVAL = 30000; // Re-show every 30s if still offline
-const DEBOUNCE_MS = 3000; // Wait 3s before declaring offline (avoids startup flicker)
+const OFFLINE_DURATION = 4000; // Show offline toast for 4s
+const ONLINE_DURATION = 2500; // Show "back online" toast for 2.5s
+const RESHOW_INTERVAL = 30000; // Re-show every 30s while still offline
+const DEBOUNCE_MS = 3000; // Wait 3s before declaring offline
 
-type ToastMode = "offline" | "online" | null;
+type ToastMode = "offline" | "online";
 
 export default function OfflineBanner() {
   const { isConnected, isInternetReachable, isStatusKnown } =
     useNetworkContext();
-  const slideAnim = useRef(new Animated.Value(80)).current; // Start below screen
+  const slideAnim = useRef(new Animated.Value(80)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
-  const [isOfflineConfirmed, setIsOfflineConfirmed] = useState(false);
-  const [toastMode, setToastMode] = useState<ToastMode>(null);
-  const wasOfflineRef = useRef(false); // Track if we were previously offline
-  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const reShowTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [toastMode, setToastMode] = useState<ToastMode>("offline");
 
-  // Determine true offline: not connected OR connected to WiFi but no internet
+  // All mutable state lives in refs so closures inside timers always read current values
+  const wasOfflineRef = useRef(false);
+  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reshowIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   const actuallyOffline =
     isStatusKnown && (!isConnected || isInternetReachable === false);
 
-  // Debounce the offline state to avoid false positives at startup
-  useEffect(() => {
-    if (debounceTimer.current) clearTimeout(debounceTimer.current);
-
-    if (actuallyOffline) {
-      debounceTimer.current = setTimeout(() => {
-        setIsOfflineConfirmed(true);
-      }, DEBOUNCE_MS);
-    } else {
-      setIsOfflineConfirmed(false);
-    }
-
-    return () => {
-      if (debounceTimer.current) clearTimeout(debounceTimer.current);
-    };
-  }, [actuallyOffline]);
-
-  // Show/hide the toast
-  const showToast = (duration: number = SHOW_DURATION) => {
-    // Slide up + fade in
+  const slideIn = () => {
     Animated.parallel([
       Animated.timing(slideAnim, {
         toValue: 0,
@@ -66,13 +46,9 @@ export default function OfflineBanner() {
         useNativeDriver: true,
       }),
     ]).start();
-
-    // Auto-hide after duration
-    if (hideTimer.current) clearTimeout(hideTimer.current);
-    hideTimer.current = setTimeout(hideToast, duration);
   };
 
-  const hideToast = () => {
+  const slideOut = () => {
     Animated.parallel([
       Animated.timing(slideAnim, {
         toValue: 80,
@@ -87,38 +63,53 @@ export default function OfflineBanner() {
     ]).start();
   };
 
-  useEffect(() => {
-    if (isOfflineConfirmed) {
-      // Going offline
-      wasOfflineRef.current = true;
-      setToastMode("offline");
-      showToast();
+  const clearTimers = () => {
+    if (hideTimerRef.current) {
+      clearTimeout(hideTimerRef.current);
+      hideTimerRef.current = null;
+    }
+    if (reshowIntervalRef.current) {
+      clearInterval(reshowIntervalRef.current);
+      reshowIntervalRef.current = null;
+    }
+  };
 
-      // Re-show periodically while still offline
-      reShowTimer.current = setInterval(() => {
-        showToast();
-      }, RE_SHOW_INTERVAL);
+  // Single effect — debounce handled via the cleanup return value
+  useEffect(() => {
+    if (!isStatusKnown) return;
+
+    if (actuallyOffline) {
+      // Start debounce. If the device comes back online before 3 s, the
+      // cleanup cancels this timer — no toast is ever shown.
+      const debounceTimer = setTimeout(() => {
+        wasOfflineRef.current = true;
+        clearTimers();
+        setToastMode("offline");
+        slideIn();
+        hideTimerRef.current = setTimeout(slideOut, OFFLINE_DURATION);
+
+        // Re-show periodically while still offline
+        reshowIntervalRef.current = setInterval(() => {
+          if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+          slideIn();
+          hideTimerRef.current = setTimeout(slideOut, OFFLINE_DURATION);
+        }, RESHOW_INTERVAL);
+      }, DEBOUNCE_MS);
+
+      return () => clearTimeout(debounceTimer);
     } else {
-      // Clear offline re-show interval
-      if (reShowTimer.current) clearInterval(reShowTimer.current);
-      if (hideTimer.current) clearTimeout(hideTimer.current);
+      // Device is (back) online
+      clearTimers();
 
       if (wasOfflineRef.current) {
-        // Was offline, now back online — show "Back online" toast
+        // Confirmed back online after a real offline period
         wasOfflineRef.current = false;
         setToastMode("online");
-        showToast(RECONNECT_SHOW_DURATION);
-      } else {
-        // Never was offline (initial state) — just hide
-        hideToast();
+        slideIn();
+        hideTimerRef.current = setTimeout(slideOut, ONLINE_DURATION);
       }
     }
-
-    return () => {
-      if (reShowTimer.current) clearInterval(reShowTimer.current);
-      if (hideTimer.current) clearTimeout(hideTimer.current);
-    };
-  }, [isOfflineConfirmed]);
+  }, [actuallyOffline, isStatusKnown]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!isStatusKnown) return null;
 

@@ -51,7 +51,22 @@ export const fetchCompanyInfoList = createAsyncThunk<
         return rejectWithValue("No companyId found. Please log in again.");
       }
 
-      const query = buildQueryString({ ...params, company_id: companyId });
+      const role = state.auth.user?.role;
+      const isSuperAdmin = role === "Super Administrator";
+      const isViewingSpecificAgency = !!state.auth.viewingAgencyId;
+
+      // The list endpoint (GET /company-info/) is Super Admin only and does NOT
+      // filter by company_id. Regular users and super admins viewing a specific
+      // agency must use the single-item endpoint GET /company-info/{id}.
+      if (!isSuperAdmin || isViewingSpecificAgency) {
+        const company = await apiRequest<CompanyInfo>(
+          API_ENDPOINTS.companyInfo.get(companyId),
+        );
+        return [company];
+      }
+
+      // Super admin with no specific agency in view — fetch the full list
+      const query = buildQueryString({ ...params });
       const companies = await apiRequest<CompanyInfo[]>(
         `${API_ENDPOINTS.companyInfo.list}${query}`,
       );
