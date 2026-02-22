@@ -60,6 +60,11 @@ export default function Settings() {
     error,
   } = useSelector((state: RootState) => state.companyInfo);
 
+  // Fallback: use dashboard companyInfo if companyInfoSlice has no items yet
+  const dashboardCompanyInfo = useSelector(
+    (state: RootState) => state.dashboard.companyInfo ?? undefined,
+  );
+
   const effectiveRole = useEffectiveRole();
   const isAdmin =
     effectiveRole === "Administrator" ||
@@ -82,8 +87,8 @@ export default function Settings() {
   const [emails, setEmails] = useState<string[]>([]);
   const [newEmail, setNewEmail] = useState("");
 
-  // Get the first company (assuming single company setup)
-  const company: CompanyInfo | undefined = companies[0];
+  // Get the first company - fall back to dashboard companyInfo if slice is empty
+  const company: CompanyInfo | undefined = companies[0] ?? dashboardCompanyInfo;
 
   useEffect(() => {
     dispatch(fetchCompanyInfoList({}));

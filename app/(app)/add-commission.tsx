@@ -1,0 +1,1166 @@
+import React, { useState, useEffect } from "react";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+  Alert,
+  Image,
+  Modal,
+  FlatList,
+  ActivityIndicator,
+} from "react-native";
+import { useRouter, useLocalSearchParams } from "expo-router";
+import {
+  ArrowLeft,
+  Camera,
+  Save,
+  Plus,
+  X,
+  Image as ImageIcon,
+  ChevronDown,
+  Check,
+  AlertTriangle,
+  CheckCircle,
+} from "lucide-react-native";
+import { useDispatch, useSelector } from "react-redux";
+import * as ImagePicker from "expo-image-picker";
+import {
+  createCommissionsBulk,
+  updateCommissionsBulk,
+  fetchCommissions,
+  saveDraftEntries,
+  clearDraftEntries,
+} from "../../store/slices/commissionsSlice";
+import { fetchDashboard } from "../../store/slices/dashboardSlice";
+import { fetchAccounts } from "../../store/slices/accountsSlice";
+import {
+  extractBalanceFromImage,
+  validateBalance,
+  BalanceValidationResult,
+} from "../../services/balanceExtractor";
+import * as FileSystem from "expo-file-system/legacy";
+import type { AppDispatch, RootState } from "../../store";
+import type { ShiftEnum, CommissionCreate, Account } from "../../types";
+import { useCurrencyFormatter } from "../../hooks/useCurrency";
+
+interface CommissionEntry {
+  id: string;
+  accountId: number | null;
+  accountName: string;
+  shift: ShiftEnum;
+  amount: string;
+  imageUrl: string;
+  extractedBalance: number | null;
+  isExtracting: boolean;
+  validationResult: BalanceValidationResult | null;
+}
+
+const createEmptyEntry = (): CommissionEntry => ({
+  id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+  accountId: null,
+  accountName: "",
+  shift: "AM",
+  amount: "",
+  imageUrl: "",
+  extractedBalance: null,
+  isExtracting: false,
+  validationResult: null,
+});
+
+export default function AddCommissionPage() {
+  const router = useRouter();
+  const dispatch = useDispatch<AppDispatch>();
+  const { formatCurrency } = useCurrencyFormatter();
+  const params = useLocalSearchParams();
+  const currentShift: ShiftEnum = (params.shift as ShiftEnum) || "AM";
+
+  const { user } = useSelector((state: RootState) => state.auth);
+  const companyId = user?.companyId;
+
+  const { items: accounts, isLoading: accountsLoading } = useSelector(
+    (state: RootState) => state.accounts,
+  );
+  const { items: commissions, draftEntries } = useSelector(
+    (state: RootState) => state.commissions,
+  );
+
+  const [entries, setEntries] = useState<CommissionEntry[]>([
+    createEmptyEntry(),
+  ]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState<Record<string, Record<string, string>>>(
+    {},
+  );
+  const [accountPickerVisible, setAccountPickerVisible] = useState<
+    string | null
+  >(null);
+  const [isInitialized, setIsInitialized] = useState(false);
+  const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
+
+  const today = new Date().toISOString().split("T")[0];
+
+  useEffect(() => {
+    dispatch(fetchAccounts({ isActive: true, forceRefresh: true }));
+    dispatch(
+      fetchCommissions({ dateFrom: today, dateTo: today, forceRefresh: true }),
+    );
+  }, [dispatch, today]);
+
+  useEffect(() => {
+    if (isInitialized || accountsLoading) return;
+
+    const shiftCommissions = commissions.filter(
+      (com) => com.date.startsWith(today) && com.shift === currentShift,
+    );
+
+    if (shiftCommissions.length > 0) {
+      const prepopulatedEntries: CommissionEntry[] = shiftCommissions.map(
+        (com) => {
+          let accountName = "";
+          if (com.account) {
+            accountName = com.account.name;
+          } else {
+            const account = accounts.find((acc) => acc.id === com.accountId);
+            accountName = account?.name || `Account ${com.accountId}`;
+          }
+
+          let imageUri = "";
+          if (com.imageData) {
+            imageUri = `data:image/jpeg;base64,${com.imageData}`;
+          } else if (com.imageUrl) {
+            imageUri = com.imageUrl;
+          }
+
+          return {
+            id: `existing-${com.id}`,
+            accountId: com.accountId,
+            accountName,
+            shift: currentShift,
+            amount: com.amount.toString(),
+            imageUrl: imageUri,
+            extractedBalance: null,
+            isExtracting: false,
+            validationResult: null,
+          };
+        },
+      );
+      setEntries(prepopulatedEntries);
+      setIsInitialized(true);
+    } else if (draftEntries.length > 0) {
+      setEntries(draftEntries);
+      setIsInitialized(true);
+    } else {
+      setIsInitialized(true);
+    }
+  }, [
+    commissions,
+    draftEntries,
+    today,
+    currentShift,
+    isInitialized,
+    accountsLoading,
+    accounts,
+  ]);
+
+  useEffect(() => {
+    if (isInitialized && !entries.some((e) => e.id.startsWith("existing-"))) {
+      dispatch(saveDraftEntries(entries));
+    }
+  }, [entries, dispatch, isInitialized]);
+
+  const requestCameraPermission = async (): Promise<boolean> => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert(
+        "Permission Required",
+        "Camera permission is needed to take photos. Please enable it in your device settings.",
+        [{ text: "OK" }],
+      );
+      return false;
+    }
+    return true;
+  };
+
+  const requestMediaLibraryPermission = async (): Promise<boolean> => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert(
+        "Permission Required",
+        "Photo library permission is needed to select images. Please enable it in your device settings.",
+        [{ text: "OK" }],
+      );
+      return false;
+    }
+    return true;
+  };
+
+  const takePhoto = async (entryId: string) => {
+    const hasPermission = await requestCameraPermission();
+    if (!hasPermission) return;
+    try {
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+      if (!result.canceled && result.assets[0]) {
+        const imageUri = result.assets[0].uri;
+        updateEntry(entryId, "imageUrl", imageUri);
+        await extractAndValidateCommission(entryId, imageUri);
+      }
+    } catch {
+      Alert.alert("Error", "Failed to take photo. Please try again.");
+    }
+  };
+
+  const pickImage = async (entryId: string) => {
+    const hasPermission = await requestMediaLibraryPermission();
+    if (!hasPermission) return;
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+      if (!result.canceled && result.assets[0]) {
+        const imageUri = result.assets[0].uri;
+        updateEntry(entryId, "imageUrl", imageUri);
+        await extractAndValidateCommission(entryId, imageUri);
+      }
+    } catch {
+      Alert.alert("Error", "Failed to pick image. Please try again.");
+    }
+  };
+
+  const extractAndValidateCommission = async (
+    entryId: string,
+    imageUri: string,
+  ) => {
+    setEntries((prev) =>
+      prev.map((entry) =>
+        entry.id === entryId
+          ? { ...entry, isExtracting: true, validationResult: null }
+          : entry,
+      ),
+    );
+    try {
+      const result = await extractBalanceFromImage(imageUri, "commission");
+      setEntries((prev) =>
+        prev.map((entry) => {
+          if (entry.id !== entryId) return entry;
+          const extractedBalance = result.balance;
+          let validationResult: BalanceValidationResult | null = null;
+          if (
+            entry.amount.trim() &&
+            result.success &&
+            extractedBalance !== null
+          ) {
+            const inputBalance = parseFloat(entry.amount);
+            if (!isNaN(inputBalance)) {
+              validationResult = validateBalance(
+                extractedBalance,
+                inputBalance,
+              );
+            }
+          }
+          return {
+            ...entry,
+            extractedBalance,
+            isExtracting: false,
+            validationResult,
+          };
+        }),
+      );
+      if (!result.success) {
+        Alert.alert(
+          "Extraction Notice",
+          result.error ||
+            "Could not extract commission from image. Please verify manually.",
+        );
+      }
+    } catch (error) {
+      setEntries((prev) =>
+        prev.map((entry) =>
+          entry.id === entryId ? { ...entry, isExtracting: false } : entry,
+        ),
+      );
+      Alert.alert(
+        "Extraction Error",
+        `Failed to extract commission: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
+    }
+  };
+
+  const handleAmountChange = (entryId: string, value: string) => {
+    const cleanValue = value.replace(/[,\s]/g, "");
+    if (cleanValue && !/^\d*\.?\d*$/.test(cleanValue)) return;
+
+    setEntries((prev) =>
+      prev.map((entry) => {
+        if (entry.id !== entryId) return entry;
+        const updatedEntry = { ...entry, amount: cleanValue };
+        if (entry.extractedBalance !== null && cleanValue.trim()) {
+          const inputBalance = parseFloat(cleanValue);
+          if (!isNaN(inputBalance)) {
+            updatedEntry.validationResult = validateBalance(
+              entry.extractedBalance,
+              inputBalance,
+            );
+          }
+        } else {
+          updatedEntry.validationResult = null;
+        }
+        return updatedEntry;
+      }),
+    );
+    if (errors[entryId]?.amount) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        if (newErrors[entryId]) delete newErrors[entryId].amount;
+        return newErrors;
+      });
+    }
+  };
+
+  const removeImage = (entryId: string) => {
+    setEntries((prev) =>
+      prev.map((entry) =>
+        entry.id === entryId
+          ? {
+              ...entry,
+              imageUrl: "",
+              extractedBalance: null,
+              validationResult: null,
+            }
+          : entry,
+      ),
+    );
+  };
+
+  const updateEntry = (
+    id: string,
+    field: keyof CommissionEntry,
+    value: string | number | null,
+  ) => {
+    setEntries((prev) =>
+      prev.map((entry) =>
+        entry.id === id ? { ...entry, [field]: value } : entry,
+      ),
+    );
+    const errorField = field === "accountId" ? "account" : field;
+    if (errors[id]?.[errorField]) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        if (newErrors[id]) delete newErrors[id][errorField as string];
+        return newErrors;
+      });
+    }
+  };
+
+  const selectAccount = (entryId: string, account: Account) => {
+    setEntries((prev) =>
+      prev.map((entry) =>
+        entry.id === entryId
+          ? { ...entry, accountId: account.id, accountName: account.name }
+          : entry,
+      ),
+    );
+    if (errors[entryId]?.account) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        if (newErrors[entryId]) delete newErrors[entryId].account;
+        return newErrors;
+      });
+    }
+    setAccountPickerVisible(null);
+  };
+
+  const removeEntry = (id: string) => {
+    if (entries.length > 1) {
+      setEntries((prev) => prev.filter((entry) => entry.id !== id));
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[id];
+        return newErrors;
+      });
+    }
+  };
+
+  const validateSingleEntry = (entryId: string): boolean => {
+    const entry = entries.find((e) => e.id === entryId);
+    if (!entry) return false;
+
+    const entryErrors: Record<string, string> = {};
+    let isValid = true;
+
+    if (!entry.accountId) {
+      entryErrors.account = "Account is required";
+      isValid = false;
+    }
+    if (!entry.amount.trim()) {
+      entryErrors.amount = "Amount is required";
+      isValid = false;
+    } else if (
+      isNaN(parseFloat(entry.amount)) ||
+      parseFloat(entry.amount) < 0
+    ) {
+      entryErrors.amount = "Invalid amount";
+      isValid = false;
+    }
+    if (!entry.imageUrl) {
+      entryErrors.image = "Image is required";
+      isValid = false;
+    }
+    if (entry.validationResult && !entry.validationResult.isValid) {
+      entryErrors.validation = "Commission mismatch detected";
+      isValid = false;
+    }
+
+    setErrors((prev) => {
+      if (Object.keys(entryErrors).length > 0) {
+        return { ...prev, [entryId]: entryErrors };
+      }
+      const newErrors = { ...prev };
+      delete newErrors[entryId];
+      return newErrors;
+    });
+
+    return isValid;
+  };
+
+  const handleCloseEntryModal = () => {
+    if (editingEntryId) {
+      const entry = entries.find((e) => e.id === editingEntryId);
+      const isPristine =
+        entry && !entry.accountId && !entry.amount.trim() && !entry.imageUrl;
+      if (isPristine) {
+        setEditingEntryId(null);
+        return;
+      }
+      const isValid = validateSingleEntry(editingEntryId);
+      if (!isValid) return;
+    }
+    setEditingEntryId(null);
+  };
+
+  const validateEntries = (): boolean => {
+    const newErrors: Record<string, Record<string, string>> = {};
+    let isValid = true;
+
+    entries.forEach((entry) => {
+      const entryErrors: Record<string, string> = {};
+      if (!entry.accountId) {
+        entryErrors.account = "Required";
+        isValid = false;
+      }
+      if (!entry.amount.trim()) {
+        entryErrors.amount = "Required";
+        isValid = false;
+      } else if (
+        isNaN(parseFloat(entry.amount)) ||
+        parseFloat(entry.amount) < 0
+      ) {
+        entryErrors.amount = "Invalid amount";
+        isValid = false;
+      }
+      if (!entry.imageUrl) {
+        entryErrors.image = "Image required";
+        isValid = false;
+      }
+      if (entry.validationResult && !entry.validationResult.isValid) {
+        entryErrors.validation = "Commission mismatch";
+        isValid = false;
+      }
+      if (Object.keys(entryErrors).length > 0) {
+        newErrors[entry.id] = entryErrors;
+      }
+    });
+
+    setErrors(newErrors);
+
+    const mismatchedEntries = entries.filter(
+      (e) => e.validationResult && !e.validationResult.isValid,
+    );
+    if (mismatchedEntries.length > 0) {
+      Alert.alert(
+        "Commission Mismatch Detected",
+        "One or more commissions don't match the extracted values from images. Please verify and correct the amounts before saving.",
+        [{ text: "OK" }],
+      );
+    }
+
+    return isValid;
+  };
+
+  const hasExistingEntries = entries.some((e) => e.id.startsWith("existing-"));
+
+  const handleSubmit = async () => {
+    if (!validateEntries()) return;
+    if (!companyId) {
+      Alert.alert("Error", "Company not found. Please log in again.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const existingEntries = entries.filter((e) =>
+        e.id.startsWith("existing-"),
+      );
+      const newEntries = entries.filter((e) => !e.id.startsWith("existing-"));
+
+      let totalCreated = 0;
+      let totalUpdated = 0;
+      let totalFailed = 0;
+
+      if (existingEntries.length > 0) {
+        const updateDataArray = await Promise.all(
+          existingEntries.map(async (entry) => {
+            const numericId = parseInt(entry.id.replace("existing-", ""), 10);
+            let imageData: string | undefined;
+            if (entry.imageUrl) {
+              if (entry.imageUrl.startsWith("data:image")) {
+                imageData = entry.imageUrl.split(",")[1];
+              } else {
+                imageData = await FileSystem.readAsStringAsync(entry.imageUrl, {
+                  encoding: FileSystem.EncodingType.Base64,
+                });
+              }
+            }
+            return {
+              id: numericId,
+              accountId: entry.accountId!,
+              shift: currentShift,
+              amount: parseFloat(entry.amount),
+              imageData,
+            };
+          }),
+        );
+
+        const updateResult = await dispatch(
+          updateCommissionsBulk({ commissions: updateDataArray }),
+        ).unwrap();
+        totalUpdated = updateResult.totalUpdated;
+        totalFailed += updateResult.totalFailed;
+      }
+
+      if (newEntries.length > 0) {
+        const commissionsWithImages = await Promise.all(
+          newEntries.map(async (entry) => {
+            let imageData: string | undefined;
+            if (entry.imageUrl) {
+              if (entry.imageUrl.startsWith("data:image")) {
+                imageData = entry.imageUrl.split(",")[1];
+              } else {
+                imageData = await FileSystem.readAsStringAsync(entry.imageUrl, {
+                  encoding: FileSystem.EncodingType.Base64,
+                });
+              }
+            }
+            const commission: CommissionCreate = {
+              accountId: entry.accountId!,
+              shift: currentShift,
+              amount: parseFloat(entry.amount),
+              date: today,
+              imageData,
+              companyId: companyId || 0,
+            };
+            return commission;
+          }),
+        );
+
+        const result = await dispatch(
+          createCommissionsBulk(commissionsWithImages),
+        ).unwrap();
+        totalCreated = Array.isArray(result) ? result.length : 0;
+      }
+
+      dispatch(fetchDashboard({}));
+      dispatch(clearDraftEntries());
+
+      const operations: string[] = [];
+      if (totalCreated > 0)
+        operations.push(
+          `${totalCreated} commission${totalCreated > 1 ? "s" : ""} created`,
+        );
+      if (totalUpdated > 0)
+        operations.push(
+          `${totalUpdated} commission${totalUpdated > 1 ? "s" : ""} updated`,
+        );
+
+      if (totalFailed > 0) {
+        Alert.alert(
+          "Partial Success",
+          `${operations.join(", ")}. ${totalFailed} failed.`,
+          [{ text: "OK", onPress: () => router.back() }],
+        );
+      } else {
+        Alert.alert("Success", `Successfully ${operations.join(" and ")}!`, [
+          { text: "OK", onPress: () => router.back() },
+        ]);
+      }
+    } catch (error) {
+      Alert.alert(
+        "Error",
+        error instanceof Error ? error.message : "Failed to save commissions",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      className="flex-1 bg-gray-50"
+    >
+      <View className="flex-1">
+        {/* Header */}
+        <View className="px-5 pt-6 pb-2">
+          <View className="flex-row items-center justify-between mb-2">
+            <View className="flex-row items-center">
+              <TouchableOpacity
+                onPress={() => router.back()}
+                className="p-2 bg-white rounded-full shadow-sm mr-4"
+              >
+                <ArrowLeft color="#C62828" size={24} />
+              </TouchableOpacity>
+              <View>
+                <Text className="text-2xl font-bold text-gray-800">
+                  Add Commissions
+                </Text>
+                <Text className="text-gray-500 text-sm">
+                  {entries.length} entr{entries.length === 1 ? "y" : "ies"}
+                </Text>
+              </View>
+            </View>
+            <TouchableOpacity
+              onPress={() => {
+                const newEntry = createEmptyEntry();
+                setEntries((prev) => [...prev, newEntry]);
+                setEditingEntryId(newEntry.id);
+              }}
+              className="bg-brand-red p-3 rounded-full shadow-md"
+            >
+              <Plus color="white" size={24} />
+            </TouchableOpacity>
+          </View>
+
+          {/* Shift Badge */}
+          <View
+            className={`px-4 py-2 rounded-full self-start mb-4 ${
+              currentShift === "AM" ? "bg-blue-100" : "bg-red-100"
+            }`}
+          >
+            <Text
+              className={`font-bold ${
+                currentShift === "AM" ? "text-blue-700" : "text-red-700"
+              }`}
+            >
+              {currentShift} Shift
+            </Text>
+          </View>
+        </View>
+
+        {/* Entry Card List */}
+        <ScrollView
+          className="flex-1"
+          contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 20 }}
+          showsVerticalScrollIndicator={false}
+        >
+          {entries.map((entry, index) => {
+            const isComplete =
+              entry.accountId && entry.amount && entry.imageUrl;
+            const hasError =
+              errors[entry.id] && Object.keys(errors[entry.id]).length > 0;
+            const hasMismatch =
+              entry.validationResult && !entry.validationResult.isValid;
+
+            return (
+              <TouchableOpacity
+                key={entry.id}
+                onPress={() => setEditingEntryId(entry.id)}
+                className={`bg-white rounded-2xl p-4 mb-3 border ${
+                  hasError || hasMismatch
+                    ? "border-red-300 bg-red-50"
+                    : isComplete
+                      ? "border-green-300 bg-green-50"
+                      : "border-gray-200"
+                }`}
+              >
+                <View className="flex-row items-center justify-between">
+                  <View className="flex-row items-center flex-1">
+                    {/* Status indicator */}
+                    <View
+                      className={`w-10 h-10 rounded-full items-center justify-center mr-3 ${
+                        hasError || hasMismatch
+                          ? "bg-red-100"
+                          : isComplete
+                            ? "bg-green-100"
+                            : "bg-gray-100"
+                      }`}
+                    >
+                      {hasError || hasMismatch ? (
+                        <AlertTriangle color="#EF4444" size={20} />
+                      ) : isComplete ? (
+                        <CheckCircle color="#22C55E" size={20} />
+                      ) : (
+                        <Text className="text-gray-500 font-bold">
+                          {index + 1}
+                        </Text>
+                      )}
+                    </View>
+
+                    {/* Entry summary */}
+                    <View className="flex-1">
+                      <Text className="font-semibold text-gray-800">
+                        {entry.accountName || "Select account"}
+                      </Text>
+                      <View className="flex-row items-center mt-0.5">
+                        {entry.amount ? (
+                          <Text className="text-gray-600 text-sm">
+                            {formatCurrency(parseFloat(entry.amount))}
+                          </Text>
+                        ) : (
+                          <Text className="text-gray-400 text-sm">
+                            No amount
+                          </Text>
+                        )}
+                        {entry.imageUrl && (
+                          <View className="flex-row items-center ml-2">
+                            <Camera color="#6B7280" size={12} />
+                            <Text className="text-gray-500 text-xs ml-1">
+                              Image
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+                    </View>
+                  </View>
+
+                  {/* Actions */}
+                  <View className="flex-row items-center">
+                    {entries.length > 1 && (
+                      <TouchableOpacity
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          removeEntry(entry.id);
+                        }}
+                        className="p-2"
+                      >
+                        <X color="#EF4444" size={18} />
+                      </TouchableOpacity>
+                    )}
+                    <ChevronDown
+                      color="#9CA3AF"
+                      size={20}
+                      style={{ transform: [{ rotate: "-90deg" }] }}
+                    />
+                  </View>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+
+          {/* Add More Button */}
+          <TouchableOpacity
+            onPress={() => {
+              const newEntry = createEmptyEntry();
+              setEntries((prev) => [...prev, newEntry]);
+              setEditingEntryId(newEntry.id);
+            }}
+            className="bg-gray-100 rounded-2xl p-4 border-2 border-dashed border-gray-300 flex-row items-center justify-center"
+          >
+            <Plus color="#9CA3AF" size={24} />
+            <Text className="text-gray-500 font-semibold ml-2">
+              Add Another Commission
+            </Text>
+          </TouchableOpacity>
+        </ScrollView>
+
+        {/* Total and Submit */}
+        <View className="my-20 px-5 pb-6 pt-2 bg-gray-50">
+          <View className="flex-row justify-between items-center mb-3 px-2">
+            <Text className="text-gray-600 font-medium">Total Commission:</Text>
+            <Text className="text-xl font-bold text-gray-900">
+              {formatCurrency(
+                entries.reduce(
+                  (sum, entry) => sum + (parseFloat(entry.amount) || 0),
+                  0,
+                ),
+              )}
+            </Text>
+          </View>
+
+          <TouchableOpacity
+            onPress={handleSubmit}
+            disabled={isSubmitting}
+            className={`py-4 rounded-xl flex-row items-center justify-center ${
+              isSubmitting ? "bg-gray-400" : "bg-brand-gold"
+            }`}
+          >
+            <Save color="white" size={20} />
+            <Text className="text-white font-bold text-base ml-2">
+              {isSubmitting
+                ? hasExistingEntries
+                  ? "Updating..."
+                  : "Submitting..."
+                : hasExistingEntries
+                  ? `Update ${entries.length} Commission${entries.length > 1 ? "s" : ""}`
+                  : `Submit ${entries.length} Commission${entries.length > 1 ? "s" : ""}`}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Entry Form Modal */}
+      <Modal
+        visible={editingEntryId !== null}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={handleCloseEntryModal}
+      >
+        {(() => {
+          const entry = entries.find((e) => e.id === editingEntryId);
+          if (!entry) return null;
+          const entryIndex = entries.findIndex((e) => e.id === editingEntryId);
+
+          return (
+            <KeyboardAvoidingView
+              behavior={Platform.OS === "ios" ? "padding" : "height"}
+              className="flex-1 bg-white"
+            >
+              {/* Modal Header */}
+              <View className="flex-row items-center justify-between px-5 pt-4 pb-3 border-b border-gray-200">
+                <TouchableOpacity
+                  onPress={handleCloseEntryModal}
+                  className="p-2"
+                >
+                  <X color="#6B7280" size={24} />
+                </TouchableOpacity>
+                <Text className="text-lg font-bold text-gray-800">
+                  Commission {entryIndex + 1}
+                </Text>
+                <TouchableOpacity
+                  onPress={handleCloseEntryModal}
+                  className="bg-brand-red px-4 py-2 rounded-xl"
+                >
+                  <Text className="text-white font-semibold">Done</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Modal Body */}
+              <ScrollView
+                className="flex-1"
+                contentContainerStyle={{ padding: 20 }}
+                keyboardShouldPersistTaps="handled"
+              >
+                {/* Account Selection */}
+                <View className="mb-5">
+                  <Text className="text-gray-700 font-semibold mb-2">
+                    Account *
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => setAccountPickerVisible(entry.id)}
+                    className={`bg-gray-50 rounded-xl px-4 py-3.5 flex-row justify-between items-center ${
+                      errors[entry.id]?.account
+                        ? "border-2 border-red-500"
+                        : "border border-gray-200"
+                    }`}
+                  >
+                    <Text
+                      className={`text-base ${
+                        entry.accountName ? "text-gray-800" : "text-gray-400"
+                      }`}
+                    >
+                      {entry.accountName || "Select account"}
+                    </Text>
+                    <ChevronDown color="#6B7280" size={20} />
+                  </TouchableOpacity>
+                  {errors[entry.id]?.account && (
+                    <Text className="text-red-500 text-sm mt-1">
+                      {errors[entry.id].account}
+                    </Text>
+                  )}
+                </View>
+
+                {/* Amount */}
+                <View className="mb-5">
+                  <Text className="text-gray-700 font-semibold mb-2">
+                    Amount *
+                  </Text>
+                  <TextInput
+                    value={
+                      entry.amount ? Number(entry.amount).toLocaleString() : ""
+                    }
+                    onChangeText={(value) =>
+                      handleAmountChange(entry.id, value)
+                    }
+                    placeholder="0"
+                    keyboardType="number-pad"
+                    className={`bg-gray-50 rounded-xl px-4 py-3.5 text-gray-800 text-xl ${
+                      errors[entry.id]?.amount || errors[entry.id]?.validation
+                        ? "border-2 border-red-500"
+                        : entry.validationResult?.isValid
+                          ? "border-2 border-green-500"
+                          : "border border-gray-200"
+                    }`}
+                  />
+                  {errors[entry.id]?.amount && (
+                    <Text className="text-red-500 text-sm mt-1">
+                      {errors[entry.id].amount}
+                    </Text>
+                  )}
+
+                  {/* Validation Status */}
+                  {entry.validationResult && (
+                    <View
+                      className={`mt-3 p-3 rounded-xl flex-row items-start ${
+                        entry.validationResult.isValid
+                          ? "bg-green-50"
+                          : "bg-red-50"
+                      }`}
+                    >
+                      {entry.validationResult.isValid ? (
+                        <CheckCircle color="#22C55E" size={20} />
+                      ) : (
+                        <AlertTriangle color="#EF4444" size={20} />
+                      )}
+                      <Text
+                        className={`ml-2 text-sm flex-1 ${
+                          entry.validationResult.isValid
+                            ? "text-green-700"
+                            : "text-red-700"
+                        }`}
+                      >
+                        {entry.validationResult.message}
+                      </Text>
+                    </View>
+                  )}
+
+                  {entry.extractedBalance !== null &&
+                    !entry.validationResult && (
+                      <Text className="text-gray-500 text-sm mt-2">
+                        Extracted from image:{" "}
+                        {formatCurrency(entry.extractedBalance)}
+                      </Text>
+                    )}
+                </View>
+
+                {/* Image Section */}
+                <View className="mb-5">
+                  <Text className="text-gray-700 font-semibold mb-2">
+                    Image *
+                  </Text>
+                  {entry.imageUrl ? (
+                    <View className="relative">
+                      <Image
+                        source={{ uri: entry.imageUrl }}
+                        className="w-full h-48 rounded-xl"
+                        resizeMode="cover"
+                      />
+                      {entry.isExtracting && (
+                        <View className="absolute inset-0 bg-black/50 rounded-xl items-center justify-center">
+                          <ActivityIndicator color="white" size="large" />
+                          <Text className="text-white text-sm mt-2">
+                            Extracting commission...
+                          </Text>
+                        </View>
+                      )}
+                      <TouchableOpacity
+                        onPress={() => removeImage(entry.id)}
+                        className="absolute top-3 right-3 bg-red-500 p-2 rounded-full"
+                      >
+                        <X color="white" size={18} />
+                      </TouchableOpacity>
+                      {!entry.isExtracting &&
+                        entry.extractedBalance !== null && (
+                          <View className="absolute top-3 left-3 bg-green-500 px-3 py-1.5 rounded-full flex-row items-center">
+                            <CheckCircle color="white" size={14} />
+                            <Text className="text-white text-sm ml-1 font-semibold">
+                              {formatCurrency(entry.extractedBalance)}
+                            </Text>
+                          </View>
+                        )}
+                    </View>
+                  ) : (
+                    <View>
+                      <View className="flex-row" style={{ gap: 12 }}>
+                        <TouchableOpacity
+                          onPress={() => takePhoto(entry.id)}
+                          className={`flex-1 bg-gray-50 rounded-xl py-6 items-center ${
+                            errors[entry.id]?.image
+                              ? "border-2 border-red-500"
+                              : "border border-gray-200"
+                          }`}
+                        >
+                          <Camera
+                            color={
+                              errors[entry.id]?.image ? "#EF4444" : "#6B7280"
+                            }
+                            size={32}
+                          />
+                          <Text
+                            className={`text-sm mt-2 ${
+                              errors[entry.id]?.image
+                                ? "text-red-500"
+                                : "text-gray-500"
+                            }`}
+                          >
+                            Camera
+                          </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          onPress={() => pickImage(entry.id)}
+                          className={`flex-1 bg-gray-50 rounded-xl py-6 items-center ${
+                            errors[entry.id]?.image
+                              ? "border-2 border-red-500"
+                              : "border border-gray-200"
+                          }`}
+                        >
+                          <ImageIcon
+                            color={
+                              errors[entry.id]?.image ? "#EF4444" : "#6B7280"
+                            }
+                            size={32}
+                          />
+                          <Text
+                            className={`text-sm mt-2 ${
+                              errors[entry.id]?.image
+                                ? "text-red-500"
+                                : "text-gray-500"
+                            }`}
+                          >
+                            Gallery
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                      {errors[entry.id]?.image && (
+                        <Text className="text-red-500 text-sm mt-2 text-center">
+                          {errors[entry.id].image}
+                        </Text>
+                      )}
+                    </View>
+                  )}
+                </View>
+              </ScrollView>
+            </KeyboardAvoidingView>
+          );
+        })()}
+      </Modal>
+
+      {/* Account Picker Modal */}
+      <Modal
+        visible={accountPickerVisible !== null}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setAccountPickerVisible(null)}
+      >
+        <View style={{ flex: 1 }} className="bg-black/50 justify-end">
+          <TouchableOpacity
+            style={{ flex: 1 }}
+            activeOpacity={1}
+            onPress={() => setAccountPickerVisible(null)}
+          />
+          <View className="bg-white rounded-t-3xl max-h-96">
+            <View className="flex-row justify-between items-center p-4 border-b border-gray-200">
+              <Text className="text-lg font-bold text-gray-800">
+                Select Account
+              </Text>
+              <TouchableOpacity onPress={() => setAccountPickerVisible(null)}>
+                <X color="#6B7280" size={24} />
+              </TouchableOpacity>
+            </View>
+
+            {accountsLoading ? (
+              <View className="p-8 items-center">
+                <Text className="text-gray-500">Loading accounts...</Text>
+              </View>
+            ) : accounts.length === 0 ? (
+              <View className="p-8 items-center">
+                <Text className="text-gray-500">No accounts available</Text>
+                <TouchableOpacity
+                  onPress={() => {
+                    setAccountPickerVisible(null);
+                    router.push("/accounts");
+                  }}
+                  className="mt-4 bg-brand-red px-6 py-2 rounded-xl"
+                >
+                  <Text className="text-white font-semibold">Add Account</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <FlatList
+                data={accounts.filter((acc) => acc.isActive)}
+                keyExtractor={(item) => item.id.toString()}
+                nestedScrollEnabled
+                renderItem={({ item }) => {
+                  const currentEntry = entries.find(
+                    (e) => e.id === accountPickerVisible,
+                  );
+                  const isSelected = currentEntry?.accountId === item.id;
+                  const isAlreadySelected = entries.some(
+                    (e) =>
+                      e.accountId === item.id && e.id !== accountPickerVisible,
+                  );
+                  return (
+                    <TouchableOpacity
+                      onPress={() =>
+                        accountPickerVisible &&
+                        selectAccount(accountPickerVisible, item)
+                      }
+                      disabled={isAlreadySelected}
+                      className={`flex-row items-center justify-between p-4 border-b border-gray-100 ${
+                        isSelected
+                          ? "bg-red-50"
+                          : isAlreadySelected
+                            ? "bg-gray-50 opacity-50"
+                            : ""
+                      }`}
+                    >
+                      <View className="flex-1">
+                        <View className="flex-row items-center">
+                          <Text
+                            className={`font-semibold ${
+                              isAlreadySelected
+                                ? "text-gray-400"
+                                : "text-gray-800"
+                            }`}
+                          >
+                            {item.name}
+                          </Text>
+                          {isAlreadySelected && (
+                            <View className="ml-2 bg-green-100 px-2 py-0.5 rounded-full">
+                              <Text className="text-green-700 text-xs font-semibold">
+                                ✓ Added
+                              </Text>
+                            </View>
+                          )}
+                        </View>
+                        <Text
+                          className={`text-sm ${
+                            isAlreadySelected
+                              ? "text-gray-400"
+                              : "text-gray-500"
+                          }`}
+                        >
+                          {item.accountType}
+                        </Text>
+                      </View>
+                      {isSelected && <Check color="#DC2626" size={20} />}
+                    </TouchableOpacity>
+                  );
+                }}
+              />
+            )}
+          </View>
+        </View>
+      </Modal>
+    </KeyboardAvoidingView>
+  );
+}
