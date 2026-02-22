@@ -17,6 +17,7 @@ import type {
 import { mapApiResponse, mapApiRequest, buildTypedQueryString } from "@/types";
 import { API_ENDPOINTS } from "@/config/api";
 import { secureApiRequest } from "@/services/secureApi";
+import { enterAgency, exitAgency } from "./authSlice";
 import { isDeviceOffline } from "@/utils/offlineCheck";
 import type { RootState } from "../index";
 
@@ -95,10 +96,9 @@ export const fetchTransactions = createAsyncThunk<
 
       // Check cache — only use cache if filters match the last query
       const { lastFetched, filters: lastFilters } = state.transactions;
-      const mergedFilters = { ...filters, companyId };
       const filtersMatch =
         lastFetched &&
-        JSON.stringify(lastFilters) === JSON.stringify(mergedFilters);
+        JSON.stringify(lastFilters) === JSON.stringify(filters);
       if (filtersMatch && Date.now() - lastFetched < CACHE_DURATION) {
         return state.transactions.items;
       }
@@ -602,6 +602,15 @@ const transactionsSlice = createSlice({
       })
       .addCase(fetchDailyAnalytics.rejected, (state, action) => {
         state.error = action.payload as string;
+      });
+
+    // Invalidate cache when SuperAdmin switches agencies
+    builder
+      .addCase(enterAgency, (state) => {
+        state.lastFetched = null;
+      })
+      .addCase(exitAgency, (state) => {
+        state.lastFetched = null;
       });
   },
 });

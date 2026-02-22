@@ -90,8 +90,11 @@ export const fetchDashboard = createAsyncThunk<
     const companyId =
       params.companyId ||
       state.auth.viewingAgencyId ||
-      state.auth.user?.companyId ||
-      1;
+      state.auth.user?.companyId;
+
+    if (!companyId) {
+      return rejectWithValue("No companyId found. Please log in again.");
+    }
 
     // IMPORTANT: Always default to TODAY if no date is explicitly provided
     // This prevents using stale persisted dates from Redux state

@@ -92,9 +92,11 @@ export async function secureRequest(
 
 // Transient HTTP status codes that are worth retrying
 const RETRYABLE_STATUS_CODES = new Set([408, 429, 500, 502, 503, 504]);
+const MUTATING_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 const MAX_RETRIES = 3;
 const BASE_RETRY_DELAY_MS = 1_000;
 const MAX_RETRY_DELAY_MS = 10_000;
+const REQUEST_TIMEOUT_MS = 30_000;
 
 /** Calculate delay with exponential backoff + jitter */
 function getRetryDelay(attempt: number): number {
@@ -117,13 +119,18 @@ export async function secureApiRequest<T>(
 ): Promise<T> {
   const url = `${API_BASE_URL.replace(/\/$/, "")}${endpoint}`;
   let lastError: ApiError | null = null;
+  const method = ((options.method as string) || "GET").toUpperCase();
+  const isMutating = MUTATING_METHODS.has(method);
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     const authHeaders = await getAuthHeaders();
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
     try {
       const response = await fetch(url, {
         ...options,
+        signal: controller.signal,
         headers: {
           ...API_HEADERS,
           ...authHeaders,
@@ -149,7 +156,12 @@ export async function secureApiRequest<T>(
       }
 
       // Check for retryable server errors
-      if (RETRYABLE_STATUS_CODES.has(response.status) && attempt < MAX_RETRIES) {
+      // Never retry mutating methods on 500 to prevent duplicate data
+      if (
+        RETRYABLE_STATUS_CODES.has(response.status) &&
+        attempt < MAX_RETRIES &&
+        !(isMutating && response.status === 500)
+      ) {
         const errorData = await response
           .json()
           .catch(() => ({ detail: `HTTP ${response.status}` }));
@@ -179,6 +191,21 @@ export async function secureApiRequest<T>(
 
       return await response.json();
     } catch (error) {
+      // Handle AbortController timeout
+      if (error instanceof DOMException && error.name === "AbortError") {
+        const timeoutError = new ApiError(
+          `Request timed out after ${REQUEST_TIMEOUT_MS / 1000}s`,
+          0,
+          "TIMEOUT",
+        );
+        if (attempt < MAX_RETRIES && !isMutating) {
+          lastError = timeoutError;
+          await retryDelay(getRetryDelay(attempt));
+          continue;
+        }
+        throw timeoutError;
+      }
+
       if (error instanceof ApiError) {
         // Don't retry auth errors or non-transient errors
         if (error.code === "UNAUTHORIZED" || error.code === "FORBIDDEN") {
@@ -211,6 +238,8 @@ export async function secureApiRequest<T>(
       }
 
       throw networkError;
+    } finally {
+      clearTimeout(timeoutId);
     }
   }
 

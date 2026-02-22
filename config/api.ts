@@ -15,9 +15,11 @@ const getApiBaseUrl = (): string => {
     return "https://ca81-196-250-65-167.ngrok-free.app";
   }
 
-  // Production fallback - should be set via environment variable
-  console.warn("[API] EXPO_PUBLIC_API_URL not set - using development URL");
-  return "https://ca81-196-250-65-167.ngrok-free.app";
+  // Production — EXPO_PUBLIC_API_URL must be set
+  throw new Error(
+    "[API] EXPO_PUBLIC_API_URL environment variable is not set. " +
+    "Cannot determine API base URL in production."
+  );
 };
 
 export const API_BASE_URL = getApiBaseUrl();

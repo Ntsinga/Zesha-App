@@ -25,7 +25,7 @@ import accountsReducer from "./slices/accountsSlice";
 import usersReducer from "./slices/usersSlice";
 import syncQueueReducer from "./slices/syncQueueSlice";
 
-const rootReducer = combineReducers({
+const appReducer = combineReducers({
   auth: authReducer,
   dashboard: dashboardReducer,
   transactions: transactionsReducer,
@@ -40,6 +40,19 @@ const rootReducer = combineReducers({
   users: usersReducer,
   syncQueue: syncQueueReducer,
 });
+
+/**
+ * Root reducer that resets ALL slice state on logout.
+ * Each slice receives `undefined` → returns its own initialState,
+ * then the clearLocalAuth.fulfilled action also fires in authSlice's
+ * extraReducers to clean up auth-specific fields.
+ */
+const rootReducer: typeof appReducer = (state, action) => {
+  if (action.type === "auth/clearLocal/fulfilled") {
+    return appReducer(undefined, action);
+  }
+  return appReducer(state, action);
+};
 
 // Persist config — only on mobile (web uses its own storage via authSlice)
 const persistConfig = {
