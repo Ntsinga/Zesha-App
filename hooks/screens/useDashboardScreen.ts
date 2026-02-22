@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchDashboard, setShift } from "../../store/slices/dashboardSlice";
+import { fetchTransactions } from "../../store/slices/transactionsSlice";
 import { useCurrencyFormatter } from "../useCurrency";
 import { useAutoRefreshOnReconnect } from "../useAutoRefreshOnReconnect";
 import type { ShiftEnum } from "../../types";
@@ -25,13 +26,33 @@ export function useDashboardScreen() {
     error,
   } = useSelector((state: RootState) => state.dashboard);
 
+  const { items: transactions } = useSelector(
+    (state: RootState) => state.transactions,
+  );
+  const { user: backendUser } = useSelector((state: RootState) => state.auth);
+
   // Currency formatter
   const { formatCurrency, formatCompactCurrency } = useCurrencyFormatter();
+
+  const today = new Date().toISOString().split("T")[0];
 
   // Fetch dashboard data on mount
   useEffect(() => {
     dispatch(fetchDashboard({}));
   }, [dispatch]);
+
+  // Fetch today's transactions when user is available
+  useEffect(() => {
+    if (backendUser?.companyId) {
+      dispatch(
+        fetchTransactions({
+          companyId: backendUser.companyId,
+          startDate: today,
+          endDate: today,
+        }),
+      );
+    }
+  }, [dispatch, backendUser?.companyId, today]);
 
   // Auto-refresh after offline → online transition + sync complete
   useAutoRefreshOnReconnect(
@@ -42,8 +63,17 @@ export function useDashboardScreen() {
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await dispatch(fetchDashboard({ forceRefresh: true }));
+    if (backendUser?.companyId) {
+      dispatch(
+        fetchTransactions({
+          companyId: backendUser.companyId,
+          startDate: today,
+          endDate: today,
+        }),
+      );
+    }
     setRefreshing(false);
-  }, [dispatch]);
+  }, [dispatch, backendUser?.companyId, today]);
 
   // Shift change handler
   const handleShiftChange = useCallback(
@@ -66,6 +96,23 @@ export function useDashboardScreen() {
   const totalCommission = summary?.totalCommission ?? 0;
   const dailyCommission = summary?.dailyCommission ?? 0;
 
+  // Today's transaction metrics
+  const todayTransactions = useMemo(() => {
+    return transactions.filter((t) => t.transactionTime?.startsWith(today));
+  }, [transactions, today]);
+
+  const transactionCount = todayTransactions.length;
+
+  const recentTransactions = useMemo(() => {
+    return [...todayTransactions]
+      .sort(
+        (a, b) =>
+          new Date(b.transactionTime || "").getTime() -
+          new Date(a.transactionTime || "").getTime(),
+      )
+      .slice(0, 5);
+  }, [todayTransactions]);
+
   return {
     // State
     isLoading,
@@ -86,6 +133,10 @@ export function useDashboardScreen() {
     outstandingBalance,
     totalCommission,
     dailyCommission,
+
+    // Transaction data
+    transactionCount,
+    recentTransactions,
 
     // Formatters
     formatCurrency,

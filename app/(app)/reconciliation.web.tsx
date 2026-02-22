@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState as useLocalState } from "react";
 import { useLocalSearchParams } from "expo-router";
 import {
   ArrowLeft,
@@ -15,6 +15,11 @@ import {
   Lock,
   Check,
   XCircle,
+  ArrowLeftRight,
+  ArrowUpCircle,
+  ArrowDownCircle,
+  ShieldAlert,
+  ShieldCheck,
 } from "lucide-react";
 import { useReconciliationScreen } from "../../hooks/screens/useReconciliationScreen";
 import type { ShiftEnum } from "../../types";
@@ -47,7 +52,7 @@ export default function BalanceDetailWeb() {
     getImageUri,
     formatCurrency,
     formatDate,
-    // New reconciliation functionality
+    // Reconciliation functionality
     notes,
     setNotes,
     canReview,
@@ -59,7 +64,18 @@ export default function BalanceDetailWeb() {
     handleFinalize,
     handleApprove,
     handleReject,
+    // Balance validation
+    hasDiscrepancies,
+    discrepancyCount,
+    totalDiscrepancyAmount,
+    validationByAccountId,
+    // Linked transactions
+    shiftTransactions,
   } = useReconciliationScreen({ date, shift });
+
+  // Local state for discrepancy confirmation dialog
+  const [showDiscrepancyConfirm, setShowDiscrepancyConfirm] =
+    useLocalState(false);
 
   // Show loading while params are being resolved
   if (!date) {
@@ -207,6 +223,41 @@ export default function BalanceDetailWeb() {
           </div>
         </div>
 
+        {/* Discrepancy Alert Banner */}
+        {hasDiscrepancies && (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+              padding: "14px 20px",
+              borderRadius: 12,
+              backgroundColor: "#fef2f2",
+              border: "1px solid #fecaca",
+              marginBottom: 24,
+            }}
+          >
+            <ShieldAlert size={22} color="#DC2626" style={{ flexShrink: 0 }} />
+            <div style={{ flex: 1 }}>
+              <div
+                style={{
+                  fontWeight: 600,
+                  color: "#991b1b",
+                  marginBottom: 2,
+                }}
+              >
+                Balance Discrepancies Detected
+              </div>
+              <div style={{ fontSize: 13, color: "#b91c1c" }}>
+                {discrepancyCount} account{discrepancyCount !== 1 ? "s" : ""}{" "}
+                with a total variance of{" "}
+                {formatCurrency(totalDiscrepancyAmount)}. Review the balances
+                table below for details.
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Detail Tables */}
         <div className="detail-grid">
           {/* Commissions Table */}
@@ -271,45 +322,115 @@ export default function BalanceDetailWeb() {
                 <tr>
                   <th>Account</th>
                   <th>Source</th>
-                  <th className="text-right">Amount</th>
+                  <th className="text-right">Snapshot</th>
+                  <th className="text-right">Expected</th>
+                  <th className="text-right">Variance</th>
+                  <th className="text-center">Status</th>
                   <th className="text-center">Image</th>
                 </tr>
               </thead>
               <tbody>
                 {balances.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="empty">
+                    <td colSpan={7} className="empty">
                       No balances recorded
                     </td>
                   </tr>
                 ) : (
-                  balances.map((balance) => (
-                    <tr key={balance.id}>
-                      <td>
-                        {balance.account?.name ||
-                          `Account ${balance.accountId}`}
-                      </td>
-                      <td className="text-xs text-gray-500">
-                        {balance.source}
-                      </td>
-                      <td className="text-right font-semibold">
-                        {formatCurrency(balance.amount)}
-                      </td>
-                      <td className="text-center">
-                        {(balance.imageData || balance.imageUrl) && (
-                          <button
-                            onClick={() => {
-                              const uri = getImageUri(balance);
-                              if (uri) setSelectedImage(uri);
-                            }}
-                            className="btn-icon-small"
-                          >
-                            <ImageIcon size={14} />
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))
+                  balances.map((balance) => {
+                    const validation =
+                      validationByAccountId[balance.accountId];
+                    const vStatus = validation?.validationStatus;
+                    return (
+                      <tr key={balance.id}>
+                        <td>
+                          {balance.account?.name ||
+                            `Account ${balance.accountId}`}
+                        </td>
+                        <td className="text-xs text-gray-500">
+                          {balance.source}
+                        </td>
+                        <td className="text-right font-semibold">
+                          {formatCurrency(balance.amount)}
+                        </td>
+                        <td className="text-right">
+                          {validation
+                            ? formatCurrency(validation.calculatedBalance)
+                            : "—"}
+                        </td>
+                        <td
+                          className={`text-right font-semibold ${
+                            validation
+                              ? validation.variance > 0
+                                ? "text-green-600"
+                                : validation.variance < 0
+                                  ? "text-red-600"
+                                  : ""
+                              : ""
+                          }`}
+                        >
+                          {validation
+                            ? `${validation.variance >= 0 ? "+" : ""}${formatCurrency(validation.variance)}`
+                            : "—"}
+                        </td>
+                        <td className="text-center">
+                          {vStatus && (
+                            <span
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 4,
+                                padding: "2px 10px",
+                                borderRadius: 12,
+                                fontSize: 11,
+                                fontWeight: 600,
+                                backgroundColor:
+                                  vStatus === "MATCHED"
+                                    ? "#dcfce7"
+                                    : vStatus === "SHORTAGE"
+                                      ? "#fef2f2"
+                                      : vStatus === "EXCESS"
+                                        ? "#fefce8"
+                                        : "#f3f4f6",
+                                color:
+                                  vStatus === "MATCHED"
+                                    ? "#16a34a"
+                                    : vStatus === "SHORTAGE"
+                                      ? "#dc2626"
+                                      : vStatus === "EXCESS"
+                                        ? "#ca8a04"
+                                        : "#6b7280",
+                              }}
+                            >
+                              {vStatus === "MATCHED" && (
+                                <ShieldCheck size={12} />
+                              )}
+                              {vStatus === "SHORTAGE" && (
+                                <ArrowDownCircle size={12} />
+                              )}
+                              {vStatus === "EXCESS" && (
+                                <ArrowUpCircle size={12} />
+                              )}
+                              {vStatus}
+                            </span>
+                          )}
+                        </td>
+                        <td className="text-center">
+                          {(balance.imageData || balance.imageUrl) && (
+                            <button
+                              onClick={() => {
+                                const uri = getImageUri(balance);
+                                if (uri) setSelectedImage(uri);
+                              }}
+                              className="btn-icon-small"
+                            >
+                              <ImageIcon size={14} />
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
@@ -352,6 +473,102 @@ export default function BalanceDetailWeb() {
                 )}
               </tbody>
             </table>
+          </div>
+
+          {/* Linked Transactions Table */}
+          <div className="table-card full-width">
+            <div className="card-header">
+              <ArrowLeftRight size={18} color="#4F46E5" />
+              <h3>Transactions ({shiftTransactions.length})</h3>
+            </div>
+            {shiftTransactions.length === 0 ? (
+              <div
+                style={{
+                  padding: "24px",
+                  textAlign: "center",
+                  color: "#9ca3af",
+                }}
+              >
+                No transactions recorded for this shift
+              </div>
+            ) : (
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Time</th>
+                    <th>Type</th>
+                    <th>Account</th>
+                    <th className="text-right">Amount</th>
+                    <th className="text-right">Balance After</th>
+                    <th>Reference</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {shiftTransactions.map((txn) => (
+                    <tr key={txn.id}>
+                      <td className="text-xs text-gray-500">
+                        {txn.transactionTime
+                          ? new Date(txn.transactionTime).toLocaleTimeString(
+                              [],
+                              { hour: "2-digit", minute: "2-digit" },
+                            )
+                          : "—"}
+                      </td>
+                      <td>
+                        <span
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 4,
+                            padding: "2px 10px",
+                            borderRadius: 12,
+                            fontSize: 11,
+                            fontWeight: 600,
+                            backgroundColor:
+                              txn.transactionType === "DEPOSIT"
+                                ? "#dcfce7"
+                                : txn.transactionType === "WITHDRAW"
+                                  ? "#fef2f2"
+                                  : "#e0e7ff",
+                            color:
+                              txn.transactionType === "DEPOSIT"
+                                ? "#16a34a"
+                                : txn.transactionType === "WITHDRAW"
+                                  ? "#dc2626"
+                                  : "#4f46e5",
+                          }}
+                        >
+                          {txn.transactionType === "DEPOSIT" ? (
+                            <ArrowDownCircle size={12} />
+                          ) : txn.transactionType === "WITHDRAW" ? (
+                            <ArrowUpCircle size={12} />
+                          ) : (
+                            <ArrowLeftRight size={12} />
+                          )}
+                          {txn.transactionType === "FLOAT_PURCHASE"
+                            ? "Float"
+                            : txn.transactionType}
+                        </span>
+                      </td>
+                      <td>
+                        {txn.account?.name || `Account ${txn.accountId}`}
+                      </td>
+                      <td className="text-right font-semibold">
+                        {formatCurrency(txn.amount || 0)}
+                      </td>
+                      <td className="text-right">
+                        {txn.balanceAfter != null
+                          ? formatCurrency(txn.balanceAfter)
+                          : "—"}
+                      </td>
+                      <td className="text-xs text-gray-500">
+                        {txn.reference || "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
 
           {/* Notes Section */}
@@ -446,9 +663,16 @@ export default function BalanceDetailWeb() {
                   {isCalculating ? "Calculating..." : "Calculate"}
                 </button>
                 <button
-                  onClick={handleFinalize}
+                  onClick={async () => {
+                    const result = await handleFinalize();
+                    if (result?.error === "HAS_DISCREPANCIES") {
+                      setShowDiscrepancyConfirm(true);
+                    } else if (!result?.success && result?.error) {
+                      alert(result.error);
+                    }
+                  }}
                   disabled={isFinalizing}
-                  className="btn-warning"
+                  className={`${hasDiscrepancies ? "btn-danger" : "btn-warning"}`}
                   style={{
                     flex: 1,
                     display: "flex",
@@ -458,7 +682,11 @@ export default function BalanceDetailWeb() {
                   }}
                 >
                   <Lock size={18} />
-                  {isFinalizing ? "Finalizing..." : "Finalize & Lock"}
+                  {isFinalizing
+                    ? "Finalizing..."
+                    : hasDiscrepancies
+                      ? "Finalize with Discrepancies"
+                      : "Finalize & Lock"}
                 </button>
               </div>
             )}
@@ -502,7 +730,7 @@ export default function BalanceDetailWeb() {
 
       {/* Image Modal */}
       {selectedImage && (
-        <div className="modal-overlay" onClick={() => setSelectedImage(null)}>
+        <div className="image-modal-overlay" onClick={() => setSelectedImage(null)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <button
               onClick={() => setSelectedImage(null)}
@@ -519,6 +747,76 @@ export default function BalanceDetailWeb() {
                 objectFit: "contain",
               }}
             />
+          </div>
+        </div>
+      )}
+
+      {/* Discrepancy Confirmation Modal */}
+      {showDiscrepancyConfirm && (
+        <div
+          className="modal-overlay"
+          onClick={() => setShowDiscrepancyConfirm(false)}
+        >
+          <div
+            className="modal-content"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: 480, padding: 28 }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                marginBottom: 16,
+              }}
+            >
+              <ShieldAlert size={28} color="#DC2626" />
+              <h2 style={{ margin: 0, fontSize: 20 }}>
+                Finalize with Discrepancies?
+              </h2>
+            </div>
+            <p style={{ color: "#6b7280", lineHeight: 1.6, marginBottom: 8 }}>
+              There {discrepancyCount === 1 ? "is" : "are"}{" "}
+              <strong>{discrepancyCount}</strong> account
+              {discrepancyCount !== 1 ? "s" : ""} with balance discrepancies
+              totalling{" "}
+              <strong>{formatCurrency(totalDiscrepancyAmount)}</strong>.
+            </p>
+            <p
+              style={{
+                color: "#6b7280",
+                lineHeight: 1.6,
+                marginBottom: 20,
+              }}
+            >
+              By proceeding, you acknowledge these variances and they will be
+              recorded in the reconciliation report. This action cannot be
+              undone.
+            </p>
+            <div style={{ display: "flex", gap: 12, justifyContent: "flex-end" }}>
+              <button
+                className="btn-cancel"
+                onClick={() => setShowDiscrepancyConfirm(false)}
+              >
+                Go Back & Review
+              </button>
+              <button
+                className="btn-danger"
+                onClick={async () => {
+                  setShowDiscrepancyConfirm(false);
+                  const result = await handleFinalize(true);
+                  if (!result?.success && result?.error) {
+                    alert(result.error);
+                  }
+                }}
+                disabled={isFinalizing}
+              >
+                <Lock size={16} />
+                {isFinalizing
+                  ? "Finalizing..."
+                  : "Confirm Finalize"}
+              </button>
+            </div>
           </div>
         </div>
       )}

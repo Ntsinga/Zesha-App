@@ -6,7 +6,7 @@ import type {
   BulkOperationResponse,
   BulkUpdateOperationResponse,
 } from "./base";
-import type { ShiftEnum, SourceEnum } from "./enums";
+import type { ShiftEnum, SourceEnum, BalanceValidationEnum } from "./enums";
 import type { Account } from "./account";
 
 /**
@@ -26,6 +26,11 @@ export interface Balance extends BaseModel {
   sha256?: string | null;
   date: string;
   imageData?: string | null; // Base64 encoded image
+  // Transaction-derived validation fields (populated during reconciliation calculation)
+  calculatedBalance?: number | null;
+  balanceVariance?: number | null;
+  validationStatus?: BalanceValidationEnum | null;
+  discrepancyNotes?: string | null;
 }
 
 /**

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState as useLocalState } from "react";
 import {
   View,
   Text,
@@ -25,6 +25,11 @@ import {
   RefreshCw,
   Check,
   XCircle,
+  ArrowLeftRight,
+  ArrowUpCircle,
+  ArrowDownCircle,
+  ShieldAlert,
+  ShieldCheck,
 } from "lucide-react-native";
 import { useLocalSearchParams } from "expo-router";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
@@ -57,7 +62,7 @@ export default function BalanceDetailPage() {
     getImageUri,
     formatCurrency,
     formatDate,
-    // New reconciliation functionality
+    // Reconciliation functionality
     notes,
     setNotes,
     canReview,
@@ -69,7 +74,16 @@ export default function BalanceDetailPage() {
     handleFinalize,
     handleApprove,
     handleReject,
+    // Balance validation
+    hasDiscrepancies,
+    discrepancyCount,
+    totalDiscrepancyAmount,
+    validationByAccountId,
+    // Linked transactions
+    shiftTransactions,
   } = useReconciliationScreen({ date, shift });
+
+  const [showDiscrepancyModal, setShowDiscrepancyModal] = useLocalState(false);
 
   if (isLoading && !refreshing) {
     return <LoadingSpinner message="Loading reconciliation details..." />;
@@ -255,7 +269,23 @@ export default function BalanceDetailPage() {
           )}
         </View>
 
-        {/* Balances Card */}
+        {/* Discrepancy Alert Banner */}
+        {hasDiscrepancies && (
+          <View className="bg-red-50 border border-red-200 rounded-2xl p-4 mb-4 flex-row items-center">
+            <ShieldAlert color="#DC2626" size={22} />
+            <View className="flex-1 ml-3">
+              <Text className="text-red-800 font-bold text-sm">
+                Balance Discrepancies Detected
+              </Text>
+              <Text className="text-red-600 text-xs mt-1">
+                {discrepancyCount} account{discrepancyCount !== 1 ? "s" : ""}{" "}
+                with {formatCurrency(totalDiscrepancyAmount)} total variance
+              </Text>
+            </View>
+          </View>
+        )}
+
+        {/* Balances Card with Validation */}
         <View className="bg-white rounded-2xl p-4 mb-4 shadow-sm border border-gray-100">
           <View className="flex-row items-center mb-3">
             <Wallet color="#B8860B" size={20} />
@@ -265,33 +295,94 @@ export default function BalanceDetailPage() {
           </View>
 
           {balances.length > 0 ? (
-            balances.map((balance, idx) => (
-              <TouchableOpacity
-                key={balance.id}
-                onPress={() => {
-                  const uri = getImageUri(balance);
-                  if (uri) setSelectedImage(uri);
-                }}
-                className={`flex-row items-center py-3 ${
-                  idx < balances.length - 1 ? "border-b border-gray-100" : ""
-                }`}
-              >
-                <View className="flex-1">
-                  <Text className="font-medium text-gray-800">
-                    {balance.account?.name || `Account ${balance.accountId}`}
-                  </Text>
-                  <Text className="text-xs text-gray-400">
-                    {balance.source}
-                  </Text>
-                </View>
-                <Text className="font-bold text-gray-700 mr-3">
-                  {formatCurrency(balance.amount)}
-                </Text>
-                {(balance.imageData || balance.imageUrl) && (
-                  <ImageIcon size={16} color="#9CA3AF" />
-                )}
-              </TouchableOpacity>
-            ))
+            balances.map((balance, idx) => {
+              const validation = validationByAccountId[balance.accountId];
+              const vStatus = validation?.validationStatus;
+              return (
+                <TouchableOpacity
+                  key={balance.id}
+                  onPress={() => {
+                    const uri = getImageUri(balance);
+                    if (uri) setSelectedImage(uri);
+                  }}
+                  className={`py-3 ${
+                    idx < balances.length - 1 ? "border-b border-gray-100" : ""
+                  }`}
+                >
+                  <View className="flex-row items-center">
+                    <View className="flex-1">
+                      <Text className="font-medium text-gray-800">
+                        {balance.account?.name ||
+                          `Account ${balance.accountId}`}
+                      </Text>
+                      <Text className="text-xs text-gray-400">
+                        {balance.source}
+                      </Text>
+                    </View>
+                    <Text className="font-bold text-gray-700 mr-3">
+                      {formatCurrency(balance.amount)}
+                    </Text>
+                    {(balance.imageData || balance.imageUrl) && (
+                      <ImageIcon size={16} color="#9CA3AF" />
+                    )}
+                  </View>
+                  {/* Validation row */}
+                  {validation && (
+                    <View className="flex-row items-center mt-2 ml-0">
+                      <View
+                        className={`flex-row items-center px-2 py-0.5 rounded-full mr-2 ${
+                          vStatus === "MATCHED"
+                            ? "bg-green-100"
+                            : vStatus === "SHORTAGE"
+                              ? "bg-red-100"
+                              : vStatus === "EXCESS"
+                                ? "bg-yellow-100"
+                                : "bg-gray-100"
+                        }`}
+                      >
+                        {vStatus === "MATCHED" && (
+                          <ShieldCheck size={12} color="#16A34A" />
+                        )}
+                        {vStatus === "SHORTAGE" && (
+                          <ArrowDownCircle size={12} color="#DC2626" />
+                        )}
+                        {vStatus === "EXCESS" && (
+                          <ArrowUpCircle size={12} color="#CA8A04" />
+                        )}
+                        <Text
+                          className={`text-xs font-semibold ml-1 ${
+                            vStatus === "MATCHED"
+                              ? "text-green-700"
+                              : vStatus === "SHORTAGE"
+                                ? "text-red-700"
+                                : vStatus === "EXCESS"
+                                  ? "text-yellow-700"
+                                  : "text-gray-500"
+                          }`}
+                        >
+                          {vStatus}
+                        </Text>
+                      </View>
+                      <Text className="text-xs text-gray-500">
+                        Expected: {formatCurrency(validation.calculatedBalance)}
+                      </Text>
+                      <Text
+                        className={`text-xs font-semibold ml-2 ${
+                          validation.variance > 0
+                            ? "text-green-600"
+                            : validation.variance < 0
+                              ? "text-red-600"
+                              : "text-gray-500"
+                        }`}
+                      >
+                        {validation.variance >= 0 ? "+" : ""}
+                        {formatCurrency(validation.variance)}
+                      </Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              );
+            })
           ) : (
             <Text className="text-gray-400 text-center py-2">
               No balances recorded
@@ -347,6 +438,74 @@ export default function BalanceDetailPage() {
           ) : (
             <Text className="text-gray-400 text-center py-2">
               No cash count recorded
+            </Text>
+          )}
+        </View>
+
+        {/* Linked Transactions Card */}
+        <View className="bg-white rounded-2xl p-4 mb-4 shadow-sm border border-gray-100">
+          <View className="flex-row items-center mb-3">
+            <ArrowLeftRight color="#4F46E5" size={20} />
+            <Text className="text-gray-700 font-semibold ml-2">
+              Transactions ({shiftTransactions.length})
+            </Text>
+          </View>
+
+          {shiftTransactions.length > 0 ? (
+            shiftTransactions.map((txn, idx) => (
+              <View
+                key={txn.id}
+                className={`flex-row items-center py-3 ${
+                  idx < shiftTransactions.length - 1
+                    ? "border-b border-gray-100"
+                    : ""
+                }`}
+              >
+                <View
+                  className={`p-1.5 rounded-full mr-3 ${
+                    txn.transactionType === "DEPOSIT"
+                      ? "bg-green-100"
+                      : txn.transactionType === "WITHDRAW"
+                        ? "bg-red-100"
+                        : "bg-indigo-100"
+                  }`}
+                >
+                  {txn.transactionType === "DEPOSIT" ? (
+                    <ArrowDownCircle size={16} color="#16A34A" />
+                  ) : txn.transactionType === "WITHDRAW" ? (
+                    <ArrowUpCircle size={16} color="#DC2626" />
+                  ) : (
+                    <ArrowLeftRight size={16} color="#4F46E5" />
+                  )}
+                </View>
+                <View className="flex-1">
+                  <Text className="font-medium text-gray-800 text-sm">
+                    {txn.account?.name || `Account ${txn.accountId}`}
+                  </Text>
+                  <Text className="text-xs text-gray-400">
+                    {txn.transactionType === "FLOAT_PURCHASE"
+                      ? "Float Purchase"
+                      : txn.transactionType}{" "}
+                    · {txn.reference || "No ref"}
+                  </Text>
+                </View>
+                <Text
+                  className={`font-bold text-sm ${
+                    txn.transactionType === "DEPOSIT"
+                      ? "text-green-600"
+                      : txn.transactionType === "WITHDRAW"
+                        ? "text-red-600"
+                        : "text-indigo-600"
+                  }`}
+                >
+                  {txn.transactionType === "WITHDRAW" ? "-" : "+"}
+                  {formatCurrency(txn.amount || 0)}
+                </Text>
+              </View>
+            ))
+          ) : (
+            <Text className="text-gray-400 text-center py-2">
+              No transactions for this shift
             </Text>
           )}
         </View>
@@ -417,13 +576,40 @@ export default function BalanceDetailPage() {
               </TouchableOpacity>
 
               <TouchableOpacity
-                onPress={handleFinalize}
+                onPress={async () => {
+                  const result = await handleFinalize();
+                  if (result?.error === "HAS_DISCREPANCIES") {
+                    Alert.alert(
+                      "Finalize with Discrepancies?",
+                      `There ${discrepancyCount === 1 ? "is" : "are"} ${discrepancyCount} account${discrepancyCount !== 1 ? "s" : ""} with balance discrepancies totalling ${formatCurrency(totalDiscrepancyAmount)}. Proceed anyway?`,
+                      [
+                        { text: "Review", style: "cancel" },
+                        {
+                          text: "Finalize",
+                          style: "destructive",
+                          onPress: async () => {
+                            const r = await handleFinalize(true);
+                            if (!r?.success && r?.error) {
+                              Alert.alert("Error", r.error);
+                            }
+                          },
+                        },
+                      ],
+                    );
+                  } else if (!result?.success && result?.error) {
+                    Alert.alert("Error", result.error);
+                  }
+                }}
                 disabled={isFinalizing}
-                className="flex-1 flex-row items-center justify-center bg-amber-500 py-4 rounded-xl"
+                className={`flex-1 flex-row items-center justify-center ${hasDiscrepancies ? "bg-red-500" : "bg-amber-500"} py-4 rounded-xl`}
               >
                 <Lock color="#fff" size={20} />
                 <Text className="text-white font-semibold ml-2">
-                  {isFinalizing ? "Finalizing..." : "Finalize & Lock"}
+                  {isFinalizing
+                    ? "Finalizing..."
+                    : hasDiscrepancies
+                      ? "Finalize*"
+                      : "Finalize & Lock"}
                 </Text>
               </TouchableOpacity>
             </View>

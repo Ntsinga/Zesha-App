@@ -8,6 +8,11 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import {
+  ArrowLeftRight,
+  ArrowDownCircle,
+  ArrowUpCircle,
+} from "lucide-react-native";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { useDashboardScreen } from "../../hooks/screens/useDashboardScreen";
 import type { AccountSummary } from "../../types";
@@ -34,6 +39,8 @@ export default function DashboardNative() {
     outstandingBalance,
     totalCommission,
     dailyCommission,
+    transactionCount,
+    recentTransactions,
     formatCurrency,
     formatCompactCurrency,
     onRefresh,
@@ -259,8 +266,26 @@ export default function DashboardNative() {
               </View>
             </TouchableOpacity>
             <TouchableOpacity
-              onPress={() => router.push("/commissions" as any)}
+              onPress={() => router.push("/transactions" as any)}
               className="flex-1 bg-white ml-0 rounded-xl p-3 shadow-sm flex-row items-center"
+            >
+              <View className="bg-indigo-100 p-2 rounded-xl mr-2">
+                <ArrowLeftRight size={20} color="#4F46E5" />
+              </View>
+              <View className="flex-shrink">
+                <Text className="font-bold text-gray-900 text-sm">
+                  Transactions
+                </Text>
+                <Text className="text-xs text-gray-500">
+                  {transactionCount} today
+                </Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+          <View className="flex-row gap-2.5 mb-4">
+            <TouchableOpacity
+              onPress={() => router.push("/commissions" as any)}
+              className="flex-1 bg-white rounded-xl p-3 mr-0 shadow-sm flex-row items-center"
             >
               <View className="bg-green-100 p-2 rounded-xl mr-2">
                 <Ionicons name="cash" size={20} color="#22C55E" />
@@ -272,8 +297,93 @@ export default function DashboardNative() {
                 <Text className="text-xs text-gray-500">Payments</Text>
               </View>
             </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => router.push("/expenses" as any)}
+              className="flex-1 bg-white ml-0 rounded-xl p-3 shadow-sm flex-row items-center"
+            >
+              <View className="bg-red-100 p-2 rounded-xl mr-2">
+                <Ionicons name="receipt" size={20} color="#DC2626" />
+              </View>
+              <View className="flex-shrink">
+                <Text className="font-bold text-gray-900 text-sm">
+                  Expenses
+                </Text>
+                <Text className="text-xs text-gray-500">Records</Text>
+              </View>
+            </TouchableOpacity>
           </View>
         </View>
+
+        {/* Recent Transactions Feed */}
+        {recentTransactions.length > 0 && (
+          <View className="px-5 py-3">
+            <View className="flex-row justify-between items-center mb-3">
+              <Text className="text-lg font-bold text-gray-900">
+                Recent Transactions
+              </Text>
+              <TouchableOpacity
+                onPress={() => router.push("/transactions" as any)}
+              >
+                <Text className="text-indigo-600 font-semibold text-sm">
+                  View All →
+                </Text>
+              </TouchableOpacity>
+            </View>
+            <View className="bg-white rounded-2xl shadow-sm overflow-hidden">
+              {recentTransactions.map((txn, idx) => (
+                <View
+                  key={txn.id}
+                  className={`flex-row items-center px-4 py-3 ${
+                    idx < recentTransactions.length - 1
+                      ? "border-b border-gray-100"
+                      : ""
+                  }`}
+                >
+                  <View
+                    className={`p-1.5 rounded-full mr-3 ${
+                      txn.transactionType === "DEPOSIT"
+                        ? "bg-green-100"
+                        : txn.transactionType === "WITHDRAW"
+                          ? "bg-red-100"
+                          : "bg-indigo-100"
+                    }`}
+                  >
+                    {txn.transactionType === "DEPOSIT" ? (
+                      <ArrowDownCircle size={16} color="#16A34A" />
+                    ) : txn.transactionType === "WITHDRAW" ? (
+                      <ArrowUpCircle size={16} color="#DC2626" />
+                    ) : (
+                      <ArrowLeftRight size={16} color="#4F46E5" />
+                    )}
+                  </View>
+                  <View className="flex-1">
+                    <Text className="font-medium text-gray-800 text-sm">
+                      {txn.account?.name || `Account ${txn.accountId}`}
+                    </Text>
+                    <Text className="text-xs text-gray-400">
+                      {txn.transactionType === "FLOAT_PURCHASE"
+                        ? "Float Purchase"
+                        : txn.transactionType}{" "}
+                      · {txn.shift}
+                    </Text>
+                  </View>
+                  <Text
+                    className={`font-bold text-sm ${
+                      txn.transactionType === "DEPOSIT"
+                        ? "text-green-600"
+                        : txn.transactionType === "WITHDRAW"
+                          ? "text-red-600"
+                          : "text-indigo-600"
+                    }`}
+                  >
+                    {txn.transactionType === "WITHDRAW" ? "-" : "+"}
+                    {formatCurrency(txn.amount || 0)}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
       </ScrollView>
     </View>
   );

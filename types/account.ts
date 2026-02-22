@@ -13,6 +13,8 @@ export interface Account extends BaseModel {
   accountType: AccountTypeEnum;
   isActive: boolean;
   companyId: number;
+  initialBalance?: number | null;
+  currentBalance?: number | null;
 }
 
 /**
@@ -24,6 +26,7 @@ export interface AccountCreate {
   accountType: AccountTypeEnum;
   isActive?: boolean;
   companyId: number;
+  initialBalance?: number;
 }
 
 /**

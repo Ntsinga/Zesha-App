@@ -31,7 +31,8 @@ import {
   updateCompanyInfo,
   createCompanyInfo,
 } from "../../store/slices/companyInfoSlice";
-import { clearLocalAuth, selectUserRole } from "../../store/slices/authSlice";
+import { clearLocalAuth } from "../../store/slices/authSlice";
+import { useEffectiveRole } from "../../hooks/useEffectiveRole";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { formatCurrency } from "../../utils/formatters";
 import type { AppDispatch, RootState } from "../../store";
@@ -59,9 +60,10 @@ export default function Settings() {
     error,
   } = useSelector((state: RootState) => state.companyInfo);
 
-  const userRole = useSelector(selectUserRole);
+  const effectiveRole = useEffectiveRole();
   const isAdmin =
-    userRole === "Administrator" || userRole === "Super Administrator";
+    effectiveRole === "Administrator" ||
+    effectiveRole === "Super Administrator";
 
   const [refreshing, setRefreshing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);

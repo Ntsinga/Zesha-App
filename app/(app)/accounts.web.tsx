@@ -3,7 +3,6 @@ import {
   Plus,
   Building2,
   Smartphone,
-  Edit2,
   Trash2,
   X,
   Check,
@@ -15,6 +14,7 @@ import {
   useAccountsScreen,
   ACCOUNT_TYPES,
 } from "../../hooks/screens/useAccountsScreen";
+import { useCurrencyFormatter } from "../../hooks/useCurrency";
 import type { AccountTypeEnum } from "../../types";
 import "../../styles/web.css";
 
@@ -40,6 +40,8 @@ export default function Accounts() {
     setAccountType,
     isActive,
     setIsActive,
+    initialBalance,
+    setInitialBalance,
     stats,
     onRefresh,
     openAddModal,
@@ -50,6 +52,8 @@ export default function Accounts() {
     handleDelete,
     cancelDelete,
   } = useAccountsScreen();
+
+  const { formatCurrency } = useCurrencyFormatter();
 
   const [message, setMessage] = useState<{
     type: "success" | "error";
@@ -214,13 +218,17 @@ export default function Accounts() {
                 <tr>
                   <th>Name</th>
                   <th>Type</th>
+                  <th>Current Balance</th>
                   <th>Status</th>
-                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {accounts.map((account) => (
-                  <tr key={account.id}>
+                  <tr
+                    key={account.id}
+                    onClick={() => openEditModal(account)}
+                    style={{ cursor: "pointer" }}
+                  >
                     <td className="account-name">
                       {account.accountType === "BANK" ? (
                         <Building2 size={16} className="text-muted" />
@@ -236,6 +244,9 @@ export default function Accounts() {
                         {account.accountType}
                       </span>
                     </td>
+                    <td className="font-medium">
+                      {formatCurrency(account.currentBalance ?? 0)}
+                    </td>
                     <td>
                       <span
                         className={`status-badge ${
@@ -244,24 +255,6 @@ export default function Accounts() {
                       >
                         {account.isActive ? "Active" : "Inactive"}
                       </span>
-                    </td>
-                    <td>
-                      <div className="action-buttons">
-                        <button
-                          className="btn-icon-sm"
-                          onClick={() => openEditModal(account)}
-                          title="Edit"
-                        >
-                          <Edit2 size={16} />
-                        </button>
-                        <button
-                          className="btn-icon-sm danger"
-                          onClick={() => confirmDelete(account)}
-                          title="Delete"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
                     </td>
                   </tr>
                 ))}
@@ -320,6 +313,38 @@ export default function Accounts() {
                 </div>
               </div>
 
+              {!editingAccount && (
+                <div className="form-group">
+                  <label className="form-label">Initial Balance</label>
+                  <input
+                    type="number"
+                    value={initialBalance}
+                    onChange={(e) => setInitialBalance(e.target.value)}
+                    placeholder="0.00"
+                    className="form-input"
+                    min="0"
+                    step="0.01"
+                  />
+                  <span className="form-hint">
+                    Starting balance for audit tracking (cannot be changed
+                    later)
+                  </span>
+                </div>
+              )}
+
+              {editingAccount && (
+                <div className="form-group">
+                  <label className="form-label">Current Balance</label>
+                  <input
+                    type="text"
+                    value={formatCurrency(editingAccount.currentBalance ?? 0)}
+                    className="form-input"
+                    disabled
+                    style={{ background: "#f8fafc", color: "#64748b" }}
+                  />
+                </div>
+              )}
+
               <div className="form-group">
                 <label className="form-label">Status</label>
                 <div className="toggle-group">
@@ -339,6 +364,20 @@ export default function Accounts() {
             </div>
 
             <div className="modal-footer">
+              {editingAccount && (
+                <button
+                  className="btn-danger"
+                  onClick={() => {
+                    closeModal();
+                    confirmDelete(editingAccount);
+                  }}
+                  disabled={isSubmitting}
+                  style={{ marginRight: "auto" }}
+                >
+                  <Trash2 size={16} />
+                  Delete
+                </button>
+              )}
               <button
                 className="btn-secondary"
                 onClick={closeModal}

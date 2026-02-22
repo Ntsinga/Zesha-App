@@ -12,12 +12,12 @@ const getApiBaseUrl = (): string => {
   // Development fallback - ngrok URL
   // WARNING: Update this when your ngrok URL changes
   if (__DEV__) {
-    return "https://cb87-196-250-65-167.ngrok-free.app";
+    return "https://0325-196-250-65-167.ngrok-free.app";
   }
 
   // Production fallback - should be set via environment variable
   console.warn("[API] EXPO_PUBLIC_API_URL not set - using development URL");
-  return "https://a4b2560e208b.ngrok-free.app";
+  return "https://0325-196-250-65-167.ngrok-free.app";
 };
 
 export const API_BASE_URL = getApiBaseUrl();
@@ -105,6 +105,8 @@ export const API_ENDPOINTS = {
       `/reconciliations/${date}/${shift}/finalize`,
     approve: (date: string, shift: string) =>
       `/reconciliations/${date}/${shift}/approve`,
+    balanceValidation: (date: string, shift: string) =>
+      `/reconciliations/${date}/${shift}/balance-validation`,
     notify: (id: number) => `/reconciliations/${id}/notify`,
   },
 
@@ -128,6 +130,27 @@ export const API_ENDPOINTS = {
     delete: (id: number) => `/accounts/${id}`,
     deactivate: (id: number) => `/accounts/${id}/deactivate`,
     activate: (id: number) => `/accounts/${id}/activate`,
+  },
+
+  // Transactions - matches routers/transactions.py
+  transactions: {
+    list: "/transactions/",
+    create: "/transactions/create",
+    floatPurchase: "/transactions/float-purchase",
+    bulk: "/transactions/bulk",
+    get: (id: number) => `/transactions/${id}`,
+    update: (id: number) => `/transactions/${id}`,
+    reverse: (id: number) => `/transactions/${id}/reverse`,
+    accountBalance: (accountId: number) =>
+      `/transactions/account/${accountId}/balance`,
+    accountStatement: (accountId: number) =>
+      `/transactions/account/${accountId}/statement`,
+    companyStatement: "/transactions/statement",
+    analyticsSummary: "/transactions/analytics/summary",
+    analyticsDaily: "/transactions/analytics/daily",
+    verifyBalance: (accountId: number) =>
+      `/transactions/account/${accountId}/verify-balance`,
+    verifyAll: "/transactions/accounts/verify-all",
   },
 
   // AI Extraction

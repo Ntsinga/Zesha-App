@@ -12,11 +12,11 @@ import { Stack, useRouter, usePathname } from "expo-router";
 import { Building2, LogIn } from "lucide-react-native";
 import { useAppSelector, useAppDispatch } from "../../store/hooks";
 import {
-  selectUserRole,
   selectViewingAgencyId,
   selectViewingAgencyName,
   exitAgency,
 } from "../../store/slices/authSlice";
+import { useIsSuperAdmin } from "../../hooks/useEffectiveRole";
 import TopBar from "../../components/TopBar";
 import BottomNav from "../../components/BottomNav";
 
@@ -24,10 +24,9 @@ export default function AppLayout() {
   const router = useRouter();
   const pathname = usePathname();
   const dispatch = useAppDispatch();
-  const userRole = useAppSelector(selectUserRole);
+  const isSuperAdmin = useIsSuperAdmin();
   const viewingAgencyId = useAppSelector(selectViewingAgencyId);
   const viewingAgencyName = useAppSelector(selectViewingAgencyName);
-  const isSuperAdmin = userRole === "Super Administrator";
   const isViewingAgency = viewingAgencyId !== null;
 
   // Redirect superadmin to agencies page if they try to access agency-specific pages without viewing an agency

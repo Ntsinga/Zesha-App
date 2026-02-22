@@ -12,6 +12,9 @@ import {
   DollarSign,
   ArrowUpRight,
   ArrowDownRight,
+  ArrowLeftRight,
+  ArrowDownCircle,
+  ArrowUpCircle,
 } from "lucide-react";
 import { useDashboardScreen } from "../../hooks/screens/useDashboardScreen";
 import "../../styles/web.css";
@@ -36,6 +39,8 @@ export default function DashboardWeb() {
     outstandingBalance,
     totalCommission,
     dailyCommission,
+    transactionCount,
+    recentTransactions,
     formatCurrency,
     formatCompactCurrency,
     onRefresh,
@@ -186,6 +191,24 @@ export default function DashboardWeb() {
                   Total: {formatCurrency(totalCommission)}
                 </span>
               </div>
+              <div className="metric-divider" />
+              <div className="metric">
+                <div className="metric-top">
+                  <span className="metric-name">Transactions</span>
+                  <div className="metric-badge" style={{ backgroundColor: "#e0e7ff", color: "#4f46e5" }}>
+                    <ArrowLeftRight size={16} />
+                  </div>
+                </div>
+                <p className="metric-amount" style={{ color: "#4f46e5" }}>
+                  {transactionCount}
+                </p>
+                <button
+                  onClick={() => router.push("/transactions")}
+                  className="metric-link"
+                >
+                  View All →
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -260,6 +283,13 @@ export default function DashboardWeb() {
                 <span>Daily Reconciliation</span>
               </button>
               <button
+                onClick={() => router.push("/transactions")}
+                className="action-btn"
+              >
+                <ArrowLeftRight size={20} />
+                <span>Record Transaction</span>
+              </button>
+              <button
                 onClick={() => router.push("/add-cash-count")}
                 className="action-btn"
               >
@@ -281,6 +311,91 @@ export default function DashboardWeb() {
                 <span>View History</span>
               </button>
             </div>
+
+            {/* Recent Transactions Feed */}
+            {recentTransactions.length > 0 && (
+              <>
+                <h3 style={{ marginTop: 24 }}>Recent Transactions</h3>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {recentTransactions.map((txn) => (
+                    <div
+                      key={txn.id}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 10,
+                        padding: "8px 12px",
+                        borderRadius: 10,
+                        backgroundColor: "#f8fafc",
+                        border: "1px solid #f1f5f9",
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: 28,
+                          height: 28,
+                          borderRadius: "50%",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          backgroundColor:
+                            txn.transactionType === "DEPOSIT"
+                              ? "#dcfce7"
+                              : txn.transactionType === "WITHDRAW"
+                                ? "#fef2f2"
+                                : "#e0e7ff",
+                        }}
+                      >
+                        {txn.transactionType === "DEPOSIT" ? (
+                          <ArrowDownCircle size={14} color="#16a34a" />
+                        ) : txn.transactionType === "WITHDRAW" ? (
+                          <ArrowUpCircle size={14} color="#dc2626" />
+                        ) : (
+                          <ArrowLeftRight size={14} color="#4f46e5" />
+                        )}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div
+                          style={{
+                            fontSize: 13,
+                            fontWeight: 500,
+                            color: "#1e293b",
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                          }}
+                        >
+                          {txn.account?.name || `Account ${txn.accountId}`}
+                        </div>
+                        <div
+                          style={{ fontSize: 11, color: "#94a3b8" }}
+                        >
+                          {txn.transactionType === "FLOAT_PURCHASE"
+                            ? "Float"
+                            : txn.transactionType}{" "}
+                          · {txn.shift}
+                        </div>
+                      </div>
+                      <div
+                        style={{
+                          fontWeight: 600,
+                          fontSize: 13,
+                          color:
+                            txn.transactionType === "DEPOSIT"
+                              ? "#16a34a"
+                              : txn.transactionType === "WITHDRAW"
+                                ? "#dc2626"
+                                : "#4f46e5",
+                        }}
+                      >
+                        {txn.transactionType === "WITHDRAW" ? "-" : "+"}
+                        {formatCurrency(txn.amount || 0)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>

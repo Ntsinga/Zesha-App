@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { selectUserRole } from "@/store/slices/authSlice";
+import { useIsSuperAdmin } from "@/hooks/useEffectiveRole";
 import {
   fetchCompanyInfoList,
   createCompanyInfo,
@@ -34,7 +34,7 @@ export default function AgencyFormScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id?: string }>();
   const dispatch = useAppDispatch();
-  const userRole = useAppSelector(selectUserRole);
+  const isSuperAdmin = useIsSuperAdmin();
   const { items: agencies, isLoading } = useAppSelector(
     (state) => state.companyInfo,
   );
@@ -55,9 +55,6 @@ export default function AgencyFormScreen() {
   const [formError, setFormError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
-
-  // Check if user is superadmin
-  const isSuperAdmin = userRole === "Super Administrator";
 
   // Load agency data when editing
   useEffect(() => {

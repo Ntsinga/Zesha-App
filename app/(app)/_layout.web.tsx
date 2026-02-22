@@ -15,6 +15,9 @@ import {
   Home,
   User,
   LogIn,
+  ArrowLeftRight,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { useSelector, useDispatch } from "react-redux";
 import type { RootState, AppDispatch } from "../../store";
@@ -44,6 +47,23 @@ export default function AppLayoutWeb() {
   const { user: clerkUser } = useUser();
   const dispatch = useDispatch<AppDispatch>();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("sidebarCollapsed") === "true";
+    }
+    return false;
+  });
+
+  const toggleSidebar = () => {
+    setIsSidebarCollapsed((prev) => {
+      const next = !prev;
+      if (typeof window !== "undefined") {
+        localStorage.setItem("sidebarCollapsed", String(next));
+      }
+      return next;
+    });
+  };
+
   const dashboardCompanyName = useSelector(
     (state: RootState) => state.dashboard.companyInfo?.name ?? "Company",
   );
@@ -146,6 +166,11 @@ export default function AppLayoutWeb() {
       href: "/history",
       label: "Reconciliation History",
       icon: <History size={20} />,
+    },
+    {
+      href: "/transactions",
+      label: "Transactions",
+      icon: <ArrowLeftRight size={20} />,
     },
     {
       href: "/commissions",
@@ -264,17 +289,33 @@ export default function AppLayoutWeb() {
       </div>
 
       {/* Desktop Sidebar */}
-      <aside className="sidebar">
+      <aside className={`sidebar${isSidebarCollapsed ? " collapsed" : ""}`}>
         <div className="sidebar-header">
           <div className="sidebar-brand">
             <div className="sidebar-logo">
               <Building2 size={24} color="white" />
             </div>
-            <div>
-              <div className="sidebar-title">Zesha</div>
-              <div className="sidebar-subtitle">{sidebarSubtitle}</div>
-            </div>
+            {!isSidebarCollapsed && (
+              <div>
+                <div className="sidebar-title">Zesha</div>
+                <div className="sidebar-subtitle">{sidebarSubtitle}</div>
+              </div>
+            )}
           </div>
+          <button
+            onClick={toggleSidebar}
+            className="sidebar-collapse-btn"
+            title={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            aria-label={
+              isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"
+            }
+          >
+            {isSidebarCollapsed ? (
+              <ChevronRight size={18} />
+            ) : (
+              <ChevronLeft size={18} />
+            )}
+          </button>
         </div>
 
         <nav className="sidebar-nav">
@@ -284,9 +325,10 @@ export default function AppLayoutWeb() {
                 <button
                   onClick={() => router.push(item.href as any)}
                   className={`nav-link ${isActive(item.href) ? "active" : ""}`}
+                  title={isSidebarCollapsed ? item.label : undefined}
                 >
                   {item.icon}
-                  <span>{item.label}</span>
+                  {!isSidebarCollapsed && <span>{item.label}</span>}
                 </button>
               </li>
             ))}
@@ -294,19 +336,29 @@ export default function AppLayoutWeb() {
         </nav>
 
         <div className="sidebar-footer">
-          <button onClick={() => router.push("/settings")} className="nav-link">
+          <button
+            onClick={() => router.push("/settings")}
+            className="nav-link"
+            title={isSidebarCollapsed ? "Settings" : undefined}
+          >
             <Settings size={20} />
-            <span>Settings</span>
+            {!isSidebarCollapsed && <span>Settings</span>}
           </button>
-          <button onClick={handleSignOut} className="nav-link">
+          <button
+            onClick={handleSignOut}
+            className="nav-link"
+            title={isSidebarCollapsed ? "Logout" : undefined}
+          >
             <LogOut size={20} />
-            <span>Logout</span>
+            {!isSidebarCollapsed && <span>Logout</span>}
           </button>
         </div>
       </aside>
 
       {/* Main Content Area */}
-      <main className="content-area">
+      <main
+        className={`content-area${isSidebarCollapsed ? " sidebar-collapsed" : ""}`}
+      >
         {/* Agency Viewing Banner - only shown when superadmin is viewing an agency */}
         {isSuperAdmin && isViewingAgency && (
           <div className="agency-viewing-banner">

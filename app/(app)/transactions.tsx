@@ -6,8 +6,7 @@ import {
   TouchableOpacity,
   RefreshControl,
 } from "react-native";
-import { Camera, Plus, Filter, Menu } from "lucide-react-native";
-import { useNavigation } from "expo-router";
+import { Plus, Filter } from "lucide-react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { ActionModal, AddTransactionForm } from "../../components/ActionModal";
 import { fetchTransactions } from "../../store/slices/transactionsSlice";
@@ -15,10 +14,9 @@ import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { formatDate } from "../../utils/formatters";
 import { useCurrencyFormatter } from "../../hooks/useCurrency";
 import type { AppDispatch, RootState } from "../../store";
-import type { Transaction } from "../../types";
+import type { TransactionRecord as Transaction } from "../../types";
 
 export default function Transactions() {
-  const navigation = useNavigation();
   const dispatch = useDispatch<AppDispatch>();
   const { formatCurrency } = useCurrencyFormatter();
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -55,26 +53,13 @@ export default function Transactions() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        <View className="flex-row justify-between items-center mb-6 mt-4">
+        <View className="mb-6 mt-4">
           <Text className="text-3xl font-bold text-brand-red">
             Transactions
           </Text>
-          <TouchableOpacity
-            onPress={() => (navigation as any).openDrawer()}
-            className="p-2 bg-brand-red rounded-md shadow-sm"
-          >
-            <Menu color="white" size={24} />
-          </TouchableOpacity>
         </View>
 
-        <View className="flex-row justify-between items-center mb-4">
-          <TouchableOpacity
-            onPress={() => setIsModalOpen(true)}
-            className="bg-brand-red px-4 py-2 rounded-lg flex-row items-center shadow-sm"
-          >
-            <Plus size={16} color="white" />
-            <Text className="text-white font-bold ml-2">New</Text>
-          </TouchableOpacity>
+        <View className="flex-row justify-end items-center mb-4">
           <TouchableOpacity className="p-2 bg-white rounded-lg border border-gray-200">
             <Filter size={20} color="#9CA3AF" />
           </TouchableOpacity>
@@ -98,39 +83,60 @@ export default function Transactions() {
                 <View className="flex-1">
                   <View className="flex-row items-center mb-1">
                     <Text className="font-bold text-gray-700 mr-2">
-                      {tx.account || "Unknown"}
+                      {tx.account?.name || `Acct #${tx.accountId}`}
                     </Text>
                     <Text className="text-xs text-gray-400">
-                      {formatDate(tx.date, "short")}
+                      {formatDate(tx.transactionTime, "short")} · {tx.shift}
                     </Text>
                   </View>
-                  <Text className="text-brand-red font-medium">
-                    {tx.description}
-                  </Text>
+                  {tx.reference ? (
+                    <Text className="text-gray-600 font-medium">
+                      {tx.reference}
+                    </Text>
+                  ) : null}
+                  {tx.notes ? (
+                    <Text className="text-xs text-gray-400 mt-0.5">
+                      {tx.notes}
+                    </Text>
+                  ) : null}
                   <View className="bg-gray-100 self-start px-2 py-0.5 rounded mt-1">
-                    <Text className="text-xs text-gray-500">{tx.category}</Text>
+                    <Text className="text-xs text-gray-500">
+                      {tx.transactionType}
+                    </Text>
                   </View>
                 </View>
                 <View className="items-end">
                   <Text
                     className={`font-bold text-base ${
-                      tx.type === "income" ? "text-green-600" : "text-red-600"
+                      tx.transactionType === "DEPOSIT"
+                        ? "text-green-600"
+                        : "text-red-600"
                     }`}
                   >
-                    {tx.type === "income" ? "+" : "-"}
+                    {tx.transactionType === "DEPOSIT" ? "+" : "-"}
                     {formatCurrency(Math.abs(tx.amount))}
                   </Text>
-                  {tx.hasReceipt && (
-                    <View className="mt-2">
-                      <Camera size={14} color="#9CA3AF" />
-                    </View>
-                  )}
                 </View>
               </View>
             ))
           )}
         </View>
       </ScrollView>
+
+      {/* FAB */}
+      <TouchableOpacity
+        onPress={() => setIsModalOpen(true)}
+        className="absolute bottom-32 right-5 w-14 h-14 bg-brand-red rounded-full items-center justify-center"
+        style={{
+          elevation: 8,
+          shadowColor: "#DC2626",
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.3,
+          shadowRadius: 8,
+        }}
+      >
+        <Plus color="white" size={28} />
+      </TouchableOpacity>
 
       <ActionModal
         visible={isModalOpen}

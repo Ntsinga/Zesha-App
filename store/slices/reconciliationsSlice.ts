@@ -14,6 +14,10 @@ import type {
   ApprovalStatusEnum,
   ShiftEnum,
 } from "@/types";
+import type {
+  BalanceValidationResult,
+  BalanceValidationParams,
+} from "@/types/reconciliation";
 import { mapApiResponse, mapApiRequest, buildTypedQueryString } from "@/types";
 import { API_ENDPOINTS } from "@/config/api";
 import { secureApiRequest } from "@/services/secureApi";
@@ -27,6 +31,7 @@ export interface ReconciliationsState {
   selectedReconciliation: Reconciliation | null;
   calculatedResult: ReconciliationCalculationResult | null;
   reconciliationDetails: ReconciliationDetail | null;
+  balanceValidation: BalanceValidationResult[];
   isLoading: boolean;
   isCalculating: boolean;
   isFinalizing: boolean;
@@ -41,6 +46,7 @@ const initialState: ReconciliationsState = {
   selectedReconciliation: null,
   calculatedResult: null,
   reconciliationDetails: null,
+  balanceValidation: [],
   isLoading: false,
   isCalculating: false,
   isFinalizing: false,
@@ -280,10 +286,13 @@ export const finalizeReconciliation = createAsyncThunk<
     }
 
     const query = buildTypedQueryString({ companyId });
-    const body = {
+    const body: Record<string, unknown> = {
       reconciledBy: params.reconciledBy,
       notes: params.notes,
     };
+    if (params.forceWithDiscrepancies) {
+      body.forceWithDiscrepancies = true;
+    }
     const result = await apiRequest<Reconciliation>(
       `${API_ENDPOINTS.reconciliations.finalize(params.date, params.shift)}${query}`,
       {
@@ -357,6 +366,44 @@ export const approveReconciliation = createAsyncThunk<
   }
 });
 
+// Fetch balance validation for a reconciliation
+export const fetchBalanceValidation = createAsyncThunk<
+  BalanceValidationResult[],
+  BalanceValidationParams,
+  { state: RootState; rejectValue: string }
+>(
+  "reconciliations/fetchBalanceValidation",
+  async (params, { getState, rejectWithValue }) => {
+    try {
+      const state = getState();
+      const companyId = state.auth.viewingAgencyId || state.auth.user?.companyId;
+
+      if (!companyId) {
+        return rejectWithValue("No companyId found. Please log in again.");
+      }
+
+      const query = buildTypedQueryString({ companyId });
+      // Backend returns { has_discrepancies, discrepancy_count, discrepancies: [...] }
+      // We extract the discrepancies array and map it to camelCase
+      const response = await secureApiRequest<{
+        has_discrepancies: boolean;
+        discrepancy_count: number;
+        discrepancies: Record<string, unknown>[];
+      }>(
+        `${API_ENDPOINTS.reconciliations.balanceValidation(params.date, params.shift)}${query}`,
+      );
+      const items = Array.isArray(response?.discrepancies) ? response.discrepancies : [];
+      return mapApiResponse<BalanceValidationResult[]>(items);
+    } catch (error) {
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : "Failed to fetch balance validation",
+      );
+    }
+  },
+);
+
 // Fetch reconciliation details (for review screen)
 export const fetchReconciliationDetails = createAsyncThunk<
   ReconciliationDetail,
@@ -411,6 +458,9 @@ const reconciliationsSlice = createSlice({
     },
     clearReconciliationDetails: (state) => {
       state.reconciliationDetails = null;
+    },
+    clearBalanceValidation: (state) => {
+      state.balanceValidation = [];
     },
     clearHistory: (state) => {
       state.history = [];
@@ -580,6 +630,21 @@ const reconciliationsSlice = createSlice({
         state.isLoading = false;
         state.error = action.payload as string;
       });
+
+    // Fetch balance validation
+    builder
+      .addCase(fetchBalanceValidation.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(fetchBalanceValidation.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.balanceValidation = action.payload;
+      })
+      .addCase(fetchBalanceValidation.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
+      });
   },
 });
 
@@ -590,6 +655,7 @@ export const {
   clearSelectedReconciliation,
   clearCalculatedResult,
   clearReconciliationDetails,
+  clearBalanceValidation,
   clearHistory,
 } = reconciliationsSlice.actions;
 

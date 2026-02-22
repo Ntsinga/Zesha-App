@@ -28,5 +28,11 @@ export type ApprovalStatusEnum = "PENDING" | "APPROVED" | "REJECTED";
 // Reconciliation workflow stages
 export type ReconciliationStatusEnum = "DRAFT" | "CALCULATED" | "FINALIZED";
 
+// Transaction types - matches backend TransactionTypeEnum
+export type TransactionTypeEnum = "DEPOSIT" | "WITHDRAW" | "FLOAT_PURCHASE";
+
+// Balance validation status - matches backend BalanceValidationEnum
+export type BalanceValidationEnum = "PENDING" | "MATCHED" | "SHORTAGE" | "EXCESS";
+
 // Legacy reconciliation type (deprecated - use SourceEnum)
 export type ReconciliationTypeEnum = "WHATSAPP" | "MOBILE_APP" | "MANUAL";

@@ -5,6 +5,7 @@ import { fetchCashCounts } from "../../store/slices/cashCountSlice";
 import { fetchBalances } from "../../store/slices/balancesSlice";
 import { fetchAccounts } from "../../store/slices/accountsSlice";
 import { fetchCommissions } from "../../store/slices/commissionsSlice";
+import { fetchTransactions } from "../../store/slices/transactionsSlice";
 import { calculateReconciliation } from "../../store/slices/reconciliationsSlice";
 import { useCurrencyFormatter } from "../useCurrency";
 import type { AppDispatch, RootState } from "../../store";
@@ -36,6 +37,10 @@ export function useBalanceMenuScreen() {
     (state: RootState) => state.accounts,
   );
 
+  const { items: transactions, isLoading: transactionsLoading } = useSelector(
+    (state: RootState) => state.transactions,
+  );
+
   const { isCalculating } = useSelector(
     (state: RootState) => state.reconciliations,
   );
@@ -46,7 +51,8 @@ export function useBalanceMenuScreen() {
     cashCountLoading ||
     balancesLoading ||
     commissionsLoading ||
-    accountsLoading;
+    accountsLoading ||
+    transactionsLoading;
 
   // Track the last companyId we fetched for, to prevent re-fetching when
   // the backendUser object reference changes but companyId stays the same
@@ -85,6 +91,13 @@ export function useBalanceMenuScreen() {
     );
     dispatch(
       fetchAccounts({ companyId: backendUser.companyId, isActive: true }),
+    );
+    dispatch(
+      fetchTransactions({
+        companyId: backendUser.companyId,
+        startDate: today,
+        endDate: today,
+      }),
     );
   }, [dispatch, today, backendUser?.companyId]);
 
@@ -208,6 +221,45 @@ export function useBalanceMenuScreen() {
     };
   }, [commissions, today]);
 
+  // Calculate transaction status for today
+  const transactionStatus = useMemo(() => {
+    const todayTransactions = transactions.filter((txn) =>
+      txn.transactionTime?.startsWith(today),
+    );
+
+    const amTransactions = todayTransactions.filter(
+      (txn) => txn.shift === "AM",
+    );
+    const pmTransactions = todayTransactions.filter(
+      (txn) => txn.shift === "PM",
+    );
+
+    const hasAM = amTransactions.length > 0;
+    const hasPM = pmTransactions.length > 0;
+
+    const amCount = amTransactions.length;
+    const pmCount = pmTransactions.length;
+
+    const amTotal = amTransactions.reduce(
+      (sum, txn) => sum + parseFloat(String(txn.amount || 0)),
+      0,
+    );
+    const pmTotal = pmTransactions.reduce(
+      (sum, txn) => sum + parseFloat(String(txn.amount || 0)),
+      0,
+    );
+
+    return {
+      hasAMTransactions: hasAM,
+      hasPMTransactions: hasPM,
+      hasTodayTransactions: hasAM || hasPM,
+      amTransactionCount: amCount,
+      pmTransactionCount: pmCount,
+      amTransactionTotal: amTotal,
+      pmTransactionTotal: pmTotal,
+    };
+  }, [transactions, today]);
+
   // Auto-select the shift that has data (only on initial load)
   const [hasAutoSelected, setHasAutoSelected] = useState(false);
 
@@ -220,11 +272,13 @@ export function useBalanceMenuScreen() {
     const hasPMData =
       commissionStatus.hasPMCommissions ||
       balanceStatus.hasPMBalances ||
-      cashCountStatus.hasPMShift;
+      cashCountStatus.hasPMShift ||
+      transactionStatus.hasPMTransactions;
     const hasAMData =
       commissionStatus.hasAMCommissions ||
       balanceStatus.hasAMBalances ||
-      cashCountStatus.hasAMShift;
+      cashCountStatus.hasAMShift ||
+      transactionStatus.hasAMTransactions;
 
     // If both have data or only AM has data, select AM
     // If only PM has data, select PM
@@ -245,6 +299,8 @@ export function useBalanceMenuScreen() {
     balanceStatus.hasAMBalances,
     cashCountStatus.hasPMShift,
     cashCountStatus.hasAMShift,
+    transactionStatus.hasPMTransactions,
+    transactionStatus.hasAMTransactions,
     hasAutoSelected,
   ]);
 
@@ -258,6 +314,10 @@ export function useBalanceMenuScreen() {
 
   const handleNavigateCommissions = () => {
     router.push(`/add-commission?shift=${selectedShift}` as any);
+  };
+
+  const handleNavigateTransactions = () => {
+    router.push(`/transactions?shift=${selectedShift}` as any);
   };
 
   const handleBack = () => {
@@ -288,6 +348,13 @@ export function useBalanceMenuScreen() {
     );
     dispatch(
       fetchAccounts({ companyId: backendUser?.companyId || 0, isActive: true }),
+    );
+    dispatch(
+      fetchTransactions({
+        companyId: backendUser?.companyId || 0,
+        startDate: today,
+        endDate: today,
+      }),
     );
   };
 
@@ -335,6 +402,21 @@ export function useBalanceMenuScreen() {
         ? commissionStatus.hasAMCommissions
         : commissionStatus.hasPMCommissions;
 
+    const hasSelectedTransactions =
+      selectedShift === "AM"
+        ? transactionStatus.hasAMTransactions
+        : transactionStatus.hasPMTransactions;
+
+    const selectedTransactionCount =
+      selectedShift === "AM"
+        ? transactionStatus.amTransactionCount
+        : transactionStatus.pmTransactionCount;
+
+    const selectedTransactionTotal =
+      selectedShift === "AM"
+        ? transactionStatus.amTransactionTotal
+        : transactionStatus.pmTransactionTotal;
+
     // Calculate totals for selected shift
     const todayCounts = cashCounts.filter(
       (cc) => cc.date === today && cc.shift === selectedShift,
@@ -364,9 +446,12 @@ export function useBalanceMenuScreen() {
       hasSelectedCashCount,
       hasSelectedBalances,
       hasSelectedCommissions,
+      hasSelectedTransactions,
       selectedShiftTotal,
       selectedBalanceTotal,
       selectedCommissionTotal,
+      selectedTransactionCount,
+      selectedTransactionTotal,
     };
   }, [
     selectedShift,
@@ -376,6 +461,12 @@ export function useBalanceMenuScreen() {
     balanceStatus.hasPMBalances,
     commissionStatus.hasAMCommissions,
     commissionStatus.hasPMCommissions,
+    transactionStatus.hasAMTransactions,
+    transactionStatus.hasPMTransactions,
+    transactionStatus.amTransactionCount,
+    transactionStatus.pmTransactionCount,
+    transactionStatus.amTransactionTotal,
+    transactionStatus.pmTransactionTotal,
     cashCounts,
     balances,
     commissions,
@@ -400,6 +491,9 @@ export function useBalanceMenuScreen() {
     // Commission status (all shifts)
     ...commissionStatus,
 
+    // Transaction status (all shifts)
+    ...transactionStatus,
+
     // Selected shift status
     ...selectedShiftStatus,
 
@@ -407,6 +501,7 @@ export function useBalanceMenuScreen() {
     handleNavigateCashCount,
     handleNavigateAddBalance,
     handleNavigateCommissions,
+    handleNavigateTransactions,
     handleBack,
     handleRefresh,
     handleCalculate,
