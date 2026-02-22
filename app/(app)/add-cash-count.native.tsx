@@ -6,9 +6,9 @@ import {
   TouchableOpacity,
   ScrollView,
   KeyboardAvoidingView,
-  Platform,
   Alert,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ArrowLeft, Save, Plus, Minus, Banknote } from "lucide-react-native";
 import { useCashCountScreen } from "../../hooks/screens/useCashCountScreen";
 
@@ -43,6 +43,8 @@ export default function AddCashCountPage() {
     }
   };
 
+  const insets = useSafeAreaInsets();
+
   const onClearAll = () => {
     Alert.alert("Clear All", "Are you sure you want to clear all entries?", [
       { text: "Cancel", style: "cancel" },
@@ -55,10 +57,7 @@ export default function AddCashCountPage() {
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      className="flex-1 bg-gray-50"
-    >
+    <KeyboardAvoidingView behavior="padding" className="flex-1 bg-gray-50">
       <View className="flex-1">
         {/* Header */}
         <View className="px-5 pt-6 pb-4 bg-white border-b border-gray-100">
@@ -97,8 +96,16 @@ export default function AddCashCountPage() {
         {/* Denominations List */}
         <ScrollView
           className="flex-1"
-          contentContainerStyle={{ padding: 20, paddingBottom: 10 }}
+          contentContainerStyle={{ padding: 20, paddingBottom: 40 }}
+          keyboardDismissMode="on-drag"
+          keyboardShouldPersistTaps="handled"
         >
+          {/* Input tip */}
+          <View className="flex-row items-center bg-blue-50 rounded-xl px-3 py-2 mb-4">
+            <Text className="text-blue-600 text-xs flex-1">
+              Tap the field between +/− to type a quantity, or use the buttons
+            </Text>
+          </View>
           {entries.map((entry, index) => {
             const qty = parseInt(entry.quantity || "0");
             const subtotal = entry.displayValue * qty;
@@ -149,7 +156,7 @@ export default function AddCashCountPage() {
                     onChangeText={(value) => updateQuantity(index, value)}
                     placeholder="0"
                     keyboardType="number-pad"
-                    className="w-16 text-center text-xl font-bold text-gray-800 mx-2"
+                    className="w-16 text-center text-xl font-bold text-gray-800 mx-2 bg-gray-100 rounded-xl py-2 border border-gray-300"
                     maxLength={4}
                   />
 
@@ -166,7 +173,10 @@ export default function AddCashCountPage() {
         </ScrollView>
 
         {/* Summary & Submit - Fixed at bottom */}
-        <View className="my-9 px-5 pb-9 pt-4 bg-white border-t border-gray-100">
+        <View
+          className="px-5 pt-3 bg-white border-t border-gray-100"
+          style={{ paddingBottom: insets.bottom + 70 }}
+        >
           {/* Summary */}
           <View className="flex-row justify-between mb-4">
             <View>
@@ -187,7 +197,7 @@ export default function AddCashCountPage() {
           <TouchableOpacity
             onPress={onSubmit}
             disabled={isSubmitting || filledEntries === 0}
-            className={`mb-20 py-4 rounded-xl flex-row items-center justify-center space-x-2 ${
+            className={`py-4 rounded-xl flex-row items-center justify-center space-x-2 ${
               isSubmitting || filledEntries === 0
                 ? "bg-gray-300"
                 : isEditing
