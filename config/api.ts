@@ -12,7 +12,7 @@ const getApiBaseUrl = (): string => {
   // Development fallback - ngrok URL
   // WARNING: Update this when your ngrok URL changes
   if (__DEV__) {
-    return "https://ca81-196-250-65-167.ngrok-free.app";
+    return "https://eee3-196-250-65-167.ngrok-free.app";
   }
 
   // Production — EXPO_PUBLIC_API_URL must be set

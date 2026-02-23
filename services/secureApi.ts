@@ -192,7 +192,8 @@ export async function secureApiRequest<T>(
       return await response.json();
     } catch (error) {
       // Handle AbortController timeout
-      if (error instanceof DOMException && error.name === "AbortError") {
+      // Use duck-typing check because DOMException doesn't exist in React Native (Hermes)
+      if (error instanceof Error && error.name === "AbortError") {
         const timeoutError = new ApiError(
           `Request timed out after ${REQUEST_TIMEOUT_MS / 1000}s`,
           0,
