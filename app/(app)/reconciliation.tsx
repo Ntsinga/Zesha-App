@@ -294,6 +294,10 @@ export default function BalanceDetailPage() {
             </Text>
           </View>
 
+          <Text className="text-2xl font-bold text-yellow-700 mb-3">
+            {formatCurrency(totalFloat)}
+          </Text>
+
           {balances.length > 0 ? (
             balances.map((balance, idx) => {
               const validation = validationByAccountId[balance.accountId];
@@ -436,7 +440,7 @@ export default function BalanceDetailPage() {
                   }`}
                 >
                   <Text className="flex-1 text-gray-700">
-                    R{(cc.denomination / 100).toFixed(0)}
+                    {formatCurrency(cc.denomination)}
                   </Text>
                   <Text className="w-16 text-center text-gray-600">
                     ×{cc.quantity}

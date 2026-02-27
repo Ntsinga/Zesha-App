@@ -5,6 +5,7 @@ import {
   createExpense,
   updateExpense,
   deleteExpense,
+  clearExpense,
 } from "../../store/slices/expensesSlice";
 import { useNetworkContext } from "@/hooks/useNetworkStatus";
 import { queueOfflineMutation } from "@/utils/offlineQueue";
@@ -12,7 +13,7 @@ import { fetchDashboard } from "../../store/slices/dashboardSlice";
 import { selectEffectiveCompanyId } from "../../store/slices/authSlice";
 import { useCurrencyFormatter } from "../useCurrency";
 import type { AppDispatch, RootState } from "../../store";
-import type { Expense } from "../../types";
+import type { Expense, ExpenseStatus } from "../../types";
 
 // Common expense categories
 export const EXPENSE_CATEGORIES = [
@@ -47,6 +48,7 @@ export function useExpensesScreen() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
+  const [clearConfirmId, setClearConfirmId] = useState<number | null>(null);
 
   // Form state
   const [name, setName] = useState("");
@@ -59,6 +61,7 @@ export function useExpensesScreen() {
 
   // Filter state
   const [filterCategory, setFilterCategory] = useState<string>("ALL");
+  const [filterStatus, setFilterStatus] = useState<ExpenseStatus | "ALL">("ALL");
 
   // Load expenses on mount
   useEffect(() => {
@@ -235,11 +238,36 @@ export function useExpensesScreen() {
     [dispatch],
   );
 
-  // Filter expenses by category
-  const filteredExpenses =
-    filterCategory === "ALL"
-      ? expenses
-      : expenses.filter((e) => e.category === filterCategory);
+  // Clear (recover/reimburse) expense
+  const handleClear = useCallback(
+    async (
+      id: number,
+      clearedNotes?: string,
+    ): Promise<{ success: boolean; error?: string }> => {
+      try {
+        await dispatch(
+          clearExpense({ id, data: { clearedNotes } }),
+        ).unwrap();
+        setClearConfirmId(null);
+        dispatch(fetchDashboard({}));
+        return { success: true };
+      } catch (error) {
+        const errorMessage =
+          typeof error === "string"
+            ? error
+            : error instanceof Error
+              ? error.message
+              : "Failed to clear expense";
+        return { success: false, error: errorMessage };
+      }
+    },
+    [dispatch],
+  );
+
+  // Filter expenses by category and status
+  const filteredExpenses = expenses
+    .filter((e) => filterCategory === "ALL" || e.category === filterCategory)
+    .filter((e) => filterStatus === "ALL" || e.status === filterStatus);
 
   return {
     // State
@@ -248,6 +276,7 @@ export function useExpensesScreen() {
     isModalOpen,
     editingExpense,
     deleteConfirmId,
+    clearConfirmId,
 
     // Form state
     name,
@@ -259,6 +288,8 @@ export function useExpensesScreen() {
     // Filter
     filterCategory,
     setFilterCategory,
+    filterStatus,
+    setFilterStatus,
 
     // Data
     expenses: filteredExpenses,
@@ -272,6 +303,7 @@ export function useExpensesScreen() {
     setExpenseDate,
     setCategory,
     setDeleteConfirmId,
+    setClearConfirmId,
 
     // Actions
     onRefresh,
@@ -280,6 +312,7 @@ export function useExpensesScreen() {
     closeModal,
     handleSubmit,
     handleDelete,
+    handleClear,
 
     // Formatters
     formatCurrency,

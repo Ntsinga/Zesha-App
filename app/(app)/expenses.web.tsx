@@ -1,13 +1,13 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   RefreshCw,
   Plus,
-  Edit2,
   Trash2,
   X,
   DollarSign,
   Filter,
   Receipt,
+  CheckCircle,
 } from "lucide-react";
 import {
   useExpensesScreen,
@@ -25,6 +25,7 @@ export default function ExpensesWeb() {
     isModalOpen,
     editingExpense,
     deleteConfirmId,
+    clearConfirmId,
     name,
     amount,
     description,
@@ -32,6 +33,8 @@ export default function ExpensesWeb() {
     category,
     filterCategory,
     setFilterCategory,
+    filterStatus,
+    setFilterStatus,
     expenses,
     totalAmount,
     setName,
@@ -40,14 +43,18 @@ export default function ExpensesWeb() {
     setExpenseDate,
     setCategory,
     setDeleteConfirmId,
+    setClearConfirmId,
     onRefresh,
     openAddModal,
     openEditModal,
     closeModal,
     handleSubmit,
     handleDelete,
+    handleClear,
     formatCurrency,
   } = useExpensesScreen();
+
+  const [clearNotes, setClearNotes] = useState("");
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,6 +66,14 @@ export default function ExpensesWeb() {
 
   const onDelete = async (id: number) => {
     const result = await handleDelete(id);
+    if (!result.success && result.error) {
+      alert(result.error);
+    }
+  };
+
+  const onClear = async (id: number) => {
+    const result = await handleClear(id, clearNotes || undefined);
+    setClearNotes("");
     if (!result.success && result.error) {
       alert(result.error);
     }
@@ -131,6 +146,19 @@ export default function ExpensesWeb() {
               ))}
             </select>
           </div>
+          <div className="filter-group">
+            <select
+              value={filterStatus}
+              onChange={(e) =>
+                setFilterStatus(e.target.value as "ALL" | "PENDING" | "CLEARED")
+              }
+              className="filter-select"
+            >
+              <option value="ALL">All Statuses</option>
+              <option value="PENDING">Pending</option>
+              <option value="CLEARED">Cleared</option>
+            </select>
+          </div>
           <button onClick={openAddModal} className="btn-add">
             <Plus size={16} />
             Add Expense
@@ -144,6 +172,7 @@ export default function ExpensesWeb() {
               <tr>
                 <th>Name</th>
                 <th>Category</th>
+                <th>Status</th>
                 <th>Date</th>
                 <th>Amount</th>
                 <th>Description</th>
@@ -153,22 +182,46 @@ export default function ExpensesWeb() {
             <tbody>
               {expenses.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="empty">
+                  <td colSpan={7} className="empty">
                     <DollarSign size={40} />
                     <p>No expenses recorded</p>
                   </td>
                 </tr>
               ) : (
                 expenses.map((expense) => (
-                  <tr key={expense.id}>
+                  <tr
+                    key={expense.id}
+                    onClick={() =>
+                      expense.status === "PENDING" && openEditModal(expense)
+                    }
+                    style={{
+                      cursor:
+                        expense.status === "PENDING" ? "pointer" : "default",
+                    }}
+                  >
                     <td className="font-medium">{expense.name}</td>
                     <td>
                       <span className="category-badge">
                         {expense.category || "Uncategorized"}
                       </span>
                     </td>
+                    <td>
+                      <span
+                        className={`category-badge ${
+                          expense.status === "CLEARED"
+                            ? "status-cleared"
+                            : "status-pending"
+                        }`}
+                      >
+                        {expense.status === "CLEARED" ? "Cleared" : "Pending"}
+                      </span>
+                    </td>
                     <td>{expense.expenseDate}</td>
-                    <td className="amount negative">
+                    <td
+                      className={`amount ${
+                        expense.status === "CLEARED" ? "cleared" : "negative"
+                      }`}
+                    >
                       -{formatCurrency(expense.amount)}
                     </td>
                     <td className="description">
@@ -176,15 +229,24 @@ export default function ExpensesWeb() {
                     </td>
                     <td>
                       <div className="action-buttons">
+                        {expense.status === "PENDING" && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setClearConfirmId(expense.id);
+                            }}
+                            className="btn-icon-sm"
+                            title="Mark as Cleared"
+                            style={{ color: "#10B981" }}
+                          >
+                            <CheckCircle size={24} />
+                          </button>
+                        )}
                         <button
-                          onClick={() => openEditModal(expense)}
-                          className="btn-icon-sm edit"
-                          title="Edit"
-                        >
-                          <Edit2 size={24} />
-                        </button>
-                        <button
-                          onClick={() => setDeleteConfirmId(expense.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeleteConfirmId(expense.id);
+                          }}
                           className="btn-icon-sm delete"
                           title="Delete"
                         >
@@ -322,6 +384,73 @@ export default function ExpensesWeb() {
                 className="btn-danger"
               >
                 Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Clear Confirmation Modal */}
+      {clearConfirmId !== null && (
+        <div
+          className="modal-overlay"
+          onClick={() => {
+            setClearConfirmId(null);
+            setClearNotes("");
+          }}
+        >
+          <div
+            className="modal-content small"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="modal-header">
+              <CheckCircle
+                size={20}
+                style={{ color: "#10B981", marginRight: 8 }}
+              />
+              <h2>Mark as Cleared?</h2>
+              <button
+                onClick={() => {
+                  setClearConfirmId(null);
+                  setClearNotes("");
+                }}
+                className="modal-close"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="modal-body">
+              <p>
+                This marks the expense as recovered or reimbursed. It will no
+                longer reduce working capital.
+              </p>
+              <div className="form-group" style={{ marginTop: 12 }}>
+                <label>Notes (optional)</label>
+                <textarea
+                  value={clearNotes}
+                  onChange={(e) => setClearNotes(e.target.value)}
+                  placeholder="e.g., reimbursed by client"
+                  className="form-textarea"
+                  rows={2}
+                />
+              </div>
+            </div>
+            <div className="modal-actions">
+              <button
+                onClick={() => {
+                  setClearConfirmId(null);
+                  setClearNotes("");
+                }}
+                className="btn-secondary"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => onClear(clearConfirmId)}
+                style={{ background: "#10B981", color: "white" }}
+                className="btn-primary"
+              >
+                Confirm Cleared
               </button>
             </div>
           </div>

@@ -3,6 +3,8 @@
  */
 import type { BaseModel } from "./base";
 
+export type ExpenseStatus = "PENDING" | "CLEARED";
+
 /**
  * Expense entity - matches backend Expense model
  */
@@ -13,6 +15,10 @@ export interface Expense extends BaseModel {
   description: string | null;
   expenseDate: string;
   category: string | null;
+  status: ExpenseStatus;
+  clearedDate: string | null;
+  clearedNotes: string | null;
+  clearedBy: number | null;
 }
 
 /**
@@ -36,6 +42,14 @@ export interface ExpenseUpdate {
   description?: string;
   expenseDate?: string;
   category?: string;
+}
+
+/**
+ * Clear (recover/reimburse) expense payload
+ */
+export interface ExpenseClear {
+  clearedBy?: number;
+  clearedNotes?: string;
 }
 
 /**

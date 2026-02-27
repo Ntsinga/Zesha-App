@@ -4,7 +4,7 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import {
   createManyCashCounts,
   fetchCashCounts,
-  deleteCashCount,
+  deleteCashCountsByFilter,
 } from "../../store/slices/cashCountSlice";
 import { useNetworkContext } from "@/hooks/useNetworkStatus";
 import { queueOfflineMutation } from "@/utils/offlineQueue";
@@ -51,23 +51,44 @@ export function useCashCountScreen() {
   // Shift is passed from the balance menu screen - use it as-is
   const shift: ShiftEnum = (params.shift as ShiftEnum) || "AM";
 
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [entries, setEntries] = useState<DenominationEntry[]>(
-    DENOMINATIONS.map((d) => ({
-      denomination: d.value,
-      label: d.label,
-      displayValue: d.displayValue,
-      quantity: "",
-      isCoin: d.isCoin,
-      isNote: d.isNote,
-    })),
-  );
-
-  // Get cash counts from Redux
+  // Get cash counts from Redux — must come before entries useState
+  // so we can use the already-cached data as the initial value
   const { items: cashCounts, isLoading } = useSelector(
     (state: RootState) => state.cashCount,
   );
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Derive isEditing and pre-filled entries from whatever is already in Redux,
+  // so the screen never renders a blank/reset state when data is cached.
+  const [isEditing, setIsEditing] = useState<boolean>(() => {
+    return cashCounts.some((cc) => cc.date === today && cc.shift === shift);
+  });
+
+  const [entries, setEntries] = useState<DenominationEntry[]>(() => {
+    const shiftCounts = cashCounts.filter(
+      (cc) => cc.date === today && cc.shift === shift,
+    );
+    const usedIds = new Set<number>();
+    return DENOMINATIONS.map((d) => {
+      const match = shiftCounts.find((cc) => {
+        if (usedIds.has(cc.id)) return false;
+        if (parseFloat(String(cc.denomination)) === d.value) {
+          usedIds.add(cc.id);
+          return true;
+        }
+        return false;
+      });
+      return {
+        denomination: d.value,
+        label: d.label,
+        displayValue: d.displayValue,
+        quantity: match ? String(match.quantity) : "",
+        isCoin: d.isCoin,
+        isNote: d.isNote,
+      };
+    });
+  });
 
   // Fetch cash counts on mount
   useEffect(() => {
@@ -219,7 +240,10 @@ export function useCashCountScreen() {
           message: `Cash count queued for sync when back online. Total: ${formatCurrency(totalAmount)}`,
         };
       } catch {
-        return { success: false, message: "Failed to queue cash count for offline sync." };
+        return {
+          success: false,
+          message: "Failed to queue cash count for offline sync.",
+        };
       }
     }
 
@@ -228,13 +252,13 @@ export function useCashCountScreen() {
     try {
       // If editing, delete existing cash counts for this shift first
       if (isEditing) {
-        const existingCounts = cashCounts.filter(
-          (cc) => cc.date === today && cc.shift === shift,
-        );
-
-        await Promise.all(
-          existingCounts.map((cc) => dispatch(deleteCashCount(cc.id)).unwrap()),
-        );
+        await dispatch(
+          deleteCashCountsByFilter({
+            companyId,
+            countDate: today,
+            shift,
+          }),
+        ).unwrap();
       }
 
       const cashCountData: CashCountCreate[] = validEntries.map((entry) => ({
