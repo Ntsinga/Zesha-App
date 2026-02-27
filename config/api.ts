@@ -12,13 +12,13 @@ const getApiBaseUrl = (): string => {
   // Development fallback - ngrok URL
   // WARNING: Update this when your ngrok URL changes
   if (__DEV__) {
-    return "https://eee3-196-250-65-167.ngrok-free.app";
+    return "https://2b12-196-250-65-167.ngrok-free.app";
   }
 
   // Production — EXPO_PUBLIC_API_URL must be set
   throw new Error(
     "[API] EXPO_PUBLIC_API_URL environment variable is not set. " +
-    "Cannot determine API base URL in production."
+      "Cannot determine API base URL in production.",
   );
 };
 
@@ -67,6 +67,8 @@ export const API_ENDPOINTS = {
       `/expenses/${id}?company_id=${companyId}`,
     delete: (id: number, companyId: number) =>
       `/expenses/${id}?company_id=${companyId}`,
+    clear: (id: number, companyId: number) =>
+      `/expenses/${id}/clear?company_id=${companyId}`,
   },
 
   // Commissions
@@ -89,6 +91,7 @@ export const API_ENDPOINTS = {
     get: (id: number) => `/cash-counts/${id}`,
     update: (id: number) => `/cash-counts/${id}`,
     delete: (id: number) => `/cash-counts/${id}`,
+    deleteByFilter: "/cash-counts/by-filter",
   },
 
   // Reconciliations

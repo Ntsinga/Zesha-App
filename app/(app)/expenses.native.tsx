@@ -13,7 +13,6 @@ import {
 } from "react-native";
 import {
   Plus,
-  Edit2,
   Trash2,
   X,
   Calendar,
@@ -26,6 +25,7 @@ import {
   ShoppingCart,
   Users,
   Home,
+  CheckCircle,
 } from "lucide-react-native";
 import {
   useExpensesScreen,
@@ -42,28 +42,34 @@ export default function Expenses() {
     isModalOpen,
     editingExpense,
     deleteConfirmId,
+    clearConfirmId,
     totalAmount,
     name,
     amount,
     description,
     expenseDate,
     category,
+    filterStatus,
+    setFilterStatus,
     setName,
     setAmount,
     setDescription,
     setExpenseDate,
     setCategory,
     setDeleteConfirmId,
+    setClearConfirmId,
     onRefresh,
     openAddModal,
     openEditModal,
     closeModal,
     handleSubmit,
     handleDelete,
+    handleClear,
     formatCurrency,
   } = useExpensesScreen();
 
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
+  const [clearNotes, setClearNotes] = useState("");
 
   const getCategoryIcon = (category: string | null) => {
     switch (category) {
@@ -114,6 +120,16 @@ export default function Expenses() {
     }
   };
 
+  const onClear = async (id: number) => {
+    const result = await handleClear(id, clearNotes || undefined);
+    setClearNotes("");
+    if (result.success) {
+      Alert.alert("Success", "Expense marked as cleared!");
+    } else {
+      Alert.alert("Error", result.error || "An error occurred");
+    }
+  };
+
   const onCloseModal = () => {
     closeModal();
     setShowCategoryPicker(false);
@@ -149,6 +165,33 @@ export default function Expenses() {
           </Text>
         </View>
 
+        {/* Status Filter Chips */}
+        <View className="flex-row mb-4 gap-2">
+          {(["ALL", "PENDING", "CLEARED"] as const).map((s) => (
+            <TouchableOpacity
+              key={s}
+              onPress={() => setFilterStatus(s)}
+              className={`px-3 py-1.5 rounded-full border ${
+                filterStatus === s
+                  ? s === "CLEARED"
+                    ? "bg-green-500 border-green-500"
+                    : s === "PENDING"
+                      ? "bg-amber-500 border-amber-500"
+                      : "bg-brand-red border-brand-red"
+                  : "bg-white border-gray-300"
+              }`}
+            >
+              <Text
+                className={`text-xs font-semibold ${
+                  filterStatus === s ? "text-white" : "text-gray-600"
+                }`}
+              >
+                {s === "ALL" ? "All" : s === "PENDING" ? "Pending" : "Cleared"}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
         {/* Expenses List */}
         <View className="bg-white rounded-3xl shadow-sm p-4 border border-gray-100">
           <Text className="text-lg font-bold text-gray-800 mb-4">
@@ -162,8 +205,12 @@ export default function Expenses() {
             </View>
           ) : (
             expenses.map((expense) => (
-              <View
+              <TouchableOpacity
                 key={expense.id}
+                onPress={() =>
+                  expense.status === "PENDING" && openEditModal(expense)
+                }
+                activeOpacity={expense.status === "PENDING" ? 0.6 : 1}
                 className="flex-row items-center py-4 border-b border-gray-100"
               >
                 <View className="mr-3">
@@ -173,35 +220,60 @@ export default function Expenses() {
                   <Text className="font-semibold text-gray-800">
                     {expense.name}
                   </Text>
-                  <View className="flex-row items-center mt-1">
+                  <View className="flex-row items-center mt-1 flex-wrap gap-1">
                     {expense.category && (
-                      <View className="bg-gray-100 px-2 py-0.5 rounded mr-2">
+                      <View className="bg-gray-100 px-2 py-0.5 rounded mr-1">
                         <Text className="text-xs text-gray-600">
                           {expense.category}
                         </Text>
                       </View>
                     )}
+                    <View
+                      className={`px-2 py-0.5 rounded mr-1 ${
+                        expense.status === "CLEARED"
+                          ? "bg-green-100"
+                          : "bg-amber-100"
+                      }`}
+                    >
+                      <Text
+                        className={`text-xs font-semibold ${
+                          expense.status === "CLEARED"
+                            ? "text-green-700"
+                            : "text-amber-700"
+                        }`}
+                      >
+                        {expense.status === "CLEARED" ? "Cleared" : "Pending"}
+                      </Text>
+                    </View>
                     <Text className="text-xs text-gray-400">
                       {formatDate(expense.expenseDate, "short")}
                     </Text>
                   </View>
                 </View>
-                <Text className="font-bold text-red-600 mr-4">
+                <Text
+                  className={`font-bold mr-2 ${
+                    expense.status === "CLEARED"
+                      ? "text-green-600 line-through"
+                      : "text-red-600"
+                  }`}
+                >
                   -{formatCurrency(expense.amount)}
                 </Text>
-                <TouchableOpacity
-                  onPress={() => openEditModal(expense)}
-                  className="p-2 mr-1"
-                >
-                  <Edit2 color="#6B7280" size={18} />
-                </TouchableOpacity>
+                {expense.status === "PENDING" && (
+                  <TouchableOpacity
+                    onPress={() => setClearConfirmId(expense.id)}
+                    className="p-2 mr-1"
+                  >
+                    <CheckCircle color="#10B981" size={18} />
+                  </TouchableOpacity>
+                )}
                 <TouchableOpacity
                   onPress={() => setDeleteConfirmId(expense.id)}
                   className="p-2"
                 >
                   <Trash2 color="#EF4444" size={18} />
                 </TouchableOpacity>
-              </View>
+              </TouchableOpacity>
             ))
           )}
         </View>
@@ -405,6 +477,60 @@ export default function Expenses() {
               >
                 <Text className="text-center font-semibold text-white">
                   Delete
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Clear Confirmation Modal */}
+      <Modal
+        visible={clearConfirmId !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => {
+          setClearConfirmId(null);
+          setClearNotes("");
+        }}
+      >
+        <View className="flex-1 bg-black/50 justify-center items-center px-6">
+          <View className="bg-white rounded-2xl p-6 w-full max-w-sm">
+            <View className="flex-row items-center mb-3">
+              <CheckCircle color="#10B981" size={22} />
+              <Text className="text-xl font-bold text-gray-800 ml-2">
+                Mark as Cleared?
+              </Text>
+            </View>
+            <Text className="text-gray-600 mb-4">
+              This marks the expense as recovered or reimbursed. It will no
+              longer reduce working capital.
+            </Text>
+            <TextInput
+              value={clearNotes}
+              onChangeText={setClearNotes}
+              placeholder="Optional notes (e.g., reimbursed by client)"
+              className="bg-gray-50 rounded-xl px-4 py-3 text-gray-800 border border-gray-200 mb-4"
+              multiline
+            />
+            <View className="flex-row space-x-3">
+              <TouchableOpacity
+                onPress={() => {
+                  setClearConfirmId(null);
+                  setClearNotes("");
+                }}
+                className="flex-1 py-3 rounded-xl bg-gray-100"
+              >
+                <Text className="text-center font-semibold text-gray-700">
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => clearConfirmId && onClear(clearConfirmId)}
+                className="flex-1 py-3 rounded-xl bg-green-500"
+              >
+                <Text className="text-center font-semibold text-white">
+                  Confirm
                 </Text>
               </TouchableOpacity>
             </View>

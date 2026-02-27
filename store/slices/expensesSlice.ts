@@ -4,6 +4,7 @@ import type {
   ExpenseCreate,
   ExpenseUpdate,
   ExpenseFilters,
+  ExpenseClear,
 } from "@/types";
 import { mapApiResponse, mapApiRequest, buildTypedQueryString } from "@/types";
 import { API_ENDPOINTS } from "@/config/api";
@@ -184,6 +185,34 @@ export const deleteExpense = createAsyncThunk<
   }
 });
 
+export const clearExpense = createAsyncThunk<
+  Expense,
+  { id: number; data: ExpenseClear },
+  { state: RootState; rejectValue: string }
+>("expenses/clear", async ({ id, data }, { getState, rejectWithValue }) => {
+  try {
+    const state = getState();
+    const companyId = state.auth.viewingAgencyId || state.auth.user?.companyId;
+
+    if (!companyId) {
+      return rejectWithValue("No companyId found. Please log in again.");
+    }
+
+    const expense = await apiRequest<Expense>(
+      API_ENDPOINTS.expenses.clear(id, companyId),
+      {
+        method: "POST",
+        body: JSON.stringify(mapApiRequest(data)),
+      },
+    );
+    return expense;
+  } catch (error) {
+    return rejectWithValue(
+      error instanceof Error ? error.message : "Failed to clear expense",
+    );
+  }
+});
+
 // Slice
 const expensesSlice = createSlice({
   name: "expenses",
@@ -213,7 +242,8 @@ const expensesSlice = createSlice({
         state.isLoading = false;
         state.items = action.payload;
         state.totalAmount = action.payload.reduce(
-          (sum, expense) => sum + Number(expense.amount),
+          (sum, expense) =>
+            expense.status === "PENDING" ? sum + Number(expense.amount) : sum,
           0,
         );
         state.lastFetched = Date.now();
@@ -283,7 +313,7 @@ const expensesSlice = createSlice({
         const deletedExpense = state.items.find(
           (item) => item.id === action.payload,
         );
-        if (deletedExpense) {
+        if (deletedExpense && deletedExpense.status === "PENDING") {
           state.totalAmount -= Number(deletedExpense.amount);
         }
         state.items = state.items.filter((item) => item.id !== action.payload);
@@ -292,6 +322,25 @@ const expensesSlice = createSlice({
         }
       })
       .addCase(deleteExpense.rejected, (state, action) => {
+        state.error = action.payload as string;
+      });
+
+    // Clear
+    builder
+      .addCase(clearExpense.fulfilled, (state, action) => {
+        const index = state.items.findIndex(
+          (item) => item.id === action.payload.id,
+        );
+        if (index !== -1) {
+          // Subtract from total since it was PENDING before
+          state.totalAmount -= Number(state.items[index].amount);
+          state.items[index] = action.payload;
+        }
+        if (state.selectedExpense?.id === action.payload.id) {
+          state.selectedExpense = action.payload;
+        }
+      })
+      .addCase(clearExpense.rejected, (state, action) => {
         state.error = action.payload as string;
       });
 

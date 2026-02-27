@@ -316,6 +316,9 @@ export default function BalanceDetailWeb() {
             <div className="card-header">
               <Wallet size={18} />
               <h3>Account Balances ({balances.length})</h3>
+              <div className="ml-auto font-bold" style={{ color: "#B8860B" }}>
+                {formatCurrency(totalFloat)}
+              </div>
             </div>
             <table className="data-table">
               <thead>
@@ -497,7 +500,7 @@ export default function BalanceDetailWeb() {
                 ) : (
                   cashCounts.map((cc) => (
                     <tr key={cc.id}>
-                      <td>R{(cc.denomination / 100).toFixed(0)}</td>
+                      <td>{formatCurrency(cc.denomination)}</td>
                       <td className="text-center">×{cc.quantity}</td>
                       <td className="text-right font-semibold">
                         {formatCurrency(cc.amount)}

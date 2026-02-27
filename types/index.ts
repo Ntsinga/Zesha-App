@@ -83,8 +83,10 @@ export {
   type Expense,
   type ExpenseCreate,
   type ExpenseUpdate,
+  type ExpenseClear,
   type ExpenseFilters,
   type ExpenseCategory,
+  type ExpenseStatus,
 } from "./expense";
 
 // ============= Cash Count Types =============

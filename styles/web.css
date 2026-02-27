@@ -2166,6 +2166,24 @@ body {
   color: var(--color-text-secondary);
 }
 
+.category-badge.status-pending {
+  background: #fef3c7;
+  color: #92400e;
+  font-weight: 600;
+}
+
+.category-badge.status-cleared {
+  background: #d1fae5;
+  color: #065f46;
+  font-weight: 600;
+}
+
+.data-table .amount.cleared {
+  color: #10b981;
+  text-decoration: line-through;
+  opacity: 0.7;
+}
+
 /* ============================================
    TABLE ENHANCEMENTS
    ============================================ */

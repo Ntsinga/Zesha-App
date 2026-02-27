@@ -5,6 +5,7 @@ import type {
   CashCountUpdate,
   CashCountFilters,
   BulkCashCountResponse,
+  ShiftEnum,
 } from "@/types";
 import { mapApiResponse, mapApiRequest, buildTypedQueryString } from "@/types";
 import { API_ENDPOINTS } from "@/config/api";
@@ -135,10 +136,6 @@ export const createManyCashCounts = createAsyncThunk<
       },
     );
 
-    if (response.totalFailed > 0) {
-      console.warn(`${response.totalFailed} cash counts failed to create`);
-    }
-
     return response.created;
   } catch (error) {
     return rejectWithValue(
@@ -149,12 +146,12 @@ export const createManyCashCounts = createAsyncThunk<
 
 export const updateCashCount = createAsyncThunk<
   CashCount,
-  { id: number; data: CashCountUpdate },
+  { id: number; companyId: number; data: CashCountUpdate },
   { rejectValue: string }
->("cashCount/update", async ({ id, data }, { rejectWithValue }) => {
+>("cashCount/update", async ({ id, companyId, data }, { rejectWithValue }) => {
   try {
     const cashCount = await apiRequest<CashCount>(
-      API_ENDPOINTS.cashCount.update(id),
+      `${API_ENDPOINTS.cashCount.update(id)}?company_id=${companyId}`,
       {
         method: "PATCH",
         body: JSON.stringify(mapApiRequest(data)),
@@ -170,13 +167,14 @@ export const updateCashCount = createAsyncThunk<
 
 export const deleteCashCount = createAsyncThunk<
   number,
-  number,
+  { id: number; companyId: number },
   { rejectValue: string }
->("cashCount/delete", async (id, { rejectWithValue }) => {
+>("cashCount/delete", async ({ id, companyId }, { rejectWithValue }) => {
   try {
-    await apiRequest<void>(API_ENDPOINTS.cashCount.delete(id), {
-      method: "DELETE",
-    });
+    await apiRequest<void>(
+      `${API_ENDPOINTS.cashCount.delete(id)}?company_id=${companyId}`,
+      { method: "DELETE" },
+    );
     return id;
   } catch (error) {
     return rejectWithValue(
@@ -184,6 +182,27 @@ export const deleteCashCount = createAsyncThunk<
     );
   }
 });
+
+export const deleteCashCountsByFilter = createAsyncThunk<
+  { deletedCount: number },
+  { companyId: number; countDate: string; shift: ShiftEnum },
+  { rejectValue: string }
+>(
+  "cashCount/deleteByFilter",
+  async ({ companyId, countDate, shift }, { rejectWithValue }) => {
+    try {
+      const result = await apiRequest<{ deletedCount: number }>(
+        `${API_ENDPOINTS.cashCount.deleteByFilter}?company_id=${companyId}&count_date=${countDate}&shift=${shift}`,
+        { method: "DELETE" },
+      );
+      return result;
+    } catch (error) {
+      return rejectWithValue(
+        error instanceof Error ? error.message : "Failed to delete cash counts",
+      );
+    }
+  },
+);
 
 // Slice
 const cashCountSlice = createSlice({
@@ -263,8 +282,19 @@ const cashCountSlice = createSlice({
       })
       .addCase(createManyCashCounts.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.items = [...action.payload, ...state.items];
-        state.totalAmount += action.payload.reduce(
+        if (action.payload.length > 0) {
+          // Replace any existing items for the same date+shift to avoid duplicates
+          // when the edit flow deletes-then-recreates (stale items are still in state)
+          const newDate = action.payload[0].date;
+          const newShift = action.payload[0].shift;
+          const otherItems = state.items.filter(
+            (item) => item.date !== newDate || item.shift !== newShift,
+          );
+          state.items = [...action.payload, ...otherItems];
+        } else {
+          state.items = [...action.payload, ...state.items];
+        }
+        state.totalAmount = state.items.reduce(
           (sum, item) => sum + Number(item.amount),
           0,
         );
@@ -309,6 +339,17 @@ const cashCountSlice = createSlice({
         }
       })
       .addCase(deleteCashCount.rejected, (state, action) => {
+        state.error = action.payload as string;
+      });
+
+    // Delete by filter (used for edit — wipes the whole shift before re-creating)
+    builder
+      .addCase(deleteCashCountsByFilter.fulfilled, (_state, _action) => {
+        // Don't clear items here — doing so causes a visible flash in the UI
+        // while the new items are being created. The list is refreshed by the
+        // fetchCashCounts dispatch that follows createManyCashCounts.
+      })
+      .addCase(deleteCashCountsByFilter.rejected, (state, action) => {
         state.error = action.payload as string;
       });
   },
