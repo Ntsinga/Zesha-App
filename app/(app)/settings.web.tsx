@@ -14,6 +14,7 @@ export default function Settings() {
     onRefresh,
     isSaving,
     company,
+    canEditSettings,
     name,
     setName,
     totalWorkingCapital,
@@ -77,6 +78,19 @@ export default function Settings() {
               <Building2 size={18} color="#6B7280" />
               <span className="card-title">Company Settings</span>
             </div>
+            {!canEditSettings && (
+              <span
+                style={{
+                  fontSize: 12,
+                  color: "#9CA3AF",
+                  background: "#F3F4F6",
+                  borderRadius: 6,
+                  padding: "2px 10px",
+                }}
+              >
+                View only — Admin access required
+              </span>
+            )}
           </div>
           <div className="card-body">
             <div className="form-row">
@@ -87,6 +101,16 @@ export default function Settings() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Company name"
+                  disabled={!canEditSettings}
+                  style={
+                    !canEditSettings
+                      ? {
+                          background: "#F9FAFB",
+                          color: "#6B7280",
+                          cursor: "not-allowed",
+                        }
+                      : undefined
+                  }
                 />
               </div>
               <div className="form-group">
@@ -95,6 +119,16 @@ export default function Settings() {
                   className="form-input"
                   value={currency}
                   onChange={(e) => setCurrency(e.target.value)}
+                  disabled={!canEditSettings}
+                  style={
+                    !canEditSettings
+                      ? {
+                          background: "#F9FAFB",
+                          color: "#6B7280",
+                          cursor: "not-allowed",
+                        }
+                      : undefined
+                  }
                 >
                   {CURRENCIES.map((c) => (
                     <option key={c.code} value={c.code}>
@@ -115,6 +149,16 @@ export default function Settings() {
                   value={totalWorkingCapital}
                   onChange={(e) => setTotalWorkingCapital(e.target.value)}
                   placeholder="0"
+                  disabled={!canEditSettings}
+                  style={
+                    !canEditSettings
+                      ? {
+                          background: "#F9FAFB",
+                          color: "#6B7280",
+                          cursor: "not-allowed",
+                        }
+                      : undefined
+                  }
                 />
                 <span style={{ fontSize: 12, color: "#9CA3AF", marginTop: 4 }}>
                   The total capital deployed across all accounts
@@ -129,6 +173,16 @@ export default function Settings() {
                   value={outstandingBalance}
                   onChange={(e) => setOutstandingBalance(e.target.value)}
                   placeholder="0"
+                  disabled={!canEditSettings}
+                  style={
+                    !canEditSettings
+                      ? {
+                          background: "#F9FAFB",
+                          color: "#6B7280",
+                          cursor: "not-allowed",
+                        }
+                      : undefined
+                  }
                 />
                 <span style={{ fontSize: 12, color: "#9CA3AF", marginTop: 4 }}>
                   Capital not yet in circulation (deducted from expected total)
@@ -143,6 +197,16 @@ export default function Settings() {
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Optional description"
+                disabled={!canEditSettings}
+                style={
+                  !canEditSettings
+                    ? {
+                        background: "#F9FAFB",
+                        color: "#6B7280",
+                        cursor: "not-allowed",
+                      }
+                    : undefined
+                }
               />
             </div>
 
@@ -158,15 +222,17 @@ export default function Settings() {
               </p>
             )}
 
-            <button
-              className="btn-primary"
-              onClick={onSave}
-              disabled={isSaving}
-              style={{ display: "flex", alignItems: "center", gap: 6 }}
-            >
-              <Save size={15} />
-              {isSaving ? "Saving..." : "Save Changes"}
-            </button>
+            {canEditSettings && (
+              <button
+                className="btn-primary"
+                onClick={onSave}
+                disabled={isSaving}
+                style={{ display: "flex", alignItems: "center", gap: 6 }}
+              >
+                <Save size={15} />
+                {isSaving ? "Saving..." : "Save Changes"}
+              </button>
+            )}
           </div>
         </div>
 

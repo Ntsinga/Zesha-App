@@ -22,6 +22,7 @@ import {
   reverseTransaction,
   createCapitalInjection,
 } from "../../store/slices/transactionsSlice";
+import { fetchDashboard } from "../../store/slices/dashboardSlice";
 import { fetchAccounts } from "../../store/slices/accountsSlice";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { formatDate } from "../../utils/formatters";
@@ -176,6 +177,7 @@ export default function Transactions() {
         notes: "",
       });
       dispatch(fetchTransactions(buildFilters()));
+      dispatch(fetchDashboard({ forceRefresh: true }));
     } catch (err) {
       Alert.alert(
         "Injection Failed",

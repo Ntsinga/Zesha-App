@@ -14,6 +14,7 @@ import {
   clearFilters,
 } from "../../store/slices/transactionsSlice";
 import { fetchAccounts } from "../../store/slices/accountsSlice";
+import { fetchDashboard } from "../../store/slices/dashboardSlice";
 import { useCurrencyFormatter } from "../useCurrency";
 import { formatDateTime } from "../../utils/formatters";
 import type { ShiftEnum, TransactionTypeEnum } from "../../types";
@@ -127,8 +128,7 @@ export function useTransactionsScreen() {
   const { items: accounts } = useAppSelector((state) => state.accounts);
   const { user: backendUser } = useAppSelector((state) => state.auth);
   const companyId = useAppSelector(
-    (state) =>
-      state.auth.viewingAgencyId || state.auth.user?.companyId,
+    (state) => state.auth.viewingAgencyId || state.auth.user?.companyId,
   );
 
   const lastFetchedCompanyId = useRef<number | null>(null);
@@ -235,7 +235,9 @@ export function useTransactionsScreen() {
     const amt = parseFloat(transactionForm.amount);
     if (isNaN(amt) || amt <= 0) return null;
 
-    const account = activeAccounts.find((a) => a.id === transactionForm.accountId);
+    const account = activeAccounts.find(
+      (a) => a.id === transactionForm.accountId,
+    );
     if (!account) return null;
 
     const rate =
@@ -286,7 +288,13 @@ export function useTransactionsScreen() {
         }),
       );
     } catch (err) {
-      setSubmitError(typeof err === "string" ? err : err instanceof Error ? err.message : "Failed to create transaction.");
+      setSubmitError(
+        typeof err === "string"
+          ? err
+          : err instanceof Error
+            ? err.message
+            : "Failed to create transaction.",
+      );
       dispatch(clearError());
     }
   }, [dispatch, companyId, transactionForm, filterDateFrom, filterDateTo]);
@@ -325,13 +333,23 @@ export function useTransactionsScreen() {
         }),
       );
     } catch (err) {
-      setSubmitError(typeof err === "string" ? err : err instanceof Error ? err.message : "Failed to create float purchase.");
+      setSubmitError(
+        typeof err === "string"
+          ? err
+          : err instanceof Error
+            ? err.message
+            : "Failed to create float purchase.",
+      );
       dispatch(clearError());
     }
   }, [dispatch, companyId, floatPurchaseForm, filterDateFrom, filterDateTo]);
 
   const handleCreateCapitalInjection = useCallback(async () => {
-    if (!capitalInjectionForm.accountId || !capitalInjectionForm.amount || !companyId) {
+    if (
+      !capitalInjectionForm.accountId ||
+      !capitalInjectionForm.amount ||
+      !companyId
+    ) {
       return;
     }
 
@@ -356,8 +374,15 @@ export function useTransactionsScreen() {
           endDate: filterDateTo + "T23:59:59",
         }),
       );
+      dispatch(fetchDashboard({ forceRefresh: true }));
     } catch (err) {
-      setSubmitError(typeof err === "string" ? err : err instanceof Error ? err.message : "Failed to record capital injection.");
+      setSubmitError(
+        typeof err === "string"
+          ? err
+          : err instanceof Error
+            ? err.message
+            : "Failed to record capital injection.",
+      );
       dispatch(clearError());
     }
   }, [dispatch, companyId, capitalInjectionForm, filterDateFrom, filterDateTo]);
@@ -367,13 +392,16 @@ export function useTransactionsScreen() {
     setShowReverseConfirm(true);
   }, []);
 
-  const handleConfirmTransaction = useCallback(async (transactionId: number) => {
-    try {
-      await dispatch(confirmTransaction(transactionId)).unwrap();
-    } catch {
-      // Error handled by Redux state
-    }
-  }, [dispatch]);
+  const handleConfirmTransaction = useCallback(
+    async (transactionId: number) => {
+      try {
+        await dispatch(confirmTransaction(transactionId)).unwrap();
+      } catch {
+        // Error handled by Redux state
+      }
+    },
+    [dispatch],
+  );
 
   const confirmReverse = useCallback(async () => {
     if (!transactionToReverse || !companyId) return;
