@@ -1,161 +1,162 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { useRouter, useFocusEffect } from "expo-router";
-import { fetchCommissions } from "../../store/slices/commissionsSlice";
+import { useRouter } from "expo-router";
+import { fetchExpectedCommissions } from "../../store/slices/expectedCommissionsSlice";
+import { fetchAccounts } from "../../store/slices/accountsSlice";
 import { useCurrencyFormatter } from "../useCurrency";
-import { formatDate } from "../../utils/formatters";
+import { formatDateTime } from "../../utils/formatters";
 import type { AppDispatch, RootState } from "../../store";
-import type { Commission, ShiftEnum } from "../../types";
-
-export interface DailyCommissionGroup {
-  date: string;
-  amCommissions: Commission[];
-  pmCommissions: Commission[];
-  amTotal: number;
-  pmTotal: number;
-  dailyTotal: number;
-}
+import type { ShiftEnum } from "../../types";
 
 export function useCommissionsScreen() {
   const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
   const { formatCurrency } = useCurrencyFormatter();
 
-  const { items: commissions, isLoading } = useSelector(
-    (state: RootState) => state.commissions,
+  const { items: expectedCommissions, isLoading } = useSelector(
+    (state: RootState) => state.expectedCommissions,
+  );
+  const { items: accounts } = useSelector(
+    (state: RootState) => state.accounts,
+  );
+  const companyId = useSelector(
+    (state: RootState) =>
+      state.auth.viewingAgencyId || state.auth.user?.companyId,
   );
 
   const [refreshing, setRefreshing] = useState(false);
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [expandedDates, setExpandedDates] = useState<Set<string>>(new Set());
   const [filterShift, setFilterShift] = useState<ShiftEnum | "ALL">("ALL");
-
-  // Refresh commissions when screen gains focus
-  useFocusEffect(
-    useCallback(() => {
-      dispatch(fetchCommissions({ forceRefresh: true }));
-    }, [dispatch]),
+  const [filterAccountId, setFilterAccountId] = useState<number | null>(null);
+  const [filterDateFrom, setFilterDateFrom] = useState<string>(
+    new Date().toISOString().split("T")[0],
+  );
+  const [filterDateTo, setFilterDateTo] = useState<string>(
+    new Date().toISOString().split("T")[0],
   );
 
-  // Refresh handler - forces cache bypass
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await dispatch(fetchCommissions({ forceRefresh: true }));
-    setRefreshing(false);
-  };
+  const lastFetchedCompanyId = useRef<number | null>(null);
 
-  // Group commissions by date
-  const groupedCommissions = useMemo(() => {
-    const groups: Map<string, DailyCommissionGroup> = new Map();
+  // Fetch accounts on mount
+  useEffect(() => {
+    if (!companyId) return;
+    if (lastFetchedCompanyId.current === companyId) return;
+    lastFetchedCompanyId.current = companyId;
+    dispatch(fetchAccounts({ companyId, isActive: true }));
+  }, [dispatch, companyId]);
 
-    commissions.forEach((commission) => {
-      const dateKey = commission.date.split("T")[0];
-
-      if (!groups.has(dateKey)) {
-        groups.set(dateKey, {
-          date: dateKey,
-          amCommissions: [],
-          pmCommissions: [],
-          amTotal: 0,
-          pmTotal: 0,
-          dailyTotal: 0,
-        });
-      }
-
-      const group = groups.get(dateKey)!;
-      if (commission.shift === "AM") {
-        group.amCommissions.push(commission);
-        group.amTotal += commission.amount;
-      } else {
-        group.pmCommissions.push(commission);
-        group.pmTotal += commission.amount;
-      }
-      group.dailyTotal += commission.amount;
-    });
-
-    // Sort by date descending
-    return Array.from(groups.values()).sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+  // Fetch expected commissions when filters change
+  useEffect(() => {
+    if (!companyId) return;
+    dispatch(
+      fetchExpectedCommissions({
+        companyId,
+        startDate: filterDateFrom,
+        endDate: filterDateTo,
+        accountId: filterAccountId ?? undefined,
+        forceRefresh: true,
+      }),
     );
-  }, [commissions]);
+  }, [dispatch, companyId, filterDateFrom, filterDateTo, filterAccountId]);
 
-  // Filtered commissions for table view
+  const onRefresh = useCallback(async () => {
+    if (!companyId) return;
+    setRefreshing(true);
+    await dispatch(
+      fetchExpectedCommissions({
+        companyId,
+        startDate: filterDateFrom,
+        endDate: filterDateTo,
+        accountId: filterAccountId ?? undefined,
+        forceRefresh: true,
+      }),
+    );
+    setRefreshing(false);
+  }, [dispatch, companyId, filterDateFrom, filterDateTo, filterAccountId]);
+
+  // Apply shift filter locally
   const filteredCommissions = useMemo(() => {
-    if (filterShift === "ALL") {
-      return [...commissions].sort(
-        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
-      );
+    let items = [...expectedCommissions];
+    if (filterShift !== "ALL") {
+      items = items.filter((c) => c.shift === filterShift);
     }
-    return commissions
-      .filter((c) => c.shift === filterShift)
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [commissions, filterShift]);
-
-  const toggleExpand = (date: string) => {
-    setExpandedDates((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(date)) {
-        newSet.delete(date);
-      } else {
-        newSet.add(date);
-      }
-      return newSet;
+    return items.sort((a, b) => {
+      const timeA = a.transactionTime
+        ? new Date(a.transactionTime).getTime()
+        : new Date(a.date).getTime();
+      const timeB = b.transactionTime
+        ? new Date(b.transactionTime).getTime()
+        : new Date(b.date).getTime();
+      return timeB - timeA;
     });
-  };
+  }, [expectedCommissions, filterShift]);
 
-  const getImageUri = (commission: Commission) => {
-    if (commission.imageData) {
-      return `data:image/jpeg;base64,${commission.imageData}`;
-    }
-    return commission.imageUrl;
-  };
+  // Metrics
+  const metrics = useMemo(() => {
+    let totalCommission = 0;
+    let totalVolume = 0;
+    let depositCommission = 0;
+    let withdrawCommission = 0;
 
-  // Calculate overall totals
-  const overallTotal = groupedCommissions.reduce(
-    (sum, g) => sum + g.dailyTotal,
-    0,
-  );
+    filteredCommissions.forEach((c) => {
+      totalCommission += c.commissionAmount;
+      totalVolume += c.transactionAmount;
+      if (c.transactionType === "DEPOSIT") {
+        depositCommission += c.commissionAmount;
+      } else {
+        withdrawCommission += c.commissionAmount;
+      }
+    });
 
-  const amTotal = groupedCommissions.reduce((sum, g) => sum + g.amTotal, 0);
-  const pmTotal = groupedCommissions.reduce((sum, g) => sum + g.pmTotal, 0);
+    return {
+      totalCommission,
+      totalVolume,
+      depositCommission,
+      withdrawCommission,
+      recordCount: filteredCommissions.length,
+    };
+  }, [filteredCommissions]);
 
-  const handleBack = () => {
+  const activeAccounts = useMemo(() => {
+    return accounts.filter((a) => a.isActive);
+  }, [accounts]);
+
+  const handleBack = useCallback(() => {
     router.back();
-  };
+  }, [router]);
 
-  const handleAddCommission = () => {
-    router.push("/add-commission");
-  };
+  const handleResetFilters = useCallback(() => {
+    const today = new Date().toISOString().split("T")[0];
+    setFilterShift("ALL");
+    setFilterAccountId(null);
+    setFilterDateFrom(today);
+    setFilterDateTo(today);
+  }, []);
 
   return {
     // State
     isLoading,
     refreshing,
-    selectedImage,
-    setSelectedImage,
-    expandedDates,
     filterShift,
     setFilterShift,
+    filterAccountId,
+    setFilterAccountId,
+    filterDateFrom,
+    setFilterDateFrom,
+    filterDateTo,
+    setFilterDateTo,
 
     // Data
-    commissions,
-    groupedCommissions,
     filteredCommissions,
-
-    // Totals
-    overallTotal,
-    amTotal,
-    pmTotal,
+    accounts: activeAccounts,
+    metrics,
 
     // Actions
     onRefresh,
-    toggleExpand,
-    getImageUri,
     handleBack,
-    handleAddCommission,
+    handleResetFilters,
 
     // Utils
     formatCurrency,
-    formatDate,
+    formatDateTime,
   };
 }

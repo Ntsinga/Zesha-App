@@ -76,6 +76,8 @@ export {
   type CommissionItemUpdate,
   type BulkCommissionUpdate,
   type BulkCommissionUpdateResponse,
+  type ExpectedCommission,
+  type ExpectedCommissionFilters,
 } from "./commission";
 
 // ============= Expense Types =============
@@ -128,6 +130,7 @@ export {
   type CompanyInfoCreate,
   type CompanyInfoUpdate,
   type CompanySnapshot,
+  type LiveCapitalSnapshot,
 } from "./company";
 
 // ============= Transaction Types =============
@@ -135,6 +138,7 @@ export {
   type Transaction as TransactionRecord,
   type TransactionCreate,
   type FloatPurchaseCreate,
+  type CapitalInjectionCreate,
   type FloatPurchaseRead,
   type TransactionUpdate,
   type TransactionFilters,
@@ -146,6 +150,7 @@ export {
   type BulkTransactionCreate,
   type BulkTransactionResponse,
   type AccountBalanceResponse,
+  type ExpectedCommissionBrief,
 } from "./transaction";
 
 // ============= Dashboard Types =============

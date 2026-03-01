@@ -19,6 +19,7 @@ export function useDashboardScreen() {
   const {
     companyInfo,
     summary,
+    liveCapital,
     accounts,
     currentShift,
     snapshotDate,
@@ -96,6 +97,36 @@ export function useDashboardScreen() {
   const totalCommission = summary?.totalCommission ?? 0;
   const dailyCommission = summary?.dailyCommission ?? 0;
 
+  // Live operating capital (real-time intraday values)
+  const liveFloat = liveCapital?.liveFloat ?? null;
+  const liveCash = liveCapital?.liveCash ?? null;
+  const liveGrandTotal = liveCapital?.liveGrandTotal ?? null;
+  const lastReconDate = liveCapital?.lastReconciliationDate ?? null;
+  const lastReconBoundary = liveCapital?.lastReconciliationBoundary ?? null;
+  const transactionsSinceRecon = liveCapital?.transactionsSinceRecon ?? 0;
+
+  // Merged display values — live takes priority over historical snapshot
+  const displayCapital = liveGrandTotal ?? grandTotal;
+  const displayFloat = liveFloat ?? totalFloat;
+  const displayCash = liveCash ?? totalCash;
+  const capitalLabel: string = (() => {
+    const sincePart =
+      transactionsSinceRecon > 0
+        ? ` · ${transactionsSinceRecon} txn${transactionsSinceRecon !== 1 ? "s" : ""}`
+        : "";
+    if (lastReconBoundary) {
+      const t = new Date(lastReconBoundary).toLocaleTimeString("en-ZA", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+      return `Live since ${t}${sincePart}`;
+    }
+    if (lastReconDate) return `Based on recon ${lastReconDate}${sincePart}`;
+    if (transactionsSinceRecon > 0)
+      return `Based on ${transactionsSinceRecon} transaction${transactionsSinceRecon !== 1 ? "s" : ""}`;
+    return "Live";
+  })();
+
   // Today's transaction metrics
   const todayTransactions = useMemo(() => {
     return transactions.filter((t) => t.transactionTime?.startsWith(today));
@@ -118,7 +149,6 @@ export function useDashboardScreen() {
     isLoading,
     error,
     refreshing,
-    currentShift,
     snapshotDate,
     accounts,
 
@@ -134,6 +164,18 @@ export function useDashboardScreen() {
     totalCommission,
     dailyCommission,
 
+    // Merged live-first capital display
+    displayCapital,
+    displayFloat,
+    displayCash,
+    capitalLabel,
+    liveFloat,
+    liveCash,
+    liveGrandTotal,
+    lastReconDate,
+    lastReconBoundary,
+    transactionsSinceRecon,
+
     // Transaction data
     transactionCount,
     recentTransactions,
@@ -144,6 +186,5 @@ export function useDashboardScreen() {
 
     // Actions
     onRefresh,
-    handleShiftChange,
   };
 }

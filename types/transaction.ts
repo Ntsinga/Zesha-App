@@ -6,6 +6,14 @@ import type { ShiftEnum, TransactionTypeEnum } from "./enums";
 import type { Account } from "./account";
 
 /**
+ * Lightweight commission info embedded in Transaction read
+ */
+export interface ExpectedCommissionBrief {
+  commissionRate: number;
+  commissionAmount: number;
+}
+
+/**
  * Transaction entity - matches backend TransactionRead schema
  */
 export interface Transaction extends BaseModel {
@@ -21,6 +29,8 @@ export interface Transaction extends BaseModel {
   reconciliationId?: number | null;
   reference?: string | null;
   notes?: string | null;
+  isConfirmed: boolean;
+  expectedCommission?: ExpectedCommissionBrief | null;
 }
 
 /**
@@ -30,10 +40,9 @@ export interface Transaction extends BaseModel {
 export interface TransactionCreate {
   companyId: number;
   accountId: number;
-  transactionType: Exclude<TransactionTypeEnum, "FLOAT_PURCHASE">;
+  transactionType: Exclude<TransactionTypeEnum, "FLOAT_PURCHASE" | "CAPITAL_INJECTION">;
   amount: number;
   transactionTime: string;
-  shift: ShiftEnum;
   reference?: string | null;
   notes?: string | null;
 }
@@ -48,7 +57,19 @@ export interface FloatPurchaseCreate {
   destinationAccountId: number;
   amount: number;
   transactionTime: string;
-  shift: ShiftEnum;
+  reference?: string | null;
+  notes?: string | null;
+  isConfirmed?: boolean; // default true; false = pending destination confirmation
+}
+
+/**
+ * Capital injection creation - owner adds working capital
+ */
+export interface CapitalInjectionCreate {
+  companyId: number;
+  accountId: number;
+  amount: number;
+  transactionTime: string;
   reference?: string | null;
   notes?: string | null;
 }

@@ -12,7 +12,7 @@ const getApiBaseUrl = (): string => {
   // Development fallback - ngrok URL
   // WARNING: Update this when your ngrok URL changes
   if (__DEV__) {
-    return "https://2b12-196-250-65-167.ngrok-free.app";
+    return "https://ea02-41-210-145-125.ngrok-free.app";
   }
 
   // Production — EXPO_PUBLIC_API_URL must be set
@@ -82,6 +82,12 @@ export const API_ENDPOINTS = {
     delete: (id: number) => `/commissions/${id}`,
   },
 
+  // Expected Commissions (auto-calculated from transactions)
+  expectedCommissions: {
+    list: "/expected-commissions/",
+    dailySummary: "/expected-commissions/daily-summary",
+  },
+
   // Cash Count (Denominations)
   cashCount: {
     list: "/cash-counts/",
@@ -123,6 +129,7 @@ export const API_ENDPOINTS = {
     update: (id: number) => `/company-info/${id}`,
     delete: (id: number) => `/company-info/${id}`,
     snapshot: (id: number) => `/company-info/${id}/snapshot`,
+    liveSnapshot: (id: number) => `/company-info/${id}/live-snapshot`,
   },
 
   // Accounts
@@ -142,10 +149,12 @@ export const API_ENDPOINTS = {
     list: "/transactions/",
     create: "/transactions/create",
     floatPurchase: "/transactions/float-purchase",
+    capitalInjection: "/transactions/capital-injection",
     bulk: "/transactions/bulk",
     get: (id: number) => `/transactions/${id}`,
     update: (id: number) => `/transactions/${id}`,
     reverse: (id: number) => `/transactions/${id}/reverse`,
+    confirm: (id: number) => `/transactions/${id}/confirm`,
     accountBalance: (accountId: number) =>
       `/transactions/account/${accountId}/balance`,
     accountStatement: (accountId: number) =>

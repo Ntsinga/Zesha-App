@@ -29,7 +29,7 @@ export type ApprovalStatusEnum = "PENDING" | "APPROVED" | "REJECTED";
 export type ReconciliationStatusEnum = "DRAFT" | "CALCULATED" | "FINALIZED";
 
 // Transaction types - matches backend TransactionTypeEnum
-export type TransactionTypeEnum = "DEPOSIT" | "WITHDRAW" | "FLOAT_PURCHASE";
+export type TransactionTypeEnum = "DEPOSIT" | "WITHDRAW" | "FLOAT_PURCHASE" | "CAPITAL_INJECTION";
 
 // Balance validation status - matches backend BalanceValidationEnum
 export type BalanceValidationEnum = "PENDING" | "MATCHED" | "SHORTAGE" | "EXCESS";

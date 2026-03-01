@@ -26,6 +26,62 @@ import type { Account } from "../../types";
 type TypeFilter = "ALL" | TransactionTypeEnum;
 type ShiftFilter = "ALL" | ShiftEnum;
 
+function getTypeLabel(type: string): string {
+  switch (type) {
+    case "DEPOSIT":
+      return "Deposit";
+    case "WITHDRAW":
+      return "Withdraw";
+    case "FLOAT_PURCHASE":
+      return "Float Purchase";
+    case "CAPITAL_INJECTION":
+      return "Capital Injection";
+    default:
+      return type;
+  }
+}
+
+function getTypeBadgeColors(type: string) {
+  switch (type) {
+    case "DEPOSIT":
+      return { bg: "#dcfce7", text: "#16a34a" };
+    case "WITHDRAW":
+      return { bg: "#fee2e2", text: "#dc2626" };
+    case "FLOAT_PURCHASE":
+      return { bg: "#dbeafe", text: "#2563eb" };
+    case "CAPITAL_INJECTION":
+      return { bg: "#ccfbf1", text: "#0d9488" };
+    default:
+      return { bg: "#f3f4f6", text: "#6b7280" };
+  }
+}
+
+function getAmountColor(type: string): string {
+  switch (type) {
+    case "DEPOSIT":
+    case "CAPITAL_INJECTION":
+      return "#16a34a";
+    case "WITHDRAW":
+      return "#dc2626";
+    case "FLOAT_PURCHASE":
+      return "#2563eb";
+    default:
+      return "#374151";
+  }
+}
+
+function getAmountPrefix(type: string): string {
+  switch (type) {
+    case "DEPOSIT":
+    case "CAPITAL_INJECTION":
+      return "+";
+    case "WITHDRAW":
+      return "-";
+    default:
+      return "";
+  }
+}
+
 export default function Transactions() {
   const dispatch = useDispatch<AppDispatch>();
   const { formatCurrency } = useCurrencyFormatter();
@@ -137,7 +193,13 @@ export default function Transactions() {
             </Text>
             <View className="flex-row flex-wrap gap-2 mb-4">
               {(
-                ["ALL", "DEPOSIT", "WITHDRAW", "FLOAT_PURCHASE"] as TypeFilter[]
+                [
+                  "ALL",
+                  "DEPOSIT",
+                  "WITHDRAW",
+                  "FLOAT_PURCHASE",
+                  "CAPITAL_INJECTION",
+                ] as TypeFilter[]
               ).map((t) => (
                 <TouchableOpacity
                   key={t}
@@ -152,11 +214,7 @@ export default function Transactions() {
                     className="text-xs font-medium"
                     style={{ color: filterType === t ? "#FFFFFF" : "#374151" }}
                   >
-                    {t === "ALL"
-                      ? "All"
-                      : t === "FLOAT_PURCHASE"
-                        ? "Float"
-                        : t[0] + t.slice(1).toLowerCase()}
+                    {t === "ALL" ? "All" : getTypeLabel(t)}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -275,50 +333,69 @@ export default function Transactions() {
               <Text className="text-gray-400">No transactions yet</Text>
             </View>
           ) : (
-            transactions.map((tx: Transaction, idx: number) => (
-              <View
-                key={tx.id || `tx-${idx}`}
-                className="border-b border-gray-100 py-4 flex-row justify-between items-center"
-              >
-                <View className="flex-1">
-                  <View className="flex-row items-center mb-1">
-                    <Text className="font-bold text-gray-700 mr-2">
-                      {tx.account?.name || `Acct #${tx.accountId}`}
-                    </Text>
-                    <Text className="text-xs text-gray-400">
-                      {formatDate(tx.transactionTime, "short")} · {tx.shift}
-                    </Text>
+            transactions.map((tx: Transaction, idx: number) => {
+              const badgeColors = getTypeBadgeColors(tx.transactionType);
+              return (
+                <View
+                  key={tx.id || `tx-${idx}`}
+                  className="border-b border-gray-100 py-4 flex-row justify-between items-center"
+                >
+                  <View className="flex-1">
+                    <View className="flex-row items-center mb-1">
+                      <Text className="font-bold text-gray-700 mr-2">
+                        {tx.account?.name || `Acct #${tx.accountId}`}
+                      </Text>
+                      <Text className="text-xs text-gray-400">
+                        {formatDate(tx.transactionTime, "short")} · {tx.shift}
+                      </Text>
+                    </View>
+                    {tx.reference ? (
+                      <Text className="text-gray-600 font-medium">
+                        {tx.reference}
+                      </Text>
+                    ) : null}
+                    {tx.notes ? (
+                      <Text className="text-xs text-gray-400 mt-0.5">
+                        {tx.notes}
+                      </Text>
+                    ) : null}
+                    <View
+                      className="self-start px-2 py-0.5 rounded mt-1"
+                      style={{ backgroundColor: badgeColors.bg }}
+                    >
+                      <Text
+                        className="text-xs font-medium"
+                        style={{ color: badgeColors.text }}
+                      >
+                        {getTypeLabel(tx.transactionType)}
+                      </Text>
+                    </View>
+                    {!tx.isConfirmed && (
+                      <View className="self-start bg-yellow-100 px-2 py-0.5 rounded mt-1">
+                        <Text className="text-xs font-medium text-yellow-700">
+                          ⚠ Unconfirmed
+                        </Text>
+                      </View>
+                    )}
                   </View>
-                  {tx.reference ? (
-                    <Text className="text-gray-600 font-medium">
-                      {tx.reference}
+                  <View className="items-end">
+                    <Text
+                      className="font-bold text-base"
+                      style={{ color: getAmountColor(tx.transactionType) }}
+                    >
+                      {getAmountPrefix(tx.transactionType)}
+                      {formatCurrency(Math.abs(tx.amount))}
                     </Text>
-                  ) : null}
-                  {tx.notes ? (
-                    <Text className="text-xs text-gray-400 mt-0.5">
-                      {tx.notes}
-                    </Text>
-                  ) : null}
-                  <View className="bg-gray-100 self-start px-2 py-0.5 rounded mt-1">
-                    <Text className="text-xs text-gray-500">
-                      {tx.transactionType}
-                    </Text>
+                    {tx.expectedCommission && (
+                      <Text className="text-xs text-purple-600 mt-0.5">
+                        Commission:{" "}
+                        {formatCurrency(tx.expectedCommission.commissionAmount)}
+                      </Text>
+                    )}
                   </View>
                 </View>
-                <View className="items-end">
-                  <Text
-                    className={`font-bold text-base ${
-                      tx.transactionType === "DEPOSIT"
-                        ? "text-green-600"
-                        : "text-red-600"
-                    }`}
-                  >
-                    {tx.transactionType === "DEPOSIT" ? "+" : "-"}
-                    {formatCurrency(Math.abs(tx.amount))}
-                  </Text>
-                </View>
-              </View>
-            ))
+              );
+            })
           )}
         </View>
       </ScrollView>

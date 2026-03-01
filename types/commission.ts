@@ -114,3 +114,34 @@ export interface BulkCommissionUpdateResponse {
   totalUpdated: number;
   totalFailed: number;
 }
+
+/**
+ * Expected commission - auto-calculated from transactions
+ * Matches backend ExpectedCommissionOut schema
+ */
+export interface ExpectedCommission {
+  id: number;
+  companyId: number;
+  transactionId: number;
+  accountId: number;
+  accountName: string | null;
+  transactionType: "DEPOSIT" | "WITHDRAW";
+  transactionAmount: number;
+  commissionRate: number;
+  commissionAmount: number;
+  shift: ShiftEnum;
+  date: string;
+  transactionTime: string | null;
+}
+
+/**
+ * Filters for listing expected commissions
+ */
+export interface ExpectedCommissionFilters {
+  companyId: number;
+  accountId?: number;
+  startDate?: string;
+  endDate?: string;
+  skip?: number;
+  limit?: number;
+}

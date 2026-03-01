@@ -62,6 +62,20 @@ export function formatDate(
 }
 
 /**
+ * Format a date+time string (e.g., "28 Feb, 14:30")
+ * @param isoString - ISO date/time string
+ */
+export function formatDateTime(isoString: string): string {
+  const date = new Date(isoString);
+  return date.toLocaleString("en-ZA", {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+/**
  * Format a date as relative time (e.g., "2 days ago")
  * @param dateString - ISO date string or Date object
  */

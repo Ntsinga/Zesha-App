@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   TextInput,
   ScrollView,
+  FlatList,
   KeyboardAvoidingView,
   Platform,
   Alert,
@@ -117,6 +118,14 @@ export const AddTransactionForm: React.FC<AddTransactionFormProps> = ({
     return new Date().getHours() < 12 ? "AM" : "PM";
   });
 
+  // Account picker sheet state
+  const [pickerVisible, setPickerVisible] = useState(false);
+  const [pickerTitle, setPickerTitle] = useState("");
+  const [pickerExclude, setPickerExclude] = useState<number | null>(null);
+  const [pickerOnSelect, setPickerOnSelect] = useState<(id: number) => void>(
+    () => () => {},
+  );
+
   const activeAccounts = accounts.filter((a) => a.isActive);
 
   // Fetch accounts if not loaded
@@ -141,20 +150,13 @@ export const AddTransactionForm: React.FC<AddTransactionFormProps> = ({
     exclude: number | null,
     onPick: (id: number) => void,
   ) => {
-    const options = activeAccounts
-      .filter((a) => a.id !== exclude)
-      .map((a) => ({
-        text: `${a.name} (${a.accountType})`,
-        onPress: () => onPick(a.id),
-      }));
-    if (options.length === 0) {
-      Alert.alert("No Accounts", "No active accounts available.");
-      return;
-    }
-    Alert.alert(title, undefined, [
-      ...options,
-      { text: "Cancel", style: "cancel" as const },
-    ]);
+    setPickerTitle(title);
+    setPickerExclude(exclude);
+    setPickerOnSelect(() => (id: number) => {
+      onPick(id);
+      setPickerVisible(false);
+    });
+    setPickerVisible(true);
   };
 
   const getAccountName = (id: number | null) =>
@@ -186,7 +188,6 @@ export const AddTransactionForm: React.FC<AddTransactionFormProps> = ({
             destinationAccountId: destAccountId,
             amount: parseFloat(amount),
             transactionTime: new Date().toISOString(),
-            shift,
             reference: reference || undefined,
             notes: notes || undefined,
           }),
@@ -203,7 +204,6 @@ export const AddTransactionForm: React.FC<AddTransactionFormProps> = ({
             transactionType: mode,
             amount: parseFloat(amount),
             transactionTime: new Date().toISOString(),
-            shift,
             reference: reference || undefined,
             notes: notes || undefined,
           }),
@@ -216,7 +216,11 @@ export const AddTransactionForm: React.FC<AddTransactionFormProps> = ({
     } catch (err) {
       Alert.alert(
         "Error",
-        err instanceof Error ? err.message : "Failed to save transaction.",
+        typeof err === "string"
+          ? err
+          : err instanceof Error
+            ? err.message
+            : "Failed to save transaction.",
       );
     }
   }, [
@@ -367,32 +371,6 @@ export const AddTransactionForm: React.FC<AddTransactionFormProps> = ({
         placeholderTextColor="#9ca3af"
       />
 
-      {/* Shift */}
-      <Text className="text-sm font-medium text-gray-600 mb-1">Shift</Text>
-      <View className="flex-row mb-4" style={{ gap: 8 }}>
-        {(["AM", "PM"] as ShiftEnum[]).map((s) => (
-          <TouchableOpacity
-            key={s}
-            onPress={() => setShift(s)}
-            className="flex-1 rounded-xl py-3 items-center"
-            style={{
-              backgroundColor: shift === s ? "#dbeafe" : "#f9fafb",
-              borderWidth: 2,
-              borderColor: shift === s ? "#2563eb" : "#e5e7eb",
-            }}
-          >
-            <Text
-              style={{
-                color: shift === s ? "#2563eb" : "#9ca3af",
-                fontWeight: "600",
-              }}
-            >
-              {s}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
       {/* Reference */}
       <Text className="text-sm font-medium text-gray-600 mb-1">
         Reference <Text className="text-gray-400 font-normal">(optional)</Text>
@@ -439,6 +417,112 @@ export const AddTransactionForm: React.FC<AddTransactionFormProps> = ({
           </Text>
         )}
       </TouchableOpacity>
+
+      {/* Account Picker Bottom Sheet */}
+      <Modal
+        visible={pickerVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setPickerVisible(false)}
+      >
+        <TouchableOpacity
+          style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.45)" }}
+          activeOpacity={1}
+          onPress={() => setPickerVisible(false)}
+        />
+        <View
+          style={{
+            position: "absolute",
+            bottom: 0,
+            left: 0,
+            right: 0,
+            backgroundColor: "#fff",
+            borderTopLeftRadius: 20,
+            borderTopRightRadius: 20,
+            maxHeight: "60%",
+            paddingBottom: 32,
+          }}
+        >
+          {/* Sheet header */}
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+              paddingHorizontal: 20,
+              paddingTop: 20,
+              paddingBottom: 12,
+              borderBottomWidth: 1,
+              borderBottomColor: "#f3f4f6",
+            }}
+          >
+            <Text style={{ fontSize: 16, fontWeight: "700", color: "#111827" }}>
+              {pickerTitle}
+            </Text>
+            <TouchableOpacity
+              onPress={() => setPickerVisible(false)}
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 16,
+                backgroundColor: "#f3f4f6",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <X size={16} color="#6b7280" />
+            </TouchableOpacity>
+          </View>
+
+          {/* Scrollable account list */}
+          <FlatList
+            data={activeAccounts.filter((a) => a.id !== pickerExclude)}
+            keyExtractor={(item) => String(item.id)}
+            style={{ flexGrow: 0 }}
+            contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 8 }}
+            showsVerticalScrollIndicator={true}
+            ListEmptyComponent={
+              <Text
+                style={{
+                  textAlign: "center",
+                  color: "#9ca3af",
+                  paddingVertical: 24,
+                }}
+              >
+                No active accounts available
+              </Text>
+            }
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                onPress={() => pickerOnSelect(item.id)}
+                style={{
+                  paddingVertical: 14,
+                  paddingHorizontal: 4,
+                  borderBottomWidth: 1,
+                  borderBottomColor: "#f3f4f6",
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 15,
+                    color: "#111827",
+                    fontWeight: "500",
+                    flex: 1,
+                  }}
+                >
+                  {item.name}
+                </Text>
+                <Text style={{ fontSize: 12, color: "#6b7280", marginLeft: 8 }}>
+                  {item.accountType}
+                </Text>
+              </TouchableOpacity>
+            )}
+          />
+        </View>
+      </Modal>
     </View>
   );
 };

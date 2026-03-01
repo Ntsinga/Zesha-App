@@ -13,6 +13,7 @@ import type {
   BulkTransactionCreate,
   BulkTransactionResponse,
   AccountBalanceResponse,
+  CapitalInjectionCreate,
 } from "@/types/transaction";
 import { mapApiResponse, mapApiRequest, buildTypedQueryString } from "@/types";
 import { API_ENDPOINTS } from "@/config/api";
@@ -198,6 +199,43 @@ export const createFloatPurchase = createAsyncThunk<
 );
 
 /**
+ * Record a capital injection (owner adds working capital)
+ */
+export const createCapitalInjection = createAsyncThunk<
+  Transaction,
+  CapitalInjectionCreate,
+  { state: RootState; rejectValue: string }
+>(
+  "transactions/createCapitalInjection",
+  async (data, { getState, rejectWithValue }) => {
+    try {
+      const state = getState();
+      const companyId =
+        state.auth.viewingAgencyId || state.auth.user?.companyId;
+
+      if (!companyId) {
+        return rejectWithValue("No companyId found. Please log in again.");
+      }
+
+      return await apiRequest<Transaction>(
+        API_ENDPOINTS.transactions.capitalInjection,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(mapApiRequest({ ...data, companyId })),
+        },
+      );
+    } catch (error) {
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : "Failed to record capital injection",
+      );
+    }
+  },
+);
+
+/**
  * Bulk create transactions
  */
 export const bulkCreateTransactions = createAsyncThunk<
@@ -263,6 +301,28 @@ export const reverseTransaction = createAsyncThunk<
   } catch (error) {
     return rejectWithValue(
       error instanceof Error ? error.message : "Failed to reverse transaction",
+    );
+  }
+});
+
+/**
+ * Confirm a float purchase transaction
+ */
+export const confirmTransaction = createAsyncThunk<
+  Transaction,
+  number,
+  { rejectValue: string }
+>("transactions/confirm", async (id, { rejectWithValue }) => {
+  try {
+    return await apiRequest<Transaction>(
+      API_ENDPOINTS.transactions.confirm(id),
+      { method: "POST" },
+    );
+  } catch (error) {
+    return rejectWithValue(
+      error instanceof Error
+        ? error.message
+        : "Failed to confirm transaction",
     );
   }
 });
@@ -502,6 +562,22 @@ const transactionsSlice = createSlice({
         state.error = action.payload as string;
       });
 
+    // ---- Capital Injection ----
+    builder
+      .addCase(createCapitalInjection.pending, (state) => {
+        state.isCreating = true;
+        state.error = null;
+      })
+      .addCase(createCapitalInjection.fulfilled, (state, action) => {
+        state.isCreating = false;
+        state.items.unshift(action.payload);
+        state.lastFetched = null;
+      })
+      .addCase(createCapitalInjection.rejected, (state, action) => {
+        state.isCreating = false;
+        state.error = action.payload as string;
+      });
+
     // ---- Bulk Create ----
     builder
       .addCase(bulkCreateTransactions.pending, (state) => {
@@ -548,6 +624,34 @@ const transactionsSlice = createSlice({
       })
       .addCase(reverseTransaction.rejected, (state, action) => {
         state.isCreating = false;
+        state.error = action.payload as string;
+      });
+
+    // ---- Confirm ----
+    builder
+      .addCase(confirmTransaction.fulfilled, (state, action) => {
+        // Update the confirmed transaction in the list
+        const index = state.items.findIndex(
+          (item) => item.id === action.payload.id,
+        );
+        if (index !== -1) {
+          state.items[index] = action.payload;
+        }
+        // Also confirm the linked transaction in the list
+        if (action.payload.linkedTransactionId) {
+          const linkedIndex = state.items.findIndex(
+            (item) => item.id === action.payload.linkedTransactionId,
+          );
+          if (linkedIndex !== -1) {
+            state.items[linkedIndex] = {
+              ...state.items[linkedIndex],
+              isConfirmed: true,
+            };
+          }
+        }
+        state.lastFetched = null;
+      })
+      .addCase(confirmTransaction.rejected, (state, action) => {
         state.error = action.payload as string;
       });
 

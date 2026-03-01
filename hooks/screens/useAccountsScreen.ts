@@ -38,6 +38,9 @@ export function useAccountsScreen() {
   const [accountType, setAccountType] = useState<AccountTypeEnum>("BANK");
   const [isActive, setIsActive] = useState(true);
   const [initialBalance, setInitialBalance] = useState<string>("");
+  const [commissionDepositPct, setCommissionDepositPct] = useState<string>("");
+  const [commissionWithdrawPct, setCommissionWithdrawPct] = useState<string>("");
+  const [commissionChangeReason, setCommissionChangeReason] = useState<string>("");
 
   useEffect(() => {
     dispatch(fetchAccounts({}));
@@ -54,6 +57,9 @@ export function useAccountsScreen() {
     setAccountType("BANK");
     setIsActive(true);
     setInitialBalance("");
+    setCommissionDepositPct("");
+    setCommissionWithdrawPct("");
+    setCommissionChangeReason("");
     setEditingAccount(null);
     setShowTypeDropdown(false);
   };
@@ -68,6 +74,17 @@ export function useAccountsScreen() {
     setName(account.name);
     setAccountType(account.accountType);
     setIsActive(account.isActive);
+    setCommissionDepositPct(
+      account.commissionDepositPercentage != null
+        ? String(account.commissionDepositPercentage)
+        : ""
+    );
+    setCommissionWithdrawPct(
+      account.commissionWithdrawPercentage != null
+        ? String(account.commissionWithdrawPercentage)
+        : ""
+    );
+    setCommissionChangeReason("");
     setIsModalOpen(true);
   };
 
@@ -102,6 +119,15 @@ export function useAccountsScreen() {
               accountType: accountType,
               isActive: isActive,
               companyId: companyId,
+              ...(commissionDepositPct !== ""
+                ? { commissionDepositPercentage: parseFloat(commissionDepositPct) }
+                : {}),
+              ...(commissionWithdrawPct !== ""
+                ? { commissionWithdrawPercentage: parseFloat(commissionWithdrawPct) }
+                : {}),
+              ...(commissionChangeReason.trim()
+                ? { commissionRateChangeReason: commissionChangeReason.trim() }
+                : {}),
             },
           }),
         ).unwrap();
@@ -118,6 +144,12 @@ export function useAccountsScreen() {
             accountType: accountType,
             isActive: isActive,
             ...(initialBalance ? { initialBalance: parseFloat(initialBalance) } : {}),
+            ...(commissionDepositPct !== ""
+              ? { commissionDepositPercentage: parseFloat(commissionDepositPct) }
+              : {}),
+            ...(commissionWithdrawPct !== ""
+              ? { commissionWithdrawPercentage: parseFloat(commissionWithdrawPct) }
+              : {}),
           }),
         ).unwrap();
 
@@ -232,6 +264,12 @@ export function useAccountsScreen() {
     setIsActive,
     initialBalance,
     setInitialBalance,
+    commissionDepositPct,
+    setCommissionDepositPct,
+    commissionWithdrawPct,
+    setCommissionWithdrawPct,
+    commissionChangeReason,
+    setCommissionChangeReason,
 
     // Stats
     stats,

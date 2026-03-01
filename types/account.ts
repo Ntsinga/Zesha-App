@@ -15,6 +15,8 @@ export interface Account extends BaseModel {
   companyId: number;
   initialBalance?: number | null;
   currentBalance?: number | null;
+  commissionDepositPercentage?: number | null;
+  commissionWithdrawPercentage?: number | null;
 }
 
 /**
@@ -27,6 +29,8 @@ export interface AccountCreate {
   isActive?: boolean;
   companyId: number;
   initialBalance?: number;
+  commissionDepositPercentage?: number | null;
+  commissionWithdrawPercentage?: number | null;
 }
 
 /**
@@ -38,6 +42,9 @@ export interface AccountUpdate {
   accountType?: AccountTypeEnum;
   isActive?: boolean;
   companyId?: number;
+  commissionDepositPercentage?: number | null;
+  commissionWithdrawPercentage?: number | null;
+  commissionRateChangeReason?: string;
 }
 
 /**

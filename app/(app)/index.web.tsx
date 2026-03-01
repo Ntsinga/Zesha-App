@@ -27,7 +27,6 @@ export default function DashboardWeb() {
   const {
     isLoading,
     refreshing,
-    currentShift,
     snapshotDate,
     accounts,
     totalFloat,
@@ -41,10 +40,14 @@ export default function DashboardWeb() {
     dailyCommission,
     transactionCount,
     recentTransactions,
+    displayCapital,
+    displayFloat,
+    displayCash,
+    capitalLabel,
+    liveGrandTotal,
     formatCurrency,
     formatCompactCurrency,
     onRefresh,
-    handleShiftChange,
   } = useDashboardScreen();
 
   if (isLoading && !refreshing) {
@@ -67,19 +70,6 @@ export default function DashboardWeb() {
           <span className="header-date">{snapshotDate}</span>
         </div>
         <div className="header-right">
-          <div className="shift-toggle">
-            {(["AM", "PM"] as const).map((shift) => (
-              <button
-                key={shift}
-                onClick={() => handleShiftChange(shift)}
-                className={`shift-btn ${
-                  currentShift === shift ? "active" : ""
-                }`}
-              >
-                {shift}
-              </button>
-            ))}
-          </div>
           <button
             onClick={onRefresh}
             disabled={refreshing}
@@ -103,26 +93,45 @@ export default function DashboardWeb() {
                 <Banknote size={22} />
                 <span>Total Operating Capital</span>
               </div>
-              <p className="gt-amount">{formatCurrency(grandTotal)}</p>
+              <p className="gt-amount">{formatCurrency(displayCapital)}</p>
               <div className="gt-breakdown">
                 <div className="gt-item">
                   <span className="gt-label">Float</span>
                   <span className="gt-value">
-                    {formatCompactCurrency(totalFloat)}
+                    {formatCurrency(displayFloat)}
                   </span>
                 </div>
                 <div className="gt-item">
                   <span className="gt-label">Cash</span>
                   <span className="gt-value">
-                    {formatCompactCurrency(totalCash)}
+                    {formatCurrency(displayCash)}
                   </span>
                 </div>
-                <div className="gt-item">
-                  <span className="gt-label">Outstanding</span>
-                  <span className="gt-value">
-                    {formatCompactCurrency(outstandingBalance)}
-                  </span>
-                </div>
+              </div>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  marginTop: 8,
+                }}
+              >
+                {liveGrandTotal !== null && (
+                  <span
+                    style={{
+                      width: 7,
+                      height: 7,
+                      borderRadius: "50%",
+                      backgroundColor: "#4ade80",
+                      display: "inline-block",
+                      flexShrink: 0,
+                      animation: "pulse 2s infinite",
+                    }}
+                  />
+                )}
+                <span style={{ fontSize: 11, color: "rgba(255,255,255,0.55)" }}>
+                  {capitalLabel}
+                </span>
               </div>
             </div>
           </div>
@@ -195,7 +204,10 @@ export default function DashboardWeb() {
               <div className="metric">
                 <div className="metric-top">
                   <span className="metric-name">Transactions</span>
-                  <div className="metric-badge" style={{ backgroundColor: "#e0e7ff", color: "#4f46e5" }}>
+                  <div
+                    className="metric-badge"
+                    style={{ backgroundColor: "#e0e7ff", color: "#4f46e5" }}
+                  >
                     <ArrowLeftRight size={16} />
                   </div>
                 </div>
@@ -316,7 +328,9 @@ export default function DashboardWeb() {
             {recentTransactions.length > 0 && (
               <>
                 <h3 style={{ marginTop: 24 }}>Recent Transactions</h3>
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <div
+                  style={{ display: "flex", flexDirection: "column", gap: 8 }}
+                >
                   {recentTransactions.map((txn) => (
                     <div
                       key={txn.id}
@@ -367,9 +381,7 @@ export default function DashboardWeb() {
                         >
                           {txn.account?.name || `Account ${txn.accountId}`}
                         </div>
-                        <div
-                          style={{ fontSize: 11, color: "#94a3b8" }}
-                        >
+                        <div style={{ fontSize: 11, color: "#94a3b8" }}>
                           {txn.transactionType === "FLOAT_PURCHASE"
                             ? "Float"
                             : txn.transactionType}{" "}

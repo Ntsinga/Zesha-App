@@ -65,3 +65,19 @@ export interface CompanySnapshot {
   balanceCount?: number;
   cashCountRecords?: number;
 }
+
+/**
+ * Live operating capital snapshot - real-time intraday capital estimate
+ */
+export interface LiveCapitalSnapshot {
+  liveFloat: number;
+  liveCash: number;
+  liveGrandTotal: number;
+  lastReconciliationDate: string | null;
+  lastReconciliationShift: string | null;
+  lastReconciliationBoundary: string | null; // ISO datetime - exact cutoff for the live delta
+  transactionsSinceRecon: number;
+  depositTotal: number;
+  withdrawalTotal: number;
+  floatPurchaseTotal: number;
+}

@@ -26,7 +26,6 @@ export default function DashboardNative() {
   const {
     isLoading,
     refreshing,
-    currentShift,
     snapshotDate,
     accounts,
     companyName,
@@ -41,10 +40,14 @@ export default function DashboardNative() {
     dailyCommission,
     transactionCount,
     recentTransactions,
+    displayCapital,
+    displayFloat,
+    displayCash,
+    capitalLabel,
+    liveGrandTotal,
     formatCurrency,
     formatCompactCurrency,
     onRefresh,
-    handleShiftChange,
   } = useDashboardScreen();
 
   if (isLoading && !refreshing) {
@@ -68,40 +71,6 @@ export default function DashboardNative() {
           </Text>
         </View>
 
-        {/* Shift Toggle */}
-        <View className="px-5 py-4 bg-white">
-          <View className="flex-row bg-gray-100 rounded-2xl p-1">
-            <TouchableOpacity
-              onPress={() => handleShiftChange("AM")}
-              className={`flex-1 py-3 rounded-xl ${
-                currentShift === "AM" ? "bg-red-600" : "bg-transparent"
-              }`}
-            >
-              <Text
-                className={`text-center font-bold text-base ${
-                  currentShift === "AM" ? "text-white" : "text-gray-600"
-                }`}
-              >
-                AM Shift
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => handleShiftChange("PM")}
-              className={`flex-1 py-3 rounded-xl ${
-                currentShift === "PM" ? "bg-red-600" : "bg-transparent"
-              }`}
-            >
-              <Text
-                className={`text-center font-bold text-base ${
-                  currentShift === "PM" ? "text-white" : "text-gray-600"
-                }`}
-              >
-                PM Shift
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
         {/* Total Operating Capital Card */}
         <View className="px-5 py-4">
           <View className="bg-yellow-400 rounded-3xl p-6 shadow-md">
@@ -112,7 +81,7 @@ export default function DashboardNative() {
 
             {/* Grand Total */}
             <Text className="text-4xl font-bold text-yellow-900 mb-6">
-              {formatCurrency(grandTotal)}
+              {formatCurrency(displayCapital)}
             </Text>
 
             {/* Float and Cash Row */}
@@ -123,7 +92,7 @@ export default function DashboardNative() {
                   Float
                 </Text>
                 <Text className="text-l font-bold text-yellow-900">
-                  {formatCurrency(totalFloat)}
+                  {formatCurrency(displayFloat)}
                 </Text>
               </View>
 
@@ -132,23 +101,23 @@ export default function DashboardNative() {
 
               {/* Cash Section */}
               <View className="flex-1">
-                <View className="flex-row justify-between mb-2">
-                  <Text className="text-yellow-800 font-semibold text-xs">
-                    Cash
-                  </Text>
-                  <Text className="text-yellow-900 font-bold text-sm">
-                    {formatCompactCurrency(totalCash)}
-                  </Text>
-                </View>
-                <View className="flex-row justify-between">
-                  <Text className="text-yellow-800 font-semibold text-xs">
-                    OUTST.
-                  </Text>
-                  <Text className="text-yellow-900 font-bold text-sm">
-                    {formatCompactCurrency(outstandingBalance)}
-                  </Text>
-                </View>
+                <Text className="text-yellow-800 font-semibold text-sm uppercase mb-1">
+                  Cash
+                </Text>
+                <Text className="text-l font-bold text-yellow-900">
+                  {formatCurrency(displayCash)}
+                </Text>
               </View>
+            </View>
+
+            {/* Capital label */}
+            <View className="flex-row items-center mt-3" style={{ gap: 6 }}>
+              {liveGrandTotal !== null && (
+                <View style={{ width: 7, height: 7, borderRadius: 3.5, backgroundColor: "#16a34a" }} />
+              )}
+              <Text className="text-yellow-700 text-xs" style={{ opacity: 0.75 }}>
+                {capitalLabel}
+              </Text>
             </View>
           </View>
         </View>
@@ -171,6 +140,40 @@ export default function DashboardNative() {
 
             {/* Comparison Items */}
             <View className="space-y-4">
+              {/* Variance */}
+              <View className="mb-2">
+                <View
+                  className={`${
+                    capitalVariance >= 0 ? "bg-green-50" : "bg-red-50"
+                  } rounded-2xl p-4 flex-row justify-between items-center`}
+                >
+                  <Text
+                    className={`${
+                      capitalVariance >= 0 ? "text-green-600" : "text-red-600"
+                    } font-bold text-lg`}
+                  >
+                    Variance
+                  </Text>
+                  <View className="flex-row items-center">
+                    <Ionicons
+                      name={
+                        capitalVariance >= 0 ? "trending-up" : "trending-down"
+                      }
+                      size={20}
+                      color={capitalVariance >= 0 ? "#16A34A" : "#DC2626"}
+                    />
+                    <Text
+                      className={`font-bold ${
+                        capitalVariance >= 0 ? "text-green-600" : "text-red-600"
+                      } text-lg ml-2`}
+                    >
+                      {capitalVariance >= 0 ? "+" : "-"}
+                      {formatCurrency(Math.abs(capitalVariance))}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+
               {/* Expected Total */}
               <View className="flex-row justify-between items-center py-3">
                 <Text className="text-gray-600 text-base">Expected Total</Text>
@@ -215,33 +218,6 @@ export default function DashboardNative() {
                 </Text>
               </View>
 
-              {/* Variance */}
-              <View className="border-t border-gray-100 pt-4 mt-2">
-                <View
-                  className={`${capitalVariance >= 0 ? "bg-green-50" : "bg-red-50"} rounded-2xl p-4 flex-row justify-between items-center`}
-                >
-                  <Text
-                    className={`${capitalVariance >= 0 ? "text-green-600" : "text-red-600"} font-bold text-lg`}
-                  >
-                    Variance
-                  </Text>
-                  <View className="flex-row items-center">
-                    <Ionicons
-                      name={
-                        capitalVariance >= 0 ? "trending-up" : "trending-down"
-                      }
-                      size={20}
-                      color={capitalVariance >= 0 ? "#16A34A" : "#DC2626"}
-                    />
-                    <Text
-                      className={`font-bold ${capitalVariance >= 0 ? "text-green-600" : "text-red-600"} text-lg ml-2`}
-                    >
-                      {capitalVariance >= 0 ? "+" : "-"}
-                      {formatCurrency(Math.abs(capitalVariance))}
-                    </Text>
-                  </View>
-                </View>
-              </View>
             </View>
           </View>
         </View>
