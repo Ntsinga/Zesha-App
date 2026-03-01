@@ -22,14 +22,15 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { useReconciliationScreen } from "../../hooks/screens/useReconciliationScreen";
-import type { ShiftEnum } from "../../types";
+import type { ReconciliationSubtypeEnum, ShiftEnum } from "../../types";
 import "../../styles/web.css";
 
 export default function BalanceDetailWeb() {
   // Get params from Expo Router (reactive, works with router.push)
-  const params = useLocalSearchParams<{ date: string; shift: string }>();
+  const params = useLocalSearchParams<{ date: string; shift: string; subtype: string }>();
   const date = params.date || "";
   const shift = (params.shift as ShiftEnum) || "AM";
+  const subtype = (params.subtype as ReconciliationSubtypeEnum) || "CLOSING";
 
   const {
     refreshing,
@@ -71,7 +72,9 @@ export default function BalanceDetailWeb() {
     validationByAccountId,
     // Linked transactions
     shiftTransactions,
-  } = useReconciliationScreen({ date, shift });
+  } = useReconciliationScreen({ date, shift, subtype });
+
+  const isOpening = subtype === "OPENING";
 
   // Local state for discrepancy confirmation dialog
   const [showDiscrepancyConfirm, setShowDiscrepancyConfirm] =
@@ -127,6 +130,19 @@ export default function BalanceDetailWeb() {
             <h1 className="header-title">{formatDate(date, "medium")}</h1>
             <span className={`shift-badge ${shift === "AM" ? "am" : "pm"}`}>
               {shift} Shift
+            </span>
+            <span
+              style={{
+                marginLeft: 6,
+                fontSize: 11,
+                fontWeight: 600,
+                padding: "2px 8px",
+                borderRadius: 10,
+                background: isOpening ? "#e0f2fe" : "#fef3c7",
+                color: isOpening ? "#0369a1" : "#92400e",
+              }}
+            >
+              {isOpening ? "Opening" : "Closing"}
             </span>
           </div>
         </div>
@@ -209,7 +225,8 @@ export default function BalanceDetailWeb() {
             </div>
           </div>
 
-          {/* Commissions Card */}
+          {/* Commissions Card — hidden for OPENING */}
+          {!isOpening && (
           <div className="stat-card">
             <div className="stat-icon danger">
               <Banknote size={20} />
@@ -221,6 +238,7 @@ export default function BalanceDetailWeb() {
               </span>
             </div>
           </div>
+          )}
         </div>
 
         {/* Discrepancy Alert Banner */}
@@ -260,7 +278,8 @@ export default function BalanceDetailWeb() {
 
         {/* Detail Tables */}
         <div className="detail-grid">
-          {/* Commissions Table */}
+          {/* Commissions Table — hidden for OPENING */}
+          {!isOpening && (
           <div className="table-card">
             <div className="card-header">
               <Banknote size={18} />
@@ -310,6 +329,7 @@ export default function BalanceDetailWeb() {
               </tbody>
             </table>
           </div>
+          )}
 
           {/* Balances Table */}
           <div className="table-card">
@@ -512,7 +532,8 @@ export default function BalanceDetailWeb() {
             </table>
           </div>
 
-          {/* Linked Transactions Table */}
+          {/* Linked Transactions Table — hidden for OPENING */}
+          {!isOpening && (
           <div className="table-card full-width">
             <div className="card-header">
               <ArrowLeftRight size={18} color="#4F46E5" />
@@ -605,6 +626,7 @@ export default function BalanceDetailWeb() {
               </table>
             )}
           </div>
+          )}
 
           {/* Notes Section */}
           <div className="table-card full-width">

@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
-import { useSelector } from "react-redux";
 import { useUser } from "@clerk/clerk-react";
+import { useAppSelector } from "../store/hooks";
 import { usePathname } from "expo-router";
 import {
   selectUser,
@@ -40,10 +40,10 @@ const PAGE_TITLES: Record<string, string> = {
  */
 export default function TopBarWeb() {
   const pathname = usePathname();
-  const backendUser = useSelector(selectUser);
-  const role = useSelector(selectUserRole);
-  const viewingAgencyId = useSelector(selectViewingAgencyId);
-  const viewingAgencyName = useSelector(selectViewingAgencyName);
+  const backendUser = useAppSelector(selectUser);
+  const role = useAppSelector(selectUserRole);
+  const viewingAgencyId = useAppSelector(selectViewingAgencyId);
+  const viewingAgencyName = useAppSelector(selectViewingAgencyName);
   const { user: clerkUser, isLoaded: isClerkLoaded } = useUser();
 
   const isSuperAdmin = role === "Super Administrator";

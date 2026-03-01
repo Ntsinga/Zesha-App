@@ -1,25 +1,36 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
   ScrollView,
   TouchableOpacity,
   RefreshControl,
+  Alert,
+  TextInput,
 } from "react-native";
-import { Plus, SlidersHorizontal } from "lucide-react-native";
-import { useDispatch, useSelector } from "react-redux";
+import {
+  Plus,
+  SlidersHorizontal,
+  RotateCcw,
+  Wallet,
+} from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import { ActionModal, AddTransactionForm } from "../../components/ActionModal";
-import { fetchTransactions } from "../../store/slices/transactionsSlice";
+import {
+  fetchTransactions,
+  reverseTransaction,
+  createCapitalInjection,
+} from "../../store/slices/transactionsSlice";
 import { fetchAccounts } from "../../store/slices/accountsSlice";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { formatDate } from "../../utils/formatters";
 import { useCurrencyFormatter } from "../../hooks/useCurrency";
-import type { AppDispatch, RootState } from "../../store";
 import type {
   TransactionRecord as Transaction,
   TransactionTypeEnum,
   ShiftEnum,
+  CapitalInjectionCreate,
 } from "../../types";
 import type { Account } from "../../types";
 
@@ -83,7 +94,7 @@ function getAmountPrefix(type: string): string {
 }
 
 export default function Transactions() {
-  const dispatch = useDispatch<AppDispatch>();
+  const dispatch = useAppDispatch();
   const { formatCurrency } = useCurrencyFormatter();
   const insets = useSafeAreaInsets();
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -93,10 +104,21 @@ export default function Transactions() {
   const [filterAccountId, setFilterAccountId] = useState<number | undefined>(
     undefined,
   );
-  const { items: transactions, isLoading } = useSelector(
-    (state: RootState) => state.transactions,
+  const [isReversing, setIsReversing] = useState(false);
+  const [showInjectionModal, setShowInjectionModal] = useState(false);
+  const [injectionForm, setInjectionForm] = useState({
+    accountId: undefined as number | undefined,
+    amount: "",
+    reference: "",
+    notes: "",
+  });
+  const [isSubmittingInjection, setIsSubmittingInjection] = useState(false);
+  const { items: transactions, isLoading } = useAppSelector(
+    (state) => state.transactions,
   );
-  const accounts = useSelector((state: RootState) => state.accounts.items);
+  const accounts = useAppSelector((state) => state.accounts.items);
+  const backendUser = useAppSelector((state) => state.auth.user);
+  const canInjectCapital = backendUser?.role !== "Agent";
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
@@ -128,6 +150,76 @@ export default function Transactions() {
   const handleFormSuccess = () => {
     dispatch(fetchTransactions(buildFilters()));
   };
+
+  const handleCreateCapitalInjection = useCallback(async () => {
+    if (!injectionForm.accountId || !injectionForm.amount) return;
+    const companyId = backendUser?.companyId;
+    if (!companyId) return;
+
+    const data: CapitalInjectionCreate = {
+      companyId,
+      accountId: injectionForm.accountId,
+      amount: parseFloat(injectionForm.amount),
+      transactionTime: new Date().toISOString(),
+      reference: injectionForm.reference || undefined,
+      notes: injectionForm.notes || undefined,
+    };
+
+    try {
+      setIsSubmittingInjection(true);
+      await dispatch(createCapitalInjection(data)).unwrap();
+      setShowInjectionModal(false);
+      setInjectionForm({
+        accountId: undefined,
+        amount: "",
+        reference: "",
+        notes: "",
+      });
+      dispatch(fetchTransactions(buildFilters()));
+    } catch (err) {
+      Alert.alert(
+        "Injection Failed",
+        typeof err === "string"
+          ? err
+          : "Could not record capital injection. Please try again.",
+      );
+    } finally {
+      setIsSubmittingInjection(false);
+    }
+  }, [dispatch, injectionForm, backendUser, buildFilters]);
+
+  const handleReverse = useCallback(
+    (tx: Transaction) => {
+      Alert.alert(
+        "Reverse Transaction",
+        `Are you sure you want to reverse this ${getTypeLabel(tx.transactionType).toLowerCase()} of ${formatCurrency(tx.amount)} for ${tx.account?.name || `Acct #${tx.accountId}`}?\n\nThis will create a reversing entry and cannot be undone.`,
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Reverse",
+            style: "destructive",
+            onPress: async () => {
+              try {
+                setIsReversing(true);
+                await dispatch(reverseTransaction(tx.id)).unwrap();
+                dispatch(fetchTransactions(buildFilters()));
+              } catch (err) {
+                Alert.alert(
+                  "Reversal Failed",
+                  typeof err === "string"
+                    ? err
+                    : "Could not reverse this transaction. Please try again.",
+                );
+              } finally {
+                setIsReversing(false);
+              }
+            },
+          },
+        ],
+      );
+    },
+    [dispatch, formatCurrency, buildFilters],
+  );
 
   if (isLoading && !refreshing) {
     return <LoadingSpinner message="Loading transactions..." />;
@@ -392,6 +484,19 @@ export default function Transactions() {
                         {formatCurrency(tx.expectedCommission.commissionAmount)}
                       </Text>
                     )}
+                    {!tx.reconciliationId && (
+                      <TouchableOpacity
+                        onPress={() => handleReverse(tx)}
+                        disabled={isReversing}
+                        className="flex-row items-center mt-2 px-2 py-1 rounded"
+                        style={{ backgroundColor: "#FEF2F2" }}
+                      >
+                        <RotateCcw size={12} color="#DC2626" />
+                        <Text className="text-xs font-medium text-red-600 ml-1">
+                          Reverse
+                        </Text>
+                      </TouchableOpacity>
+                    )}
                   </View>
                 </View>
               );
@@ -400,7 +505,27 @@ export default function Transactions() {
         </View>
       </ScrollView>
 
-      {/* FAB */}
+      {/* Capital Injection FAB — visible for non-Agent roles only */}
+      {canInjectCapital && (
+        <TouchableOpacity
+          onPress={() => setShowInjectionModal(true)}
+          className="absolute w-14 h-14 rounded-full items-center justify-center"
+          style={{
+            right: 88,
+            bottom: insets.bottom + 80,
+            backgroundColor: "#0d9488",
+            elevation: 8,
+            shadowColor: "#0d9488",
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.3,
+            shadowRadius: 8,
+          }}
+        >
+          <Wallet color="white" size={24} />
+        </TouchableOpacity>
+      )}
+
+      {/* Add Transaction FAB */}
       <TouchableOpacity
         onPress={() => setIsModalOpen(true)}
         className="absolute right-5 w-14 h-14 bg-brand-red rounded-full items-center justify-center"
@@ -425,6 +550,135 @@ export default function Transactions() {
           onSuccess={handleFormSuccess}
           onClose={() => setIsModalOpen(false)}
         />
+      </ActionModal>
+
+      {/* Capital Injection Modal */}
+      <ActionModal
+        visible={showInjectionModal}
+        onClose={() => {
+          setShowInjectionModal(false);
+          setInjectionForm({
+            accountId: undefined,
+            amount: "",
+            reference: "",
+            notes: "",
+          });
+        }}
+        title="Capital Injection"
+      >
+        <View className="px-4 pb-6">
+          <Text className="text-xs text-gray-500 mb-4">
+            Record additional capital being injected into the business.
+          </Text>
+
+          {/* Account picker */}
+          <Text className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">
+            Account *
+          </Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            className="mb-4"
+          >
+            <View className="flex-row gap-2 pb-1">
+              {accounts
+                .filter((a: Account) => a.isActive)
+                .map((acc: Account) => (
+                  <TouchableOpacity
+                    key={acc.id}
+                    onPress={() =>
+                      setInjectionForm((f) => ({ ...f, accountId: acc.id }))
+                    }
+                    className="px-3 py-2 rounded-xl border"
+                    style={{
+                      backgroundColor:
+                        injectionForm.accountId === acc.id
+                          ? "#0d9488"
+                          : "#F9FAFB",
+                      borderColor:
+                        injectionForm.accountId === acc.id
+                          ? "#0d9488"
+                          : "#E5E7EB",
+                    }}
+                  >
+                    <Text
+                      className="text-sm font-medium"
+                      style={{
+                        color:
+                          injectionForm.accountId === acc.id
+                            ? "#FFFFFF"
+                            : "#374151",
+                      }}
+                    >
+                      {acc.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+            </View>
+          </ScrollView>
+
+          {/* Amount */}
+          <Text className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">
+            Amount *
+          </Text>
+          <TextInput
+            value={injectionForm.amount}
+            onChangeText={(v) => setInjectionForm((f) => ({ ...f, amount: v }))}
+            placeholder="0.00"
+            keyboardType="decimal-pad"
+            className="border border-gray-200 rounded-xl px-4 py-3 text-base text-gray-800 bg-white mb-4"
+          />
+
+          {/* Reference */}
+          <Text className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">
+            Reference
+          </Text>
+          <TextInput
+            value={injectionForm.reference}
+            onChangeText={(v) =>
+              setInjectionForm((f) => ({ ...f, reference: v }))
+            }
+            placeholder="Optional reference"
+            className="border border-gray-200 rounded-xl px-4 py-3 text-base text-gray-800 bg-white mb-4"
+          />
+
+          {/* Notes */}
+          <Text className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">
+            Notes
+          </Text>
+          <TextInput
+            value={injectionForm.notes}
+            onChangeText={(v) => setInjectionForm((f) => ({ ...f, notes: v }))}
+            placeholder="Optional notes"
+            multiline
+            numberOfLines={3}
+            className="border border-gray-200 rounded-xl px-4 py-3 text-base text-gray-800 bg-white mb-6"
+            style={{ textAlignVertical: "top", minHeight: 80 }}
+          />
+
+          {/* Submit */}
+          <TouchableOpacity
+            onPress={handleCreateCapitalInjection}
+            disabled={
+              isSubmittingInjection ||
+              !injectionForm.accountId ||
+              !injectionForm.amount
+            }
+            className="py-4 rounded-xl items-center"
+            style={{
+              backgroundColor:
+                isSubmittingInjection ||
+                !injectionForm.accountId ||
+                !injectionForm.amount
+                  ? "#99f6e4"
+                  : "#0d9488",
+            }}
+          >
+            <Text className="text-white font-semibold text-base">
+              {isSubmittingInjection ? "Recording..." : "Record Injection"}
+            </Text>
+          </TouchableOpacity>
+        </View>
       </ActionModal>
     </View>
   );

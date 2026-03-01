@@ -19,14 +19,13 @@ import {
   ArrowLeftRight,
   ChevronDown,
 } from "lucide-react-native";
-import { useDispatch, useSelector } from "react-redux";
+import { useAppDispatch, useAppSelector } from "../store/hooks";
 import { useCurrencyFormatter } from "../hooks/useCurrency";
 import {
   createTransaction,
   createFloatPurchase,
 } from "../store/slices/transactionsSlice";
 import { fetchAccounts } from "../store/slices/accountsSlice";
-import type { AppDispatch, RootState } from "../store";
 import type { ShiftEnum } from "../types";
 
 type TxMode = "DEPOSIT" | "WITHDRAW" | "FLOAT";
@@ -95,16 +94,16 @@ export const AddTransactionForm: React.FC<AddTransactionFormProps> = ({
   onSuccess,
   onClose,
 }) => {
-  const dispatch = useDispatch<AppDispatch>();
+  const dispatch = useAppDispatch();
   const { formatCurrency } = useCurrencyFormatter();
 
-  const { items: accounts } = useSelector((state: RootState) => state.accounts);
-  const companyId = useSelector(
-    (state: RootState) =>
+  const { items: accounts } = useAppSelector((state) => state.accounts);
+  const companyId = useAppSelector(
+    (state) =>
       state.auth.viewingAgencyId || state.auth.user?.companyId,
   );
-  const isCreating = useSelector(
-    (state: RootState) => state.transactions.isCreating,
+  const isCreating = useAppSelector(
+    (state) => state.transactions.isCreating,
   );
 
   const [mode, setMode] = useState<TxMode>("DEPOSIT");

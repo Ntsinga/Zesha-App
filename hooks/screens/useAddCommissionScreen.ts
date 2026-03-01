@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { useDispatch, useSelector } from "react-redux";
 import { useLocalSearchParams } from "expo-router";
+import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import {
   createCommissionsBulk,
   updateCommissionsBulk,
@@ -17,16 +17,7 @@ import {
   extractBalanceFromImage,
   validateBalance,
 } from "../../services/balanceExtractor";
-import type { AppDispatch, RootState } from "../../store";
-import type { ShiftEnum, Account } from "../../types";
-
-export interface BalanceValidationResult {
-  isValid: boolean;
-  extractedBalance: number | null;
-  inputBalance: number;
-  difference: number | null;
-  message: string;
-}
+import type { ShiftEnum, Account, DraftCommissionEntry, BalanceValidationResult } from "../../types";
 
 export interface CommissionEntry {
   id: string;
@@ -54,22 +45,22 @@ const createEmptyEntry = (shift: ShiftEnum = "AM"): CommissionEntry => ({
 });
 
 export function useAddCommissionScreen() {
-  const dispatch = useDispatch<AppDispatch>();
+  const dispatch = useAppDispatch();
   const params = useLocalSearchParams();
   // Shift is passed from the balance menu screen - use it as-is
   const currentShift: ShiftEnum = (params.shift as ShiftEnum) || "AM";
 
   // Selectors
-  const companyId = useSelector(selectEffectiveCompanyId);
+  const companyId = useAppSelector(selectEffectiveCompanyId);
   const { isConnected } = useNetworkContext();
-  const { items: accounts, isLoading: accountsLoading } = useSelector(
-    (state: RootState) => state.accounts,
+  const { items: accounts, isLoading: accountsLoading } = useAppSelector(
+    (state) => state.accounts,
   );
   const {
     items: commissions,
     draftEntries,
     isLoading: commissionsLoading,
-  } = useSelector((state: RootState) => state.commissions);
+  } = useAppSelector((state) => state.commissions);
 
   // Combined loading state - wait for both to finish
   const isDataLoading = accountsLoading || commissionsLoading;
@@ -168,7 +159,7 @@ export function useAddCommissionScreen() {
       entries.length > 0 &&
       !entries.some((e) => e.id.startsWith("existing-"))
     ) {
-      dispatch(saveDraftEntries(entries as any[]));
+      dispatch(saveDraftEntries(entries as DraftCommissionEntry[]));
     }
   }, [entries, dispatch, isInitialized]);
 

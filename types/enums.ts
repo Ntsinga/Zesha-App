@@ -28,6 +28,9 @@ export type ApprovalStatusEnum = "PENDING" | "APPROVED" | "REJECTED";
 // Reconciliation workflow stages
 export type ReconciliationStatusEnum = "DRAFT" | "CALCULATED" | "FINALIZED";
 
+// Reconciliation subtype - opening or closing for a shift
+export type ReconciliationSubtypeEnum = "OPENING" | "CLOSING";
+
 // Transaction types - matches backend TransactionTypeEnum
 export type TransactionTypeEnum = "DEPOSIT" | "WITHDRAW" | "FLOAT_PURCHASE" | "CAPITAL_INJECTION";
 

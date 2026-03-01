@@ -4,6 +4,7 @@ import { fetchReconciliationHistory } from "../../store/slices/reconciliationsSl
 import { useCurrencyFormatter } from "../useCurrency";
 import { formatDate } from "../../utils/formatters";
 import type { AppDispatch, RootState } from "../../store";
+import type { BalanceHistoryEntry } from "../../types";
 
 /**
  * Shared hook for Balance History screen
@@ -21,10 +22,11 @@ export function useBalanceHistoryScreen() {
   } = useSelector((state: RootState) => state.reconciliations);
 
   // Transform history with safety check
-  const history = (rawHistory || []).map((item) => ({
+  const history: BalanceHistoryEntry[] = (rawHistory || []).map((item) => ({
     id: item.id?.toString() || "",
     date: item.date,
     shift: item.shift,
+    subtype: item.subtype ?? "CLOSING",
     totalFloat: item.totalFloat,
     totalCash: item.totalCash,
     totalCommissions: item.totalCommissions,

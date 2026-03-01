@@ -6,6 +6,7 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
+  Modal,
 } from "react-native";
 import { useRouter } from "expo-router";
 import {
@@ -24,10 +25,19 @@ export default function BalancePage() {
   const {
     isLoading,
     isCalculating,
+    isLoadingShiftStatus,
     today,
     formatCurrency,
     selectedShift,
     setSelectedShift,
+    shiftPhase,
+    currentSubtype,
+    shiftStatus,
+    handoverDecision,
+    setHandoverDecision,
+    showHandoverModal,
+    buttonLabel,
+    showCommissionsAndTransactions,
     hasAMShift,
     hasPMShift,
     hasAMBalances,
@@ -57,7 +67,7 @@ export default function BalancePage() {
     const result = await handleCalculate();
     if (result?.success) {
       router.push(
-        `/reconciliation?date=${today}&shift=${selectedShift}` as any,
+        `/reconciliation?date=${today}&shift=${selectedShift}&subtype=${currentSubtype}` as any,
       );
     } else {
       Alert.alert(
@@ -69,6 +79,85 @@ export default function BalancePage() {
 
   return (
     <View className="flex-1 bg-gray-50">
+      {/* Handover Modal — PM shift, no records yet, awaiting decision */}
+      <Modal
+        visible={showHandoverModal}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+      >
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: "rgba(0,0,0,0.5)",
+            justifyContent: "center",
+            alignItems: "center",
+            padding: 24,
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: "#fff",
+              borderRadius: 20,
+              padding: 28,
+              width: "100%",
+              maxWidth: 360,
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 18,
+                fontWeight: "700",
+                color: "#1f2937",
+                marginBottom: 10,
+                textAlign: "center",
+              }}
+            >
+              PM Shift
+            </Text>
+            <Text
+              style={{
+                fontSize: 14,
+                color: "#6b7280",
+                textAlign: "center",
+                marginBottom: 28,
+                lineHeight: 20,
+              }}
+            >
+              Are you taking over from the AM worker? This helps record a
+              proper float handover opening.
+            </Text>
+            <TouchableOpacity
+              onPress={() => setHandoverDecision(true)}
+              style={{
+                backgroundColor: "#C62828",
+                borderRadius: 12,
+                paddingVertical: 14,
+                alignItems: "center",
+                marginBottom: 12,
+              }}
+            >
+              <Text style={{ color: "#fff", fontWeight: "700", fontSize: 15 }}>
+                Yes, I'm taking over
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setHandoverDecision(false)}
+              style={{
+                backgroundColor: "#f3f4f6",
+                borderRadius: 12,
+                paddingVertical: 14,
+                alignItems: "center",
+              }}
+            >
+              <Text style={{ color: "#374151", fontWeight: "600", fontSize: 15 }}>
+                No, I'm covering the full day
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ padding: 20, paddingBottom: 120 }}
@@ -262,7 +351,8 @@ export default function BalancePage() {
                 </View>
               </TouchableOpacity>
 
-              {/* Add Commissions Option */}
+              {/* Add Commissions Option — only shown when commissions are relevant */}
+              {showCommissionsAndTransactions && (
               <TouchableOpacity
                 onPress={handleNavigateCommissions}
                 style={{ borderRadius: 16 }}
@@ -329,8 +419,10 @@ export default function BalancePage() {
                   />
                 </View>
               </TouchableOpacity>
+              )}
 
-              {/* Record Transactions Option */}
+              {/* Record Transactions Option — only shown when transactions are relevant */}
+              {showCommissionsAndTransactions && (
               <TouchableOpacity
                 onPress={handleNavigateTransactions}
                 style={{ borderRadius: 16 }}
@@ -397,39 +489,50 @@ export default function BalancePage() {
                   />
                 </View>
               </TouchableOpacity>
+              )}
 
               {/* Calculate Reconciliation Button */}
               <View className="mt-6 pt-6 border-t border-gray-200">
-                <TouchableOpacity
-                  onPress={handleCalculatePress}
-                  disabled={
-                    isCalculating ||
-                    !hasSelectedCashCount ||
-                    !hasSelectedBalances ||
-                    !hasSelectedCommissions
-                  }
-                  className={`bg-brand-red rounded-2xl p-5 shadow-lg ${
-                    isCalculating ||
-                    !hasSelectedCashCount ||
-                    !hasSelectedBalances ||
-                    !hasSelectedCommissions
-                      ? "opacity-50"
-                      : ""
-                  }`}
-                >
-                  <View className="flex-row items-center justify-center">
-                    <Calculator color="white" size={24} />
-                    <Text className="text-white text-lg font-bold ml-3">
-                      {isCalculating
-                        ? "Calculating..."
-                        : !hasSelectedCashCount ||
-                            !hasSelectedBalances ||
-                            !hasSelectedCommissions
-                          ? "Complete All Steps First"
-                          : `Calculate ${selectedShift} Reconciliation`}
+                {shiftPhase === "COMPLETE" ? (
+                  <View className="bg-green-50 border border-green-200 rounded-2xl p-5 items-center">
+                    <CheckCircle2 color="#22C55E" size={32} />
+                    <Text className="text-green-700 font-bold text-base mt-2">
+                      {selectedShift} Shift Complete
+                    </Text>
+                    <Text className="text-green-600 text-sm text-center mt-1">
+                      All reconciliations for the {selectedShift} shift have been finalized.
                     </Text>
                   </View>
-                </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity
+                    onPress={handleCalculatePress}
+                    disabled={
+                      isCalculating ||
+                      !hasSelectedCashCount ||
+                      !hasSelectedBalances ||
+                      (showCommissionsAndTransactions && !hasSelectedCommissions)
+                    }
+                    className={`bg-brand-red rounded-2xl p-5 shadow-lg ${
+                      isCalculating ||
+                      !hasSelectedCashCount ||
+                      !hasSelectedBalances ||
+                      (showCommissionsAndTransactions && !hasSelectedCommissions)
+                        ? "opacity-50"
+                        : ""
+                    }`}
+                  >
+                    <View className="flex-row items-center justify-center">
+                      <Calculator color="white" size={24} />
+                      <Text className="text-white text-lg font-bold ml-3">
+                        {isCalculating
+                          ? "Calculating..."
+                          : !hasSelectedCashCount || !hasSelectedBalances
+                            ? "Complete Required Steps First"
+                            : buttonLabel}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                )}
               </View>
             </View>
           </>

@@ -19,8 +19,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import { useSelector, useDispatch } from "react-redux";
-import type { RootState, AppDispatch } from "../../store";
+import { useAppSelector, useAppDispatch } from "../../store/hooks";
 import {
   selectUserRole,
   selectViewingAgencyId,
@@ -45,7 +44,7 @@ export default function AppLayoutWeb() {
   const pathname = usePathname();
   const { signOut } = useAuth();
   const { user: clerkUser } = useUser();
-  const dispatch = useDispatch<AppDispatch>();
+  const dispatch = useAppDispatch();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
     if (typeof window !== "undefined") {
@@ -64,16 +63,16 @@ export default function AppLayoutWeb() {
     });
   };
 
-  const dashboardCompanyName = useSelector(
-    (state: RootState) => state.dashboard.companyInfo?.name ?? "Company",
+  const dashboardCompanyName = useAppSelector(
+    (state) => state.dashboard.companyInfo?.name ?? "Company",
   );
 
   // Superadmin state
-  const userRole = useSelector(selectUserRole);
-  const viewingAgencyId = useSelector(selectViewingAgencyId);
-  const viewingAgencyName = useSelector(selectViewingAgencyName);
-  const backendUser = useSelector((state: RootState) => state.auth.user);
-  const isSyncing = useSelector((state: RootState) => state.auth.isSyncing);
+  const userRole = useAppSelector(selectUserRole);
+  const viewingAgencyId = useAppSelector(selectViewingAgencyId);
+  const viewingAgencyName = useAppSelector(selectViewingAgencyName);
+  const backendUser = useAppSelector((state) => state.auth.user);
+  const isSyncing = useAppSelector((state) => state.auth.isSyncing);
 
   // Fallback to Clerk metadata role when backend user is unavailable
   // This handles the case where backend is down but Clerk has the role in publicMetadata

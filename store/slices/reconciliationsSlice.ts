@@ -11,13 +11,16 @@ import type {
   ReconciliationApproveParams,
   ReconciliationDetailsParams,
   ReconciliationCalculationResult,
+  ReconciliationHistoryParams,
   ApprovalStatusEnum,
   ShiftEnum,
+  ShiftStatus,
 } from "@/types";
 import type {
   BalanceValidationResult,
   BalanceValidationParams,
 } from "@/types/reconciliation";
+import type { ReconciliationSubtypeEnum } from "@/types";
 import { mapApiResponse, mapApiRequest, buildTypedQueryString } from "@/types";
 import { API_ENDPOINTS } from "@/config/api";
 import { secureApiRequest } from "@/services/secureApi";
@@ -32,9 +35,11 @@ export interface ReconciliationsState {
   calculatedResult: ReconciliationCalculationResult | null;
   reconciliationDetails: ReconciliationDetail | null;
   balanceValidation: BalanceValidationResult[];
+  shiftStatus: ShiftStatus | null;
   isLoading: boolean;
   isCalculating: boolean;
   isFinalizing: boolean;
+  isLoadingShiftStatus: boolean;
   error: string | null;
   lastFetched: number | null;
   filters: ReconciliationFilters;
@@ -47,9 +52,11 @@ const initialState: ReconciliationsState = {
   calculatedResult: null,
   reconciliationDetails: null,
   balanceValidation: [],
+  shiftStatus: null,
   isLoading: false,
   isCalculating: false,
   isFinalizing: false,
+  isLoadingShiftStatus: false,
   error: null,
   lastFetched: null,
   filters: {},
@@ -188,15 +195,6 @@ export const deleteReconciliation = createAsyncThunk<
 });
 
 // Fetch reconciliation history (for history list screen)
-export interface ReconciliationHistoryParams {
-  skip?: number;
-  limit?: number;
-  dateFrom?: string;
-  dateTo?: string;
-  shift?: ShiftEnum;
-  finalizedOnly?: boolean;
-}
-
 export const fetchReconciliationHistory = createAsyncThunk<
   ReconciliationHistory[],
   ReconciliationHistoryParams,
@@ -245,7 +243,10 @@ export const calculateReconciliation = createAsyncThunk<
         return rejectWithValue("No companyId found. Please log in again.");
       }
 
-      const queryParams: Record<string, string | number> = { companyId };
+      const queryParams: Record<string, string | number> = {
+        companyId,
+        subtype: params.subtype,
+      };
       if (params.userId) {
         queryParams.userId = params.userId;
       }
@@ -294,7 +295,7 @@ export const finalizeReconciliation = createAsyncThunk<
       body.forceWithDiscrepancies = true;
     }
     const result = await apiRequest<Reconciliation>(
-      `${API_ENDPOINTS.reconciliations.finalize(params.date, params.shift)}${query}`,
+      `${API_ENDPOINTS.reconciliations.finalize(params.date, params.shift, params.subtype)}${query}`,
       {
         method: "POST",
         body: JSON.stringify(mapApiRequest(body)),
@@ -314,6 +315,7 @@ export const finalizeReconciliation = createAsyncThunk<
 export interface ApproveReconciliationParams {
   date: string;
   shift: ShiftEnum;
+  subtype: ReconciliationSubtypeEnum;
   action: "APPROVED" | "REJECTED";
   approvedBy: number;
   rejectionReason?: string;
@@ -350,7 +352,7 @@ export const approveReconciliation = createAsyncThunk<
       body.rejectionReason = params.rejectionReason;
     }
     const result = await apiRequest<Reconciliation>(
-      `${API_ENDPOINTS.reconciliations.approve(params.date, params.shift)}${query}`,
+      `${API_ENDPOINTS.reconciliations.approve(params.date, params.shift, params.subtype)}${query}`,
       {
         method: "POST",
         body: JSON.stringify(mapApiRequest(body)),
@@ -421,7 +423,7 @@ export const fetchReconciliationDetails = createAsyncThunk<
         return rejectWithValue("No companyId found. Please log in again.");
       }
 
-      const query = buildTypedQueryString({ companyId });
+      const query = buildTypedQueryString({ companyId, subtype: params.subtype });
       const details = await apiRequest<ReconciliationDetail>(
         `${API_ENDPOINTS.reconciliations.details(params.date, params.shift)}${query}`,
       );
@@ -431,6 +433,42 @@ export const fetchReconciliationDetails = createAsyncThunk<
         error instanceof Error
           ? error.message
           : "Failed to fetch reconciliation details",
+      );
+    }
+  },
+);
+
+// Fetch shift status - whether opening/closing exist and are finalized
+export interface FetchShiftStatusParams {
+  date: string;
+  shift: ShiftEnum;
+}
+
+export const fetchShiftStatus = createAsyncThunk<
+  ShiftStatus,
+  FetchShiftStatusParams,
+  { state: RootState; rejectValue: string }
+>(
+  "reconciliations/fetchShiftStatus",
+  async (params, { getState, rejectWithValue }) => {
+    try {
+      const state = getState();
+      const companyId = state.auth.viewingAgencyId || state.auth.user?.companyId;
+
+      if (!companyId) {
+        return rejectWithValue("No companyId found. Please log in again.");
+      }
+
+      const query = buildTypedQueryString({ companyId });
+      const status = await apiRequest<ShiftStatus>(
+        `${API_ENDPOINTS.reconciliations.shiftStatus(params.date, params.shift)}${query}`,
+      );
+      return status;
+    } catch (error) {
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : "Failed to fetch shift status",
       );
     }
   },
@@ -461,6 +499,9 @@ const reconciliationsSlice = createSlice({
     },
     clearBalanceValidation: (state) => {
       state.balanceValidation = [];
+    },
+    clearShiftStatus: (state) => {
+      state.shiftStatus = null;
     },
     clearHistory: (state) => {
       state.history = [];
@@ -621,6 +662,7 @@ const reconciliationsSlice = createSlice({
       .addCase(fetchReconciliationDetails.pending, (state) => {
         state.isLoading = true;
         state.error = null;
+        state.reconciliationDetails = null;
       })
       .addCase(fetchReconciliationDetails.fulfilled, (state, action) => {
         state.isLoading = false;
@@ -629,6 +671,7 @@ const reconciliationsSlice = createSlice({
       .addCase(fetchReconciliationDetails.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
+        state.reconciliationDetails = null;
       });
 
     // Fetch balance validation
@@ -645,6 +688,21 @@ const reconciliationsSlice = createSlice({
         state.isLoading = false;
         state.error = action.payload as string;
       });
+
+    // Fetch shift status
+    builder
+      .addCase(fetchShiftStatus.pending, (state) => {
+        state.isLoadingShiftStatus = true;
+        state.error = null;
+      })
+      .addCase(fetchShiftStatus.fulfilled, (state, action) => {
+        state.isLoadingShiftStatus = false;
+        state.shiftStatus = action.payload;
+      })
+      .addCase(fetchShiftStatus.rejected, (state, action) => {
+        state.isLoadingShiftStatus = false;
+        state.error = action.payload as string;
+      });
   },
 });
 
@@ -656,6 +714,7 @@ export const {
   clearCalculatedResult,
   clearReconciliationDetails,
   clearBalanceValidation,
+  clearShiftStatus,
   clearHistory,
 } = reconciliationsSlice.actions;
 
@@ -678,6 +737,7 @@ export const selectBalanceHistory = (state: {
     id: item.id?.toString() || "",
     date: item.date,
     shift: item.shift,
+    subtype: item.subtype ?? "CLOSING",
     totalFloat: item.totalFloat,
     totalCash: item.totalCash,
     totalCommissions: item.totalCommissions,
@@ -685,6 +745,8 @@ export const selectBalanceHistory = (state: {
     actualClosing: item.actualClosing,
     variance: item.variance,
     status: item.status,
+    approvalStatus: item.approvalStatus,
+    reconciliationStatus: item.reconciliationStatus,
     isFinalized: item.isFinalized,
     reconciledBy: item.reconciledBy,
     reconciledAt: item.reconciledAt,

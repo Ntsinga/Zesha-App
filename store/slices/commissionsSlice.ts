@@ -6,6 +6,7 @@ import type {
   CommissionFilters,
   BulkCommissionUpdate,
   BulkCommissionUpdateResponse,
+  DraftCommissionEntry,
 } from "@/types";
 import { mapApiResponse, mapApiRequest, buildTypedQueryString } from "@/types";
 import { API_ENDPOINTS } from "@/config/api";
@@ -23,7 +24,7 @@ export interface CommissionsState {
   error: string | null;
   lastFetched: number | null;
   filters: CommissionFilters;
-  draftEntries: any[];
+  draftEntries: DraftCommissionEntry[];
 }
 
 const initialState: CommissionsState = {
@@ -251,7 +252,7 @@ const commissionsSlice = createSlice({
     clearSelectedCommission: (state) => {
       state.selectedCommission = null;
     },
-    saveDraftEntries: (state, action: PayloadAction<any[]>) => {
+    saveDraftEntries: (state, action: PayloadAction<DraftCommissionEntry[]>) => {
       state.draftEntries = action.payload;
     },
     clearDraftEntries: (state) => {

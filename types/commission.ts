@@ -145,3 +145,25 @@ export interface ExpectedCommissionFilters {
   skip?: number;
   limit?: number;
 }
+
+/**
+ * Draft commission entry for Redux state persistence.
+ * Serializable subset of the UI CommissionEntry (no File objects).
+ */
+export interface DraftCommissionEntry {
+  id: string;
+  accountId: number | null;
+  accountName: string;
+  shift: ShiftEnum;
+  amount: string;
+  imageUrl: string;
+  extractedBalance: number | null;
+  isExtracting: boolean;
+  validationResult: {
+    isValid: boolean;
+    extractedBalance: number | null;
+    inputBalance: number;
+    difference: number | null;
+    message: string;
+  } | null;
+}

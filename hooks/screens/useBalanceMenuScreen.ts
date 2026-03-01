@@ -6,16 +6,24 @@ import { fetchBalances } from "../../store/slices/balancesSlice";
 import { fetchAccounts } from "../../store/slices/accountsSlice";
 import { fetchCommissions } from "../../store/slices/commissionsSlice";
 import { fetchTransactions } from "../../store/slices/transactionsSlice";
-import { calculateReconciliation } from "../../store/slices/reconciliationsSlice";
+import { calculateReconciliation, fetchShiftStatus } from "../../store/slices/reconciliationsSlice";
 import { useCurrencyFormatter } from "../useCurrency";
 import type { AppDispatch, RootState } from "../../store";
-import type { ShiftEnum } from "../../types";
+import type { ReconciliationSubtypeEnum, ShiftEnum } from "../../types";
 
 export function useBalanceMenuScreen() {
   const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
   const { formatCurrency } = useCurrencyFormatter();
   const [selectedShift, setSelectedShift] = useState<ShiftEnum>("AM");
+
+  // null = not yet answered, true = yes (taking over), false = no (solo/covering alone)
+  const [handoverDecision, setHandoverDecision] = useState<boolean | null>(null);
+
+  // Reset handover decision whenever the shift tab changes
+  useEffect(() => {
+    setHandoverDecision(null);
+  }, [selectedShift]);
 
   // Get today's date
   const today = new Date().toISOString().split("T")[0];
@@ -41,7 +49,7 @@ export function useBalanceMenuScreen() {
     (state: RootState) => state.transactions,
   );
 
-  const { isCalculating } = useSelector(
+  const { isCalculating, shiftStatus, isLoadingShiftStatus } = useSelector(
     (state: RootState) => state.reconciliations,
   );
 
@@ -58,6 +66,12 @@ export function useBalanceMenuScreen() {
   // the backendUser object reference changes but companyId stays the same
   // (e.g. after Clerk sync completes and updates the Redux auth state).
   const lastFetchedCompanyId = useRef<number | null>(null);
+
+  // Fetch shift status whenever the selected shift or date changes
+  useEffect(() => {
+    if (!backendUser?.companyId) return;
+    dispatch(fetchShiftStatus({ date: today, shift: selectedShift }));
+  }, [dispatch, today, selectedShift, backendUser?.companyId]);
 
   // Fetch data on mount
   useEffect(() => {
@@ -101,7 +115,48 @@ export function useBalanceMenuScreen() {
     );
   }, [dispatch, today, backendUser?.companyId]);
 
-  // Calculate shift completion status and totals for cash counts
+  // Derive current shift phase:
+  // OPENING — no opening reconciliation exists yet for this shift
+  // CLOSING  — opening is finalized, closing not yet done
+  // COMPLETE — closing is finalized
+  const shiftPhase = useMemo((): "OPENING" | "CLOSING" | "COMPLETE" => {
+    if (!shiftStatus) return "OPENING";
+    if (shiftStatus.closingFinalized) return "COMPLETE";
+    if (shiftStatus.openingFinalized) return "CLOSING";
+    return "OPENING";
+  }, [shiftStatus]);
+
+  // The reconciliation subtype that the Calculate button will fire.
+  // AM: always a full CLOSING reconciliation — no handover possible.
+  // PM solo worker (handoverDecision=false) skips OPENING and goes straight to CLOSING.
+  const currentSubtype: ReconciliationSubtypeEnum = useMemo(() => {
+    if (selectedShift === "AM") return "CLOSING";
+    if (handoverDecision === false) return "CLOSING";
+    if (shiftPhase === "CLOSING" || shiftPhase === "COMPLETE") return "CLOSING";
+    return "OPENING";
+  }, [selectedShift, handoverDecision, shiftPhase]);
+
+  // Show the handover modal only for a PM shift with zero records and
+  // no decision made yet by the user.
+  const showHandoverModal =
+    selectedShift === "PM" &&
+    !isLoadingShiftStatus &&
+    handoverDecision === null &&
+    shiftStatus !== null &&
+    !shiftStatus.hasOpening &&
+    !shiftStatus.hasClosing;
+
+  // "Start [shift] Shift" for PM handover OPENING; everything else is "Submit [shift] Shift"
+  const buttonLabel =
+    selectedShift === "PM" &&
+    handoverDecision === true &&
+    shiftPhase === "OPENING"
+      ? `Start ${selectedShift} Shift`
+      : `Submit ${selectedShift} Shift`;
+
+  // Show commissions & transactions only during a CLOSING or COMPLETE phase,
+  // or when the PM worker chose to cover the full day (no handover).
+  const showCommissionsAndTransactions = currentSubtype === "CLOSING" || shiftPhase === "COMPLETE";
   const cashCountStatus = useMemo(() => {
     const todayCounts = cashCounts.filter((cc) => cc.date === today);
     const amCounts = todayCounts.filter((cc) => cc.shift === "AM");
@@ -356,6 +411,8 @@ export function useBalanceMenuScreen() {
         endDate: today,
       }),
     );
+    // Also re-fetch shift status so phase updates if another device finalised
+    dispatch(fetchShiftStatus({ date: today, shift: selectedShift }));
   };
 
   const handleCalculate = async () => {
@@ -372,15 +429,22 @@ export function useBalanceMenuScreen() {
           companyId: backendUser.companyId || 0,
           date: today,
           shift: selectedShift,
+          subtype: currentSubtype,
           userId: backendUser.id,
         }),
       ).unwrap();
 
-      return { success: true };
-    } catch (error: any) {
+      return { success: true, subtype: currentSubtype };
+    } catch (error: unknown) {
+      const msg =
+        typeof error === "string"
+          ? error
+          : error instanceof Error
+            ? error.message
+            : "Failed to calculate reconciliation";
       return {
         success: false,
-        error: error.message || "Failed to calculate reconciliation",
+        error: msg,
       };
     }
   };
@@ -477,10 +541,19 @@ export function useBalanceMenuScreen() {
     // State
     isLoading,
     isCalculating,
+    isLoadingShiftStatus,
     today,
     formatCurrency,
     selectedShift,
     setSelectedShift,
+    shiftStatus,
+    shiftPhase,
+    currentSubtype,
+    handoverDecision,
+    setHandoverDecision,
+    showHandoverModal,
+    buttonLabel,
+    showCommissionsAndTransactions,
 
     // Cash count status (all shifts)
     ...cashCountStatus,

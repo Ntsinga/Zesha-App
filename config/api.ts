@@ -12,7 +12,7 @@ const getApiBaseUrl = (): string => {
   // Development fallback - ngrok URL
   // WARNING: Update this when your ngrok URL changes
   if (__DEV__) {
-    return "https://ea02-41-210-145-125.ngrok-free.app";
+    return "https://02c0-41-210-145-125.ngrok-free.app";
   }
 
   // Production — EXPO_PUBLIC_API_URL must be set
@@ -112,12 +112,14 @@ export const API_ENDPOINTS = {
       `/reconciliations/${date}/${shift}/details`,
     calculate: (date: string, shift: string) =>
       `/reconciliations/${date}/${shift}/calculate`,
-    finalize: (date: string, shift: string) =>
-      `/reconciliations/${date}/${shift}/finalize`,
-    approve: (date: string, shift: string) =>
-      `/reconciliations/${date}/${shift}/approve`,
+    finalize: (date: string, shift: string, subtype: string) =>
+      `/reconciliations/${date}/${shift}/${subtype}/finalize`,
+    approve: (date: string, shift: string, subtype: string) =>
+      `/reconciliations/${date}/${shift}/${subtype}/approve`,
     balanceValidation: (date: string, shift: string) =>
       `/reconciliations/${date}/${shift}/balance-validation`,
+    shiftStatus: (date: string, shift: string) =>
+      `/reconciliations/status/${date}/${shift}`,
     notify: (id: number) => `/reconciliations/${id}/notify`,
   },
 

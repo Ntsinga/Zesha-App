@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchDashboard, setShift } from "../../store/slices/dashboardSlice";
+import { updateCompanyInfo } from "../../store/slices/companyInfoSlice";
 import { fetchTransactions } from "../../store/slices/transactionsSlice";
 import { useCurrencyFormatter } from "../useCurrency";
 import { useAutoRefreshOnReconnect } from "../useAutoRefreshOnReconnect";
@@ -93,9 +94,16 @@ export function useDashboardScreen() {
   const capitalVariance = summary?.capitalVariance ?? 0;
   const totalExpenses = summary?.totalExpenses ?? 0;
   const outstandingBalance = summary?.outstandingBalance ?? 0;
+  const totalWorkingCapital = summary?.totalWorkingCapital ?? 0;
   const companyName = companyInfo?.name ?? "Company";
   const totalCommission = summary?.totalCommission ?? 0;
   const dailyCommission = summary?.dailyCommission ?? 0;
+
+  // Role check — capital injection allowed for everyone except plain Agent
+  const canInjectCapital =
+    backendUser?.role === "Agent Supervisor" ||
+    backendUser?.role === "Administrator" ||
+    backendUser?.role === "Super Administrator";
 
   // Live operating capital (real-time intraday values)
   const liveFloat = liveCapital?.liveFloat ?? null;
@@ -109,6 +117,8 @@ export function useDashboardScreen() {
   const displayCapital = liveGrandTotal ?? grandTotal;
   const displayFloat = liveFloat ?? totalFloat;
   const displayCash = liveCash ?? totalCash;
+  // Live-first variance: displayCapital (live/reconciled) minus what the books expect
+  const displayVariance = displayCapital - expectedGrandTotal;
   const capitalLabel: string = (() => {
     const sincePart =
       transactionsSinceRecon > 0
@@ -126,6 +136,35 @@ export function useDashboardScreen() {
       return `Based on ${transactionsSinceRecon} transaction${transactionsSinceRecon !== 1 ? "s" : ""}`;
     return "Live";
   })();
+
+  // Capital injection — adds an amount to the current working capital
+  const injectCapital = useCallback(
+    async (
+      injectionAmount: number,
+    ): Promise<{ success: boolean; message: string }> => {
+      if (!companyInfo?.id)
+        return { success: false, message: "No company found" };
+      try {
+        await dispatch(
+          updateCompanyInfo({
+            id: companyInfo.id,
+            data: {
+              totalWorkingCapital: totalWorkingCapital + injectionAmount,
+            },
+          }),
+        ).unwrap();
+        await dispatch(fetchDashboard({ forceRefresh: true }));
+        return { success: true, message: "Capital updated successfully" };
+      } catch (err) {
+        return {
+          success: false,
+          message:
+            err instanceof Error ? err.message : "Failed to update capital",
+        };
+      }
+    },
+    [dispatch, companyInfo?.id, totalWorkingCapital],
+  );
 
   // Today's transaction metrics
   const todayTransactions = useMemo(() => {
@@ -161,13 +200,18 @@ export function useDashboardScreen() {
     capitalVariance,
     totalExpenses,
     outstandingBalance,
+    totalWorkingCapital,
     totalCommission,
     dailyCommission,
+
+    // Role
+    canInjectCapital,
 
     // Merged live-first capital display
     displayCapital,
     displayFloat,
     displayCash,
+    displayVariance,
     capitalLabel,
     liveFloat,
     liveCash,
@@ -186,5 +230,6 @@ export function useDashboardScreen() {
 
     // Actions
     onRefresh,
+    injectCapital,
   };
 }

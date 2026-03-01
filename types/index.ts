@@ -16,6 +16,7 @@ export {
   type StatusEnum,
   type ApprovalStatusEnum,
   type ReconciliationStatusEnum,
+  type ReconciliationSubtypeEnum,
   type ReconciliationTypeEnum,
   type TransactionTypeEnum,
   type BalanceValidationEnum,
@@ -78,6 +79,7 @@ export {
   type BulkCommissionUpdateResponse,
   type ExpectedCommission,
   type ExpectedCommissionFilters,
+  type DraftCommissionEntry,
 } from "./commission";
 
 // ============= Expense Types =============
@@ -120,6 +122,7 @@ export {
   type ReconciliationFinalizeParams,
   type ReconciliationApproveParams,
   type ReconciliationApproveResult,
+  type ShiftStatus,
   type BalanceValidationResult as ReconciliationBalanceValidation,
   type BalanceValidationParams,
 } from "./reconciliation";
@@ -159,9 +162,6 @@ export {
   type AccountSummary,
   type BalanceHistoryEntry,
   ViewState,
-  type TransactionType,
-  type TransactionCategory,
-  type Transaction,
 } from "./dashboard";
 
 // ============= API Mappers =============

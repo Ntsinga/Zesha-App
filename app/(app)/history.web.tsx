@@ -169,6 +169,7 @@ export default function BalanceHistoryWeb() {
               <tr>
                 <th>Date</th>
                 <th>Shift</th>
+                <th>Type</th>
                 <th>Float</th>
                 <th>Cash</th>
                 <th>Total</th>
@@ -179,7 +180,7 @@ export default function BalanceHistoryWeb() {
             <tbody>
               {history.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="empty">
+                  <td colSpan={8} className="empty">
                     <Clock size={40} />
                     <p>No history records found</p>
                   </td>
@@ -193,7 +194,7 @@ export default function BalanceHistoryWeb() {
                       key={record.id || `history-${index}`}
                       onClick={() => {
                         router.push(
-                          `/reconciliation?date=${record.date}&shift=${record.shift}`,
+                          `/reconciliation?date=${record.date}&shift=${record.shift}&subtype=${record.subtype ?? "CLOSING"}`,
                         );
                       }}
                       style={{ cursor: "pointer" }}
@@ -209,6 +210,27 @@ export default function BalanceHistoryWeb() {
                           }`}
                         >
                           {record.shift}
+                        </span>
+                      </td>
+                      <td>
+                        <span
+                          style={{
+                            display: "inline-block",
+                            padding: "2px 8px",
+                            borderRadius: 10,
+                            fontSize: 11,
+                            fontWeight: 600,
+                            background:
+                              record.subtype === "OPENING"
+                                ? "#e0f2fe"
+                                : "#fef3c7",
+                            color:
+                              record.subtype === "OPENING"
+                                ? "#0369a1"
+                                : "#92400e",
+                          }}
+                        >
+                          {record.subtype === "OPENING" ? "Open" : "Close"}
                         </span>
                       </td>
                       <td>{formatCurrency(record.totalFloat)}</td>
