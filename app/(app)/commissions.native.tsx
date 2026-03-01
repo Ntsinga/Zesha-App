@@ -7,6 +7,30 @@ import {
   RefreshControl,
   ScrollView,
 } from "react-native";
+
+// ─── Date range preset helpers ────────────────────────────────────────────────
+function getPresetRange(preset: "today" | "yesterday" | "week" | "month") {
+  const now = new Date();
+  const fmt = (d: Date) => d.toISOString().split("T")[0];
+  if (preset === "today") {
+    const s = fmt(now);
+    return { from: s, to: s };
+  }
+  if (preset === "yesterday") {
+    const y = new Date(now);
+    y.setDate(y.getDate() - 1);
+    const s = fmt(y);
+    return { from: s, to: s };
+  }
+  if (preset === "week") {
+    const start = new Date(now);
+    start.setDate(start.getDate() - 6);
+    return { from: fmt(start), to: fmt(now) };
+  }
+  // month
+  const start = new Date(now.getFullYear(), now.getMonth(), 1);
+  return { from: fmt(start), to: fmt(now) };
+}
 import {
   ArrowLeft,
   Banknote,
@@ -77,6 +101,15 @@ function CommissionItem({
   );
 }
 
+type Preset = "today" | "yesterday" | "week" | "month";
+
+const PRESETS: { key: Preset; label: string }[] = [
+  { key: "today", label: "Today" },
+  { key: "yesterday", label: "Yesterday" },
+  { key: "week", label: "7 Days" },
+  { key: "month", label: "This Month" },
+];
+
 export default function CommissionsPage() {
   const router = useRouter();
 
@@ -96,6 +129,17 @@ export default function CommissionsPage() {
     formatCurrency,
     formatDateTime,
   } = useCommissionsScreen();
+
+  const [activePreset, setActivePreset] = React.useState<
+    "today" | "yesterday" | "week" | "month"
+  >("today");
+
+  const applyPreset = (p: "today" | "yesterday" | "week" | "month") => {
+    setActivePreset(p);
+    const { from, to } = getPresetRange(p);
+    setFilterDateFrom(from);
+    setFilterDateTo(to);
+  };
 
   if (isLoading && filteredCommissions.length === 0) {
     return <LoadingSpinner message="Loading expected commissions..." />;
@@ -117,38 +161,54 @@ export default function CommissionsPage() {
 
   const ListHeader = (
     <>
-      {/* Date & filter bar */}
-      <View className="flex-row items-center justify-between mb-3">
-        <View className="flex-row items-center">
-          <Calendar color="#7c3aed" size={16} />
-          <Text className="text-sm font-medium text-gray-700 ml-1.5">
-            {filterDateFrom === filterDateTo
-              ? new Date(filterDateFrom + "T00:00:00").toLocaleDateString(
-                  "en-ZA",
-                  {
-                    day: "2-digit",
-                    month: "short",
-                    year: "numeric",
-                  },
-                )
-              : `${new Date(filterDateFrom + "T00:00:00").toLocaleDateString(
-                  "en-ZA",
-                  {
-                    day: "2-digit",
-                    month: "short",
-                  },
-                )} – ${new Date(filterDateTo + "T00:00:00").toLocaleDateString(
-                  "en-ZA",
-                  {
-                    day: "2-digit",
-                    month: "short",
-                  },
-                )}`}
-          </Text>
-        </View>
-        <TouchableOpacity onPress={handleResetFilters} className="p-1.5">
-          <RotateCcw color="#64748b" size={16} />
+      {/* Date range preset chips */}
+      <View className="flex-row gap-2 mb-3 flex-wrap">
+        {PRESETS.map((p) => (
+          <TouchableOpacity
+            key={p.key}
+            onPress={() => applyPreset(p.key)}
+            className="px-3 py-1.5 rounded-full border"
+            style={{
+              backgroundColor: activePreset === p.key ? "#7c3aed" : "#F9FAFB",
+              borderColor: activePreset === p.key ? "#7c3aed" : "#E5E7EB",
+            }}
+          >
+            <Text
+              className="text-xs font-medium"
+              style={{ color: activePreset === p.key ? "#FFFFFF" : "#374151" }}
+            >
+              {p.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+        <TouchableOpacity
+          onPress={() => {
+            handleResetFilters();
+            setActivePreset("today");
+          }}
+          className="px-3 py-1.5 rounded-full border border-gray-200 ml-auto"
+        >
+          <RotateCcw color="#64748b" size={13} />
         </TouchableOpacity>
+      </View>
+
+      {/* Active date range label */}
+      <View className="flex-row items-center mb-3">
+        <Calendar color="#7c3aed" size={15} />
+        <Text className="text-sm font-medium text-gray-700 ml-1.5">
+          {filterDateFrom === filterDateTo
+            ? new Date(filterDateFrom + "T00:00:00").toLocaleDateString(
+                "en-ZA",
+                { day: "2-digit", month: "short", year: "numeric" },
+              )
+            : `${new Date(filterDateFrom + "T00:00:00").toLocaleDateString(
+                "en-ZA",
+                { day: "2-digit", month: "short" },
+              )} – ${new Date(filterDateTo + "T00:00:00").toLocaleDateString(
+                "en-ZA",
+                { day: "2-digit", month: "short", year: "numeric" },
+              )}`}
+        </Text>
       </View>
 
       {/* Shift filter chips */}

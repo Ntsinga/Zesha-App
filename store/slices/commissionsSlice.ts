@@ -7,6 +7,7 @@ import type {
   BulkCommissionUpdate,
   BulkCommissionUpdateResponse,
   DraftCommissionEntry,
+  CommissionVarianceReport,
 } from "@/types";
 import { mapApiResponse, mapApiRequest, buildTypedQueryString } from "@/types";
 import { API_ENDPOINTS } from "@/config/api";
@@ -25,6 +26,8 @@ export interface CommissionsState {
   lastFetched: number | null;
   filters: CommissionFilters;
   draftEntries: DraftCommissionEntry[];
+  commissionVariance: CommissionVarianceReport[];
+  isVarianceLoading: boolean;
 }
 
 const initialState: CommissionsState = {
@@ -36,6 +39,8 @@ const initialState: CommissionsState = {
   lastFetched: null,
   filters: {},
   draftEntries: [],
+  commissionVariance: [],
+  isVarianceLoading: false,
 };
 
 // API helper - now uses secure authenticated requests
@@ -235,6 +240,30 @@ export const deleteCommission = createAsyncThunk<
   }
 });
 
+// Commission variance by account (bank vs telecom reconciliation)
+export const fetchCommissionVariance = createAsyncThunk<
+  CommissionVarianceReport[],
+  { companyId: number; date?: string; forceRefresh?: boolean },
+  { state: RootState; rejectValue: string }
+>(
+  "commissions/fetchVariance",
+  async ({ companyId, date }, { rejectWithValue }) => {
+    try {
+      const targetDate = date ?? new Date().toISOString().split("T")[0];
+      const query = buildTypedQueryString({ companyId, targetDate });
+      return await apiRequest<CommissionVarianceReport[]>(
+        `${API_ENDPOINTS.expectedCommissions.variance}${query}`,
+      );
+    } catch (error) {
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : "Failed to fetch commission variance",
+      );
+    }
+  },
+);
+
 // Slice
 const commissionsSlice = createSlice({
   name: "commissions",
@@ -380,6 +409,19 @@ const commissionsSlice = createSlice({
       })
       .addCase(deleteCommission.rejected, (state, action) => {
         state.error = action.payload as string;
+      });
+
+    // Commission variance
+    builder
+      .addCase(fetchCommissionVariance.pending, (state) => {
+        state.isVarianceLoading = true;
+      })
+      .addCase(fetchCommissionVariance.fulfilled, (state, action) => {
+        state.isVarianceLoading = false;
+        state.commissionVariance = action.payload;
+      })
+      .addCase(fetchCommissionVariance.rejected, (state) => {
+        state.isVarianceLoading = false;
       });
 
     // Invalidate cache when SuperAdmin switches agencies

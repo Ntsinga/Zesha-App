@@ -32,8 +32,11 @@ export default function DashboardNative() {
     expectedGrandTotal,
     displayVariance,
     totalExpenses,
-    totalCommission,
-    dailyCommission,
+    totalBankCommission,
+    totalTelecomCommission,
+    telecomPendingCount,
+    telecomVarianceCount,
+    telecomHasIssues,
     transactionCount,
     recentTransactions,
     displayCapital,
@@ -181,14 +184,6 @@ export default function DashboardNative() {
                 </View>
               </View>
 
-              {/* Actual Total */}
-              <View className="flex-row justify-between items-center py-3">
-                <Text className="text-gray-600 text-base">Actual Total</Text>
-                <Text className="font-bold text-gray-900 text-base">
-                  {formatCurrency(displayCapital)}
-                </Text>
-              </View>
-
               {/* Expected Total */}
               <View className="flex-row justify-between items-center py-3">
                 <Text className="text-gray-600 text-base">Expected Total</Text>
@@ -220,24 +215,73 @@ export default function DashboardNative() {
                 </Text>
               </View>
 
-              {/* Daily Commission */}
-              <View className="flex-row justify-between items-center py-3 border-t border-gray-100">
-                <Text className="text-gray-600 text-base">
-                  Daily Commission
-                </Text>
-                <Text className="font-bold text-green-600 text-base">
-                  +{formatCurrency(dailyCommission)}
-                </Text>
-              </View>
-
-              {/* Total Commission */}
-              <View className="flex-row justify-between items-center py-3">
-                <Text className="text-gray-600 text-base">
-                  Total Commission
-                </Text>
-                <Text className="font-bold text-gray-900 text-base">
-                  {formatCurrency(totalCommission)}
-                </Text>
+              {/* Commission — bank (expected) + telecom (reconciled) */}
+              <View className="border-t border-gray-100 pt-3">
+                <View className="flex-row justify-between items-center py-1">
+                  <View className="flex-row items-center" style={{ gap: 6 }}>
+                    <Text className="text-gray-600 text-base">Daily Commission</Text>
+                    {telecomHasIssues && (
+                      <Ionicons name="warning" size={14} color="#F59E0B" />
+                    )}
+                  </View>
+                  <Text
+                    className={`font-bold text-base ${
+                      telecomHasIssues ? "text-amber-500" : "text-green-600"
+                    }`}
+                  >
+                    +
+                    {formatCurrency(
+                      totalBankCommission + totalTelecomCommission,
+                    )}
+                  </Text>
+                </View>
+                {/* Bank sub-row */}
+                <View className="flex-row justify-between items-center px-2 py-0.5">
+                  <View className="flex-row items-center" style={{ gap: 4 }}>
+                    <Ionicons
+                      name="checkmark-circle"
+                      size={12}
+                      color="#16A34A"
+                    />
+                    <Text className="text-xs text-gray-400">Bank</Text>
+                  </View>
+                  <Text className="text-xs text-gray-500">
+                    {formatCurrency(totalBankCommission)}
+                  </Text>
+                </View>
+                {/* Telecom sub-row */}
+                <View className="flex-row justify-between items-center px-2 py-0.5">
+                  <View className="flex-row items-center" style={{ gap: 4 }}>
+                    <Ionicons
+                      name={
+                        telecomPendingCount > 0
+                          ? "time"
+                          : telecomVarianceCount > 0
+                            ? "warning"
+                            : "checkmark-circle"
+                      }
+                      size={12}
+                      color={
+                        telecomPendingCount > 0
+                          ? "#F59E0B"
+                          : telecomVarianceCount > 0
+                            ? "#DC2626"
+                            : "#16A34A"
+                      }
+                    />
+                    <Text className="text-xs text-gray-400">
+                      Telecom
+                      {telecomPendingCount > 0
+                        ? ` · ${telecomPendingCount} pending`
+                        : telecomVarianceCount > 0
+                          ? ` · ${telecomVarianceCount} variance`
+                          : ""}
+                    </Text>
+                  </View>
+                  <Text className="text-xs text-gray-500">
+                    {formatCurrency(totalTelecomCommission)}
+                  </Text>
+                </View>
               </View>
             </View>
           </View>
@@ -255,7 +299,7 @@ export default function DashboardNative() {
               style={{ paddingRight: 2 }}
             >
               <View className="bg-blue-100 p-2 rounded-xl mr-2">
-                <Ionicons name="time" size={20} color="#3B82F6" />
+                <Ionicons name="time" size={18} color="#3B82F6" />
               </View>
               <View className="flex-shrink">
                 <Text className="font-bold text-gray-900 text-sm">History</Text>
@@ -267,7 +311,7 @@ export default function DashboardNative() {
               className="flex-1 bg-white ml-0 rounded-xl p-3 shadow-sm flex-row items-center"
             >
               <View className="bg-indigo-100 p-2 rounded-xl mr-2">
-                <ArrowLeftRight size={20} color="#4F46E5" />
+                <ArrowLeftRight size={18} color="#4F46E5" />
               </View>
               <View className="flex-shrink">
                 <Text className="font-bold text-gray-900 text-sm">
@@ -285,7 +329,7 @@ export default function DashboardNative() {
               className="flex-1 bg-white rounded-xl p-3 mr-0 shadow-sm flex-row items-center"
             >
               <View className="bg-green-100 p-2 rounded-xl mr-2">
-                <Ionicons name="cash" size={20} color="#22C55E" />
+                <Ionicons name="cash" size={16} color="#22C55E" />
               </View>
               <View className="flex-shrink">
                 <Text className="font-bold text-gray-900 text-sm">
@@ -299,7 +343,7 @@ export default function DashboardNative() {
               className="flex-1 bg-white ml-0 rounded-xl p-3 shadow-sm flex-row items-center"
             >
               <View className="bg-red-100 p-2 rounded-xl mr-2">
-                <Ionicons name="receipt" size={20} color="#DC2626" />
+                <Ionicons name="receipt" size={18} color="#DC2626" />
               </View>
               <View className="flex-shrink">
                 <Text className="font-bold text-gray-900 text-sm">

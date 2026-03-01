@@ -2,7 +2,7 @@
  * Commission types matching backend models/commissions.py
  */
 import type { BaseModel, BulkUpdateOperationResponse } from "./base";
-import type { ShiftEnum, SourceEnum } from "./enums";
+import type { ShiftEnum, SourceEnum, AccountTypeEnum, CommissionVarianceStatus } from "./enums";
 import type { Account } from "./account";
 
 /**
@@ -144,6 +144,21 @@ export interface ExpectedCommissionFilters {
   endDate?: string;
   skip?: number;
   limit?: number;
+}
+
+/**
+ * Per-account daily commission variance report
+ * Returned by /expected-commissions/variance
+ */
+export interface CommissionVarianceReport {
+  accountId: number;
+  accountName: string;
+  accountType: AccountTypeEnum;
+  date: string;
+  expected: number;
+  actual: number; // always 0 for BANK accounts
+  difference: number; // expected - actual
+  status: CommissionVarianceStatus;
 }
 
 /**
