@@ -44,6 +44,7 @@ export interface BalanceHistoryEntry {
   id: string;
   date: string;
   shift: ShiftEnum;
+  subtype: "OPENING" | "CLOSING";
   totalFloat: number;
   totalCash: number;
   totalCommissions: number;
@@ -67,30 +68,4 @@ export enum ViewState {
   BALANCES = "BALANCES",
   EXPENSES = "EXPENSES",
   RECONCILIATIONS = "RECONCILIATIONS",
-}
-
-/**
- * Transaction types (legacy - for backward compatibility)
- */
-export type TransactionType = "income" | "expense";
-
-export type TransactionCategory =
-  | "Food & Dining"
-  | "Transportation"
-  | "Entertainment"
-  | "Shopping"
-  | "Bills & Utilities"
-  | "Healthcare"
-  | "Education"
-  | "Other";
-
-export interface Transaction {
-  id: string;
-  date: string;
-  description: string;
-  category: string;
-  amount: number;
-  type: TransactionType;
-  hasReceipt: boolean;
-  account: string;
 }

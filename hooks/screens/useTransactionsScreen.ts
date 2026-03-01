@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
-import { useDispatch, useSelector } from "react-redux";
 import { useRouter } from "expo-router";
+import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import {
   fetchTransactions,
   createTransaction,
@@ -16,7 +16,6 @@ import {
 import { fetchAccounts } from "../../store/slices/accountsSlice";
 import { useCurrencyFormatter } from "../useCurrency";
 import { formatDateTime } from "../../utils/formatters";
-import type { AppDispatch, RootState } from "../../store";
 import type { ShiftEnum, TransactionTypeEnum } from "../../types";
 import type {
   TransactionCreate,
@@ -79,7 +78,7 @@ const initialCapitalInjectionForm: CapitalInjectionFormState = {
 
 export function useTransactionsScreen() {
   const router = useRouter();
-  const dispatch = useDispatch<AppDispatch>();
+  const dispatch = useAppDispatch();
   const { formatCurrency } = useCurrencyFormatter();
 
   // ---- Filter state ----
@@ -124,11 +123,11 @@ export function useTransactionsScreen() {
     isLoading,
     isCreating,
     error,
-  } = useSelector((state: RootState) => state.transactions);
-  const { items: accounts } = useSelector((state: RootState) => state.accounts);
-  const { user: backendUser } = useSelector((state: RootState) => state.auth);
-  const companyId = useSelector(
-    (state: RootState) =>
+  } = useAppSelector((state) => state.transactions);
+  const { items: accounts } = useAppSelector((state) => state.accounts);
+  const { user: backendUser } = useAppSelector((state) => state.auth);
+  const companyId = useAppSelector(
+    (state) =>
       state.auth.viewingAgencyId || state.auth.user?.companyId,
   );
 

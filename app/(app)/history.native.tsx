@@ -83,12 +83,12 @@ export default function BalanceHistory() {
           </View>
         ) : (
           <View className="space-y-3">
-            {history.map((record: BalanceHistoryEntry, index: number) => (
+            {history.map((record, index) => (
               <TouchableOpacity
                 key={record.id || `history-${index}`}
                 onPress={() => {
                   router.push(
-                    `/reconciliation?date=${record.date}&shift=${record.shift}` as any,
+                    `/reconciliation?date=${record.date}&shift=${record.shift}&subtype=${record.subtype ?? "CLOSING"}` as any,
                   );
                 }}
                 className="bg-white rounded-xl p-4 shadow-sm border border-gray-100"

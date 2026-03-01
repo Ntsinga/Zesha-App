@@ -1,11 +1,43 @@
-import React from "react";
-import { RefreshCw } from "lucide-react";
-import { useSettingsScreen } from "../../hooks/screens/useSettingsScreen";
+import React, { useState } from "react";
+import { RefreshCw, Save, Building2 } from "lucide-react";
+import {
+  useSettingsScreen,
+  CURRENCIES,
+} from "../../hooks/screens/useSettingsScreen";
 import UserManagement from "../../components/UserManagement";
 import "../../styles/web.css";
 
 export default function Settings() {
-  const { isLoading, refreshing, onRefresh } = useSettingsScreen();
+  const {
+    isLoading,
+    refreshing,
+    onRefresh,
+    isSaving,
+    company,
+    name,
+    setName,
+    totalWorkingCapital,
+    setTotalWorkingCapital,
+    outstandingBalance,
+    setOutstandingBalance,
+    currency,
+    setCurrency,
+    description,
+    setDescription,
+    handleSave,
+  } = useSettingsScreen();
+
+  const [saveMessage, setSaveMessage] = useState<{
+    text: string;
+    ok: boolean;
+  } | null>(null);
+
+  const onSave = async () => {
+    setSaveMessage(null);
+    const result = await handleSave();
+    setSaveMessage({ text: result.message, ok: result.success });
+    if (result.success) setTimeout(() => setSaveMessage(null), 4000);
+  };
 
   if (isLoading && !refreshing) {
     return (
@@ -38,6 +70,106 @@ export default function Settings() {
 
       {/* Content */}
       <div className="dashboard-content">
+        {/* Company Settings Card */}
+        <div className="card" style={{ marginBottom: 24 }}>
+          <div className="card-header">
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <Building2 size={18} color="#6B7280" />
+              <span className="card-title">Company Settings</span>
+            </div>
+          </div>
+          <div className="card-body">
+            <div className="form-row">
+              <div className="form-group">
+                <label>Company Name</label>
+                <input
+                  className="form-input"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Company name"
+                />
+              </div>
+              <div className="form-group">
+                <label>Currency</label>
+                <select
+                  className="form-input"
+                  value={currency}
+                  onChange={(e) => setCurrency(e.target.value)}
+                >
+                  {CURRENCIES.map((c) => (
+                    <option key={c.code} value={c.code}>
+                      {c.code} — {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="form-row">
+              <div className="form-group">
+                <label>Total Working Capital</label>
+                <input
+                  className="form-input"
+                  type="number"
+                  min="0"
+                  value={totalWorkingCapital}
+                  onChange={(e) => setTotalWorkingCapital(e.target.value)}
+                  placeholder="0"
+                />
+                <span style={{ fontSize: 12, color: "#9CA3AF", marginTop: 4 }}>
+                  The total capital deployed across all accounts
+                </span>
+              </div>
+              <div className="form-group">
+                <label>Outstanding Balance</label>
+                <input
+                  className="form-input"
+                  type="number"
+                  min="0"
+                  value={outstandingBalance}
+                  onChange={(e) => setOutstandingBalance(e.target.value)}
+                  placeholder="0"
+                />
+                <span style={{ fontSize: 12, color: "#9CA3AF", marginTop: 4 }}>
+                  Capital not yet in circulation (deducted from expected total)
+                </span>
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label>Description</label>
+              <input
+                className="form-input"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Optional description"
+              />
+            </div>
+
+            {saveMessage && (
+              <p
+                style={{
+                  fontSize: 13,
+                  color: saveMessage.ok ? "#16a34a" : "#dc2626",
+                  marginBottom: 8,
+                }}
+              >
+                {saveMessage.text}
+              </p>
+            )}
+
+            <button
+              className="btn-primary"
+              onClick={onSave}
+              disabled={isSaving}
+              style={{ display: "flex", alignItems: "center", gap: 6 }}
+            >
+              <Save size={15} />
+              {isSaving ? "Saving..." : "Save Changes"}
+            </button>
+          </div>
+        </div>
+
         <UserManagement />
       </div>
     </div>

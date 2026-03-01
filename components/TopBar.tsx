@@ -6,9 +6,9 @@ import {
   Platform,
   TouchableOpacity,
 } from "react-native";
-import { useSelector } from "react-redux";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { useAppSelector } from "../store/hooks";
 import { selectUser, selectUserRole } from "../store/slices/authSlice";
 import SyncStatusIndicator from "./SyncStatusIndicator";
 
@@ -24,8 +24,8 @@ import SyncStatusIndicator from "./SyncStatusIndicator";
  */
 
 export default function TopBar() {
-  const user = useSelector(selectUser);
-  const role = useSelector(selectUserRole);
+  const user = useAppSelector(selectUser);
+  const role = useAppSelector(selectUserRole);
   const router = useRouter();
 
   // Memoize computed values to prevent unnecessary recalculations

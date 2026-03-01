@@ -22,6 +22,13 @@ export default function BalancePage() {
     formatCurrency,
     selectedShift,
     setSelectedShift,
+    shiftPhase,
+    currentSubtype,
+    handoverDecision,
+    setHandoverDecision,
+    showHandoverModal,
+    buttonLabel,
+    showCommissionsAndTransactions,
     hasAMShift,
     hasPMShift,
     hasAMBalances,
@@ -67,7 +74,7 @@ export default function BalancePage() {
     const result = await handleCalculate();
     if (result?.success) {
       router.push(
-        `/reconciliation?date=${today}&shift=${selectedShift}` as any,
+        `/reconciliation?date=${today}&shift=${selectedShift}&subtype=${currentSubtype}` as any,
       );
     } else {
       alert(result?.error || "Failed to calculate reconciliation");
@@ -76,6 +83,92 @@ export default function BalancePage() {
 
   return (
     <div className="page-wrapper">
+      {/* Handover Modal — PM shift, no records yet, awaiting decision */}
+      {showHandoverModal && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 1000,
+            background: "rgba(0,0,0,0.5)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 24,
+          }}
+        >
+          <div
+            style={{
+              background: "#fff",
+              borderRadius: 20,
+              padding: 32,
+              maxWidth: 400,
+              width: "100%",
+              boxShadow: "0 20px 60px rgba(0,0,0,0.2)",
+            }}
+          >
+            <h2
+              style={{
+                fontSize: 18,
+                fontWeight: 700,
+                color: "#1f2937",
+                textAlign: "center",
+                marginBottom: 10,
+              }}
+            >
+              PM Shift
+            </h2>
+            <p
+              style={{
+                fontSize: 14,
+                color: "#6b7280",
+                textAlign: "center",
+                marginBottom: 28,
+                lineHeight: "1.5",
+              }}
+            >
+              Are you taking over from the AM worker? This helps record a proper
+              float handover opening.
+            </p>
+            <button
+              onClick={() => setHandoverDecision(true)}
+              style={{
+                display: "block",
+                width: "100%",
+                background: "#C62828",
+                color: "#fff",
+                border: "none",
+                borderRadius: 12,
+                padding: "14px 0",
+                fontSize: 15,
+                fontWeight: 700,
+                cursor: "pointer",
+                marginBottom: 12,
+              }}
+            >
+              Yes, I’m taking over
+            </button>
+            <button
+              onClick={() => setHandoverDecision(false)}
+              style={{
+                display: "block",
+                width: "100%",
+                background: "#f3f4f6",
+                color: "#374151",
+                border: "none",
+                borderRadius: 12,
+                padding: "14px 0",
+                fontSize: 15,
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              No, I’m covering the full day
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Header Bar */}
       <header className="header-bar">
         <div className="header-left">
@@ -239,156 +332,172 @@ export default function BalancePage() {
             />
           </div>
 
-          {/* Add Commissions Card */}
-          <div
-            className={`balance-menu-card ${
-              hasSelectedCommissions ? "completed" : ""
-            }`}
-            onClick={handleNavigateCommissions}
-          >
+          {/* Add Commissions Card — only shown when commissions are relevant */}
+          {showCommissionsAndTransactions && (
             <div
-              style={{
-                ...iconBase,
-                background: hasSelectedCommissions ? "#dcfce7" : "#fecaca",
-                color: hasSelectedCommissions ? "#16a34a" : "#dc2626",
-              }}
+              className={`balance-menu-card ${
+                hasSelectedCommissions ? "completed" : ""
+              }`}
+              onClick={handleNavigateCommissions}
             >
-              {hasSelectedCommissions ? (
-                <CheckCircle size={32} />
-              ) : (
-                <Banknote size={32} />
-              )}
-            </div>
-            <div className="balance-menu-content">
-              <div className="balance-menu-title-row">
-                <h3
-                  className={`balance-menu-title ${
+              <div
+                style={{
+                  ...iconBase,
+                  background: hasSelectedCommissions ? "#dcfce7" : "#fecaca",
+                  color: hasSelectedCommissions ? "#16a34a" : "#dc2626",
+                }}
+              >
+                {hasSelectedCommissions ? (
+                  <CheckCircle size={32} />
+                ) : (
+                  <Banknote size={32} />
+                )}
+              </div>
+              <div className="balance-menu-content">
+                <div className="balance-menu-title-row">
+                  <h3
+                    className={`balance-menu-title ${
+                      hasSelectedCommissions ? "completed" : ""
+                    }`}
+                  >
+                    Add Commissions
+                  </h3>
+                  <div className="shift-badges">
+                    {hasAMCommissions && (
+                      <span className="shift-badge completed">AM</span>
+                    )}
+                    {hasPMCommissions && (
+                      <span className="shift-badge completed">PM</span>
+                    )}
+                  </div>
+                </div>
+                <p
+                  className={`balance-menu-description ${
                     hasSelectedCommissions ? "completed" : ""
                   }`}
                 >
-                  Add Commissions
-                </h3>
-                <div className="shift-badges">
-                  {hasAMCommissions && (
-                    <span className="shift-badge completed">AM</span>
-                  )}
-                  {hasPMCommissions && (
-                    <span className="shift-badge completed">PM</span>
-                  )}
-                </div>
+                  {hasSelectedCommissions
+                    ? `${selectedShift} Total: ${formatCurrency(selectedCommissionTotal)}`
+                    : "Record commission payments with images"}
+                </p>
               </div>
-              <p
-                className={`balance-menu-description ${
+              <ChevronRight
+                size={24}
+                className={`balance-menu-arrow ${
                   hasSelectedCommissions ? "completed" : ""
                 }`}
-              >
-                {hasSelectedCommissions
-                  ? `${selectedShift} Total: ${formatCurrency(selectedCommissionTotal)}`
-                  : "Record commission payments with images"}
-              </p>
+              />
             </div>
-            <ChevronRight
-              size={24}
-              className={`balance-menu-arrow ${
-                hasSelectedCommissions ? "completed" : ""
-              }`}
-            />
-          </div>
+          )}
 
-          {/* Record Transactions Card */}
-          <div
-            className={`balance-menu-card ${
-              hasSelectedTransactions ? "completed" : ""
-            }`}
-            onClick={handleNavigateTransactions}
-          >
+          {/* Record Transactions Card — only shown when transactions are relevant */}
+          {showCommissionsAndTransactions && (
             <div
-              style={{
-                ...iconBase,
-                background: hasSelectedTransactions ? "#dcfce7" : "#e0e7ff",
-                color: hasSelectedTransactions ? "#16a34a" : "#4f46e5",
-              }}
+              className={`balance-menu-card ${
+                hasSelectedTransactions ? "completed" : ""
+              }`}
+              onClick={handleNavigateTransactions}
             >
-              {hasSelectedTransactions ? (
-                <CheckCircle size={32} />
-              ) : (
-                <ArrowLeftRight size={32} />
-              )}
-            </div>
-            <div className="balance-menu-content">
-              <div className="balance-menu-title-row">
-                <h3
-                  className={`balance-menu-title ${
+              <div
+                style={{
+                  ...iconBase,
+                  background: hasSelectedTransactions ? "#dcfce7" : "#e0e7ff",
+                  color: hasSelectedTransactions ? "#16a34a" : "#4f46e5",
+                }}
+              >
+                {hasSelectedTransactions ? (
+                  <CheckCircle size={32} />
+                ) : (
+                  <ArrowLeftRight size={32} />
+                )}
+              </div>
+              <div className="balance-menu-content">
+                <div className="balance-menu-title-row">
+                  <h3
+                    className={`balance-menu-title ${
+                      hasSelectedTransactions ? "completed" : ""
+                    }`}
+                  >
+                    Record Transactions
+                  </h3>
+                  <div className="shift-badges">
+                    {hasAMTransactions && (
+                      <span className="shift-badge completed">AM</span>
+                    )}
+                    {hasPMTransactions && (
+                      <span className="shift-badge completed">PM</span>
+                    )}
+                  </div>
+                </div>
+                <p
+                  className={`balance-menu-description ${
                     hasSelectedTransactions ? "completed" : ""
                   }`}
                 >
-                  Record Transactions
-                </h3>
-                <div className="shift-badges">
-                  {hasAMTransactions && (
-                    <span className="shift-badge completed">AM</span>
-                  )}
-                  {hasPMTransactions && (
-                    <span className="shift-badge completed">PM</span>
-                  )}
-                </div>
+                  {hasSelectedTransactions
+                    ? `${selectedShift}: ${selectedTransactionCount} transaction${selectedTransactionCount !== 1 ? "s" : ""} (${formatCurrency(selectedTransactionTotal)})`
+                    : "Log deposits, withdrawals & float purchases"}
+                </p>
               </div>
-              <p
-                className={`balance-menu-description ${
+              <ChevronRight
+                size={24}
+                className={`balance-menu-arrow ${
                   hasSelectedTransactions ? "completed" : ""
                 }`}
-              >
-                {hasSelectedTransactions
-                  ? `${selectedShift}: ${selectedTransactionCount} transaction${selectedTransactionCount !== 1 ? "s" : ""} (${formatCurrency(selectedTransactionTotal)})`
-                  : "Log deposits, withdrawals & float purchases"}
-              </p>
+              />
             </div>
-            <ChevronRight
-              size={24}
-              className={`balance-menu-arrow ${
-                hasSelectedTransactions ? "completed" : ""
-              }`}
-            />
-          </div>
+          )}
         </div>
 
         {/* Calculate Reconciliation Section */}
         <div className="reconciliation-section-centered">
-          <h3 className="section-title-centered">Calculate Reconciliation</h3>
-          <p className="section-description-centered">
-            Calculate the {selectedShift} shift reconciliation to review
-            discrepancies
-          </p>
+          {shiftPhase === "COMPLETE" ? (
+            <>
+              <h3 className="section-title-centered">
+                {selectedShift} Shift Complete
+              </h3>
+              <p className="section-description-centered">
+                All reconciliations for the {selectedShift} shift have been
+                finalized.
+              </p>
+            </>
+          ) : (
+            <>
+              <h3 className="section-title-centered">{buttonLabel}</h3>
+              <p className="section-description-centered">
+                {!showCommissionsAndTransactions
+                  ? `Record float balances and cash count to start the ${selectedShift} shift`
+                  : `Calculate the ${selectedShift} shift reconciliation to review discrepancies`}
+              </p>
 
-          {/* Calculate Button */}
-          <button
-            onClick={handleCalculatePress}
-            disabled={
-              isCalculating ||
-              !hasSelectedCashCount ||
-              !hasSelectedBalances ||
-              !hasSelectedCommissions
-            }
-            className={`btn-calculate-centered ${
-              isCalculating ||
-              !hasSelectedCashCount ||
-              !hasSelectedBalances ||
-              !hasSelectedCommissions
-                ? "loading"
-                : ""
-            }`}
-          >
-            <Calculator size={24} />
-            <span>
-              {isCalculating
-                ? "Calculating..."
-                : !hasSelectedCashCount ||
-                    !hasSelectedBalances ||
-                    !hasSelectedCommissions
-                  ? "Complete All Steps First"
-                  : `Calculate ${selectedShift} Reconciliation`}
-            </span>
-          </button>
+              <button
+                onClick={handleCalculatePress}
+                disabled={
+                  isCalculating ||
+                  !hasSelectedCashCount ||
+                  !hasSelectedBalances ||
+                  (showCommissionsAndTransactions && !hasSelectedCommissions)
+                }
+                className={`btn-calculate-centered ${
+                  isCalculating ||
+                  !hasSelectedCashCount ||
+                  !hasSelectedBalances ||
+                  (showCommissionsAndTransactions && !hasSelectedCommissions)
+                    ? "loading"
+                    : ""
+                }`}
+              >
+                <Calculator size={24} />
+                <span>
+                  {isCalculating
+                    ? "Calculating..."
+                    : !hasSelectedCashCount || !hasSelectedBalances
+                      ? "Complete Required Steps First"
+                      : buttonLabel}
+                </span>
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>

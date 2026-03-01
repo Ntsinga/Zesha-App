@@ -34,12 +34,17 @@ import {
 import { useLocalSearchParams } from "expo-router";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { useReconciliationScreen } from "../../hooks/screens/useReconciliationScreen";
-import type { ShiftEnum } from "../../types";
+import type { ReconciliationSubtypeEnum, ShiftEnum } from "../../types";
 
 export default function BalanceDetailPage() {
-  const params = useLocalSearchParams<{ date: string; shift: string }>();
+  const params = useLocalSearchParams<{
+    date: string;
+    shift: string;
+    subtype: string;
+  }>();
   const date = params.date || new Date().toISOString().split("T")[0];
   const shift = (params.shift as ShiftEnum) || "AM";
+  const subtype = (params.subtype as ReconciliationSubtypeEnum) || "CLOSING";
 
   const {
     refreshing,
@@ -81,12 +86,33 @@ export default function BalanceDetailPage() {
     validationByAccountId,
     // Linked transactions
     shiftTransactions,
-  } = useReconciliationScreen({ date, shift });
+  } = useReconciliationScreen({ date, shift, subtype, subtype });
+
+  // Extra fields from hook
+  const isOpening = subtype === "OPENING";
 
   const [showDiscrepancyModal, setShowDiscrepancyModal] = useLocalState(false);
 
   if (isLoading && !refreshing) {
     return <LoadingSpinner message="Loading reconciliation details..." />;
+  }
+
+  if (error && !refreshing) {
+    return (
+      <View className="flex-1 bg-gray-50 items-center justify-center px-6">
+        <AlertTriangle color="#EF4444" size={48} />
+        <Text className="text-gray-900 font-bold text-lg mt-4 text-center">
+          Failed to Load
+        </Text>
+        <Text className="text-gray-500 text-sm mt-2 text-center">{error}</Text>
+        <TouchableOpacity
+          onPress={onRefresh}
+          className="mt-6 bg-blue-600 px-6 py-3 rounded-xl"
+        >
+          <Text className="text-white font-semibold">Retry</Text>
+        </TouchableOpacity>
+      </View>
+    );
   }
 
   return (
@@ -112,6 +138,19 @@ export default function BalanceDetailPage() {
                 }`}
               >
                 {shift} Shift
+              </Text>
+            </View>
+            <View
+              className={`px-3 py-1 rounded-full mt-1 ${
+                isOpening ? "bg-sky-100" : "bg-amber-100"
+              }`}
+            >
+              <Text
+                className={`font-semibold text-xs ${
+                  isOpening ? "text-sky-700" : "text-amber-700"
+                }`}
+              >
+                {isOpening ? "Opening" : "Closing"}
               </Text>
             </View>
           </View>
@@ -179,8 +218,41 @@ export default function BalanceDetailPage() {
         {/* Variance Card */}
         <View className="bg-white rounded-2xl p-4 mb-4 shadow-sm border border-gray-100">
           <Text className="text-gray-700 font-semibold mb-3">
-            Financial Analysis
+            {isOpening ? "Opening Summary" : "Financial Analysis"}
           </Text>
+
+          {/* Shift Accountability row — shown on CLOSING when shiftOpeningBalance is available */}
+          {!isOpening && reconciliation?.shiftOpeningBalance != null && (
+            <>
+              <View className="flex-row justify-between mb-2">
+                <Text className="text-gray-600">Shift Opening Balance</Text>
+                <Text className="font-bold text-gray-800">
+                  {formatCurrency(reconciliation.shiftOpeningBalance)}
+                </Text>
+              </View>
+              <View className="flex-row justify-between mb-2">
+                <Text className="text-gray-600">Shift Variance</Text>
+                <View className="flex-row items-center">
+                  {(reconciliation.shiftVariance ?? 0) >= 0 ? (
+                    <TrendingUp color="#16A34A" size={14} />
+                  ) : (
+                    <TrendingDown color="#DC2626" size={14} />
+                  )}
+                  <Text
+                    className={`font-bold ml-1 ${
+                      (reconciliation.shiftVariance ?? 0) >= 0
+                        ? "text-green-600"
+                        : "text-red-600"
+                    }`}
+                  >
+                    {(reconciliation.shiftVariance ?? 0) >= 0 ? "+" : ""}
+                    {formatCurrency(reconciliation.shiftVariance ?? 0)}
+                  </Text>
+                </View>
+              </View>
+              <View className="border-t border-gray-100 mt-1 mb-2" />
+            </>
+          )}
 
           <View className="flex-row justify-between mb-2">
             <Text className="text-gray-600">Expected Closing</Text>
@@ -196,12 +268,14 @@ export default function BalanceDetailPage() {
             </Text>
           </View>
 
-          <View className="flex-row justify-between mb-2">
-            <Text className="text-gray-600">Total Commissions</Text>
-            <Text className="font-bold text-gray-800">
-              {formatCurrency(totalCommission)}
-            </Text>
-          </View>
+          {!isOpening && (
+            <View className="flex-row justify-between mb-2">
+              <Text className="text-gray-600">Total Commissions</Text>
+              <Text className="font-bold text-gray-800">
+                {formatCurrency(totalCommission)}
+              </Text>
+            </View>
+          )}
 
           <View className="border-t border-gray-100 pt-2 mt-2 flex-row justify-between items-center">
             <Text className="text-gray-700 font-semibold">Variance</Text>
@@ -223,51 +297,55 @@ export default function BalanceDetailPage() {
           </View>
         </View>
 
-        {/* Commission Card */}
-        <View className="bg-white rounded-2xl p-4 mb-4 shadow-sm border border-gray-100">
-          <View className="flex-row items-center mb-3">
-            <Banknote color="#C62828" size={20} />
-            <Text className="text-gray-700 font-semibold ml-2">
-              Commissions ({commissions.length})
+        {/* Commission Card — only shown on CLOSING */}
+        {!isOpening && (
+          <View className="bg-white rounded-2xl p-4 mb-4 shadow-sm border border-gray-100">
+            <View className="flex-row items-center mb-3">
+              <Banknote color="#C62828" size={20} />
+              <Text className="text-gray-700 font-semibold ml-2">
+                Commissions ({commissions.length})
+              </Text>
+            </View>
+
+            <Text className="text-2xl font-bold text-red-700 mb-3">
+              {formatCurrency(totalCommission)}
             </Text>
-          </View>
 
-          <Text className="text-2xl font-bold text-red-700 mb-3">
-            {formatCurrency(totalCommission)}
-          </Text>
-
-          {commissions.length > 0 ? (
-            commissions.map((commission, idx) => (
-              <TouchableOpacity
-                key={commission.id}
-                onPress={() => {
-                  const uri = getImageUri(commission);
-                  if (uri) setSelectedImage(uri);
-                }}
-                className={`flex-row items-center py-3 ${
-                  idx < commissions.length - 1 ? "border-b border-gray-100" : ""
-                }`}
-              >
-                <View className="flex-1">
-                  <Text className="font-medium text-gray-800">
-                    {commission.account?.name ||
-                      `Account ${commission.accountId}`}
+            {commissions.length > 0 ? (
+              commissions.map((commission, idx) => (
+                <TouchableOpacity
+                  key={commission.id}
+                  onPress={() => {
+                    const uri = getImageUri(commission);
+                    if (uri) setSelectedImage(uri);
+                  }}
+                  className={`flex-row items-center py-3 ${
+                    idx < commissions.length - 1
+                      ? "border-b border-gray-100"
+                      : ""
+                  }`}
+                >
+                  <View className="flex-1">
+                    <Text className="font-medium text-gray-800">
+                      {commission.account?.name ||
+                        `Account ${commission.accountId}`}
+                    </Text>
+                  </View>
+                  <Text className="font-bold text-gray-700 mr-3">
+                    {formatCurrency(commission.amount)}
                   </Text>
-                </View>
-                <Text className="font-bold text-gray-700 mr-3">
-                  {formatCurrency(commission.amount)}
-                </Text>
-                {(commission.imageData || commission.imageUrl) && (
-                  <ImageIcon size={16} color="#9CA3AF" />
-                )}
-              </TouchableOpacity>
-            ))
-          ) : (
-            <Text className="text-gray-400 text-center py-2">
-              No commissions recorded
-            </Text>
-          )}
-        </View>
+                  {(commission.imageData || commission.imageUrl) && (
+                    <ImageIcon size={16} color="#9CA3AF" />
+                  )}
+                </TouchableOpacity>
+              ))
+            ) : (
+              <Text className="text-gray-400 text-center py-2">
+                No commissions recorded
+              </Text>
+            )}
+          </View>
+        )}
 
         {/* Discrepancy Alert Banner */}
         {hasDiscrepancies && (
@@ -458,73 +536,75 @@ export default function BalanceDetailPage() {
           )}
         </View>
 
-        {/* Linked Transactions Card */}
-        <View className="bg-white rounded-2xl p-4 mb-4 shadow-sm border border-gray-100">
-          <View className="flex-row items-center mb-3">
-            <ArrowLeftRight color="#4F46E5" size={20} />
-            <Text className="text-gray-700 font-semibold ml-2">
-              Transactions ({shiftTransactions.length})
-            </Text>
-          </View>
+        {/* Linked Transactions Card — only shown on CLOSING */}
+        {!isOpening && (
+          <View className="bg-white rounded-2xl p-4 mb-4 shadow-sm border border-gray-100">
+            <View className="flex-row items-center mb-3">
+              <ArrowLeftRight color="#4F46E5" size={20} />
+              <Text className="text-gray-700 font-semibold ml-2">
+                Transactions ({shiftTransactions.length})
+              </Text>
+            </View>
 
-          {shiftTransactions.length > 0 ? (
-            shiftTransactions.map((txn, idx) => (
-              <View
-                key={txn.id}
-                className={`flex-row items-center py-3 ${
-                  idx < shiftTransactions.length - 1
-                    ? "border-b border-gray-100"
-                    : ""
-                }`}
-              >
+            {shiftTransactions.length > 0 ? (
+              shiftTransactions.map((txn, idx) => (
                 <View
-                  className={`p-1.5 rounded-full mr-3 ${
-                    txn.transactionType === "DEPOSIT"
-                      ? "bg-green-100"
-                      : txn.transactionType === "WITHDRAW"
-                        ? "bg-red-100"
-                        : "bg-indigo-100"
+                  key={txn.id}
+                  className={`flex-row items-center py-3 ${
+                    idx < shiftTransactions.length - 1
+                      ? "border-b border-gray-100"
+                      : ""
                   }`}
                 >
-                  {txn.transactionType === "DEPOSIT" ? (
-                    <ArrowDownCircle size={16} color="#16A34A" />
-                  ) : txn.transactionType === "WITHDRAW" ? (
-                    <ArrowUpCircle size={16} color="#DC2626" />
-                  ) : (
-                    <ArrowLeftRight size={16} color="#4F46E5" />
-                  )}
-                </View>
-                <View className="flex-1">
-                  <Text className="font-medium text-gray-800 text-sm">
-                    {txn.account?.name || `Account ${txn.accountId}`}
+                  <View
+                    className={`p-1.5 rounded-full mr-3 ${
+                      txn.transactionType === "DEPOSIT"
+                        ? "bg-green-100"
+                        : txn.transactionType === "WITHDRAW"
+                          ? "bg-red-100"
+                          : "bg-indigo-100"
+                    }`}
+                  >
+                    {txn.transactionType === "DEPOSIT" ? (
+                      <ArrowDownCircle size={16} color="#16A34A" />
+                    ) : txn.transactionType === "WITHDRAW" ? (
+                      <ArrowUpCircle size={16} color="#DC2626" />
+                    ) : (
+                      <ArrowLeftRight size={16} color="#4F46E5" />
+                    )}
+                  </View>
+                  <View className="flex-1">
+                    <Text className="font-medium text-gray-800 text-sm">
+                      {txn.account?.name || `Account ${txn.accountId}`}
+                    </Text>
+                    <Text className="text-xs text-gray-400">
+                      {txn.transactionType === "FLOAT_PURCHASE"
+                        ? "Float Purchase"
+                        : txn.transactionType}{" "}
+                      · {txn.reference || "No ref"}
+                    </Text>
+                  </View>
+                  <Text
+                    className={`font-bold text-sm ${
+                      txn.transactionType === "DEPOSIT"
+                        ? "text-green-600"
+                        : txn.transactionType === "WITHDRAW"
+                          ? "text-red-600"
+                          : "text-indigo-600"
+                    }`}
+                  >
+                    {txn.transactionType === "WITHDRAW" ? "-" : "+"}
+                    {formatCurrency(txn.amount || 0)}
                   </Text>
-                  <Text className="text-xs text-gray-400">
-                    {txn.transactionType === "FLOAT_PURCHASE"
-                      ? "Float Purchase"
-                      : txn.transactionType}{" "}
-                    · {txn.reference || "No ref"}
-                  </Text>
                 </View>
-                <Text
-                  className={`font-bold text-sm ${
-                    txn.transactionType === "DEPOSIT"
-                      ? "text-green-600"
-                      : txn.transactionType === "WITHDRAW"
-                        ? "text-red-600"
-                        : "text-indigo-600"
-                  }`}
-                >
-                  {txn.transactionType === "WITHDRAW" ? "-" : "+"}
-                  {formatCurrency(txn.amount || 0)}
-                </Text>
-              </View>
-            ))
-          ) : (
-            <Text className="text-gray-400 text-center py-2">
-              No transactions for this shift
-            </Text>
-          )}
-        </View>
+              ))
+            ) : (
+              <Text className="text-gray-400 text-center py-2">
+                No transactions for this shift
+              </Text>
+            )}
+          </View>
+        )}
 
         {/* Notes Section */}
         <View className="bg-white rounded-2xl p-4 mb-4 shadow-sm border border-gray-100">

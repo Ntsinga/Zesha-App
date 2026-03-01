@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
-import { useDispatch, useSelector } from "react-redux";
 import { useRouter } from "expo-router";
+import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import { useCurrencyFormatter } from "../useCurrency";
 import { formatDate } from "../../utils/formatters";
 import {
@@ -13,9 +13,10 @@ import {
   clearBalanceValidation,
 } from "../../store/slices/reconciliationsSlice";
 import { fetchTransactions } from "../../store/slices/transactionsSlice";
-import type { AppDispatch, RootState } from "../../store";
+
 import type {
   ShiftEnum,
+  ReconciliationSubtypeEnum,
   Balance,
   Commission,
   CashCount,
@@ -26,14 +27,16 @@ import type { Transaction } from "../../types/transaction";
 interface UseReconciliationScreenProps {
   date: string;
   shift: ShiftEnum;
+  subtype: ReconciliationSubtypeEnum;
 }
 
 export function useReconciliationScreen({
   date,
   shift,
+  subtype,
 }: UseReconciliationScreenProps) {
   const router = useRouter();
-  const dispatch = useDispatch<AppDispatch>();
+  const dispatch = useAppDispatch();
   const { formatCurrency } = useCurrencyFormatter();
 
   const [refreshing, setRefreshing] = useState(false);
@@ -48,10 +51,10 @@ export function useReconciliationScreen({
     isCalculating,
     error,
     balanceValidation,
-  } = useSelector((state: RootState) => state.reconciliations);
-  const { user: backendUser } = useSelector((state: RootState) => state.auth);
-  const { items: transactions } = useSelector(
-    (state: RootState) => state.transactions,
+  } = useAppSelector((state) => state.reconciliations);
+  const { user: backendUser } = useAppSelector((state) => state.auth);
+  const { items: transactions } = useAppSelector(
+    (state) => state.transactions,
   );
 
   // Check if user can review reconciliations (supervisor or admin)
@@ -68,6 +71,7 @@ export function useReconciliationScreen({
           companyId: backendUser.companyId,
           date,
           shift,
+          subtype,
         }),
       );
       dispatch(
@@ -187,6 +191,7 @@ export function useReconciliationScreen({
           companyId: backendUser.companyId,
           date,
           shift,
+          subtype,
         }),
       ),
       dispatch(
@@ -227,6 +232,7 @@ export function useReconciliationScreen({
           companyId: backendUser.companyId,
           date,
           shift,
+          subtype,
           userId: backendUser?.id,
         }),
       ).unwrap();
@@ -236,11 +242,18 @@ export function useReconciliationScreen({
           companyId: backendUser.companyId,
           date,
           shift,
+          subtype,
         }),
       );
       return { success: true };
-    } catch (error: any) {
-      return { success: false, error: error.message || "Failed to calculate" };
+    } catch (error: unknown) {
+      const msg =
+        typeof error === "string"
+          ? error
+          : error instanceof Error
+            ? error.message
+            : "Failed to calculate";
+      return { success: false, error: msg };
     }
   };
 
@@ -266,14 +279,21 @@ export function useReconciliationScreen({
           companyId: backendUser.companyId,
           date,
           shift,
+          subtype,
           reconciledBy: backendUser.id,
           notes: notes.trim() || undefined,
           forceWithDiscrepancies: hasDiscrepancies ? true : undefined,
         }),
       ).unwrap();
       return { success: true };
-    } catch (error: any) {
-      return { success: false, error: error.message || "Failed to finalize" };
+    } catch (error: unknown) {
+      const msg =
+        typeof error === "string"
+          ? error
+          : error instanceof Error
+            ? error.message
+            : "Failed to finalize";
+      return { success: false, error: msg };
     }
   };
 
@@ -288,13 +308,20 @@ export function useReconciliationScreen({
         approveReconciliation({
           date,
           shift,
+          subtype,
           action: "APPROVED",
           approvedBy: backendUser.id,
         }),
       ).unwrap();
       return { success: true };
-    } catch (error: any) {
-      return { success: false, error: error.message || "Failed to approve" };
+    } catch (error: unknown) {
+      const msg =
+        typeof error === "string"
+          ? error
+          : error instanceof Error
+            ? error.message
+            : "Failed to approve";
+      return { success: false, error: msg };
     }
   };
 
@@ -313,14 +340,21 @@ export function useReconciliationScreen({
         approveReconciliation({
           date,
           shift,
+          subtype,
           action: "REJECTED",
           approvedBy: backendUser.id,
           rejectionReason: notes.trim(),
         }),
       ).unwrap();
       return { success: true };
-    } catch (error: any) {
-      return { success: false, error: error.message || "Failed to reject" };
+    } catch (error: unknown) {
+      const msg =
+        typeof error === "string"
+          ? error
+          : error instanceof Error
+            ? error.message
+            : "Failed to reject";
+      return { success: false, error: msg };
     }
   };
 
@@ -347,6 +381,8 @@ export function useReconciliationScreen({
     setNotes,
     date,
     shift,
+    subtype,
+    isOpening: subtype === "OPENING",
 
     // User & permissions
     backendUser,
@@ -363,6 +399,8 @@ export function useReconciliationScreen({
     expectedClosing,
     actualClosing,
     variance,
+    shiftOpeningBalance: reconciliation?.shiftOpeningBalance ?? null,
+    shiftVariance: reconciliation?.shiftVariance ?? null,
     status,
     isFinalized,
     isApproved,

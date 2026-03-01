@@ -7,6 +7,7 @@ import type {
   StatusEnum,
   ApprovalStatusEnum,
   ReconciliationStatusEnum,
+  ReconciliationSubtypeEnum,
 } from "./enums";
 import type { Balance } from "./balance";
 import type { Commission } from "./commission";
@@ -20,12 +21,15 @@ export interface ReconciliationHistory {
   id: number;
   date: string;
   shift: ShiftEnum;
+  subtype: ReconciliationSubtypeEnum;
   totalFloat: number;
   totalCash: number;
   totalCommissions: number;
   expectedClosing: number;
   actualClosing: number;
   variance: number;
+  shiftOpeningBalance: number | null;
+  shiftVariance: number | null;
   status: StatusEnum;
   approvalStatus: ApprovalStatusEnum;
   reconciliationStatus?: ReconciliationStatusEnum;
@@ -55,6 +59,7 @@ export interface ReconciliationDetail {
 export interface Reconciliation extends BaseModel {
   date: string;
   shift: ShiftEnum;
+  subtype: ReconciliationSubtypeEnum;
   companyId: number;
   reconciliationStatus: ReconciliationStatusEnum;
   totalFloat: number;
@@ -63,6 +68,8 @@ export interface Reconciliation extends BaseModel {
   expectedClosing: number;
   actualClosing: number;
   variance: number;
+  shiftOpeningBalance: number | null;
+  shiftVariance: number | null;
   status: StatusEnum;
   approvalStatus: ApprovalStatusEnum;
   reconciledBy: number | null;
@@ -72,6 +79,16 @@ export interface Reconciliation extends BaseModel {
   rejectionReason: string | null;
   isFinalized: boolean;
   notes: string | null;
+}
+
+/**
+ * Shift status - whether opening/closing reconciliations exist and are finalized
+ */
+export interface ShiftStatus {
+  hasOpening: boolean;
+  hasClosing: boolean;
+  openingFinalized: boolean;
+  closingFinalized: boolean;
 }
 
 /**
@@ -161,11 +178,12 @@ export interface ReconciliationFilters {
  * Parameters for fetching reconciliation history
  */
 export interface ReconciliationHistoryParams {
-  companyId: number;
+  companyId?: number;
   dateFrom?: string;
   dateTo?: string;
   shift?: ShiftEnum;
   status?: StatusEnum;
+  finalizedOnly?: boolean;
   skip?: number;
   limit?: number;
 }
@@ -176,6 +194,7 @@ export interface ReconciliationHistoryParams {
 export interface ReconciliationDetailsParams {
   date: string;
   shift: ShiftEnum;
+  subtype: ReconciliationSubtypeEnum;
   companyId: number;
 }
 
@@ -185,6 +204,7 @@ export interface ReconciliationDetailsParams {
 export interface ReconciliationCalculateParams {
   date: string;
   shift: ShiftEnum;
+  subtype: ReconciliationSubtypeEnum;
   companyId: number;
   userId?: number;
 }
@@ -195,6 +215,7 @@ export interface ReconciliationCalculateParams {
 export interface ReconciliationFinalizeParams {
   date: string;
   shift: ShiftEnum;
+  subtype: ReconciliationSubtypeEnum;
   companyId: number;
   reconciledBy?: number;
   notes?: string;
@@ -231,6 +252,7 @@ export interface BalanceValidationParams {
 export interface ReconciliationApproveParams {
   date: string;
   shift: ShiftEnum;
+  subtype: ReconciliationSubtypeEnum;
   companyId: number;
   action: "APPROVED" | "REJECTED";
   approvedBy: number;
