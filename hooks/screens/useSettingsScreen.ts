@@ -29,6 +29,11 @@ export function useSettingsScreen() {
     error,
   } = useSelector((state: RootState) => state.companyInfo);
 
+  const { user: backendUser } = useSelector((state: RootState) => state.auth);
+  const canEditSettings =
+    backendUser?.role === "Administrator" ||
+    backendUser?.role === "Super Administrator";
+
   // Fallback: use dashboard companyInfo if companyInfoSlice has no items yet
   const dashboardCompanyInfo = useSelector(
     (state: RootState) => state.dashboard.companyInfo ?? undefined,
@@ -148,7 +153,12 @@ export function useSettingsScreen() {
     } catch (err) {
       return {
         success: false,
-        message: typeof err === "string" ? err : err instanceof Error ? err.message : "Failed to save settings",
+        message:
+          typeof err === "string"
+            ? err
+            : err instanceof Error
+              ? err.message
+              : "Failed to save settings",
       };
     } finally {
       setIsSaving(false);
@@ -172,6 +182,7 @@ export function useSettingsScreen() {
     refreshing,
     isSaving,
     company,
+    canEditSettings,
 
     // Form state
     name,
