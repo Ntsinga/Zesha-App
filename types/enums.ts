@@ -17,6 +17,9 @@ export type CommissionVarianceStatus =
   | "UNDER_COLLECTED"
   | "OVER_COLLECTED";
 
+// How commission reconciliation is calculated per telecom account
+export type CommissionModelEnum = "EXPECTED_ONLY" | "CUMULATIVE" | "PARTIAL";
+
 // User permission levels - matches backend RoleEnum values
 export type RoleEnum =
   | "Super Administrator"
@@ -37,10 +40,18 @@ export type ReconciliationStatusEnum = "DRAFT" | "CALCULATED" | "FINALIZED";
 export type ReconciliationSubtypeEnum = "OPENING" | "CLOSING";
 
 // Transaction types - matches backend TransactionTypeEnum
-export type TransactionTypeEnum = "DEPOSIT" | "WITHDRAW" | "FLOAT_PURCHASE" | "CAPITAL_INJECTION";
+export type TransactionTypeEnum =
+  | "DEPOSIT"
+  | "WITHDRAW"
+  | "FLOAT_PURCHASE"
+  | "CAPITAL_INJECTION";
 
 // Balance validation status - matches backend BalanceValidationEnum
-export type BalanceValidationEnum = "PENDING" | "MATCHED" | "SHORTAGE" | "EXCESS";
+export type BalanceValidationEnum =
+  | "PENDING"
+  | "MATCHED"
+  | "SHORTAGE"
+  | "EXCESS";
 
 // Legacy reconciliation type (deprecated - use SourceEnum)
 export type ReconciliationTypeEnum = "WHATSAPP" | "MOBILE_APP" | "MANUAL";
