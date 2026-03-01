@@ -103,7 +103,10 @@ export default function AgenciesScreen() {
               await dispatch(deleteCompanyInfo(id)).unwrap();
               dispatch(fetchCompanyInfoList({}));
             } catch (err) {
-              Alert.alert("Error", "Failed to delete agency");
+              Alert.alert(
+                "Error",
+                typeof err === "string" ? err : err instanceof Error ? err.message : "Failed to delete agency",
+              );
             }
           },
         },

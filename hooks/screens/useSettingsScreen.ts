@@ -148,7 +148,7 @@ export function useSettingsScreen() {
     } catch (err) {
       return {
         success: false,
-        message: err instanceof Error ? err.message : "Failed to save settings",
+        message: typeof err === "string" ? err : err instanceof Error ? err.message : "Failed to save settings",
       };
     } finally {
       setIsSaving(false);

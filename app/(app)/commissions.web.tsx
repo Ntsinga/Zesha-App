@@ -1,12 +1,14 @@
 import React from "react";
 import {
   Banknote,
-  Image as ImageIcon,
-  X,
   RefreshCw,
-  Plus,
   TrendingUp,
   Filter,
+  ArrowDownLeft,
+  ArrowUpRight,
+  Calendar,
+  RotateCcw,
+  Hash,
 } from "lucide-react";
 import { useCommissionsScreen } from "../../hooks/screens/useCommissionsScreen";
 import type { ShiftEnum } from "../../types";
@@ -16,28 +18,29 @@ export default function CommissionsPage() {
   const {
     isLoading,
     refreshing,
-    selectedImage,
-    setSelectedImage,
     filterShift,
     setFilterShift,
+    filterAccountId,
+    setFilterAccountId,
+    filterDateFrom,
+    setFilterDateFrom,
+    filterDateTo,
+    setFilterDateTo,
     filteredCommissions,
-    overallTotal,
-    amTotal,
-    pmTotal,
+    accounts,
+    metrics,
     onRefresh,
-    getImageUri,
-    handleBack,
-    handleAddCommission,
+    handleResetFilters,
     formatCurrency,
-    formatDate,
+    formatDateTime,
   } = useCommissionsScreen();
 
-  if (isLoading) {
+  if (isLoading && filteredCommissions.length === 0) {
     return (
       <div className="page-wrapper">
         <div className="loading-container">
           <div className="spinner"></div>
-          <p>Loading commissions...</p>
+          <p>Loading expected commissions...</p>
         </div>
       </div>
     );
@@ -48,8 +51,10 @@ export default function CommissionsPage() {
       {/* Header Bar */}
       <header className="header-bar">
         <div className="header-left">
-          <h1 className="header-title">Commissions</h1>
-          <span className="header-date">Commission payment records</span>
+          <h1 className="header-title">Expected Commissions</h1>
+          <span className="header-date">
+            Auto-calculated from transactions
+          </span>
         </div>
         <div className="header-right">
           <button
@@ -59,10 +64,6 @@ export default function CommissionsPage() {
           >
             <RefreshCw size={18} className={refreshing ? "spin" : ""} />
           </button>
-          <button className="btn-primary" onClick={handleAddCommission}>
-            <Plus size={16} />
-            Add Commission
-          </button>
         </div>
       </header>
 
@@ -70,48 +71,79 @@ export default function CommissionsPage() {
       <div className="dashboard-content">
         {/* Summary Cards */}
         <div className="stats-row">
-          <div className="stat-card primary">
-            <div className="stat-icon">
+          <div className="stat-card">
+            <div className="stat-icon" style={{ color: "#7c3aed" }}>
               <TrendingUp size={24} />
             </div>
             <div className="stat-content">
-              <span className="stat-label">Total Commissions</span>
-              <span className="stat-value">{formatCurrency(overallTotal)}</span>
+              <span className="stat-label">Total Expected</span>
+              <span className="stat-value" style={{ color: "#7c3aed" }}>
+                {formatCurrency(metrics.totalCommission)}
+              </span>
             </div>
           </div>
           <div className="stat-card">
-            <div className="stat-icon am">
-              <Banknote size={24} />
+            <div className="stat-icon" style={{ color: "#22c55e" }}>
+              <ArrowDownLeft size={24} />
             </div>
             <div className="stat-content">
-              <span className="stat-label">AM Total</span>
-              <span className="stat-value">{formatCurrency(amTotal)}</span>
+              <span className="stat-label">Deposit Commission</span>
+              <span className="stat-value">
+                {formatCurrency(metrics.depositCommission)}
+              </span>
             </div>
           </div>
           <div className="stat-card">
-            <div className="stat-icon pm">
-              <Banknote size={24} />
+            <div className="stat-icon" style={{ color: "#ef4444" }}>
+              <ArrowUpRight size={24} />
             </div>
             <div className="stat-content">
-              <span className="stat-label">PM Total</span>
-              <span className="stat-value">{formatCurrency(pmTotal)}</span>
+              <span className="stat-label">Withdraw Commission</span>
+              <span className="stat-value">
+                {formatCurrency(metrics.withdrawCommission)}
+              </span>
             </div>
           </div>
           <div className="stat-card">
             <div className="stat-icon">
-              <Banknote size={24} />
+              <Hash size={24} />
             </div>
             <div className="stat-content">
-              <span className="stat-label">Records</span>
-              <span className="stat-value">{filteredCommissions.length}</span>
+              <span className="stat-label">Transactions</span>
+              <span className="stat-value">{metrics.recordCount}</span>
             </div>
           </div>
         </div>
 
         {/* Filter Bar */}
         <div className="filter-bar">
-          <div className="filter-group">
+          <div
+            className="filter-group"
+            style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}
+          >
             <Filter size={16} />
+
+            {/* Date From */}
+            <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+              <Calendar size={14} style={{ color: "#64748b" }} />
+              <input
+                type="date"
+                value={filterDateFrom}
+                onChange={(e) => setFilterDateFrom(e.target.value)}
+                className="filter-select"
+                style={{ width: "auto" }}
+              />
+            </div>
+            <span style={{ color: "#94a3b8", fontSize: "13px" }}>to</span>
+            <input
+              type="date"
+              value={filterDateTo}
+              onChange={(e) => setFilterDateTo(e.target.value)}
+              className="filter-select"
+              style={{ width: "auto" }}
+            />
+
+            {/* Shift Filter */}
             <select
               value={filterShift}
               onChange={(e) =>
@@ -123,86 +155,126 @@ export default function CommissionsPage() {
               <option value="AM">AM Shift</option>
               <option value="PM">PM Shift</option>
             </select>
+
+            {/* Account Filter */}
+            <select
+              value={filterAccountId ?? ""}
+              onChange={(e) =>
+                setFilterAccountId(
+                  e.target.value ? Number(e.target.value) : null,
+                )
+              }
+              className="filter-select"
+            >
+              <option value="">All Accounts</option>
+              {accounts.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.name}
+                </option>
+              ))}
+            </select>
+
+            {/* Reset */}
+            <button
+              onClick={handleResetFilters}
+              className="btn-icon-sm"
+              title="Reset filters"
+              style={{ padding: "6px 10px" }}
+            >
+              <RotateCcw size={14} />
+            </button>
           </div>
         </div>
 
-        {/* Commissions Table */}
+        {/* Expected Commissions Table */}
         {filteredCommissions.length === 0 ? (
           <div className="empty-state">
             <Banknote size={48} className="empty-icon" />
-            <h3>No commission records yet</h3>
-            <p>Add commissions from the Balance page</p>
+            <h3>No expected commissions</h3>
+            <p>
+              Commissions are auto-calculated when DEPOSIT or WITHDRAW
+              transactions are recorded on accounts with commission rates
+            </p>
           </div>
         ) : (
-          <div className="data-table-container">
+          <div className="table-card">
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>Date</th>
+                  <th>Time</th>
                   <th>Account</th>
+                  <th>Type</th>
                   <th>Shift</th>
-                  <th>Source</th>
-                  <th>Amount</th>
-                  <th>Image</th>
+                  <th>Transaction Amt</th>
+                  <th>Rate</th>
+                  <th>Commission</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredCommissions.map((commission) => {
-                  const imageUri = getImageUri(commission);
-
-                  return (
-                    <tr key={commission.id}>
-                      <td>{formatDate(commission.date, "medium")}</td>
-                      <td>
-                        {commission.account?.name ||
-                          `Account ${commission.accountId}`}
-                      </td>
-                      <td>
-                        <span
-                          className={`shift-badge ${commission.shift.toLowerCase()}`}
-                        >
-                          {commission.shift}
-                        </span>
-                      </td>
-                      <td>{commission.source || "-"}</td>
-                      <td className="amount-cell">
-                        {formatCurrency(commission.amount)}
-                      </td>
-                      <td>
-                        {imageUri ? (
-                          <button
-                            className="btn-icon-sm"
-                            onClick={() => setSelectedImage(imageUri)}
-                          >
-                            <ImageIcon size={16} />
-                          </button>
+                {filteredCommissions.map((ec) => (
+                  <tr key={ec.id}>
+                    <td style={{ whiteSpace: "nowrap" }}>
+                      {ec.transactionTime
+                        ? formatDateTime(ec.transactionTime)
+                        : ec.date}
+                    </td>
+                    <td className="font-medium">
+                      {ec.accountName || `Account #${ec.accountId}`}
+                    </td>
+                    <td>
+                      <span
+                        className="category-badge"
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "4px",
+                          background:
+                            ec.transactionType === "DEPOSIT"
+                              ? "rgba(34,197,94,0.15)"
+                              : "rgba(239,68,68,0.15)",
+                          color:
+                            ec.transactionType === "DEPOSIT"
+                              ? "#22c55e"
+                              : "#ef4444",
+                          borderColor:
+                            ec.transactionType === "DEPOSIT"
+                              ? "rgba(34,197,94,0.3)"
+                              : "rgba(239,68,68,0.3)",
+                        }}
+                      >
+                        {ec.transactionType === "DEPOSIT" ? (
+                          <ArrowDownLeft size={14} />
                         ) : (
-                          <span className="text-muted">-</span>
+                          <ArrowUpRight size={14} />
                         )}
-                      </td>
-                    </tr>
-                  );
-                })}
+                        {ec.transactionType === "DEPOSIT"
+                          ? "Deposit"
+                          : "Withdraw"}
+                      </span>
+                    </td>
+                    <td>
+                      <span className="shift-badge">{ec.shift}</span>
+                    </td>
+                    <td>{formatCurrency(ec.transactionAmount)}</td>
+                    <td style={{ color: "#7c3aed", fontWeight: 500 }}>
+                      {parseFloat(String(ec.commissionRate))}%
+                    </td>
+                    <td
+                      style={{
+                        color: "#7c3aed",
+                        fontWeight: 600,
+                        fontSize: "14px",
+                      }}
+                    >
+                      {formatCurrency(ec.commissionAmount)}
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
         )}
       </div>
-
-      {/* Image Modal */}
-      {selectedImage && (
-        <div className="modal-overlay" onClick={() => setSelectedImage(null)}>
-          <div className="image-modal" onClick={(e) => e.stopPropagation()}>
-            <button
-              className="modal-close"
-              onClick={() => setSelectedImage(null)}
-            >
-              <X size={24} />
-            </button>
-            <img src={selectedImage} alt="Commission receipt" />
-          </div>
-        </div>
-      )}
     </div>
   );
 }

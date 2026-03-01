@@ -24,6 +24,7 @@ import cashCountReducer from "./slices/cashCountSlice";
 import accountsReducer from "./slices/accountsSlice";
 import usersReducer from "./slices/usersSlice";
 import syncQueueReducer from "./slices/syncQueueSlice";
+import expectedCommissionsReducer from "./slices/expectedCommissionsSlice";
 
 const appReducer = combineReducers({
   auth: authReducer,
@@ -39,6 +40,7 @@ const appReducer = combineReducers({
   accounts: accountsReducer,
   users: usersReducer,
   syncQueue: syncQueueReducer,
+  expectedCommissions: expectedCommissionsReducer,
 });
 
 /**

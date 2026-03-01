@@ -25,7 +25,17 @@ export function toCamelCase<T extends Record<string, unknown>>(
           : item,
       );
     } else {
-      result[camelKey] = value;
+      // Coerce Decimal strings (from Python backend) to numbers so arithmetic works correctly.
+      // Matches strings like "300000.00", "1.5", "-200" but not dates or other text.
+      if (
+        typeof value === "string" &&
+        value !== "" &&
+        /^-?\d+(\.\d+)?$/.test(value)
+      ) {
+        result[camelKey] = Number(value);
+      } else {
+        result[camelKey] = value;
+      }
     }
   }
 

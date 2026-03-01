@@ -42,6 +42,12 @@ export default function Accounts() {
     setIsActive,
     initialBalance,
     setInitialBalance,
+    commissionDepositPct,
+    setCommissionDepositPct,
+    commissionWithdrawPct,
+    setCommissionWithdrawPct,
+    commissionChangeReason,
+    setCommissionChangeReason,
     stats,
     onRefresh,
     openAddModal,
@@ -219,6 +225,7 @@ export default function Accounts() {
                   <th>Name</th>
                   <th>Type</th>
                   <th>Current Balance</th>
+                  <th>Commission (D / W)</th>
                   <th>Status</th>
                 </tr>
               </thead>
@@ -247,6 +254,11 @@ export default function Accounts() {
                     <td className="font-medium">
                       {formatCurrency(account.currentBalance ?? 0)}
                     </td>
+                    <td style={{ fontSize: 12, color: "#64748b" }}>
+                      {account.commissionDepositPercentage != null || account.commissionWithdrawPercentage != null
+                        ? `${parseFloat(Number(account.commissionDepositPercentage ?? 0).toFixed(2))}% / ${parseFloat(Number(account.commissionWithdrawPercentage ?? 0).toFixed(2))}%`
+                        : <span style={{ color: "#cbd5e1" }}>—</span>}
+                    </td>
                     <td>
                       <span
                         className={`status-badge ${
@@ -273,9 +285,25 @@ export default function Accounts() {
           >
             <div className="modal-header">
               <h2>{editingAccount ? "Edit Account" : "Add Account"}</h2>
-              <button className="btn-icon" onClick={closeModal}>
-                <X size={20} />
-              </button>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                {editingAccount && (
+                  <button
+                    className="btn-icon"
+                    onClick={() => {
+                      closeModal();
+                      confirmDelete(editingAccount);
+                    }}
+                    disabled={isSubmitting}
+                    title="Delete account"
+                    style={{ color: "#ef4444" }}
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                )}
+                <button className="btn-icon" onClick={closeModal}>
+                  <X size={20} />
+                </button>
+              </div>
             </div>
 
             <div className="modal-form">
@@ -361,27 +389,57 @@ export default function Accounts() {
                   </label>
                 </div>
               </div>
+
+              <div style={{ display: "flex", gap: 12 }}>
+                <div className="form-group" style={{ flex: 1 }}>
+                  <label className="form-label">Deposit Commission %</label>
+                  <input
+                    type="number"
+                    value={commissionDepositPct}
+                    onChange={(e) => setCommissionDepositPct(e.target.value)}
+                    placeholder="e.g. 1.5"
+                    className="form-input"
+                    min="0"
+                    max="100"
+                    step="0.0001"
+                  />
+                </div>
+                <div className="form-group" style={{ flex: 1 }}>
+                  <label className="form-label">Withdraw Commission %</label>
+                  <input
+                    type="number"
+                    value={commissionWithdrawPct}
+                    onChange={(e) => setCommissionWithdrawPct(e.target.value)}
+                    placeholder="e.g. 0.75"
+                    className="form-input"
+                    min="0"
+                    max="100"
+                    step="0.0001"
+                  />
+                </div>
+              </div>
+
+              {editingAccount && (
+                <div className="form-group">
+                  <label className="form-label">Commission Change Reason</label>
+                  <input
+                    type="text"
+                    value={commissionChangeReason}
+                    onChange={(e) => setCommissionChangeReason(e.target.value)}
+                    placeholder="Reason for rate change (optional)"
+                    className="form-input"
+                  />
+                  <span className="form-hint">Recorded in the audit log when rates are changed</span>
+                </div>
+              )}
             </div>
 
             <div className="modal-footer">
-              {editingAccount && (
-                <button
-                  className="btn-danger"
-                  onClick={() => {
-                    closeModal();
-                    confirmDelete(editingAccount);
-                  }}
-                  disabled={isSubmitting}
-                  style={{ marginRight: "auto" }}
-                >
-                  <Trash2 size={16} />
-                  Delete
-                </button>
-              )}
               <button
                 className="btn-secondary"
                 onClick={closeModal}
                 disabled={isSubmitting}
+                style={{ flex: 1 }}
               >
                 Cancel
               </button>
@@ -389,6 +447,7 @@ export default function Accounts() {
                 className="btn-primary"
                 onClick={onSubmit}
                 disabled={isSubmitting}
+                style={{ flex: 2 }}
               >
                 {isSubmitting ? (
                   <RefreshCw size={16} className="spin" />

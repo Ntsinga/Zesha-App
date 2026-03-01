@@ -143,7 +143,7 @@ export default function AgencyFormScreen() {
       router.back();
     } catch (err) {
       setFormError(
-        err instanceof Error ? err.message : "Failed to save agency",
+        typeof err === "string" ? err : err instanceof Error ? err.message : "Failed to save agency",
       );
     } finally {
       setIsSaving(false);

@@ -7,6 +7,7 @@ import type {
   Balance,
   CompanyInfo,
   CommissionBreakdown,
+  LiveCapitalSnapshot,
 } from "@/types";
 import { mapApiResponse, buildTypedQueryString } from "@/types";
 import { API_ENDPOINTS } from "@/config/api";
@@ -18,6 +19,7 @@ import type { RootState } from "../index";
 export interface DashboardState {
   companyInfo: CompanyInfo | null;
   summary: DashboardSummary | null;
+  liveCapital: LiveCapitalSnapshot | null;
   accounts: AccountSummary[];
   currentShift: ShiftEnum;
   snapshotDate: string;
@@ -40,6 +42,7 @@ const getTodayDate = (): string => {
 const initialState: DashboardState = {
   companyInfo: null,
   summary: null,
+  liveCapital: null,
   accounts: [],
   currentShift: getCurrentShift(),
   snapshotDate: getTodayDate(),
@@ -70,6 +73,7 @@ interface FetchDashboardParams {
 interface FetchDashboardResult {
   companyInfo: CompanyInfo;
   summary: DashboardSummary;
+  liveCapital: LiveCapitalSnapshot | null;
   accounts: AccountSummary[];
   snapshotDate: string;
   shift: ShiftEnum;
@@ -108,6 +112,7 @@ export const fetchDashboard = createAsyncThunk<
         return {
           companyInfo: state.dashboard.companyInfo!,
           summary: state.dashboard.summary!,
+          liveCapital: state.dashboard.liveCapital,
           accounts: state.dashboard.accounts,
           snapshotDate: state.dashboard.snapshotDate,
           shift: state.dashboard.currentShift,
@@ -131,6 +136,7 @@ export const fetchDashboard = createAsyncThunk<
         return {
           companyInfo: state.dashboard.companyInfo!,
           summary: state.dashboard.summary!,
+          liveCapital: state.dashboard.liveCapital,
           accounts: state.dashboard.accounts,
           snapshotDate: cachedDate,
           shift: cachedShift,
@@ -160,10 +166,12 @@ export const fetchDashboard = createAsyncThunk<
       companyId: companyId,
     });
 
-    // Fetch snapshot and balances in PARALLEL for better performance
-    const [snapshot, balances] = await Promise.all([
+    // Fetch snapshot, balances, and live capital in PARALLEL for better performance
+    const liveEndpoint = API_ENDPOINTS.companyInfo.liveSnapshot(companyId);
+    const [snapshot, balances, liveCapital] = await Promise.all([
       apiRequest<CompanySnapshot>(snapshotEndpoint),
       apiRequest<Balance[]>(`${API_ENDPOINTS.balances.list}${balanceQuery}`),
+      apiRequest<LiveCapitalSnapshot>(liveEndpoint).catch(() => null),
     ]);
 
     // Transform balances to AccountSummary format
@@ -194,6 +202,7 @@ export const fetchDashboard = createAsyncThunk<
     return {
       companyInfo: snapshot.company,
       summary,
+      liveCapital,
       accounts,
       snapshotDate,
       shift,
@@ -238,6 +247,7 @@ const dashboardSlice = createSlice({
         state.isLoading = false;
         state.companyInfo = action.payload.companyInfo;
         state.summary = action.payload.summary;
+        state.liveCapital = action.payload.liveCapital;
         state.accounts = action.payload.accounts;
         state.snapshotDate = action.payload.snapshotDate;
         state.currentShift = action.payload.shift;

@@ -5,6 +5,8 @@ import {
   fetchTransactions,
   createTransaction,
   createFloatPurchase,
+  createCapitalInjection,
+  confirmTransaction,
   reverseTransaction,
   updateTransaction,
   clearError,
@@ -13,11 +15,13 @@ import {
 } from "../../store/slices/transactionsSlice";
 import { fetchAccounts } from "../../store/slices/accountsSlice";
 import { useCurrencyFormatter } from "../useCurrency";
+import { formatDateTime } from "../../utils/formatters";
 import type { AppDispatch, RootState } from "../../store";
 import type { ShiftEnum, TransactionTypeEnum } from "../../types";
 import type {
   TransactionCreate,
   FloatPurchaseCreate,
+  CapitalInjectionCreate,
   Transaction,
 } from "../../types/transaction";
 
@@ -29,7 +33,6 @@ export interface TransactionFormState {
   amount: string;
   reference: string;
   notes: string;
-  shift: ShiftEnum;
 }
 
 export interface FloatPurchaseFormState {
@@ -38,7 +41,7 @@ export interface FloatPurchaseFormState {
   amount: string;
   reference: string;
   notes: string;
-  shift: ShiftEnum;
+  isConfirmed: boolean;
 }
 
 const initialTransactionForm: TransactionFormState = {
@@ -47,7 +50,6 @@ const initialTransactionForm: TransactionFormState = {
   amount: "",
   reference: "",
   notes: "",
-  shift: "AM",
 };
 
 const initialFloatPurchaseForm: FloatPurchaseFormState = {
@@ -56,7 +58,21 @@ const initialFloatPurchaseForm: FloatPurchaseFormState = {
   amount: "",
   reference: "",
   notes: "",
-  shift: "AM",
+  isConfirmed: true,
+};
+
+export interface CapitalInjectionFormState {
+  accountId: number | null;
+  amount: string;
+  reference: string;
+  notes: string;
+}
+
+const initialCapitalInjectionForm: CapitalInjectionFormState = {
+  accountId: null,
+  amount: "",
+  reference: "",
+  notes: "",
 };
 
 // ============= Hook =============
@@ -72,16 +88,23 @@ export function useTransactionsScreen() {
   );
   const [filterShift, setFilterShift] = useState<ShiftEnum | "ALL">("ALL");
   const [filterAccountId, setFilterAccountId] = useState<number | null>(null);
-  const [filterDateFrom, setFilterDateFrom] = useState<string>(
-    new Date().toISOString().split("T")[0],
-  );
+  const [filterDateFrom, setFilterDateFrom] = useState<string>(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 30);
+    return d.toISOString().split("T")[0];
+  });
   const [filterDateTo, setFilterDateTo] = useState<string>(
     new Date().toISOString().split("T")[0],
   );
 
+  // ---- Submit error (shown inline inside modals) ----
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const clearSubmitError = useCallback(() => setSubmitError(null), []);
+
   // ---- Modal state ----
   const [showAddTransaction, setShowAddTransaction] = useState(false);
   const [showFloatPurchase, setShowFloatPurchase] = useState(false);
+  const [showCapitalInjection, setShowCapitalInjection] = useState(false);
   const [showReverseConfirm, setShowReverseConfirm] = useState(false);
   const [transactionToReverse, setTransactionToReverse] =
     useState<Transaction | null>(null);
@@ -92,6 +115,8 @@ export function useTransactionsScreen() {
   );
   const [floatPurchaseForm, setFloatPurchaseForm] =
     useState<FloatPurchaseFormState>(initialFloatPurchaseForm);
+  const [capitalInjectionForm, setCapitalInjectionForm] =
+    useState<CapitalInjectionFormState>(initialCapitalInjectionForm);
 
   // ---- Redux state ----
   const {
@@ -109,14 +134,6 @@ export function useTransactionsScreen() {
 
   const lastFetchedCompanyId = useRef<number | null>(null);
 
-  // ---- Auto-detect shift ----
-  useEffect(() => {
-    const currentHour = new Date().getHours();
-    const detectedShift: ShiftEnum = currentHour < 12 ? "AM" : "PM";
-    setTransactionForm((prev) => ({ ...prev, shift: detectedShift }));
-    setFloatPurchaseForm((prev) => ({ ...prev, shift: detectedShift }));
-  }, []);
-
   // ---- Fetch data on mount ----
   useEffect(() => {
     if (!companyId) return;
@@ -133,7 +150,7 @@ export function useTransactionsScreen() {
     const filters: Record<string, unknown> = {
       companyId,
       startDate: filterDateFrom,
-      endDate: filterDateTo,
+      endDate: filterDateTo + "T23:59:59",
     };
 
     if (filterType !== "ALL") {
@@ -173,8 +190,14 @@ export function useTransactionsScreen() {
     let depositCount = 0;
     let withdrawCount = 0;
     let floatCount = 0;
+    let totalExpectedCommission = 0;
 
     transactions.forEach((t) => {
+      // Accumulate commission from loaded expected_commission
+      if (t.expectedCommission) {
+        totalExpectedCommission += t.expectedCommission.commissionAmount;
+      }
+
       switch (t.transactionType) {
         case "DEPOSIT":
           totalDeposits += t.amount;
@@ -198,6 +221,7 @@ export function useTransactionsScreen() {
       depositCount,
       withdrawCount,
       floatCount,
+      totalExpectedCommission,
     };
   }, [transactions]);
 
@@ -205,6 +229,33 @@ export function useTransactionsScreen() {
   const activeAccounts = useMemo(() => {
     return accounts.filter((a) => a.isActive);
   }, [accounts]);
+
+  // ---- Commission preview for transaction form ----
+  const transactionCommissionPreview = useMemo(() => {
+    if (!transactionForm.accountId || !transactionForm.amount) return null;
+    const amt = parseFloat(transactionForm.amount);
+    if (isNaN(amt) || amt <= 0) return null;
+
+    const account = activeAccounts.find((a) => a.id === transactionForm.accountId);
+    if (!account) return null;
+
+    const rate =
+      transactionForm.transactionType === "DEPOSIT"
+        ? account.commissionDepositPercentage
+        : account.commissionWithdrawPercentage;
+
+    if (rate == null || rate === 0) return null;
+
+    return {
+      rate,
+      amount: (amt * rate) / 100,
+    };
+  }, [
+    transactionForm.accountId,
+    transactionForm.amount,
+    transactionForm.transactionType,
+    activeAccounts,
+  ]);
 
   // ---- Handlers ----
 
@@ -219,25 +270,25 @@ export function useTransactionsScreen() {
       transactionType: transactionForm.transactionType,
       amount: parseFloat(transactionForm.amount),
       transactionTime: new Date().toISOString(),
-      shift: transactionForm.shift,
       reference: transactionForm.reference || undefined,
       notes: transactionForm.notes || undefined,
     };
 
+    setSubmitError(null);
     try {
       await dispatch(createTransaction(data)).unwrap();
       setShowAddTransaction(false);
       setTransactionForm(initialTransactionForm);
-      // Re-fetch to get updated list
       dispatch(
         fetchTransactions({
           companyId,
           startDate: filterDateFrom,
-          endDate: filterDateTo,
+          endDate: filterDateTo + "T23:59:59",
         }),
       );
-    } catch {
-      // Error handled by Redux state
+    } catch (err) {
+      setSubmitError(typeof err === "string" ? err : err instanceof Error ? err.message : "Failed to create transaction.");
+      dispatch(clearError());
     }
   }, [dispatch, companyId, transactionForm, filterDateFrom, filterDateTo]);
 
@@ -257,11 +308,12 @@ export function useTransactionsScreen() {
       destinationAccountId: floatPurchaseForm.destinationAccountId,
       amount: parseFloat(floatPurchaseForm.amount),
       transactionTime: new Date().toISOString(),
-      shift: floatPurchaseForm.shift,
       reference: floatPurchaseForm.reference || undefined,
       notes: floatPurchaseForm.notes || undefined,
+      isConfirmed: floatPurchaseForm.isConfirmed,
     };
 
+    setSubmitError(null);
     try {
       await dispatch(createFloatPurchase(data)).unwrap();
       setShowFloatPurchase(false);
@@ -270,18 +322,59 @@ export function useTransactionsScreen() {
         fetchTransactions({
           companyId,
           startDate: filterDateFrom,
-          endDate: filterDateTo,
+          endDate: filterDateTo + "T23:59:59",
         }),
       );
-    } catch {
-      // Error handled by Redux state
+    } catch (err) {
+      setSubmitError(typeof err === "string" ? err : err instanceof Error ? err.message : "Failed to create float purchase.");
+      dispatch(clearError());
     }
   }, [dispatch, companyId, floatPurchaseForm, filterDateFrom, filterDateTo]);
+
+  const handleCreateCapitalInjection = useCallback(async () => {
+    if (!capitalInjectionForm.accountId || !capitalInjectionForm.amount || !companyId) {
+      return;
+    }
+
+    const data: CapitalInjectionCreate = {
+      companyId,
+      accountId: capitalInjectionForm.accountId,
+      amount: parseFloat(capitalInjectionForm.amount),
+      transactionTime: new Date().toISOString(),
+      reference: capitalInjectionForm.reference || undefined,
+      notes: capitalInjectionForm.notes || undefined,
+    };
+
+    setSubmitError(null);
+    try {
+      await dispatch(createCapitalInjection(data)).unwrap();
+      setShowCapitalInjection(false);
+      setCapitalInjectionForm(initialCapitalInjectionForm);
+      dispatch(
+        fetchTransactions({
+          companyId,
+          startDate: filterDateFrom,
+          endDate: filterDateTo + "T23:59:59",
+        }),
+      );
+    } catch (err) {
+      setSubmitError(typeof err === "string" ? err : err instanceof Error ? err.message : "Failed to record capital injection.");
+      dispatch(clearError());
+    }
+  }, [dispatch, companyId, capitalInjectionForm, filterDateFrom, filterDateTo]);
 
   const handleReverse = useCallback(async (transaction: Transaction) => {
     setTransactionToReverse(transaction);
     setShowReverseConfirm(true);
   }, []);
+
+  const handleConfirmTransaction = useCallback(async (transactionId: number) => {
+    try {
+      await dispatch(confirmTransaction(transactionId)).unwrap();
+    } catch {
+      // Error handled by Redux state
+    }
+  }, [dispatch]);
 
   const confirmReverse = useCallback(async () => {
     if (!transactionToReverse || !companyId) return;
@@ -294,7 +387,7 @@ export function useTransactionsScreen() {
         fetchTransactions({
           companyId,
           startDate: filterDateFrom,
-          endDate: filterDateTo,
+          endDate: filterDateTo + "T23:59:59",
         }),
       );
     } catch {
@@ -308,7 +401,7 @@ export function useTransactionsScreen() {
       fetchTransactions({
         companyId,
         startDate: filterDateFrom,
-        endDate: filterDateTo,
+        endDate: filterDateTo + "T23:59:59",
       }),
     );
   }, [dispatch, companyId, filterDateFrom, filterDateTo]);
@@ -337,6 +430,8 @@ export function useTransactionsScreen() {
           return "Withdraw";
         case "FLOAT_PURCHASE":
           return "Float Purchase";
+        case "CAPITAL_INJECTION":
+          return "Capital Injection";
         default:
           return type;
       }
@@ -353,6 +448,8 @@ export function useTransactionsScreen() {
           return "red";
         case "FLOAT_PURCHASE":
           return "blue";
+        case "CAPITAL_INJECTION":
+          return "teal";
         default:
           return "gray";
       }
@@ -360,22 +457,13 @@ export function useTransactionsScreen() {
     [],
   );
 
-  const formatDateTime = useCallback((isoString: string): string => {
-    const date = new Date(isoString);
-    return date.toLocaleString("en-ZA", {
-      day: "2-digit",
-      month: "short",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  }, []);
-
   return {
     // Data
     transactions: sortedTransactions,
     accounts: activeAccounts,
     metrics,
     companyId,
+    transactionCommissionPreview,
 
     // Loading states
     isLoading,
@@ -399,6 +487,8 @@ export function useTransactionsScreen() {
     setShowAddTransaction,
     showFloatPurchase,
     setShowFloatPurchase,
+    showCapitalInjection,
+    setShowCapitalInjection,
     showReverseConfirm,
     setShowReverseConfirm,
     transactionToReverse,
@@ -408,11 +498,19 @@ export function useTransactionsScreen() {
     setTransactionForm,
     floatPurchaseForm,
     setFloatPurchaseForm,
+    capitalInjectionForm,
+    setCapitalInjectionForm,
+
+    // Submit error (inline modal feedback)
+    submitError,
+    clearSubmitError,
 
     // Handlers
     handleCreateTransaction,
     handleCreateFloatPurchase,
+    handleCreateCapitalInjection,
     handleReverse,
+    handleConfirmTransaction,
     confirmReverse,
     handleRefresh,
     handleClearError,

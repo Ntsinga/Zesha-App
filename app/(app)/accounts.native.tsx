@@ -51,6 +51,12 @@ export default function Accounts() {
     closeModal,
     handleSubmit,
     confirmDelete,
+    commissionDepositPct,
+    setCommissionDepositPct,
+    commissionWithdrawPct,
+    setCommissionWithdrawPct,
+    commissionChangeReason,
+    setCommissionChangeReason,
   } = useAccountsScreen();
 
   const onSubmit = async () => {
@@ -283,7 +289,7 @@ export default function Accounts() {
             </View>
 
             {/* Active Toggle */}
-            <View className="mb-6">
+            <View className="mb-4">
               <TouchableOpacity
                 onPress={() => setIsActive(!isActive)}
                 className="flex-row items-center justify-between bg-gray-100 rounded-lg px-4 py-3"
@@ -302,6 +308,48 @@ export default function Accounts() {
                 </View>
               </TouchableOpacity>
             </View>
+
+            {/* Commission Rates */}
+            <View className="flex-row mb-4" style={{ gap: 12 }}>
+              <View className="flex-1">
+                <Text className="text-sm font-medium text-gray-600 mb-2">
+                  Deposit Commission %
+                </Text>
+                <TextInput
+                  value={commissionDepositPct}
+                  onChangeText={setCommissionDepositPct}
+                  placeholder="e.g. 1.5"
+                  className="bg-gray-100 rounded-lg px-4 py-3 text-gray-800"
+                  keyboardType="decimal-pad"
+                />
+              </View>
+              <View className="flex-1">
+                <Text className="text-sm font-medium text-gray-600 mb-2">
+                  Withdraw Commission %
+                </Text>
+                <TextInput
+                  value={commissionWithdrawPct}
+                  onChangeText={setCommissionWithdrawPct}
+                  placeholder="e.g. 0.75"
+                  className="bg-gray-100 rounded-lg px-4 py-3 text-gray-800"
+                  keyboardType="decimal-pad"
+                />
+              </View>
+            </View>
+
+            {editingAccount && (
+              <View className="mb-4">
+                <Text className="text-sm font-medium text-gray-600 mb-2">
+                  Commission Change Reason
+                </Text>
+                <TextInput
+                  value={commissionChangeReason}
+                  onChangeText={setCommissionChangeReason}
+                  placeholder="Reason for rate change (optional)"
+                  className="bg-gray-100 rounded-lg px-4 py-3 text-gray-800"
+                />
+              </View>
+            )}
 
             {/* Submit Button */}
             <TouchableOpacity
