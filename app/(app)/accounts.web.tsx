@@ -15,7 +15,7 @@ import {
   ACCOUNT_TYPES,
 } from "../../hooks/screens/useAccountsScreen";
 import { useCurrencyFormatter } from "../../hooks/useCurrency";
-import type { AccountTypeEnum } from "../../types";
+import type { AccountTypeEnum, CommissionModelEnum } from "../../types";
 import "../../styles/web.css";
 
 export default function Accounts() {
@@ -48,6 +48,8 @@ export default function Accounts() {
     setCommissionWithdrawPct,
     commissionChangeReason,
     setCommissionChangeReason,
+    commissionModel,
+    setCommissionModel,
     stats,
     onRefresh,
     openAddModal,
@@ -255,9 +257,12 @@ export default function Accounts() {
                       {formatCurrency(account.currentBalance ?? 0)}
                     </td>
                     <td style={{ fontSize: 12, color: "#64748b" }}>
-                      {account.commissionDepositPercentage != null || account.commissionWithdrawPercentage != null
-                        ? `${parseFloat(Number(account.commissionDepositPercentage ?? 0).toFixed(2))}% / ${parseFloat(Number(account.commissionWithdrawPercentage ?? 0).toFixed(2))}%`
-                        : <span style={{ color: "#cbd5e1" }}>—</span>}
+                      {account.commissionDepositPercentage != null ||
+                      account.commissionWithdrawPercentage != null ? (
+                        `${parseFloat(Number(account.commissionDepositPercentage ?? 0).toFixed(2))}% / ${parseFloat(Number(account.commissionWithdrawPercentage ?? 0).toFixed(2))}%`
+                      ) : (
+                        <span style={{ color: "#cbd5e1" }}>—</span>
+                      )}
                     </td>
                     <td>
                       <span
@@ -340,6 +345,42 @@ export default function Accounts() {
                   ))}
                 </div>
               </div>
+
+              {accountType === "TELECOM" && (
+                <div className="form-group">
+                  <label className="form-label">Commission Model</label>
+                  <div className="type-buttons">
+                    {[
+                      {
+                        value: "CUMULATIVE" as CommissionModelEnum,
+                        label: "Cumulative",
+                        hint: "Agent submits monthly running total; today = submitted − yesterday",
+                      },
+                      {
+                        value: "PARTIAL" as CommissionModelEnum,
+                        label: "Partial",
+                        hint: "Agent submits withdrawals only; deposits auto-added from expected rates",
+                      },
+                    ].map((opt) => (
+                      <button
+                        key={opt.value}
+                        className={`type-button ${commissionModel === opt.value ? "selected" : ""}`}
+                        onClick={() => setCommissionModel(opt.value)}
+                        title={opt.hint}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                  <span className="form-hint">
+                    {commissionModel === "CUMULATIVE"
+                      ? "Agent submits a monthly running total; actual = submitted today − submitted yesterday"
+                      : commissionModel === "PARTIAL"
+                        ? "Agent submits withdrawal commissions only; deposit commissions are auto-added from expected rates"
+                        : "Select a commission model"}
+                  </span>
+                </div>
+              )}
 
               {!editingAccount && (
                 <div className="form-group">
@@ -429,7 +470,9 @@ export default function Accounts() {
                     placeholder="Reason for rate change (optional)"
                     className="form-input"
                   />
-                  <span className="form-hint">Recorded in the audit log when rates are changed</span>
+                  <span className="form-hint">
+                    Recorded in the audit log when rates are changed
+                  </span>
                 </div>
               )}
             </div>

@@ -2,7 +2,7 @@
  * Account types matching backend models/accounts.py
  */
 import type { BaseModel, BulkOperationResponse } from "./base";
-import type { AccountTypeEnum } from "./enums";
+import type { AccountTypeEnum, CommissionModelEnum } from "./enums";
 
 /**
  * Account entity - matches backend Account model
@@ -17,6 +17,7 @@ export interface Account extends BaseModel {
   currentBalance?: number | null;
   commissionDepositPercentage?: number | null;
   commissionWithdrawPercentage?: number | null;
+  commissionModel?: CommissionModelEnum;
 }
 
 /**
@@ -31,6 +32,7 @@ export interface AccountCreate {
   initialBalance?: number;
   commissionDepositPercentage?: number | null;
   commissionWithdrawPercentage?: number | null;
+  commissionModel?: CommissionModelEnum;
 }
 
 /**
@@ -45,6 +47,7 @@ export interface AccountUpdate {
   commissionDepositPercentage?: number | null;
   commissionWithdrawPercentage?: number | null;
   commissionRateChangeReason?: string;
+  commissionModel?: CommissionModelEnum;
 }
 
 /**
