@@ -20,6 +20,7 @@ export {
   type ReconciliationTypeEnum,
   type TransactionTypeEnum,
   type BalanceValidationEnum,
+  type CommissionVarianceStatus,
 } from "./enums";
 
 // ============= Base Types =============
@@ -80,6 +81,7 @@ export {
   type ExpectedCommission,
   type ExpectedCommissionFilters,
   type DraftCommissionEntry,
+  type CommissionVarianceReport,
 } from "./commission";
 
 // ============= Expense Types =============

@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { fetchDashboard, setShift } from "../../store/slices/dashboardSlice";
 import { updateCompanyInfo } from "../../store/slices/companyInfoSlice";
 import { fetchTransactions } from "../../store/slices/transactionsSlice";
+import { fetchCommissionVariance } from "../../store/slices/commissionsSlice";
 import { useCurrencyFormatter } from "../useCurrency";
 import { useAutoRefreshOnReconnect } from "../useAutoRefreshOnReconnect";
 import type { ShiftEnum } from "../../types";
@@ -32,6 +33,9 @@ export function useDashboardScreen() {
     (state: RootState) => state.transactions,
   );
   const { user: backendUser } = useSelector((state: RootState) => state.auth);
+  const { commissionVariance = [] } = useSelector(
+    (state: RootState) => state.commissions,
+  );
 
   // Currency formatter
   const { formatCurrency, formatCompactCurrency } = useCurrencyFormatter();
@@ -56,6 +60,13 @@ export function useDashboardScreen() {
     }
   }, [dispatch, backendUser?.companyId, today]);
 
+  // Fetch commission variance (bank vs telecom reconciliation)
+  useEffect(() => {
+    if (backendUser?.companyId) {
+      dispatch(fetchCommissionVariance({ companyId: backendUser.companyId }));
+    }
+  }, [dispatch, backendUser?.companyId, today]);
+
   // Auto-refresh after offline → online transition + sync complete
   useAutoRefreshOnReconnect(
     useCallback(() => fetchDashboard({ forceRefresh: true }), []),
@@ -71,6 +82,12 @@ export function useDashboardScreen() {
           companyId: backendUser.companyId,
           startDate: today,
           endDate: today,
+        }),
+      );
+      dispatch(
+        fetchCommissionVariance({
+          companyId: backendUser.companyId,
+          forceRefresh: true,
         }),
       );
     }
@@ -173,6 +190,22 @@ export function useDashboardScreen() {
 
   const transactionCount = todayTransactions.length;
 
+  const dailyDeposits = useMemo(
+    () =>
+      todayTransactions
+        .filter((t) => t.transactionType === "DEPOSIT")
+        .reduce((s, t) => s + (t.amount || 0), 0),
+    [todayTransactions],
+  );
+
+  const dailyWithdrawals = useMemo(
+    () =>
+      todayTransactions
+        .filter((t) => t.transactionType === "WITHDRAW")
+        .reduce((s, t) => s + (t.amount || 0), 0),
+    [todayTransactions],
+  );
+
   const recentTransactions = useMemo(() => {
     return [...todayTransactions]
       .sort(
@@ -182,6 +215,39 @@ export function useDashboardScreen() {
       )
       .slice(0, 5);
   }, [todayTransactions]);
+
+  // Commission variance breakdown — bank vs telecom
+  const bankVariance = useMemo(
+    () => commissionVariance.filter((v) => v.accountType === "BANK"),
+    [commissionVariance],
+  );
+  const telecomVariance = useMemo(
+    () => commissionVariance.filter((v) => v.accountType === "TELECOM"),
+    [commissionVariance],
+  );
+  const totalBankCommission = useMemo(
+    () => bankVariance.reduce((sum, v) => sum + v.expected, 0),
+    [bankVariance],
+  );
+  const totalTelecomCommission = useMemo(
+    () =>
+      telecomVariance.reduce(
+        (sum, v) => sum + (v.actual > 0 ? v.actual : v.expected),
+        0,
+      ),
+    [telecomVariance],
+  );
+  const telecomPendingCount = useMemo(
+    () => telecomVariance.filter((v) => v.actual === 0).length,
+    [telecomVariance],
+  );
+  const telecomVarianceCount = useMemo(
+    () =>
+      telecomVariance.filter((v) => v.status !== "MATCHED" && v.actual > 0)
+        .length,
+    [telecomVariance],
+  );
+  const telecomHasIssues = telecomPendingCount > 0 || telecomVarianceCount > 0;
 
   return {
     // State
@@ -222,7 +288,19 @@ export function useDashboardScreen() {
 
     // Transaction data
     transactionCount,
+    dailyDeposits,
+    dailyWithdrawals,
     recentTransactions,
+
+    // Commission variance breakdown
+    commissionVariance,
+    bankVariance,
+    telecomVariance,
+    totalBankCommission,
+    totalTelecomCommission,
+    telecomPendingCount,
+    telecomVarianceCount,
+    telecomHasIssues,
 
     // Formatters
     formatCurrency,

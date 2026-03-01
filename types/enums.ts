@@ -12,6 +12,11 @@ export type SourceEnum = "whatsapp" | "mobile_app" | "manual" | "system";
 // Account categories
 export type AccountTypeEnum = "BANK" | "TELECOM";
 
+export type CommissionVarianceStatus =
+  | "MATCHED"
+  | "UNDER_COLLECTED"
+  | "OVER_COLLECTED";
+
 // User permission levels - matches backend RoleEnum values
 export type RoleEnum =
   | "Super Administrator"

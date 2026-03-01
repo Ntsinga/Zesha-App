@@ -15,6 +15,9 @@ import {
   ArrowLeftRight,
   ArrowDownCircle,
   ArrowUpCircle,
+  CheckCircle,
+  AlertTriangle,
+  Clock,
 } from "lucide-react";
 import { useDashboardScreen } from "../../hooks/screens/useDashboardScreen";
 import "../../styles/web.css";
@@ -38,7 +41,16 @@ export default function DashboardWeb() {
     outstandingBalance,
     totalCommission,
     dailyCommission,
+    totalBankCommission,
+    totalTelecomCommission,
+    telecomPendingCount,
+    telecomVarianceCount,
+    telecomHasIssues,
+    bankVariance,
+    telecomVariance,
     transactionCount,
+    dailyDeposits,
+    dailyWithdrawals,
     recentTransactions,
     displayCapital,
     displayFloat,
@@ -189,16 +201,73 @@ export default function DashboardWeb() {
               <div className="metric">
                 <div className="metric-top">
                   <span className="metric-name">Commission</span>
-                  <div className="metric-badge positive">
-                    <DollarSign size={16} />
+                  <div
+                    className={`metric-badge ${telecomHasIssues ? "negative" : "positive"}`}
+                  >
+                    {telecomHasIssues ? (
+                      <AlertTriangle size={16} />
+                    ) : (
+                      <DollarSign size={16} />
+                    )}
                   </div>
                 </div>
                 <p className="metric-amount positive">
-                  +{formatCurrency(dailyCommission)}
+                  +
+                  {formatCurrency(totalBankCommission + totalTelecomCommission)}
                 </p>
-                <span className="metric-sub">
-                  Total: {formatCurrency(totalCommission)}
-                </span>
+                {/* Bank line — expected only, always matched */}
+                {bankVariance.length > 0 && (
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 4,
+                      marginTop: 4,
+                      fontSize: 11,
+                      color: "#64748b",
+                    }}
+                  >
+                    <CheckCircle size={11} color="#16a34a" />
+                    <span>
+                      Bank: {formatCompactCurrency(totalBankCommission)}
+                    </span>
+                  </div>
+                )}
+                {/* Telecom line — reconcile daily */}
+                {telecomVariance.length > 0 && (
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 4,
+                      marginTop: 2,
+                      fontSize: 11,
+                      color: telecomHasIssues ? "#dc2626" : "#64748b",
+                    }}
+                  >
+                    {telecomPendingCount > 0 ? (
+                      <Clock size={11} color="#f59e0b" />
+                    ) : telecomVarianceCount > 0 ? (
+                      <AlertTriangle size={11} color="#dc2626" />
+                    ) : (
+                      <CheckCircle size={11} color="#16a34a" />
+                    )}
+                    <span>
+                      Telecom: {formatCompactCurrency(totalTelecomCommission)}
+                      {telecomPendingCount > 0
+                        ? ` · ${telecomPendingCount} pending`
+                        : telecomVarianceCount > 0
+                          ? ` · ${telecomVarianceCount} variance`
+                          : ""}
+                    </span>
+                  </div>
+                )}
+                {/* Fallback if no variance data yet */}
+                {bankVariance.length === 0 && telecomVariance.length === 0 && (
+                  <span className="metric-sub">
+                    Total: {formatCurrency(totalCommission)}
+                  </span>
+                )}
               </div>
               <div className="metric-divider" />
               <div className="metric">
@@ -214,6 +283,7 @@ export default function DashboardWeb() {
                 <p className="metric-amount" style={{ color: "#4f46e5" }}>
                   {transactionCount}
                 </p>
+                <span className="metric-sub">today</span>
                 <button
                   onClick={() => router.push("/transactions")}
                   className="metric-link"

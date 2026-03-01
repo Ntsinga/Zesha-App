@@ -12,7 +12,7 @@ const getApiBaseUrl = (): string => {
   // Development fallback - ngrok URL
   // WARNING: Update this when your ngrok URL changes
   if (__DEV__) {
-    return "https://02c0-41-210-145-125.ngrok-free.app";
+    return "https://d535-41-210-155-105.ngrok-free.app ";
   }
 
   // Production — EXPO_PUBLIC_API_URL must be set
@@ -86,6 +86,7 @@ export const API_ENDPOINTS = {
   expectedCommissions: {
     list: "/expected-commissions/",
     dailySummary: "/expected-commissions/daily-summary",
+    variance: "/expected-commissions/variance",
   },
 
   // Cash Count (Denominations)
