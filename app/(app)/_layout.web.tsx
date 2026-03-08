@@ -245,7 +245,7 @@ export default function AppLayoutWeb() {
               <Building2 size={24} color="white" />
             </div>
             <div>
-              <div className="mobile-menu-title">Zesha</div>
+              <div className="mobile-menu-title">Teleba</div>
               <div className="mobile-menu-subtitle">{sidebarSubtitle}</div>
             </div>
           </div>
@@ -296,7 +296,7 @@ export default function AppLayoutWeb() {
             </div>
             {!isSidebarCollapsed && (
               <div>
-                <div className="sidebar-title">Zesha</div>
+                <div className="sidebar-title">Teleba</div>
                 <div className="sidebar-subtitle">{sidebarSubtitle}</div>
               </div>
             )}
@@ -382,7 +382,7 @@ export default function AppLayoutWeb() {
             <div className="mobile-header-logo">
               <Building2 size={20} color="white" />
             </div>
-            <span className="mobile-header-title">Zesha</span>
+            <span className="mobile-header-title">Teleba</span>
           </div>
           <button
             className="hamburger-btn"

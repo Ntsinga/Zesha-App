@@ -1,7 +1,5 @@
 {
-  "name": "Zeshan Agent Banking",
+  "name": "Teleba",
   "description": "A comprehensive agent banking platform for tracking capital, balancing floats, and managing transactions with a modern red and white aesthetic.",
-  "requestFramePermissions": [
-    "camera"
-  ]
+  "requestFramePermissions": ["camera"]
 }

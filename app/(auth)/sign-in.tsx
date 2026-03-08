@@ -129,9 +129,7 @@ export default function SignInPage() {
         className="pt-16 pb-32 px-6"
       >
         <View className="items-center pt-12">
-          <Text className="text-4xl font-bold text-white mb-2">
-            Zesha Agent
-          </Text>
+          <Text className="text-4xl font-bold text-white mb-2">Teleba</Text>
           <Text className="text-white/90 text-lg">
             Sign in to manage your account
           </Text>

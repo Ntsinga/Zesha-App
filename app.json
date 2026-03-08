@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Zesha Agent",
-    "slug": "z",
+    "name": "Teleba",
+    "slug": "teleba",
     "version": "1.0.0",
     "icon": "./assets/icon.png",
     "orientation": "portrait",
@@ -14,10 +14,10 @@
     "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.zesha.agentbanking"
+      "bundleIdentifier": "com.teleba.agentbanking"
     },
     "android": {
-      "package": "com.zesha.agentbanking"
+      "package": "com.teleba.agentbanking"
     },
     "web": {
       "bundler": "metro",
@@ -25,7 +25,7 @@
       "output": "single"
     },
     "plugins": ["expo-router"],
-    "scheme": "zesha",
+    "scheme": "teleba",
     "extra": {
       "router": {},
       "eas": {

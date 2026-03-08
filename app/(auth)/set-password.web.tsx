@@ -417,7 +417,7 @@ export default function SetPasswordWeb() {
               <span className="auth-logo-letter">Z</span>
             </div>
           </div>
-          <h1 className="auth-brand-title">ZESHA AGENT</h1>
+          <h1 className="auth-brand-title">TELEBA</h1>
           <p className="auth-brand-tagline">
             Welcome! Set your password to continue
           </p>

@@ -1,5 +1,5 @@
 /**
- * Zesha App - Type Definitions
+ * Teleba - Type Definitions
  *
  * This file re-exports all types from the types/ directory for backward compatibility.
  * All new code should import directly from "@/types" which resolves to types/index.ts
