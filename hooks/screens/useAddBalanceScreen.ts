@@ -236,7 +236,7 @@ export function useAddBalanceScreen() {
               const difference = Math.abs(
                 entry.extractedBalance - inputBalance,
               );
-              const isValid = difference < 0.01; // Allow small float differences
+              const isValid = difference === 0; // Exact match required
               updatedEntry.validationResult = {
                 isValid,
                 extractedBalance: entry.extractedBalance,
@@ -527,6 +527,7 @@ export function useAddBalanceScreen() {
       let totalCreated = 0;
       let totalUpdated = 0;
       let totalFailed = 0;
+      const failedErrors: string[] = [];
 
       // Handle updates for existing entries
       if (existingEntries.length > 0) {
@@ -571,6 +572,7 @@ export function useAddBalanceScreen() {
 
         totalUpdated = updateResult.totalUpdated;
         totalFailed += updateResult.totalFailed;
+        updateResult.failed.forEach((f) => failedErrors.push(f.error));
       }
 
       // Handle creates for new entries
@@ -615,6 +617,7 @@ export function useAddBalanceScreen() {
 
         totalCreated = createResult.totalCreated;
         totalFailed += createResult.totalFailed;
+        createResult.failed.forEach((f) => failedErrors.push(f.error));
       }
 
       // Refresh data
@@ -627,9 +630,11 @@ export function useAddBalanceScreen() {
       if (totalUpdated > 0) operations.push(`${totalUpdated} updated`);
 
       if (totalFailed > 0) {
+        const uniqueErrors = [...new Set(failedErrors)];
+        const errorSummary = uniqueErrors.join("; ");
         return {
           success: true,
-          message: `${operations.join(", ")}. ${totalFailed} failed.`,
+          message: `${operations.join(", ")}. ${totalFailed} failed — ${errorSummary}`,
           totalCreated,
           totalFailed,
         };

@@ -184,11 +184,17 @@ export const createCommissionsBulk = createAsyncThunk<
 export const updateCommissionsBulk = createAsyncThunk<
   BulkCommissionUpdateResponse,
   BulkCommissionUpdate,
-  { rejectValue: string }
->("commissions/updateBulk", async (data, { rejectWithValue }) => {
+  { state: RootState; rejectValue: string }
+>("commissions/updateBulk", async (data, { getState, rejectWithValue }) => {
   try {
+    const state = getState();
+    const companyId =
+      state.auth.viewingAgencyId || state.auth.user?.companyId;
+    if (!companyId) {
+      return rejectWithValue("No companyId found. Please log in again.");
+    }
     const response = await apiRequest<BulkCommissionUpdateResponse>(
-      API_ENDPOINTS.commissions.bulkUpdate,
+      `${API_ENDPOINTS.commissions.bulkUpdate}?company_id=${companyId}`,
       {
         method: "PATCH",
         body: JSON.stringify(mapApiRequest(data)),

@@ -197,7 +197,11 @@ export function useBalanceMenuScreen() {
         cc.shift === "AM" &&
         (openingReconId === null || cc.reconciliationId !== openingReconId),
     );
-    const pmCounts = todayCounts.filter((cc) => cc.shift === "PM");
+    const pmCounts = todayCounts.filter(
+      (cc) =>
+        cc.shift === "PM" &&
+        (openingReconId === null || cc.reconciliationId !== openingReconId),
+    );
 
     const hasAM = amCounts.length > 0;
     const hasPM = pmCounts.length > 0;
@@ -240,7 +244,11 @@ export function useBalanceMenuScreen() {
         bal.shift === "AM" &&
         (openingReconId === null || bal.reconciliationId !== openingReconId),
     );
-    const pmBalances = todayBalances.filter((bal) => bal.shift === "PM");
+    const pmBalances = todayBalances.filter(
+      (bal) =>
+        bal.shift === "PM" &&
+        (openingReconId === null || bal.reconciliationId !== openingReconId),
+    );
 
     // Check if all active accounts have balances for each shift
     const hasAM =
@@ -483,6 +491,8 @@ export function useBalanceMenuScreen() {
         }),
       ).unwrap();
 
+      // Re-fetch shift status so the UI advances to CLOSING immediately
+      dispatch(fetchShiftStatus({ date: today, shift: selectedShift }));
       return { success: true, subtype: currentSubtype };
     } catch (error: unknown) {
       const msg =
@@ -530,9 +540,13 @@ export function useBalanceMenuScreen() {
         ? transactionStatus.amTransactionTotal
         : transactionStatus.pmTransactionTotal;
 
-    // Calculate totals for selected shift
+    // Calculate totals for selected shift (exclude OPENING entries)
+    const _openingReconId = shiftStatus?.openingId ?? null;
     const todayCounts = cashCounts.filter(
-      (cc) => cc.date === today && cc.shift === selectedShift,
+      (cc) =>
+        cc.date === today &&
+        cc.shift === selectedShift &&
+        (_openingReconId === null || cc.reconciliationId !== _openingReconId),
     );
     const selectedShiftTotal = todayCounts.reduce(
       (sum, cc) => sum + parseFloat(String(cc.amount)),
@@ -540,7 +554,10 @@ export function useBalanceMenuScreen() {
     );
 
     const todayBalances = balances.filter(
-      (bal) => bal.date.startsWith(today) && bal.shift === selectedShift,
+      (bal) =>
+        bal.date.startsWith(today) &&
+        bal.shift === selectedShift &&
+        (_openingReconId === null || bal.reconciliationId !== _openingReconId),
     );
     const selectedBalanceTotal = todayBalances.reduce(
       (sum, bal) => sum + parseFloat(String(bal.amount)),
@@ -584,6 +601,7 @@ export function useBalanceMenuScreen() {
     balances,
     commissions,
     today,
+    shiftStatus,
   ]);
 
   return {

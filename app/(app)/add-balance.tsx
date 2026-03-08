@@ -670,6 +670,7 @@ export default function AddBalancePage() {
       let totalCreated = 0;
       let totalUpdated = 0;
       let totalFailed = 0;
+      const failedErrors: string[] = [];
 
       // Handle updates for existing entries
       if (existingEntries.length > 0) {
@@ -713,6 +714,7 @@ export default function AddBalancePage() {
 
         totalUpdated = updateResult.totalUpdated;
         totalFailed += updateResult.totalFailed;
+        updateResult.failed.forEach((f) => failedErrors.push(f.error));
       }
 
       // Handle creates for new entries
@@ -750,6 +752,7 @@ export default function AddBalancePage() {
 
         totalCreated = createResult.totalCreated;
         totalFailed += createResult.totalFailed;
+        createResult.failed.forEach((f) => failedErrors.push(f.error));
       }
 
       // Refresh dashboard after adding/updating balances
@@ -770,9 +773,11 @@ export default function AddBalancePage() {
         );
 
       if (totalFailed > 0) {
+        const uniqueErrors = [...new Set(failedErrors)];
+        const errorSummary = uniqueErrors.join("; ");
         Alert.alert(
           "Partial Success",
-          `${operations.join(", ")}. ${totalFailed} failed.`,
+          `${operations.join(", ")}. ${totalFailed} failed — ${errorSummary}`,
           [{ text: "OK", onPress: () => router.back() }],
         );
       } else {
@@ -804,6 +809,46 @@ export default function AddBalancePage() {
   const insets = useSafeAreaInsets();
 
   const missingAccounts = getMissingAccounts();
+
+  // Show a loading screen while the forced fetch completes and entries are initialised
+  if (!freshDataReady || !isInitialized) {
+    return (
+      <View className="flex-1 bg-gray-50">
+        {/* Header stays visible so the user can go back */}
+        <View className="px-5 pt-6 pb-2">
+          <View className="flex-row items-center mb-2">
+            <TouchableOpacity
+              onPress={() => router.back()}
+              className="p-2 bg-white rounded-full shadow-sm mr-4"
+            >
+              <ArrowLeft color="#C62828" size={24} />
+            </TouchableOpacity>
+            <View>
+              <Text className="text-2xl font-bold text-gray-800">
+                Add Float Balances
+              </Text>
+              <Text className="text-gray-500 text-sm">Loading entries…</Text>
+            </View>
+          </View>
+          <View
+            className={`px-4 py-2 rounded-full self-start mb-4 ${currentShift === "AM" ? "bg-blue-100" : "bg-red-100"}`}
+          >
+            <Text
+              className={`font-bold ${currentShift === "AM" ? "text-blue-700" : "text-red-700"}`}
+            >
+              {currentShift} Shift
+            </Text>
+          </View>
+        </View>
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator size="large" color="#C62828" />
+          <Text className="text-gray-500 mt-4 text-sm">
+            Loading balance data…
+          </Text>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <KeyboardAvoidingView

@@ -151,7 +151,7 @@ export function useCashCountScreen() {
       setIsEditing(false);
       setEntries((prev) => prev.map((e) => ({ ...e, quantity: "" })));
     }
-  }, [cashCounts, shift, today]);
+  }, [cashCounts, shift, today, openingId]);
 
   const updateQuantity = (index: number, value: string) => {
     if (value !== "" && !/^\d+$/.test(value)) return;

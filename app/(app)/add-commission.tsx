@@ -279,7 +279,7 @@ export default function AddCommissionPage() {
           };
         }),
       );
-      if (!result.success) {
+      if (!result.success || result.balance === null) {
         Alert.alert(
           "Extraction Notice",
           result.error ||
