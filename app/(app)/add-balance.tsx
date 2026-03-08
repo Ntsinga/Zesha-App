@@ -924,7 +924,7 @@ export default function AddBalancePage() {
                       <View className="flex-row items-center mt-0.5">
                         {entry.amount ? (
                           <Text className="text-gray-600 text-sm">
-                            R {Number(entry.amount).toLocaleString()}
+                            {formatCurrency(Number(entry.amount))}
                           </Text>
                         ) : (
                           <Text className="text-gray-400 text-sm">
@@ -1157,8 +1157,8 @@ export default function AddBalancePage() {
                   {entry.extractedBalance !== null &&
                     !entry.validationResult && (
                       <Text className="text-gray-500 text-sm mt-2">
-                        Extracted from image: R{" "}
-                        {entry.extractedBalance.toLocaleString()}
+                        Extracted from image:{" "}
+                        {formatCurrency(entry.extractedBalance)}
                       </Text>
                     )}
                 </View>
@@ -1196,7 +1196,7 @@ export default function AddBalancePage() {
                           <View className="absolute top-3 left-3 bg-green-500 px-3 py-1.5 rounded-full flex-row items-center">
                             <CheckCircle color="white" size={14} />
                             <Text className="text-white text-sm ml-1 font-semibold">
-                              R {entry.extractedBalance.toLocaleString()}
+                              {formatCurrency(entry.extractedBalance)}
                             </Text>
                           </View>
                         )}
