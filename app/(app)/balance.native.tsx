@@ -124,8 +124,8 @@ export default function BalancePage() {
                 lineHeight: 20,
               }}
             >
-              Are you taking over from the AM worker? This helps record a
-              proper float handover opening.
+              Are you taking over from the AM worker? This helps record a proper
+              float handover opening.
             </Text>
             <TouchableOpacity
               onPress={() => setHandoverDecision(true)}
@@ -150,7 +150,9 @@ export default function BalancePage() {
                 alignItems: "center",
               }}
             >
-              <Text style={{ color: "#374151", fontWeight: "600", fontSize: 15 }}>
+              <Text
+                style={{ color: "#374151", fontWeight: "600", fontSize: 15 }}
+              >
                 No, I'm covering the full day
               </Text>
             </TouchableOpacity>
@@ -168,9 +170,77 @@ export default function BalancePage() {
             <Text className="text-2xl font-bold text-gray-800">
               Daily Reconciliation
             </Text>
-            <Text className="text-gray-500 text-sm">
-              Choose an option to continue
-            </Text>
+            {/* Phase status pills — shift badge + OPENING/CLOSING/COMPLETE badge */}
+            {(() => {
+              const isOpening =
+                currentSubtype === "OPENING" && shiftPhase !== "COMPLETE";
+              const isComplete = shiftPhase === "COMPLETE";
+              const phaseBg = isComplete
+                ? "#dcfce7"
+                : isOpening
+                  ? "#dbeafe"
+                  : "#fef3c7";
+              const phaseColor = isComplete
+                ? "#15803d"
+                : isOpening
+                  ? "#1d4ed8"
+                  : "#92400e";
+              const phaseLabel = isComplete
+                ? "Complete"
+                : isOpening
+                  ? "Opening"
+                  : "Closing";
+              const shiftBg = selectedShift === "AM" ? "#fee2e2" : "#ede9fe";
+              const shiftColor = selectedShift === "AM" ? "#991b1b" : "#5b21b6";
+              return (
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    marginTop: 6,
+                    gap: 6,
+                  }}
+                >
+                  <View
+                    style={{
+                      backgroundColor: shiftBg,
+                      paddingHorizontal: 10,
+                      paddingVertical: 3,
+                      borderRadius: 999,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: shiftColor,
+                        fontSize: 11,
+                        fontWeight: "700",
+                      }}
+                    >
+                      {selectedShift}
+                    </Text>
+                  </View>
+                  <Text style={{ color: "#9ca3af", fontSize: 12 }}>·</Text>
+                  <View
+                    style={{
+                      backgroundColor: phaseBg,
+                      paddingHorizontal: 10,
+                      paddingVertical: 3,
+                      borderRadius: 999,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: phaseColor,
+                        fontSize: 11,
+                        fontWeight: "700",
+                      }}
+                    >
+                      {phaseLabel}
+                    </Text>
+                  </View>
+                </View>
+              );
+            })()}
           </View>
           {/* Shift Selector */}
           <View className="flex-row mt-4 bg-white rounded-xl p-1 shadow-sm border border-gray-200">
@@ -353,142 +423,144 @@ export default function BalancePage() {
 
               {/* Add Commissions Option — only shown when commissions are relevant */}
               {showCommissionsAndTransactions && (
-              <TouchableOpacity
-                onPress={handleNavigateCommissions}
-                style={{ borderRadius: 16 }}
-                className={`rounded-2xl p-5 shadow-sm ${
-                  hasSelectedCommissions
-                    ? "bg-green-50 border-2 border-green-500"
-                    : "bg-white border border-gray-100"
-                }`}
-              >
-                <View className="flex-row items-center">
-                  <View
-                    style={{ borderRadius: 12 }}
-                    className={`p-4 rounded-xl mr-4 ${
-                      hasSelectedCommissions ? "bg-green-100" : "bg-red-100"
-                    }`}
-                  >
-                    {hasSelectedCommissions ? (
-                      <CheckCircle2 color="#22C55E" size={32} />
-                    ) : (
-                      <Banknote color="#C62828" size={32} />
-                    )}
-                  </View>
-                  <View className="flex-1">
-                    <View className="flex-row items-center flex-wrap">
-                      <Text
-                        className={`text-lg font-bold ${
-                          hasSelectedCommissions
-                            ? "text-green-700"
-                            : "text-gray-800"
-                        }`}
-                      >
-                        Add Commissions
-                      </Text>
-                      {hasAMCommissions && (
-                        <View className="ml-2 px-2 py-0.5 bg-green-500 rounded-full">
-                          <Text className="text-white text-xs font-bold">
-                            AM
-                          </Text>
-                        </View>
-                      )}
-                      {hasPMCommissions && (
-                        <View className="ml-2 px-2 py-0.5 bg-green-500 rounded-full">
-                          <Text className="text-white text-xs font-bold">
-                            PM
-                          </Text>
-                        </View>
-                      )}
-                    </View>
-                    <Text
-                      className={`text-sm mt-1 ${
-                        hasSelectedCommissions
-                          ? "text-green-600"
-                          : "text-gray-500"
+                <TouchableOpacity
+                  onPress={handleNavigateCommissions}
+                  style={{ borderRadius: 16 }}
+                  className={`rounded-2xl p-5 shadow-sm ${
+                    hasSelectedCommissions
+                      ? "bg-green-50 border-2 border-green-500"
+                      : "bg-white border border-gray-100"
+                  }`}
+                >
+                  <View className="flex-row items-center">
+                    <View
+                      style={{ borderRadius: 12 }}
+                      className={`p-4 rounded-xl mr-4 ${
+                        hasSelectedCommissions ? "bg-green-100" : "bg-red-100"
                       }`}
                     >
-                      {hasSelectedCommissions
-                        ? `${selectedShift} Total: ${formatCurrency(selectedCommissionTotal)}`
-                        : "Record commission payments with images"}
-                    </Text>
+                      {hasSelectedCommissions ? (
+                        <CheckCircle2 color="#22C55E" size={32} />
+                      ) : (
+                        <Banknote color="#C62828" size={32} />
+                      )}
+                    </View>
+                    <View className="flex-1">
+                      <View className="flex-row items-center flex-wrap">
+                        <Text
+                          className={`text-lg font-bold ${
+                            hasSelectedCommissions
+                              ? "text-green-700"
+                              : "text-gray-800"
+                          }`}
+                        >
+                          Add Commissions
+                        </Text>
+                        {hasAMCommissions && (
+                          <View className="ml-2 px-2 py-0.5 bg-green-500 rounded-full">
+                            <Text className="text-white text-xs font-bold">
+                              AM
+                            </Text>
+                          </View>
+                        )}
+                        {hasPMCommissions && (
+                          <View className="ml-2 px-2 py-0.5 bg-green-500 rounded-full">
+                            <Text className="text-white text-xs font-bold">
+                              PM
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+                      <Text
+                        className={`text-sm mt-1 ${
+                          hasSelectedCommissions
+                            ? "text-green-600"
+                            : "text-gray-500"
+                        }`}
+                      >
+                        {hasSelectedCommissions
+                          ? `${selectedShift} Total: ${formatCurrency(selectedCommissionTotal)}`
+                          : "Record commission payments with images"}
+                      </Text>
+                    </View>
+                    <ChevronRight
+                      color={hasSelectedCommissions ? "#22C55E" : "#9CA3AF"}
+                      size={24}
+                    />
                   </View>
-                  <ChevronRight
-                    color={hasSelectedCommissions ? "#22C55E" : "#9CA3AF"}
-                    size={24}
-                  />
-                </View>
-              </TouchableOpacity>
+                </TouchableOpacity>
               )}
 
               {/* Record Transactions Option — only shown when transactions are relevant */}
               {showCommissionsAndTransactions && (
-              <TouchableOpacity
-                onPress={handleNavigateTransactions}
-                style={{ borderRadius: 16 }}
-                className={`rounded-2xl p-5 shadow-sm ${
-                  hasSelectedTransactions
-                    ? "bg-green-50 border-2 border-green-500"
-                    : "bg-white border border-gray-100"
-                }`}
-              >
-                <View className="flex-row items-center">
-                  <View
-                    style={{ borderRadius: 12 }}
-                    className={`p-4 rounded-xl mr-4 ${
-                      hasSelectedTransactions ? "bg-green-100" : "bg-indigo-100"
-                    }`}
-                  >
-                    {hasSelectedTransactions ? (
-                      <CheckCircle2 color="#22C55E" size={32} />
-                    ) : (
-                      <ArrowLeftRight color="#4F46E5" size={32} />
-                    )}
-                  </View>
-                  <View className="flex-1">
-                    <View className="flex-row items-center flex-wrap">
-                      <Text
-                        className={`text-lg font-bold ${
-                          hasSelectedTransactions
-                            ? "text-green-700"
-                            : "text-gray-800"
-                        }`}
-                      >
-                        Record Transactions
-                      </Text>
-                      {hasAMTransactions && (
-                        <View className="ml-2 px-2 py-0.5 bg-green-500 rounded-full">
-                          <Text className="text-white text-xs font-bold">
-                            AM
-                          </Text>
-                        </View>
-                      )}
-                      {hasPMTransactions && (
-                        <View className="ml-2 px-2 py-0.5 bg-green-500 rounded-full">
-                          <Text className="text-white text-xs font-bold">
-                            PM
-                          </Text>
-                        </View>
-                      )}
-                    </View>
-                    <Text
-                      className={`text-sm mt-1 ${
+                <TouchableOpacity
+                  onPress={handleNavigateTransactions}
+                  style={{ borderRadius: 16 }}
+                  className={`rounded-2xl p-5 shadow-sm ${
+                    hasSelectedTransactions
+                      ? "bg-green-50 border-2 border-green-500"
+                      : "bg-white border border-gray-100"
+                  }`}
+                >
+                  <View className="flex-row items-center">
+                    <View
+                      style={{ borderRadius: 12 }}
+                      className={`p-4 rounded-xl mr-4 ${
                         hasSelectedTransactions
-                          ? "text-green-600"
-                          : "text-gray-500"
+                          ? "bg-green-100"
+                          : "bg-indigo-100"
                       }`}
                     >
-                      {hasSelectedTransactions
-                        ? `${selectedShift}: ${selectedTransactionCount} txn${selectedTransactionCount !== 1 ? "s" : ""} (${formatCurrency(selectedTransactionTotal)})`
-                        : "Log deposits, withdrawals & float purchases"}
-                    </Text>
+                      {hasSelectedTransactions ? (
+                        <CheckCircle2 color="#22C55E" size={32} />
+                      ) : (
+                        <ArrowLeftRight color="#4F46E5" size={32} />
+                      )}
+                    </View>
+                    <View className="flex-1">
+                      <View className="flex-row items-center flex-wrap">
+                        <Text
+                          className={`text-lg font-bold ${
+                            hasSelectedTransactions
+                              ? "text-green-700"
+                              : "text-gray-800"
+                          }`}
+                        >
+                          Record Transactions
+                        </Text>
+                        {hasAMTransactions && (
+                          <View className="ml-2 px-2 py-0.5 bg-green-500 rounded-full">
+                            <Text className="text-white text-xs font-bold">
+                              AM
+                            </Text>
+                          </View>
+                        )}
+                        {hasPMTransactions && (
+                          <View className="ml-2 px-2 py-0.5 bg-green-500 rounded-full">
+                            <Text className="text-white text-xs font-bold">
+                              PM
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+                      <Text
+                        className={`text-sm mt-1 ${
+                          hasSelectedTransactions
+                            ? "text-green-600"
+                            : "text-gray-500"
+                        }`}
+                      >
+                        {hasSelectedTransactions
+                          ? `${selectedShift}: ${selectedTransactionCount} txn${selectedTransactionCount !== 1 ? "s" : ""} (${formatCurrency(selectedTransactionTotal)})`
+                          : "Log deposits, withdrawals & float purchases"}
+                      </Text>
+                    </View>
+                    <ChevronRight
+                      color={hasSelectedTransactions ? "#22C55E" : "#9CA3AF"}
+                      size={24}
+                    />
                   </View>
-                  <ChevronRight
-                    color={hasSelectedTransactions ? "#22C55E" : "#9CA3AF"}
-                    size={24}
-                  />
-                </View>
-              </TouchableOpacity>
+                </TouchableOpacity>
               )}
 
               {/* Calculate Reconciliation Button */}
@@ -500,7 +572,8 @@ export default function BalancePage() {
                       {selectedShift} Shift Complete
                     </Text>
                     <Text className="text-green-600 text-sm text-center mt-1">
-                      All reconciliations for the {selectedShift} shift have been finalized.
+                      All reconciliations for the {selectedShift} shift have
+                      been finalized.
                     </Text>
                   </View>
                 ) : (
@@ -510,13 +583,15 @@ export default function BalancePage() {
                       isCalculating ||
                       !hasSelectedCashCount ||
                       !hasSelectedBalances ||
-                      (showCommissionsAndTransactions && !hasSelectedCommissions)
+                      (showCommissionsAndTransactions &&
+                        !hasSelectedCommissions)
                     }
                     className={`bg-brand-red rounded-2xl p-5 shadow-lg ${
                       isCalculating ||
                       !hasSelectedCashCount ||
                       !hasSelectedBalances ||
-                      (showCommissionsAndTransactions && !hasSelectedCommissions)
+                      (showCommissionsAndTransactions &&
+                        !hasSelectedCommissions)
                         ? "opacity-50"
                         : ""
                     }`}

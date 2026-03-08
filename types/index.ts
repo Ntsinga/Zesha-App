@@ -145,6 +145,8 @@ export {
   type TransactionCreate,
   type FloatPurchaseCreate,
   type CapitalInjectionCreate,
+  type CashCapitalInjectionCreate,
+  type CashCapitalInjectionResult,
   type FloatPurchaseRead,
   type TransactionUpdate,
   type TransactionFilters,

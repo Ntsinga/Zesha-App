@@ -173,7 +173,63 @@ export default function BalancePage() {
       <header className="header-bar">
         <div className="header-left">
           <h1 className="header-title">Daily Reconciliation</h1>
-          <span className="header-date">Choose an option to continue</span>
+          {/* Phase status pill — shows shift + OPENING/CLOSING/COMPLETE */}
+          {(() => {
+            const isOpening =
+              currentSubtype === "OPENING" && shiftPhase !== "COMPLETE";
+            const isComplete = shiftPhase === "COMPLETE";
+            const bg = isComplete
+              ? "#dcfce7"
+              : isOpening
+                ? "#dbeafe"
+                : "#fef3c7";
+            const color = isComplete
+              ? "#15803d"
+              : isOpening
+                ? "#1d4ed8"
+                : "#92400e";
+            const label = isComplete
+              ? "Complete"
+              : isOpening
+                ? "Opening"
+                : "Closing";
+            return (
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  marginTop: 2,
+                }}
+              >
+                <span
+                  style={{
+                    background: selectedShift === "AM" ? "#fee2e2" : "#ede9fe",
+                    color: selectedShift === "AM" ? "#991b1b" : "#5b21b6",
+                    fontSize: 11,
+                    fontWeight: 700,
+                    padding: "2px 8px",
+                    borderRadius: 999,
+                  }}
+                >
+                  {selectedShift}
+                </span>
+                <span style={{ color: "#9ca3af", fontSize: 12 }}>·</span>
+                <span
+                  style={{
+                    background: bg,
+                    color,
+                    fontSize: 11,
+                    fontWeight: 700,
+                    padding: "2px 8px",
+                    borderRadius: 999,
+                  }}
+                >
+                  {label}
+                </span>
+              </div>
+            );
+          })()}
         </div>
         <div className="header-right">
           {/* Shift Selector */}

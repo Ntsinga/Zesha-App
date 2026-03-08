@@ -82,6 +82,12 @@ export default function AddBalancePage() {
   const params = useLocalSearchParams();
   // Shift is passed from the balance menu screen - use it as-is
   const currentShift: ShiftEnum = (params.shift as ShiftEnum) || "AM";
+  // openingId is passed so we can exclude records already linked to the opening recon
+  const openingIdRaw = params.openingId;
+  const openingId = openingIdRaw
+    ? Number(Array.isArray(openingIdRaw) ? openingIdRaw[0] : openingIdRaw) ||
+      null
+    : null;
 
   // Get companyId from auth state
   const { user } = useSelector((state: RootState) => state.auth);
@@ -105,6 +111,9 @@ export default function AddBalancePage() {
     string | null
   >(null);
   const [isInitialized, setIsInitialized] = useState(false);
+  // freshDataReady tracks that the forced fetch has actually completed, preventing
+  // stale cached data (with null reconciliation_id) from pre-populating the form.
+  const [freshDataReady, setFreshDataReady] = useState(false);
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
 
   // Get today's date
@@ -113,21 +122,37 @@ export default function AddBalancePage() {
     .toISOString()
     .split("T")[0];
 
-  // Fetch accounts and balances on mount - force refresh to get latest data
+  // Fetch accounts and balances on mount (or when openingId changes, i.e. OPENING→CLOSING nav)
+  // force refresh to get latest reconciliation_id linkage from the backend.
   useEffect(() => {
-    dispatch(fetchAccounts({ isActive: true, forceRefresh: true }));
-    dispatch(
-      fetchBalances({ dateFrom: today, dateTo: today, forceRefresh: true }),
-    );
-  }, [dispatch, today]);
+    setFreshDataReady(false);
+    setIsInitialized(false);
+    Promise.all([
+      dispatch(fetchAccounts({ isActive: true, forceRefresh: true })),
+      dispatch(
+        fetchBalances({ dateFrom: today, dateTo: today, forceRefresh: true }),
+      ),
+    ]).then(() => setFreshDataReady(true));
+  }, [dispatch, today, openingId]);
 
   // Initialize entries from existing balances or draft entries
   useEffect(() => {
-    if (isInitialized || accountsLoading) return;
+    if (
+      isInitialized ||
+      !freshDataReady ||
+      accountsLoading ||
+      accounts.length === 0
+    )
+      return;
 
-    // Check if there are balances for today with the current shift
+    // Check if there are balances for today with the current shift.
+    // Exclude balances already linked to the opening recon — those belong to OPENING,
+    // not the current CLOSING phase.
     const todayBalances = balances.filter(
-      (bal) => bal.date.startsWith(today) && bal.shift === currentShift,
+      (bal) =>
+        bal.date.startsWith(today) &&
+        bal.shift === currentShift &&
+        (openingId === null || bal.reconciliationId !== openingId),
     );
 
     if (todayBalances.length > 0) {
@@ -183,7 +208,9 @@ export default function AddBalancePage() {
     draftEntries,
     today,
     currentShift,
+    openingId,
     isInitialized,
+    freshDataReady,
     accountsLoading,
     accounts,
   ]);

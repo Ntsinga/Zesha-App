@@ -13,6 +13,7 @@ import {
   clearBalanceValidation,
 } from "../../store/slices/reconciliationsSlice";
 import { fetchTransactions } from "../../store/slices/transactionsSlice";
+import { fetchDashboard } from "../../store/slices/dashboardSlice";
 
 import type {
   ShiftEnum,
@@ -236,15 +237,25 @@ export function useReconciliationScreen({
           userId: backendUser?.id,
         }),
       ).unwrap();
-      // Refresh to get updated data
-      await dispatch(
-        fetchReconciliationDetails({
-          companyId: backendUser.companyId,
-          date,
-          shift,
-          subtype,
-        }),
-      );
+      // Refresh detail, validation and live float
+      await Promise.all([
+        dispatch(
+          fetchReconciliationDetails({
+            companyId: backendUser.companyId,
+            date,
+            shift,
+            subtype,
+          }),
+        ),
+        dispatch(
+          fetchBalanceValidation({
+            companyId: backendUser.companyId,
+            date,
+            shift,
+          }),
+        ),
+        dispatch(fetchDashboard({ forceRefresh: true })),
+      ]);
       return { success: true };
     } catch (error: unknown) {
       const msg =
@@ -285,6 +296,8 @@ export function useReconciliationScreen({
           forceWithDiscrepancies: hasDiscrepancies ? true : undefined,
         }),
       ).unwrap();
+      // Refresh live float after finalization
+      dispatch(fetchDashboard({ forceRefresh: true }));
       return { success: true };
     } catch (error: unknown) {
       const msg =

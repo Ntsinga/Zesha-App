@@ -55,6 +55,7 @@ export default function BalanceDetailPage() {
     balances,
     cashCounts,
     commissions,
+    reconciliation,
     totalFloat,
     totalCash,
     totalCommission,
@@ -86,7 +87,7 @@ export default function BalanceDetailPage() {
     validationByAccountId,
     // Linked transactions
     shiftTransactions,
-  } = useReconciliationScreen({ date, shift, subtype, subtype });
+  } = useReconciliationScreen({ date, shift, subtype });
 
   // Extra fields from hook
   const isOpening = subtype === "OPENING";
@@ -457,21 +458,18 @@ export default function BalanceDetailPage() {
                           {vStatus}
                         </Text>
                       </View>
-                      <Text className="text-xs text-gray-500">
-                        Expected: {formatCurrency(validation.calculatedBalance)}
-                      </Text>
-                      <Text
-                        className={`text-xs font-semibold ml-2 ${
-                          validation.variance > 0
-                            ? "text-green-600"
-                            : validation.variance < 0
+                      {validation.variance !== 0 && (
+                        <Text
+                          className={`text-xs font-semibold ${
+                            validation.variance < 0
                               ? "text-red-600"
-                              : "text-gray-500"
-                        }`}
-                      >
-                        {validation.variance >= 0 ? "+" : ""}
-                        {formatCurrency(validation.variance)}
-                      </Text>
+                              : "text-yellow-700"
+                          }`}
+                        >
+                          {validation.variance >= 0 ? "+" : ""}
+                          {formatCurrency(validation.variance)}
+                        </Text>
+                      )}
                     </View>
                   )}
                 </TouchableOpacity>
@@ -674,6 +672,12 @@ export default function BalanceDetailPage() {
               <TouchableOpacity
                 onPress={async () => {
                   const result = await handleFinalize();
+                  if (result?.success && subtype === "OPENING") {
+                    // OPENING finalized — navigate back so balance menu
+                    // advances to CLOSING phase automatically
+                    handleBack();
+                    return;
+                  }
                   if (result?.error === "HAS_DISCREPANCIES") {
                     Alert.alert(
                       "Finalize with Discrepancies?",
@@ -685,6 +689,10 @@ export default function BalanceDetailPage() {
                           style: "destructive",
                           onPress: async () => {
                             const r = await handleFinalize(true);
+                            if (r?.success && subtype === "OPENING") {
+                              handleBack();
+                              return;
+                            }
                             if (!r?.success && r?.error) {
                               Alert.alert("Error", r.error);
                             }
@@ -705,7 +713,7 @@ export default function BalanceDetailPage() {
                     ? "Finalizing..."
                     : hasDiscrepancies
                       ? "Finalize*"
-                      : "Finalize & Lock"}
+                      : "Finalize"}
                 </Text>
               </TouchableOpacity>
             </View>

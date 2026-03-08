@@ -50,6 +50,12 @@ export function useCashCountScreen() {
 
   // Shift is passed from the balance menu screen - use it as-is
   const shift: ShiftEnum = (params.shift as ShiftEnum) || "AM";
+  // openingId is passed so we can exclude records already linked to the opening recon
+  const openingIdRaw = params.openingId;
+  const openingId = openingIdRaw
+    ? Number(Array.isArray(openingIdRaw) ? openingIdRaw[0] : openingIdRaw) ||
+      null
+    : null;
 
   // Get cash counts from Redux — must come before entries useState
   // so we can use the already-cached data as the initial value
@@ -62,12 +68,20 @@ export function useCashCountScreen() {
   // Derive isEditing and pre-filled entries from whatever is already in Redux,
   // so the screen never renders a blank/reset state when data is cached.
   const [isEditing, setIsEditing] = useState<boolean>(() => {
-    return cashCounts.some((cc) => cc.date === today && cc.shift === shift);
+    return cashCounts.some(
+      (cc) =>
+        cc.date === today &&
+        cc.shift === shift &&
+        (openingId === null || cc.reconciliationId !== openingId),
+    );
   });
 
   const [entries, setEntries] = useState<DenominationEntry[]>(() => {
     const shiftCounts = cashCounts.filter(
-      (cc) => cc.date === today && cc.shift === shift,
+      (cc) =>
+        cc.date === today &&
+        cc.shift === shift &&
+        (openingId === null || cc.reconciliationId !== openingId),
     );
     const usedIds = new Set<number>();
     return DENOMINATIONS.map((d) => {
@@ -104,7 +118,10 @@ export function useCashCountScreen() {
   // Pre-populate entries when shift changes or cash counts are loaded
   useEffect(() => {
     const shiftCounts = cashCounts.filter(
-      (cc) => cc.date === today && cc.shift === shift,
+      (cc) =>
+        cc.date === today &&
+        cc.shift === shift &&
+        (openingId === null || cc.reconciliationId !== openingId),
     );
 
     if (shiftCounts.length > 0) {

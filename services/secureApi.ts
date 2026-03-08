@@ -165,8 +165,12 @@ export async function secureApiRequest<T>(
         const errorData = await response
           .json()
           .catch(() => ({ detail: `HTTP ${response.status}` }));
+        const retryDetail = errorData.detail ?? errorData.message ?? `HTTP ${response.status}`;
+        const retryMessage = Array.isArray(retryDetail)
+          ? retryDetail.map((e: { msg?: string; message?: string }) => e.msg ?? e.message ?? JSON.stringify(e)).join("; ")
+          : typeof retryDetail === "string" ? retryDetail : JSON.stringify(retryDetail);
         lastError = new ApiError(
-          errorData.detail || errorData.message || `HTTP ${response.status}`,
+          retryMessage,
           response.status,
           "TRANSIENT",
         );
@@ -178,10 +182,20 @@ export async function secureApiRequest<T>(
         const errorData = await response
           .json()
           .catch(() => ({ detail: "Request failed" }));
-        throw new ApiError(
-          errorData.detail || errorData.message || `HTTP ${response.status}`,
-          response.status,
-        );
+        // FastAPI returns validation errors as an array in `detail`.
+        // Flatten it to a readable string instead of letting it become "[object Object]".
+        const detail = errorData.detail ?? errorData.message ?? `HTTP ${response.status}`;
+        const message =
+          Array.isArray(detail)
+            ? detail
+                .map((e: { msg?: string; loc?: string[]; message?: string }) =>
+                  e.msg ?? e.message ?? JSON.stringify(e),
+                )
+                .join("; ")
+            : typeof detail === "string"
+              ? detail
+              : JSON.stringify(detail);
+        throw new ApiError(message, response.status);
       }
 
       // Handle 204 No Content

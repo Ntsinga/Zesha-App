@@ -722,6 +722,10 @@ export default function BalanceDetailWeb() {
                 <button
                   onClick={async () => {
                     const result = await handleFinalize();
+                    if (result?.success && subtype === "OPENING") {
+                      handleBack();
+                      return;
+                    }
                     if (result?.error === "HAS_DISCREPANCIES") {
                       setShowDiscrepancyConfirm(true);
                     } else if (!result?.success && result?.error) {
@@ -867,6 +871,10 @@ export default function BalanceDetailWeb() {
                 onClick={async () => {
                   setShowDiscrepancyConfirm(false);
                   const result = await handleFinalize(true);
+                  if (result?.success && subtype === "OPENING") {
+                    handleBack();
+                    return;
+                  }
                   if (!result?.success && result?.error) {
                     alert(result.error);
                   }

@@ -47,6 +47,12 @@ export function useAddBalanceScreen() {
   const params = useLocalSearchParams();
   // Shift is passed from the balance menu screen - use it as-is
   const currentShift: ShiftEnum = (params.shift as ShiftEnum) || "AM";
+  // openingId is passed so we can exclude records already linked to the opening recon
+  const openingIdRaw = params.openingId;
+  const openingId = openingIdRaw
+    ? Number(Array.isArray(openingIdRaw) ? openingIdRaw[0] : openingIdRaw) ||
+      null
+    : null;
 
   // Selectors
   const companyId = useSelector(selectEffectiveCompanyId);
@@ -73,25 +79,39 @@ export function useAddBalanceScreen() {
     {},
   );
   const [isInitialized, setIsInitialized] = useState(false);
+  // freshDataReady tracks that the forced fetch has actually completed, preventing
+  // a closure race where the init effect reads stale cached data before the
+  // forceRefresh round-trip returns updated reconciliation_id values.
+  const [freshDataReady, setFreshDataReady] = useState(false);
   const [accountPickerVisible, setAccountPickerVisible] = useState<
     string | null
   >(null);
 
-  // Fetch data on mount - force refresh to get latest data
+  // Fetch data on mount (or when openingId changes, i.e. OPENING→CLOSING nav)
+  // force refresh to get latest reconciliation_id linkage from the backend.
   useEffect(() => {
-    dispatch(fetchAccounts({ isActive: true, forceRefresh: true }));
-    dispatch(
-      fetchBalances({ dateFrom: today, dateTo: today, forceRefresh: true }),
-    );
-  }, [dispatch, today]);
+    setFreshDataReady(false);
+    setIsInitialized(false);
+    Promise.all([
+      dispatch(fetchAccounts({ isActive: true, forceRefresh: true })),
+      dispatch(
+        fetchBalances({ dateFrom: today, dateTo: today, forceRefresh: true }),
+      ),
+    ]).then(() => setFreshDataReady(true));
+  }, [dispatch, today, openingId]);
 
   // Initialize entries from existing balances or draft entries
   useEffect(() => {
-    if (isInitialized || isDataLoading || accounts.length === 0) return;
+    if (isInitialized || !freshDataReady || accounts.length === 0) return;
 
-    // Use currentShift (from params) for prepopulation
+    // Use currentShift (from params) for prepopulation.
+    // Exclude balances already linked to the opening recon — those belong to OPENING,
+    // not the current CLOSING phase.
     const todayBalances = balances.filter(
-      (bal) => bal.date.startsWith(today) && bal.shift === currentShift,
+      (bal) =>
+        bal.date.startsWith(today) &&
+        bal.shift === currentShift &&
+        (openingId === null || bal.reconciliationId !== openingId),
     );
 
     if (todayBalances.length > 0) {
@@ -137,8 +157,9 @@ export function useAddBalanceScreen() {
     draftEntries,
     today,
     currentShift,
+    openingId,
     isInitialized,
-    isDataLoading,
+    freshDataReady,
     accounts,
   ]);
 
@@ -447,11 +468,14 @@ export function useAddBalanceScreen() {
 
     // Offline queue — only supports creating new entries (not updates)
     if (!isConnected) {
-      const existingEntries = entries.filter((e) => e.id.startsWith("existing-"));
+      const existingEntries = entries.filter((e) =>
+        e.id.startsWith("existing-"),
+      );
       if (existingEntries.length > 0) {
         return {
           success: false,
-          message: "Updating existing balances requires an internet connection.",
+          message:
+            "Updating existing balances requires an internet connection.",
         };
       }
 
@@ -484,7 +508,10 @@ export function useAddBalanceScreen() {
           totalCreated: newEntries.length,
         };
       } catch {
-        return { success: false, message: "Failed to queue balances for offline sync." };
+        return {
+          success: false,
+          message: "Failed to queue balances for offline sync.",
+        };
       }
     }
 
@@ -623,7 +650,15 @@ export function useAddBalanceScreen() {
     } finally {
       setIsSubmitting(false);
     }
-  }, [entries, currentShift, today, companyId, dispatch, validateEntries, isConnected]);
+  }, [
+    entries,
+    currentShift,
+    today,
+    companyId,
+    dispatch,
+    validateEntries,
+    isConnected,
+  ]);
 
   // Compute if we have existing entries (for update vs create UI)
   const hasExistingEntries = useMemo(

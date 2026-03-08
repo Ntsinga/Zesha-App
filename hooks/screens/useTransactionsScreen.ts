@@ -407,7 +407,9 @@ export function useTransactionsScreen() {
     if (!transactionToReverse || !companyId) return;
 
     try {
-      await dispatch(reverseTransaction(transactionToReverse.id)).unwrap();
+      await dispatch(
+        reverseTransaction({ id: transactionToReverse.id, companyId }),
+      ).unwrap();
       setShowReverseConfirm(false);
       setTransactionToReverse(null);
       dispatch(
@@ -417,8 +419,14 @@ export function useTransactionsScreen() {
           endDate: filterDateTo + "T23:59:59",
         }),
       );
-    } catch {
-      // Error handled by Redux state
+    } catch (err) {
+      setSubmitError(
+        typeof err === "string"
+          ? err
+          : err instanceof Error
+            ? err.message
+            : "Failed to reverse transaction.",
+      );
     }
   }, [dispatch, companyId, transactionToReverse, filterDateFrom, filterDateTo]);
 

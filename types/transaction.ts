@@ -40,7 +40,10 @@ export interface Transaction extends BaseModel {
 export interface TransactionCreate {
   companyId: number;
   accountId: number;
-  transactionType: Exclude<TransactionTypeEnum, "FLOAT_PURCHASE" | "CAPITAL_INJECTION">;
+  transactionType: Exclude<
+    TransactionTypeEnum,
+    "FLOAT_PURCHASE" | "CAPITAL_INJECTION"
+  >;
   amount: number;
   transactionTime: string;
   reference?: string | null;
@@ -63,7 +66,7 @@ export interface FloatPurchaseCreate {
 }
 
 /**
- * Capital injection creation - owner adds working capital
+ * Capital injection creation - owner adds working capital into an e-float account
  */
 export interface CapitalInjectionCreate {
   companyId: number;
@@ -72,6 +75,29 @@ export interface CapitalInjectionCreate {
   transactionTime: string;
   reference?: string | null;
   notes?: string | null;
+}
+
+/**
+ * Cash capital injection - owner adds physical cash capital (no account required)
+ */
+export interface CashCapitalInjectionCreate {
+  companyId: number;
+  amount: number;
+  transactionTime: string;
+  reference?: string | null;
+  notes?: string | null;
+}
+
+/**
+ * Result returned after recording a cash capital injection
+ */
+export interface CashCapitalInjectionResult {
+  companyId: number;
+  amount: number;
+  newTotalWorkingCapital: number;
+  reference?: string | null;
+  notes?: string | null;
+  message: string;
 }
 
 /**

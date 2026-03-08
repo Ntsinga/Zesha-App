@@ -622,9 +622,24 @@ const reconciliationsSlice = createSlice({
       })
       .addCase(finalizeReconciliation.fulfilled, (state, action) => {
         state.isFinalizing = false;
-        // Update reconciliationDetails if exists
+        // Update reconciliationDetails if the detail view is open
         if (state.reconciliationDetails?.reconciliation) {
           state.reconciliationDetails.reconciliation.isFinalized = true;
+          state.reconciliationDetails.reconciliation.reconciliationStatus =
+            "FINALIZED";
+        }
+        // Also update the matching item in the history list so the history
+        // view reflects the new status immediately without a refresh
+        const { date, shift, subtype } = action.meta.arg;
+        const historyItem = state.history.find(
+          (r) =>
+            r.date === date &&
+            r.shift === shift &&
+            (r.subtype ?? "CLOSING") === (subtype ?? "CLOSING"),
+        );
+        if (historyItem) {
+          historyItem.isFinalized = true;
+          historyItem.reconciliationStatus = "FINALIZED";
         }
       })
       .addCase(finalizeReconciliation.rejected, (state, action) => {
