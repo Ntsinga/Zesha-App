@@ -89,6 +89,8 @@ export interface ShiftStatus {
   hasClosing: boolean;
   openingFinalized: boolean;
   closingFinalized: boolean;
+  openingId?: number | null;
+  closingId?: number | null;
 }
 
 /**

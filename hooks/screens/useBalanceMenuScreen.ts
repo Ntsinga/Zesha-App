@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useRouter } from "expo-router";
 import { fetchCashCounts } from "../../store/slices/cashCountSlice";
@@ -6,10 +6,21 @@ import { fetchBalances } from "../../store/slices/balancesSlice";
 import { fetchAccounts } from "../../store/slices/accountsSlice";
 import { fetchCommissions } from "../../store/slices/commissionsSlice";
 import { fetchTransactions } from "../../store/slices/transactionsSlice";
-import { calculateReconciliation, fetchShiftStatus } from "../../store/slices/reconciliationsSlice";
+import {
+  calculateReconciliation,
+  fetchShiftStatus,
+} from "../../store/slices/reconciliationsSlice";
 import { useCurrencyFormatter } from "../useCurrency";
 import type { AppDispatch, RootState } from "../../store";
 import type { ReconciliationSubtypeEnum, ShiftEnum } from "../../types";
+
+// Module-level cache: PM handover decision survives navigate-and-back
+// (React component unmounts when navigating to add-balance, add-commission, etc.).
+// Resets automatically when a new date begins.
+const _handoverCache: { date: string; pm: boolean | null } = {
+  date: "",
+  pm: null,
+};
 
 export function useBalanceMenuScreen() {
   const router = useRouter();
@@ -17,16 +28,27 @@ export function useBalanceMenuScreen() {
   const { formatCurrency } = useCurrencyFormatter();
   const [selectedShift, setSelectedShift] = useState<ShiftEnum>("AM");
 
-  // null = not yet answered, true = yes (taking over), false = no (solo/covering alone)
-  const [handoverDecision, setHandoverDecision] = useState<boolean | null>(null);
-
-  // Reset handover decision whenever the shift tab changes
-  useEffect(() => {
-    setHandoverDecision(null);
-  }, [selectedShift]);
-
-  // Get today's date
+  // Get today's date (computed early so the cache check below can use it)
   const today = new Date().toISOString().split("T")[0];
+
+  // Reset cache when the date rolls over to a new day
+  if (_handoverCache.date !== today) {
+    _handoverCache.date = today;
+    _handoverCache.pm = null;
+  }
+
+  // null = not yet answered, true = yes (taking over from AM), false = no (solo/full day)
+  // State is seeded from the module-level cache so decisions survive navigate-and-back.
+  const [handoverDecision, _setHandoverDecision] = useState<boolean | null>(
+    () => _handoverCache.pm,
+  );
+
+  // Write-through setter: updates both the cache and the React state.
+  // This means switching AM→PM→AM→PM will not re-show the modal.
+  const setHandoverDecision = useCallback((decision: boolean | null) => {
+    _handoverCache.pm = decision;
+    _setHandoverDecision(decision);
+  }, []);
 
   // Get cash counts, balances, commissions, and accounts from Redux
   const { items: cashCounts, isLoading: cashCountLoading } = useSelector(
@@ -116,9 +138,14 @@ export function useBalanceMenuScreen() {
   }, [dispatch, today, backendUser?.companyId]);
 
   // Derive current shift phase:
-  // OPENING — no opening reconciliation exists yet for this shift
-  // CLOSING  — opening is finalized, closing not yet done
+  // OPENING — no opening reconciliation exists yet, or it exists but isn't finalized
+  // CLOSING  — opening record exists AND is finalized (baseline locked)
   // COMPLETE — closing is finalized
+  //
+  // OPENING must be finalized before advancing to CLOSING.  Finalization sets
+  // reconciled_at as a hard timestamp boundary, preventing re-calculation from
+  // shifting the baseline while the boundary stays the same (which would cause
+  // double-counting of pre-opening transactions in the live snapshot).
   const shiftPhase = useMemo((): "OPENING" | "CLOSING" | "COMPLETE" => {
     if (!shiftStatus) return "OPENING";
     if (shiftStatus.closingFinalized) return "COMPLETE";
@@ -126,12 +153,16 @@ export function useBalanceMenuScreen() {
     return "OPENING";
   }, [shiftStatus]);
 
-  // The reconciliation subtype that the Calculate button will fire.
-  // AM: always a full CLOSING reconciliation — no handover possible.
-  // PM solo worker (handoverDecision=false) skips OPENING and goes straight to CLOSING.
+  // Both AM and PM follow the shiftPhase state machine: OPENING → CLOSING → COMPLETE.
+  //
+  // AM OPENING: start-of-day check to verify overnight deposits/commission credits.
+  // AM CLOSING: full end-of-morning reconciliation.
+  // PM OPENING: handover snapshot when a second worker takes over from AM.
+  // PM CLOSING: full end-of-day reconciliation.
+  //
+  // Exception: PM solo worker (handoverDecision=false) skips OPENING entirely.
   const currentSubtype: ReconciliationSubtypeEnum = useMemo(() => {
-    if (selectedShift === "AM") return "CLOSING";
-    if (handoverDecision === false) return "CLOSING";
+    if (selectedShift === "PM" && handoverDecision === false) return "CLOSING";
     if (shiftPhase === "CLOSING" || shiftPhase === "COMPLETE") return "CLOSING";
     return "OPENING";
   }, [selectedShift, handoverDecision, shiftPhase]);
@@ -146,20 +177,26 @@ export function useBalanceMenuScreen() {
     !shiftStatus.hasOpening &&
     !shiftStatus.hasClosing;
 
-  // "Start [shift] Shift" for PM handover OPENING; everything else is "Submit [shift] Shift"
+  // "Start" during OPENING (handover snapshot or AM overnight verification)
+  // "Submit" during CLOSING (full end-of-shift reconciliation)
   const buttonLabel =
-    selectedShift === "PM" &&
-    handoverDecision === true &&
-    shiftPhase === "OPENING"
+    currentSubtype === "OPENING"
       ? `Start ${selectedShift} Shift`
       : `Submit ${selectedShift} Shift`;
 
   // Show commissions & transactions only during a CLOSING or COMPLETE phase,
   // or when the PM worker chose to cover the full day (no handover).
-  const showCommissionsAndTransactions = currentSubtype === "CLOSING" || shiftPhase === "COMPLETE";
+  const showCommissionsAndTransactions =
+    currentSubtype === "CLOSING" || shiftPhase === "COMPLETE";
   const cashCountStatus = useMemo(() => {
     const todayCounts = cashCounts.filter((cc) => cc.date === today);
-    const amCounts = todayCounts.filter((cc) => cc.shift === "AM");
+    // In CLOSING phase, exclude cash counts already linked to the opening recon
+    const openingReconId = shiftStatus?.openingId ?? null;
+    const amCounts = todayCounts.filter(
+      (cc) =>
+        cc.shift === "AM" &&
+        (openingReconId === null || cc.reconciliationId !== openingReconId),
+    );
     const pmCounts = todayCounts.filter((cc) => cc.shift === "PM");
 
     const hasAM = amCounts.length > 0;
@@ -189,14 +226,20 @@ export function useBalanceMenuScreen() {
       latestShiftTotal: total,
       hasTodayCashCount: hasAM || hasPM,
     };
-  }, [cashCounts, today]);
+  }, [cashCounts, today, shiftStatus]);
 
   // Calculate balance completion status
   const balanceStatus = useMemo(() => {
     const activeAccounts = accounts.filter((acc) => acc.isActive);
     const todayBalances = balances.filter((bal) => bal.date.startsWith(today));
 
-    const amBalances = todayBalances.filter((bal) => bal.shift === "AM");
+    // In CLOSING phase, exclude balances already linked to the opening recon
+    const openingReconId = shiftStatus?.openingId ?? null;
+    const amBalances = todayBalances.filter(
+      (bal) =>
+        bal.shift === "AM" &&
+        (openingReconId === null || bal.reconciliationId !== openingReconId),
+    );
     const pmBalances = todayBalances.filter((bal) => bal.shift === "PM");
 
     // Check if all active accounts have balances for each shift
@@ -236,7 +279,7 @@ export function useBalanceMenuScreen() {
       latestBalanceTotal,
       hasTodayBalances: hasAM || hasPM,
     };
-  }, [balances, accounts, today]);
+  }, [balances, accounts, today, shiftStatus]);
 
   // Calculate commission completion status
   const commissionStatus = useMemo(() => {
@@ -360,11 +403,17 @@ export function useBalanceMenuScreen() {
   ]);
 
   const handleNavigateCashCount = () => {
-    router.push(`/add-cash-count?shift=${selectedShift}` as any);
+    const openingId = shiftStatus?.openingId ?? "";
+    router.push(
+      `/add-cash-count?shift=${selectedShift}&openingId=${openingId}` as any,
+    );
   };
 
   const handleNavigateAddBalance = () => {
-    router.push(`/add-balance?shift=${selectedShift}` as any);
+    const openingId = shiftStatus?.openingId ?? "";
+    router.push(
+      `/add-balance?shift=${selectedShift}&openingId=${openingId}` as any,
+    );
   };
 
   const handleNavigateCommissions = () => {

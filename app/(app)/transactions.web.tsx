@@ -541,7 +541,10 @@ export default function TransactionsWeb() {
       {showAddTransaction && (
         <div
           className="modal-overlay"
-          onClick={() => { setShowAddTransaction(false); clearSubmitError(); }}
+          onClick={() => {
+            setShowAddTransaction(false);
+            clearSubmitError();
+          }}
         >
           <div
             className="modal-content"
@@ -551,7 +554,10 @@ export default function TransactionsWeb() {
             <div className="modal-header">
               <h2>Add Transaction</h2>
               <button
-                onClick={() => { setShowAddTransaction(false); clearSubmitError(); }}
+                onClick={() => {
+                  setShowAddTransaction(false);
+                  clearSubmitError();
+                }}
                 className="modal-close"
               >
                 <X size={20} />
@@ -779,7 +785,10 @@ export default function TransactionsWeb() {
               <div className="form-actions">
                 <button
                   type="button"
-                  onClick={() => { setShowAddTransaction(false); clearSubmitError(); }}
+                  onClick={() => {
+                    setShowAddTransaction(false);
+                    clearSubmitError();
+                  }}
                   className="btn-cancel"
                 >
                   Cancel
@@ -813,7 +822,10 @@ export default function TransactionsWeb() {
       {showFloatPurchase && (
         <div
           className="modal-overlay"
-          onClick={() => { setShowFloatPurchase(false); clearSubmitError(); }}
+          onClick={() => {
+            setShowFloatPurchase(false);
+            clearSubmitError();
+          }}
         >
           <div
             className="modal-content"
@@ -823,7 +835,10 @@ export default function TransactionsWeb() {
             <div className="modal-header">
               <h2>Float Purchase</h2>
               <button
-                onClick={() => { setShowFloatPurchase(false); clearSubmitError(); }}
+                onClick={() => {
+                  setShowFloatPurchase(false);
+                  clearSubmitError();
+                }}
                 className="modal-close"
               >
                 <X size={20} />
@@ -1044,7 +1059,10 @@ export default function TransactionsWeb() {
               <div className="form-actions">
                 <button
                   type="button"
-                  onClick={() => { setShowFloatPurchase(false); clearSubmitError(); }}
+                  onClick={() => {
+                    setShowFloatPurchase(false);
+                    clearSubmitError();
+                  }}
                   className="btn-cancel"
                 >
                   Cancel
@@ -1072,7 +1090,10 @@ export default function TransactionsWeb() {
       {showCapitalInjection && (
         <div
           className="modal-overlay"
-          onClick={() => { setShowCapitalInjection(false); clearSubmitError(); }}
+          onClick={() => {
+            setShowCapitalInjection(false);
+            clearSubmitError();
+          }}
         >
           <div
             className="modal-content"
@@ -1082,7 +1103,10 @@ export default function TransactionsWeb() {
             <div className="modal-header">
               <h2>Record Capital Injection</h2>
               <button
-                onClick={() => { setShowCapitalInjection(false); clearSubmitError(); }}
+                onClick={() => {
+                  setShowCapitalInjection(false);
+                  clearSubmitError();
+                }}
                 className="modal-close"
               >
                 <X size={20} />
@@ -1218,7 +1242,10 @@ export default function TransactionsWeb() {
                 <div className="form-actions">
                   <button
                     type="button"
-                    onClick={() => { setShowCapitalInjection(false); clearSubmitError(); }}
+                    onClick={() => {
+                      setShowCapitalInjection(false);
+                      clearSubmitError();
+                    }}
                     className="btn-cancel"
                   >
                     Cancel
@@ -1246,7 +1273,10 @@ export default function TransactionsWeb() {
       {showReverseConfirm && transactionToReverse && (
         <div
           className="modal-overlay"
-          onClick={() => setShowReverseConfirm(false)}
+          onClick={() => {
+            setShowReverseConfirm(false);
+            clearSubmitError();
+          }}
         >
           <div
             className="modal-content"
@@ -1256,7 +1286,10 @@ export default function TransactionsWeb() {
             <div className="modal-header">
               <h2>Reverse Transaction</h2>
               <button
-                onClick={() => setShowReverseConfirm(false)}
+                onClick={() => {
+                  setShowReverseConfirm(false);
+                  clearSubmitError();
+                }}
                 className="modal-close"
               >
                 <X size={20} />
@@ -1351,10 +1384,37 @@ export default function TransactionsWeb() {
               </div>
             </div>
 
+            {/* Inline error from failed reversal */}
+            {submitError && (
+              <div
+                style={{
+                  background: "rgba(239,68,68,0.08)",
+                  border: "1px solid rgba(239,68,68,0.3)",
+                  borderRadius: "8px",
+                  padding: "10px 12px",
+                  marginBottom: "12px",
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: "8px",
+                  color: "#dc2626",
+                  fontSize: "13px",
+                }}
+              >
+                <AlertTriangle
+                  size={15}
+                  style={{ marginTop: 1, flexShrink: 0 }}
+                />
+                <span>{submitError}</span>
+              </div>
+            )}
+
             <div className="form-actions">
               <button
                 type="button"
-                onClick={() => setShowReverseConfirm(false)}
+                onClick={() => {
+                  setShowReverseConfirm(false);
+                  clearSubmitError();
+                }}
                 className="btn-cancel"
               >
                 Cancel

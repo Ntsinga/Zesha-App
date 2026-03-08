@@ -21,6 +21,7 @@ import {
   fetchTransactions,
   reverseTransaction,
   createCapitalInjection,
+  createCashCapitalInjection,
 } from "../../store/slices/transactionsSlice";
 import { fetchDashboard } from "../../store/slices/dashboardSlice";
 import { fetchAccounts } from "../../store/slices/accountsSlice";
@@ -32,6 +33,7 @@ import type {
   TransactionTypeEnum,
   ShiftEnum,
   CapitalInjectionCreate,
+  CashCapitalInjectionCreate,
 } from "../../types";
 import type { Account } from "../../types";
 
@@ -108,6 +110,7 @@ export default function Transactions() {
   const [isReversing, setIsReversing] = useState(false);
   const [showInjectionModal, setShowInjectionModal] = useState(false);
   const [injectionForm, setInjectionForm] = useState({
+    injectionType: "FLOAT" as "FLOAT" | "CASH",
     accountId: undefined as number | undefined,
     amount: "",
     reference: "",
@@ -153,24 +156,38 @@ export default function Transactions() {
   };
 
   const handleCreateCapitalInjection = useCallback(async () => {
-    if (!injectionForm.accountId || !injectionForm.amount) return;
+    if (!injectionForm.amount) return;
     const companyId = backendUser?.companyId;
     if (!companyId) return;
 
-    const data: CapitalInjectionCreate = {
-      companyId,
-      accountId: injectionForm.accountId,
-      amount: parseFloat(injectionForm.amount),
-      transactionTime: new Date().toISOString(),
-      reference: injectionForm.reference || undefined,
-      notes: injectionForm.notes || undefined,
-    };
-
     try {
       setIsSubmittingInjection(true);
-      await dispatch(createCapitalInjection(data)).unwrap();
+
+      if (injectionForm.injectionType === "FLOAT") {
+        if (!injectionForm.accountId) return;
+        const data: CapitalInjectionCreate = {
+          companyId,
+          accountId: injectionForm.accountId,
+          amount: parseFloat(injectionForm.amount),
+          transactionTime: new Date().toISOString(),
+          reference: injectionForm.reference || undefined,
+          notes: injectionForm.notes || undefined,
+        };
+        await dispatch(createCapitalInjection(data)).unwrap();
+      } else {
+        const data: CashCapitalInjectionCreate = {
+          companyId,
+          amount: parseFloat(injectionForm.amount),
+          transactionTime: new Date().toISOString(),
+          reference: injectionForm.reference || undefined,
+          notes: injectionForm.notes || undefined,
+        };
+        await dispatch(createCashCapitalInjection(data)).unwrap();
+      }
+
       setShowInjectionModal(false);
       setInjectionForm({
+        injectionType: "FLOAT",
         accountId: undefined,
         amount: "",
         reference: "",
@@ -203,14 +220,18 @@ export default function Transactions() {
             onPress: async () => {
               try {
                 setIsReversing(true);
-                await dispatch(reverseTransaction(tx.id)).unwrap();
+                await dispatch(
+                  reverseTransaction({ id: tx.id, companyId: tx.companyId }),
+                ).unwrap();
                 dispatch(fetchTransactions(buildFilters()));
               } catch (err) {
                 Alert.alert(
                   "Reversal Failed",
                   typeof err === "string"
                     ? err
-                    : "Could not reverse this transaction. Please try again.",
+                    : err instanceof Error
+                      ? err.message
+                      : "Could not reverse this transaction. Please try again.",
                 );
               } finally {
                 setIsReversing(false);
@@ -560,6 +581,7 @@ export default function Transactions() {
         onClose={() => {
           setShowInjectionModal(false);
           setInjectionForm({
+            injectionType: "FLOAT",
             accountId: undefined,
             amount: "",
             reference: "",
@@ -573,51 +595,84 @@ export default function Transactions() {
             Record additional capital being injected into the business.
           </Text>
 
-          {/* Account picker */}
+          {/* Injection type toggle */}
           <Text className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">
-            Account *
+            Injection Type *
           </Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            className="mb-4"
-          >
-            <View className="flex-row gap-2 pb-1">
-              {accounts
-                .filter((a: Account) => a.isActive)
-                .map((acc: Account) => (
-                  <TouchableOpacity
-                    key={acc.id}
-                    onPress={() =>
-                      setInjectionForm((f) => ({ ...f, accountId: acc.id }))
-                    }
-                    className="px-3 py-2 rounded-xl border"
-                    style={{
-                      backgroundColor:
-                        injectionForm.accountId === acc.id
-                          ? "#0d9488"
-                          : "#F9FAFB",
-                      borderColor:
-                        injectionForm.accountId === acc.id
-                          ? "#0d9488"
-                          : "#E5E7EB",
-                    }}
-                  >
-                    <Text
-                      className="text-sm font-medium"
-                      style={{
-                        color:
-                          injectionForm.accountId === acc.id
-                            ? "#FFFFFF"
-                            : "#374151",
-                      }}
-                    >
-                      {acc.name}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-            </View>
-          </ScrollView>
+          <View className="flex-row gap-2 mb-4">
+            {(["FLOAT", "CASH"] as const).map((t) => (
+              <TouchableOpacity
+                key={t}
+                onPress={() =>
+                  setInjectionForm((f) => ({ ...f, injectionType: t, accountId: undefined }))
+                }
+                className="flex-1 py-2.5 rounded-xl border items-center"
+                style={{
+                  backgroundColor: injectionForm.injectionType === t ? "#0d9488" : "#F9FAFB",
+                  borderColor: injectionForm.injectionType === t ? "#0d9488" : "#E5E7EB",
+                }}
+              >
+                <Text
+                  className="text-sm font-semibold"
+                  style={{
+                    color: injectionForm.injectionType === t ? "#FFFFFF" : "#374151",
+                  }}
+                >
+                  {t === "FLOAT" ? "E-Float Account" : "Cash (Physical)"}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {/* Account picker — only for float injections */}
+          {injectionForm.injectionType === "FLOAT" && (
+            <>
+              <Text className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">
+                Account *
+              </Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                className="mb-4"
+              >
+                <View className="flex-row gap-2 pb-1">
+                  {accounts
+                    .filter((a: Account) => a.isActive)
+                    .map((acc: Account) => (
+                      <TouchableOpacity
+                        key={acc.id}
+                        onPress={() =>
+                          setInjectionForm((f) => ({ ...f, accountId: acc.id }))
+                        }
+                        className="px-3 py-2 rounded-xl border"
+                        style={{
+                          backgroundColor:
+                            injectionForm.accountId === acc.id
+                              ? "#0d9488"
+                              : "#F9FAFB",
+                          borderColor:
+                            injectionForm.accountId === acc.id
+                              ? "#0d9488"
+                              : "#E5E7EB",
+                        }}
+                      >
+                        <Text
+                          className="text-sm font-medium"
+                          style={{
+                            color:
+                              injectionForm.accountId === acc.id
+                                ? "#FFFFFF"
+                                : "#374151",
+                          }}
+                        >
+                          {acc.name}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                </View>
+              </ScrollView>
+            </>
+          )}
 
           {/* Amount */}
           <Text className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">
@@ -663,15 +718,15 @@ export default function Transactions() {
             onPress={handleCreateCapitalInjection}
             disabled={
               isSubmittingInjection ||
-              !injectionForm.accountId ||
-              !injectionForm.amount
+              !injectionForm.amount ||
+              (injectionForm.injectionType === "FLOAT" && !injectionForm.accountId)
             }
             className="py-4 rounded-xl items-center"
             style={{
               backgroundColor:
                 isSubmittingInjection ||
-                !injectionForm.accountId ||
-                !injectionForm.amount
+                !injectionForm.amount ||
+                (injectionForm.injectionType === "FLOAT" && !injectionForm.accountId)
                   ? "#99f6e4"
                   : "#0d9488",
             }}

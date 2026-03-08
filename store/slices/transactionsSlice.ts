@@ -14,6 +14,8 @@ import type {
   BulkTransactionResponse,
   AccountBalanceResponse,
   CapitalInjectionCreate,
+  CashCapitalInjectionCreate,
+  CashCapitalInjectionResult,
 } from "@/types/transaction";
 import { mapApiResponse, mapApiRequest, buildTypedQueryString } from "@/types";
 import { API_ENDPOINTS } from "@/config/api";
@@ -98,8 +100,7 @@ export const fetchTransactions = createAsyncThunk<
       // Check cache — only use cache if filters match the last query
       const { lastFetched, filters: lastFilters } = state.transactions;
       const filtersMatch =
-        lastFetched &&
-        JSON.stringify(lastFilters) === JSON.stringify(filters);
+        lastFetched && JSON.stringify(lastFilters) === JSON.stringify(filters);
       if (filtersMatch && Date.now() - lastFetched < CACHE_DURATION) {
         return state.transactions.items;
       }
@@ -236,6 +237,43 @@ export const createCapitalInjection = createAsyncThunk<
 );
 
 /**
+ * Record a cash capital injection (no account required)
+ */
+export const createCashCapitalInjection = createAsyncThunk<
+  CashCapitalInjectionResult,
+  CashCapitalInjectionCreate,
+  { state: RootState; rejectValue: string }
+>(
+  "transactions/createCashCapitalInjection",
+  async (data, { getState, rejectWithValue }) => {
+    try {
+      const state = getState();
+      const companyId =
+        state.auth.viewingAgencyId || state.auth.user?.companyId;
+
+      if (!companyId) {
+        return rejectWithValue("No companyId found. Please log in again.");
+      }
+
+      return await apiRequest<CashCapitalInjectionResult>(
+        API_ENDPOINTS.transactions.cashCapitalInjection,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(mapApiRequest({ ...data, companyId })),
+        },
+      );
+    } catch (error) {
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : "Failed to record cash capital injection",
+      );
+    }
+  },
+);
+
+/**
  * Bulk create transactions
  */
 export const bulkCreateTransactions = createAsyncThunk<
@@ -290,12 +328,12 @@ export const updateTransaction = createAsyncThunk<
  */
 export const reverseTransaction = createAsyncThunk<
   Transaction,
-  number,
+  { id: number; companyId: number },
   { rejectValue: string }
->("transactions/reverse", async (id, { rejectWithValue }) => {
+>("transactions/reverse", async ({ id, companyId }, { rejectWithValue }) => {
   try {
     return await apiRequest<Transaction>(
-      API_ENDPOINTS.transactions.reverse(id),
+      API_ENDPOINTS.transactions.reverse(id, companyId),
       { method: "POST" },
     );
   } catch (error) {
@@ -320,9 +358,7 @@ export const confirmTransaction = createAsyncThunk<
     );
   } catch (error) {
     return rejectWithValue(
-      error instanceof Error
-        ? error.message
-        : "Failed to confirm transaction",
+      error instanceof Error ? error.message : "Failed to confirm transaction",
     );
   }
 });
@@ -574,6 +610,21 @@ const transactionsSlice = createSlice({
         state.lastFetched = null;
       })
       .addCase(createCapitalInjection.rejected, (state, action) => {
+        state.isCreating = false;
+        state.error = action.payload as string;
+      });
+
+    // ---- Cash Capital Injection ----
+    builder
+      .addCase(createCashCapitalInjection.pending, (state) => {
+        state.isCreating = true;
+        state.error = null;
+      })
+      .addCase(createCashCapitalInjection.fulfilled, (state) => {
+        state.isCreating = false;
+        // Cash injections don't create a Transaction record — no list update needed
+      })
+      .addCase(createCashCapitalInjection.rejected, (state, action) => {
         state.isCreating = false;
         state.error = action.payload as string;
       });

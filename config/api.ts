@@ -153,10 +153,11 @@ export const API_ENDPOINTS = {
     create: "/transactions/create",
     floatPurchase: "/transactions/float-purchase",
     capitalInjection: "/transactions/capital-injection",
+    cashCapitalInjection: "/transactions/cash-capital-injection",
     bulk: "/transactions/bulk",
     get: (id: number) => `/transactions/${id}`,
     update: (id: number) => `/transactions/${id}`,
-    reverse: (id: number) => `/transactions/${id}/reverse`,
+    reverse: (id: number, companyId: number) => `/transactions/${id}/reverse?company_id=${companyId}`,
     confirm: (id: number) => `/transactions/${id}/confirm`,
     accountBalance: (accountId: number) =>
       `/transactions/account/${accountId}/balance`,
