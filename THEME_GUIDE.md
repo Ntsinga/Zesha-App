@@ -1,4 +1,4 @@
-# Zesha App Theme Management Guide
+# Teleba Theme Management Guide
 
 This document explains how the app's theme system works and how to change colors in the future.
 

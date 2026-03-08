@@ -40,7 +40,7 @@ export default function SignInWeb() {
               <span className="auth-logo-letter">Z</span>
             </div>
           </div>
-          <h1 className="auth-brand-title">ZESHA AGENT</h1>
+          <h1 className="auth-brand-title">TELEBA</h1>
           <p className="auth-brand-tagline">
             Your trusted financial management partner
           </p>

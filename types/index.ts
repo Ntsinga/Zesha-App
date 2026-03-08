@@ -1,5 +1,5 @@
 /**
- * Zesha App - Type Definitions
+ * Teleba - Type Definitions
  *
  * This barrel file exports all types used throughout the application.
  * Types are organized by domain for better maintainability.

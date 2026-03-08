@@ -1,5 +1,5 @@
 /**
- * Zesha App Theme Configuration
+ * Teleba Theme Configuration
  *
  * This file centralizes all color definitions for the app.
  * To change the app's theme, simply update the colors here.

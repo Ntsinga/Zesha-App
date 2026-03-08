@@ -111,7 +111,7 @@ const CustomDrawerContent = (props: DrawerContentComponentProps) => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerText}>Zesha App</Text>
+        <Text style={styles.headerText}>Teleba</Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>

@@ -63,7 +63,7 @@ export default function DashboardNative() {
       >
         {/* Header Section */}
         <View className="px-5 pt-6 pb-4 bg-white">
-          <Text className="text-3xl font-bold text-gray-900">Zesha App</Text>
+          <Text className="text-3xl font-bold text-gray-900">Teleba</Text>
           <Text className="text-base text-gray-500 mt-1">
             Hi, {companyName}
           </Text>
@@ -219,7 +219,9 @@ export default function DashboardNative() {
               <View className="border-t border-gray-100 pt-3">
                 <View className="flex-row justify-between items-center py-1">
                   <View className="flex-row items-center" style={{ gap: 6 }}>
-                    <Text className="text-gray-600 text-base">Daily Commission</Text>
+                    <Text className="text-gray-600 text-base">
+                      Daily Commission
+                    </Text>
                     {telecomHasIssues && (
                       <Ionicons name="warning" size={14} color="#F59E0B" />
                     )}

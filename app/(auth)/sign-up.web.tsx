@@ -40,7 +40,7 @@ export default function SignUpWeb() {
               <span className="auth-logo-letter">Z</span>
             </div>
           </div>
-          <h1 className="auth-brand-title">ZESHA AGENT</h1>
+          <h1 className="auth-brand-title">TELEBA</h1>
           <p className="auth-brand-tagline">
             Your trusted financial management partner
           </p>
@@ -53,7 +53,7 @@ export default function SignUpWeb() {
           <div className="auth-form-header">
             <h2 className="auth-form-title">Create Account</h2>
             <p className="auth-form-subtitle">
-              Sign up to get started with Zesha Agent
+              Sign up to get started with Teleba
             </p>
           </div>
 
