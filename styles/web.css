@@ -4130,9 +4130,9 @@ body {
 /* Right Side - Form */
 .auth-form-side {
   flex: 1;
-  background: white;
+  background: #f4f4f5;
   display: flex;
-  align-items: flex-start; /* flex-start prevents top clipping when content overflows */
+  align-items: flex-start;
   justify-content: center;
   padding: 60px 40px;
   min-height: 100vh;
@@ -4141,26 +4141,25 @@ body {
 
 .auth-form-container {
   width: 100%;
-  max-width: 480px;
-  padding: 0 20px;
-  margin: 0 auto; /* horizontal centering only — vertical auto would clip tall content at top */
+  max-width: 400px;
+  padding: 0;
+  margin: auto; /* safe vertical + horizontal centering in flex parent */
 }
 
 .auth-form-header {
   text-align: center;
-  margin-bottom: 32px;
+  margin-bottom: 24px;
 }
 
 .auth-form-title {
-  font-size: 32px;
+  font-size: 24px;
   font-weight: 700;
   color: #dc2626;
-  margin-bottom: 8px;
-  font-style: italic;
+  margin-bottom: 4px;
 }
 
 .auth-form-subtitle {
-  font-size: 15px;
+  font-size: 14px;
   color: #6b7280;
 }
 
@@ -4188,7 +4187,13 @@ body {
 
 /* Form Card */
 .auth-form-card {
-  /* Let Clerk handle its own padding */
+  background: white;
+  border-radius: 16px;
+  padding: 32px;
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.06),
+    0 1px 3px rgba(0, 0, 0, 0.04);
+  border: 1px solid #e5e7eb;
 }
 
 /* Clerk Split Screen Overrides - Only style, no layout interference */
@@ -4241,6 +4246,7 @@ body {
 
 .clerk-primary-button-split {
   background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%) !important;
+  color: white !important;
   border-radius: 50px !important;
   padding: 16px 28px !important;
   font-weight: 600 !important;
@@ -4251,6 +4257,7 @@ body {
   width: 100% !important;
   box-sizing: border-box !important;
   border: none !important;
+  cursor: pointer !important;
 }
 
 .clerk-primary-button-split:hover {
@@ -4322,7 +4329,11 @@ body {
 
   .auth-form-side {
     min-height: 65vh;
-    padding: 30px 20px;
+    padding: 30px 16px;
+  }
+
+  .auth-form-card {
+    padding: 24px 20px;
   }
 
   .auth-form-title {

@@ -12,7 +12,7 @@ import {
 import { useRouter } from "expo-router";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { enterAgency, selectViewingAgencyId } from "@/store/slices/authSlice";
-import { useIsSuperAdmin } from "@/hooks/useEffectiveRole";
+import { useIsSuperAdmin, useIsAuthReady } from "@/hooks/useEffectiveRole";
 import {
   fetchCompanyInfoList,
   deleteCompanyInfo,
@@ -33,6 +33,7 @@ export default function AgenciesScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const isSuperAdmin = useIsSuperAdmin();
+  const authReady = useIsAuthReady();
   const viewingAgencyId = useAppSelector(selectViewingAgencyId);
   const {
     items: agencies,
@@ -56,6 +57,20 @@ export default function AgenciesScreen() {
     await dispatch(fetchCompanyInfoList({}));
     setRefreshing(false);
   }, [dispatch]);
+
+  // Still loading auth — don't flash access denied
+  if (!authReady) {
+    return (
+      <View
+        style={[
+          styles.container,
+          { justifyContent: "center", alignItems: "center" },
+        ]}
+      >
+        <ActivityIndicator size="large" color="#dc2626" />
+      </View>
+    );
+  }
 
   // Access denied
   if (!isSuperAdmin) {
@@ -105,7 +120,11 @@ export default function AgenciesScreen() {
             } catch (err) {
               Alert.alert(
                 "Error",
-                typeof err === "string" ? err : err instanceof Error ? err.message : "Failed to delete agency",
+                typeof err === "string"
+                  ? err
+                  : err instanceof Error
+                    ? err.message
+                    : "Failed to delete agency",
               );
             }
           },

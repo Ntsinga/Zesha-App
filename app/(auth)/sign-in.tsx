@@ -29,6 +29,10 @@ export default function SignInPage() {
     "identifier",
   );
 
+  // Prevents calling prepareSecondFactor again if the user goes back and
+  // re-presses Sign In — Clerk already auto-sent the code on the first attempt.
+  const [secondFactorPrepared, setSecondFactorPrepared] = useState(false);
+
   const onContinuePress = async () => {
     if (!emailOrPhone.trim()) {
       Alert.alert(
@@ -55,6 +59,13 @@ export default function SignInPage() {
   const onSignInPress = async () => {
     if (!isLoaded) return;
 
+    // If Clerk already sent the code (user went back then re-pressed Sign In),
+    // go straight to the 2FA screen — don't issue a second code.
+    if (secondFactorPrepared) {
+      setStep("2fa");
+      return;
+    }
+
     setLoading(true);
     try {
       const signInAttempt = await signIn.create({
@@ -66,10 +77,9 @@ export default function SignInPage() {
         await setActive({ session: signInAttempt.createdSessionId });
         router.replace("/(app)");
       } else if (signInAttempt.status === "needs_second_factor") {
-        // Prepare 2FA - send email code
-        await signInAttempt.prepareSecondFactor({
-          strategy: "email_code",
-        });
+        // Clerk automatically sends the verification code on new-device sign-in.
+        // Do NOT call prepareSecondFactor — it would send a duplicate code.
+        setSecondFactorPrepared(true);
         setStep("2fa");
       } else {
         Alert.alert("Error", "Sign in failed. Please try again.");
@@ -213,7 +223,10 @@ export default function SignInPage() {
               <>
                 {/* Back Button */}
                 <TouchableOpacity
-                  onPress={() => setStep("identifier")}
+                  onPress={() => {
+                    setStep("identifier");
+                    setSecondFactorPrepared(false);
+                  }}
                   className="flex-row items-center mb-6"
                 >
                   <Ionicons name="chevron-back" size={24} color="#DC2626" />

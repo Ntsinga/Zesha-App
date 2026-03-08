@@ -51,15 +51,27 @@ export const fetchCompanyInfoList = createAsyncThunk<
       const isSuperAdmin = role === "Super Administrator";
       const isViewingSpecificAgency = !!state.auth.viewingAgencyId;
 
-      // Super admin browsing all agencies doesn't need a companyId
-      if (!companyId && !(isSuperAdmin && !isViewingSpecificAgency)) {
+      // Super admin browsing all agencies doesn't need a companyId.
+      // When the backend user hasn't synced yet but there's no companyId and
+      // no viewing agency, the caller is likely a super admin whose role is
+      // only available in Clerk metadata — allow the list endpoint to proceed
+      // (the server enforces auth anyway).
+      const userStillLoading =
+        !state.auth.user && !companyId && !isViewingSpecificAgency;
+      if (
+        !companyId &&
+        !(isSuperAdmin && !isViewingSpecificAgency) &&
+        !userStillLoading
+      ) {
         return rejectWithValue("No companyId found. Please log in again.");
       }
 
       // The list endpoint (GET /company-info/) is Super Admin only and does NOT
       // filter by company_id. Regular users and super admins viewing a specific
       // agency must use the single-item endpoint GET /company-info/{id}.
-      if (!isSuperAdmin || isViewingSpecificAgency) {
+      // When user is still loading (no backend user), fall through to list endpoint
+      // since only super admins can reach the agencies page.
+      if ((!isSuperAdmin && !userStillLoading) || isViewingSpecificAgency) {
         if (!companyId) {
           return rejectWithValue("No companyId found. Please log in again.");
         }
