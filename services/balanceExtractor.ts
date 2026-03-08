@@ -195,8 +195,8 @@ export function validateBalance(
 
   const difference = Math.abs(extractedBalance - inputBalance);
 
-  // Allow for small rounding differences (within 1 unit)
-  if (difference <= 1) {
+  // Exact match only — currency amounts are integers so rounding tolerance is not needed
+  if (difference === 0) {
     return {
       isValid: true,
       extractedBalance,

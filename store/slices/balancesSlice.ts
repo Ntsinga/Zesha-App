@@ -166,11 +166,17 @@ export const createBalancesBulk = createAsyncThunk<
 export const updateBalancesBulk = createAsyncThunk<
   BulkBalanceUpdateResponse,
   BulkBalanceUpdate,
-  { rejectValue: string }
->("balances/updateBulk", async (data, { rejectWithValue }) => {
+  { state: RootState; rejectValue: string }
+>("balances/updateBulk", async (data, { getState, rejectWithValue }) => {
   try {
+    const state = getState();
+    const companyId =
+      state.auth.viewingAgencyId || state.auth.user?.companyId;
+    if (!companyId) {
+      return rejectWithValue("No companyId found. Please log in again.");
+    }
     const response = await apiRequest<BulkBalanceUpdateResponse>(
-      API_ENDPOINTS.balances.bulkUpdate,
+      `${API_ENDPOINTS.balances.bulkUpdate}?company_id=${companyId}`,
       {
         method: "PATCH",
         body: JSON.stringify(mapApiRequest(data)),

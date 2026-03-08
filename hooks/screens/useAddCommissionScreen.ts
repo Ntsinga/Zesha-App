@@ -17,7 +17,12 @@ import {
   extractBalanceFromImage,
   validateBalance,
 } from "../../services/balanceExtractor";
-import type { ShiftEnum, Account, DraftCommissionEntry, BalanceValidationResult } from "../../types";
+import type {
+  ShiftEnum,
+  Account,
+  DraftCommissionEntry,
+  BalanceValidationResult,
+} from "../../types";
 
 export interface CommissionEntry {
   id: string;
@@ -222,7 +227,7 @@ export function useAddCommissionScreen() {
               const difference = Math.abs(
                 entry.extractedBalance - inputBalance,
               );
-              const isValid = difference < 0.01;
+              const isValid = difference === 0; // Exact match required
               validationResult = {
                 isValid,
                 extractedBalance: entry.extractedBalance,
@@ -443,11 +448,14 @@ export function useAddCommissionScreen() {
 
     // Offline queue — only supports creating new entries (not updates)
     if (!isConnected) {
-      const existingEntries = entries.filter((e) => e.id.startsWith("existing-"));
+      const existingEntries = entries.filter((e) =>
+        e.id.startsWith("existing-"),
+      );
       if (existingEntries.length > 0) {
         return {
           success: false,
-          message: "Updating existing commissions requires an internet connection.",
+          message:
+            "Updating existing commissions requires an internet connection.",
         };
       }
 
@@ -478,7 +486,10 @@ export function useAddCommissionScreen() {
           message: `${newEntries.length} commission(s) queued for sync when back online.`,
         };
       } catch {
-        return { success: false, message: "Failed to queue commissions for offline sync." };
+        return {
+          success: false,
+          message: "Failed to queue commissions for offline sync.",
+        };
       }
     }
 
@@ -611,7 +622,15 @@ export function useAddCommissionScreen() {
     } finally {
       setIsSubmitting(false);
     }
-  }, [entries, currentShift, today, companyId, dispatch, validateEntries, isConnected]);
+  }, [
+    entries,
+    currentShift,
+    today,
+    companyId,
+    dispatch,
+    validateEntries,
+    isConnected,
+  ]);
 
   // Compute if we have existing entries (for update vs create UI)
   const hasExistingEntries = useMemo(
