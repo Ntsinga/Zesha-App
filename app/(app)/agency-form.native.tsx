@@ -9,10 +9,11 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { useIsSuperAdmin } from "@/hooks/useEffectiveRole";
+import { useIsSuperAdmin, useIsAuthReady } from "@/hooks/useEffectiveRole";
 import {
   fetchCompanyInfoList,
   createCompanyInfo,
@@ -35,6 +36,7 @@ export default function AgencyFormScreen() {
   const { id } = useLocalSearchParams<{ id?: string }>();
   const dispatch = useAppDispatch();
   const isSuperAdmin = useIsSuperAdmin();
+  const authReady = useIsAuthReady();
   const { items: agencies, isLoading } = useAppSelector(
     (state) => state.companyInfo,
   );
@@ -74,6 +76,15 @@ export default function AgencyFormScreen() {
       dispatch(fetchCompanyInfoList({}));
     }
   }, [dispatch, isSuperAdmin, agencies.length]);
+
+  // Still loading auth — don't flash access denied
+  if (!authReady) {
+    return (
+      <View style={styles.container}>
+        <ActivityIndicator size="large" color="#dc2626" />
+      </View>
+    );
+  }
 
   // Access denied for non-superadmins
   if (!isSuperAdmin) {
@@ -143,7 +154,11 @@ export default function AgencyFormScreen() {
       router.back();
     } catch (err) {
       setFormError(
-        typeof err === "string" ? err : err instanceof Error ? err.message : "Failed to save agency",
+        typeof err === "string"
+          ? err
+          : err instanceof Error
+            ? err.message
+            : "Failed to save agency",
       );
     } finally {
       setIsSaving(false);

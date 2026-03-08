@@ -43,7 +43,7 @@ export default function AppLayoutWeb() {
   const router = useRouter();
   const pathname = usePathname();
   const { signOut } = useAuth();
-  const { user: clerkUser } = useUser();
+  const { user: clerkUser, isLoaded: isClerkUserLoaded } = useUser();
   const dispatch = useAppDispatch();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
@@ -101,10 +101,8 @@ export default function AppLayoutWeb() {
   // Redirect superadmin to agencies page if they try to access agency-specific pages without viewing an agency
   // Uses effectiveRole which falls back to Clerk metadata when backend is unavailable
   useEffect(() => {
-    // Need at least Clerk user loaded to determine role from metadata
-    if (!backendUser && !clerkUser) {
-      return;
-    }
+    // Wait for Clerk to finish loading the user before making routing decisions
+    if (!isClerkUserLoaded) return;
 
     if (
       isSuperAdmin &&
@@ -120,8 +118,7 @@ export default function AppLayoutWeb() {
     isViewingAgency,
     pathname,
     router,
-    backendUser,
-    clerkUser,
+    isClerkUserLoaded,
     clerkMetadataRole,
     effectiveRole,
   ]);

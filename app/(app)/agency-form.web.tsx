@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { selectUserRole } from "@/store/slices/authSlice";
+import { useUser } from "@clerk/clerk-react";
 import {
   fetchCompanyInfoList,
   createCompanyInfo,
@@ -21,6 +22,7 @@ export default function AgencyFormScreen() {
   const { id } = useLocalSearchParams<{ id?: string }>();
   const dispatch = useAppDispatch();
   const userRole = useAppSelector(selectUserRole);
+  const { user: clerkUser, isLoaded: isClerkLoaded } = useUser();
   const { items: agencies, isLoading } = useAppSelector(
     (state) => state.companyInfo,
   );
@@ -43,8 +45,11 @@ export default function AgencyFormScreen() {
   const [formError, setFormError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Check if user is superadmin
-  const isSuperAdmin = userRole === "Super Administrator";
+  // Use effective role: backend role first, fall back to Clerk metadata
+  const clerkMetadataRole =
+    (clerkUser?.publicMetadata as { role?: string } | undefined)?.role ?? null;
+  const effectiveRole = userRole ?? clerkMetadataRole;
+  const isSuperAdmin = effectiveRole === "Super Administrator";
 
   // Load agency data when editing
   useEffect(() => {
@@ -66,6 +71,33 @@ export default function AgencyFormScreen() {
       dispatch(fetchCompanyInfoList({}));
     }
   }, [dispatch, isSuperAdmin, agencies.length]);
+
+  // Still loading Clerk user — show spinner
+  if (!isClerkLoaded) {
+    return (
+      <div
+        className="page-wrapper"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          minHeight: "60vh",
+        }}
+      >
+        <div
+          style={{
+            width: 36,
+            height: 36,
+            border: "4px solid #e5e7eb",
+            borderTopColor: "#dc2626",
+            borderRadius: "50%",
+            animation: "spin 1s linear infinite",
+          }}
+        />
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
+  }
 
   // Access denied for non-superadmins
   if (!isSuperAdmin) {

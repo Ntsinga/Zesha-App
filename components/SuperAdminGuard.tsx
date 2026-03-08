@@ -14,7 +14,14 @@ interface SuperAdminGuardProps {
  */
 export function SuperAdminGuard({ children, fallback }: SuperAdminGuardProps) {
   const role = useAppSelector(selectUserRole);
+  const isInitialized = useAppSelector((state) => state.auth.isInitialized);
+  const isLoading = useAppSelector((state) => state.auth.isLoading);
   const isSuperAdmin = role === "Super Administrator";
+
+  // Wait for auth to finish loading before deciding access
+  if (!isInitialized || isLoading) {
+    return null;
+  }
 
   if (!isSuperAdmin) {
     if (fallback) {

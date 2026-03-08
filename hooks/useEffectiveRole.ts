@@ -32,3 +32,12 @@ export function useIsSuperAdmin(): boolean {
   const role = useEffectiveRole();
   return role === "Super Administrator";
 }
+
+/**
+ * Returns true once auth has finished loading and the role is available.
+ */
+export function useIsAuthReady(): boolean {
+  const isInitialized = useAppSelector((state) => state.auth.isInitialized);
+  const isLoading = useAppSelector((state) => state.auth.isLoading);
+  return isInitialized && !isLoading;
+}

@@ -6,6 +6,7 @@ import {
   enterAgency,
   selectViewingAgencyId,
 } from "@/store/slices/authSlice";
+import { useUser } from "@clerk/clerk-react";
 import {
   fetchCompanyInfoList,
   deleteCompanyInfo,
@@ -27,6 +28,7 @@ export default function AgenciesScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const userRole = useAppSelector(selectUserRole);
+  const { user: clerkUser, isLoaded: isClerkLoaded } = useUser();
   const viewingAgencyId = useAppSelector(selectViewingAgencyId);
   const {
     items: agencies,
@@ -37,8 +39,11 @@ export default function AgenciesScreen() {
   // Delete confirmation state
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
 
-  // Check if user is superadmin
-  const isSuperAdmin = userRole === "Super Administrator";
+  // Use effective role: backend role first, fall back to Clerk metadata
+  const clerkMetadataRole =
+    (clerkUser?.publicMetadata as { role?: string } | undefined)?.role ?? null;
+  const effectiveRole = userRole ?? clerkMetadataRole;
+  const isSuperAdmin = effectiveRole === "Super Administrator";
 
   // Load agencies on mount
   useEffect(() => {
@@ -46,6 +51,33 @@ export default function AgenciesScreen() {
       dispatch(fetchCompanyInfoList({}));
     }
   }, [dispatch, isSuperAdmin]);
+
+  // Still loading Clerk user — show spinner
+  if (!isClerkLoaded) {
+    return (
+      <div
+        className="page-wrapper"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          minHeight: "60vh",
+        }}
+      >
+        <div
+          style={{
+            width: 36,
+            height: 36,
+            border: "4px solid #e5e7eb",
+            borderTopColor: "#dc2626",
+            borderRadius: "50%",
+            animation: "spin 1s linear infinite",
+          }}
+        />
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
+  }
 
   // Access denied for non-superadmins
   if (!isSuperAdmin) {
