@@ -3,9 +3,7 @@ import { useUser, useSignUp, useClerk } from "@clerk/clerk-react";
 import { useRouter } from "expo-router";
 import { AlertCircle, Eye, EyeOff, Check } from "lucide-react";
 import "../../styles/web.css";
-
-// Import the background image
-import backgroundImageSource from "../../assets/background.png";
+import AuthBrandPanel from "../../components/AuthBrandPanel.web";
 
 /**
  * Set Password Page (Web) - For invited users to set their password
@@ -237,15 +235,7 @@ export default function SetPasswordWeb() {
   const passwordsMatch =
     password && confirmPassword && password === confirmPassword;
 
-  // Handle both string and object returns from the image import
-  const getImageUrl = (img: any): string => {
-    if (typeof img === "string") return img;
-    if (img && typeof img === "object" && img.default) return img.default;
-    if (img && typeof img === "object" && img.uri) return img.uri;
-    return "";
-  };
 
-  const bgImageUrl = getImageUrl(backgroundImageSource);
 
   // Determine if we're ready to show the form
   // Check signUp object for email as well (it may have it before inviteEmail state is set)
@@ -400,29 +390,7 @@ export default function SetPasswordWeb() {
   return (
     <div className="auth-split-page">
       {/* Left Side - Branding */}
-      <div
-        className="auth-brand-side"
-        style={{
-          backgroundImage: bgImageUrl ? `url(${bgImageUrl})` : "none",
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          backgroundRepeat: "no-repeat",
-        }}
-      >
-        {/* Logo and branding */}
-        <div className="auth-brand-content">
-          <div className="auth-brand-logo">
-            {/* Rounded square logo with Z */}
-            <div className="auth-logo-box">
-              <span className="auth-logo-letter">Z</span>
-            </div>
-          </div>
-          <h1 className="auth-brand-title">TELEBA</h1>
-          <p className="auth-brand-tagline">
-            Welcome! Set your password to continue
-          </p>
-        </div>
-      </div>
+      <AuthBrandPanel />
 
       {/* Right Side - Password Reset Instructions */}
       <div className="auth-form-side">

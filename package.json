@@ -16,7 +16,7 @@
     "@react-native-community/netinfo": "11.4.1",
     "@react-navigation/drawer": "^7.5.0",
     "@reduxjs/toolkit": "^2.11.0",
-    "expo": "~54.0.32",
+    "expo": "^55.0.6",
     "expo-auth-session": "~7.0.10",
     "expo-constants": "~18.0.12",
     "expo-file-system": "~19.0.21",

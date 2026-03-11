@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#C0152A"/>
+      <stop offset="100%" style="stop-color:#7A0C18"/>
+    </linearGradient>
+    <linearGradient id="tG" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFFFFF"/>
+      <stop offset="100%" style="stop-color:#D0D0D0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background rounded square -->
+  <rect width="64" height="64" rx="14" ry="14" fill="url(#bg)"/>
+
+  <!-- T — large, fills frame, clear at any small size -->
+  <!-- Crossbar: x8–56, y10–24 -->
+  <rect x="8" y="10" width="48" height="14" rx="3" ry="3" fill="url(#tG)"/>
+  <!-- Stem: x25–39, y10–56 -->
+  <rect x="25" y="10" width="14" height="46" rx="3" ry="3" fill="url(#tG)"/>
+
+  <!-- Gold dot — single accent visible even at 16px -->
+  <circle cx="52" cy="50" r="4" fill="#FFD700"/>
+</svg>
