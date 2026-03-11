@@ -265,7 +265,7 @@ export default function AnimatedSplash({ onFinish }: AnimatedSplashProps) {
             ]}
           />
           <Image
-            source={require("../assets/teleba_icon_final.png")}
+            source={require("../assets/icon.png")}
             style={styles.iconImage}
             resizeMode="contain"
           />
