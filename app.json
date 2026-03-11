@@ -3,13 +3,13 @@
     "name": "Teleba",
     "slug": "z",
     "version": "1.0.0",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/teleba_icon_final.png",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./assets/splash.png",
+      "image": "./assets/teleba_icon_final.png",
       "resizeMode": "contain",
-      "backgroundColor": "#BD1E1E"
+      "backgroundColor": "#520610"
     },
     "assetBundlePatterns": ["**/*"],
     "ios": {
@@ -17,11 +17,15 @@
       "bundleIdentifier": "com.teleba.agentbanking"
     },
     "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/teleba_icon_final.png",
+        "backgroundColor": "#520610"
+      },
       "package": "com.teleba.agentbanking"
     },
     "web": {
       "bundler": "metro",
-      "favicon": "./assets/icon.png",
+      "favicon": "./assets/teleba_icon_final.png",
       "output": "single"
     },
     "plugins": ["expo-router"],

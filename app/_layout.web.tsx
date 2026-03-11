@@ -11,6 +11,7 @@ import { ClerkProvider, useAuth, useUser } from "@clerk/clerk-react";
 import { useRouter } from "expo-router";
 import { useClerkUserSync } from "../hooks/useClerkUserSync.web";
 import { initializeSecureApi } from "../services/secureApi";
+import AnimatedSplash from "../components/AnimatedSplash";
 
 // Inner component that uses Redux hooks
 function AppContent() {
@@ -19,6 +20,7 @@ function AppContent() {
   const { user } = useUser();
   const router = useRouter();
   const [isSecureApiReady, setIsSecureApiReady] = useState(false);
+  const [animatedSplashDone, setAnimatedSplashDone] = useState(false);
 
   // Initialize secure API with Clerk token getter FIRST
   useEffect(() => {
@@ -98,30 +100,7 @@ function AppContent() {
   // For auth pages: only block on Clerk loading (not secure API or syncing)
   // For app pages: block on everything
   if (!isLoaded) {
-    // Clerk is still loading - show spinner with inline styles (CSS might not be loaded)
-    return (
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          height: "100vh",
-          backgroundColor: "#f9fafb",
-        }}
-      >
-        <div
-          style={{
-            width: "40px",
-            height: "40px",
-            border: "4px solid #e5e7eb",
-            borderTopColor: "#3b82f6",
-            borderRadius: "50%",
-            animation: "spin 1s linear infinite",
-          }}
-        />
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-      </div>
-    );
+    return <AnimatedSplash onFinish={() => setAnimatedSplashDone(true)} />;
   }
 
   // For non-auth pages, wait for secure API and auth initialization.
@@ -132,29 +111,11 @@ function AppContent() {
     !isSecureApiReady || (!hasUserData && !isAuthInitialized);
 
   if (!isOnAuthPage && shouldBlockRendering) {
-    return (
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          height: "100vh",
-          backgroundColor: "#f9fafb",
-        }}
-      >
-        <div
-          style={{
-            width: "40px",
-            height: "40px",
-            border: "4px solid #e5e7eb",
-            borderTopColor: "#3b82f6",
-            borderRadius: "50%",
-            animation: "spin 1s linear infinite",
-          }}
-        />
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-      </div>
-    );
+    return <AnimatedSplash onFinish={() => setAnimatedSplashDone(true)} />;
+  }
+
+  if (!animatedSplashDone) {
+    return <AnimatedSplash onFinish={() => setAnimatedSplashDone(true)} />;
   }
 
   return (
