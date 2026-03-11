@@ -1,51 +1,18 @@
 import React from "react";
 import { SignUp } from "@clerk/clerk-react";
 import "../../styles/web.css";
-
-// Import the background image - Expo web requires ES6 import for assets
-import backgroundImageSource from "../../assets/background.png";
+import AuthBrandPanel from "../../components/AuthBrandPanel.web";
 
 /**
  * Sign Up Web - Split screen design with branding on left, form on right
  */
 export default function SignUpWeb() {
-  // Handle both string and object returns from the image import
-  // In Expo web, images may be imported as objects with a `default` or directly as strings
-  const getImageUrl = (img: any): string => {
-    if (typeof img === "string") return img;
-    if (img && typeof img === "object" && img.default) return img.default;
-    if (img && typeof img === "object" && img.uri) return img.uri;
-    return "";
-  };
 
-  const bgImageUrl = getImageUrl(backgroundImageSource);
 
   return (
     <div className="auth-split-page">
       {/* Left Side - Branding */}
-      <div
-        className="auth-brand-side"
-        style={{
-          backgroundImage: bgImageUrl ? `url(${bgImageUrl})` : "none",
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          backgroundRepeat: "no-repeat",
-        }}
-      >
-        {/* Logo and branding */}
-        <div className="auth-brand-content">
-          <div className="auth-brand-logo">
-            {/* Rounded square logo with Z */}
-            <div className="auth-logo-box">
-              <span className="auth-logo-letter">Z</span>
-            </div>
-          </div>
-          <h1 className="auth-brand-title">TELEBA</h1>
-          <p className="auth-brand-tagline">
-            Your trusted financial management partner
-          </p>
-        </div>
-      </div>
+      <AuthBrandPanel />
 
       {/* Right Side - Form */}
       <div className="auth-form-side">

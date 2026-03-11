@@ -94,7 +94,7 @@ export default function AnimatedSplash({ onFinish }: AnimatedSplashProps) {
         <div className="tel-iconDrop" style={styles.iconBox}>
           <div className="tel-halo" style={styles.iconHalo} />
           <img
-            src="/teleba_icon_final.png"
+            src="/icon.png"
             alt="Teleba"
             style={styles.iconImg}
           />

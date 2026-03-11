@@ -2,8 +2,7 @@ import React, { useRef, useState, useEffect } from "react";
 import { useSignIn, useAuth } from "@clerk/clerk-react";
 import { useRouter } from "expo-router";
 import "../../styles/web.css";
-
-import backgroundImageSource from "../../assets/background.png";
+import AuthBrandPanel from "../../components/AuthBrandPanel.web";
 
 type Step = "email" | "password" | "otp";
 
@@ -27,13 +26,7 @@ export default function SignInWeb() {
   const [secondFactorPrepared, setSecondFactorPrepared] = useState(false);
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  const getImageUrl = (img: any): string => {
-    if (typeof img === "string") return img;
-    if (img && typeof img === "object" && img.default) return img.default;
-    if (img && typeof img === "object" && img.uri) return img.uri;
-    return "";
-  };
-  const bgImageUrl = getImageUrl(backgroundImageSource);
+
 
   const handleOtpChange = (index: number, value: string) => {
     const digit = value.replace(/\D/g, "").slice(-1);
@@ -143,27 +136,7 @@ export default function SignInWeb() {
   return (
     <div className="auth-split-page">
       {/* Left Side - Branding */}
-      <div
-        className="auth-brand-side"
-        style={{
-          backgroundImage: bgImageUrl ? `url(${bgImageUrl})` : "none",
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          backgroundRepeat: "no-repeat",
-        }}
-      >
-        <div className="auth-brand-content">
-          <div className="auth-brand-logo">
-            <div className="auth-logo-box">
-              <span className="auth-logo-letter">T</span>
-            </div>
-          </div>
-          <h1 className="auth-brand-title">TELEBA</h1>
-          <p className="auth-brand-tagline">
-            Your trusted financial management partner
-          </p>
-        </div>
-      </div>
+      <AuthBrandPanel />
 
       {/* Right Side */}
       <div className="auth-form-side">
