@@ -1,5 +1,5 @@
 import "../global.css";
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 import { Stack } from "expo-router";
 import { Provider } from "react-redux";
 import { PersistGate } from "redux-persist/integration/react";
@@ -15,6 +15,7 @@ import { tokenCache } from "@clerk/clerk-expo/token-cache";
 import { useRouter, useSegments, useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
 import { useClerkUserSync } from "../hooks/useClerkUserSync";
+import AnimatedSplash from "../components/AnimatedSplash";
 import { initializeSecureApi } from "../services/secureApi";
 import { startSyncEngine, stopSyncEngine } from "../services/syncEngine";
 import { useNetworkStatus, NetworkContext } from "../hooks/useNetworkStatus";
@@ -108,21 +109,30 @@ function AppContent() {
 
   // Determine if we're on an auth page
   const inAuthGroup = segments[0] === "(auth)";
+  const isAppReady =
+    isLoaded && isSecureApiReady && (!isSyncing || inAuthGroup);
 
-  // Hide splash screen when app is ready
-  const onLayoutRootView = useCallback(async () => {
-    if (isLoaded && isSecureApiReady && (!isSyncing || inAuthGroup)) {
-      await SplashScreen.hideAsync();
+  const [animatedSplashDone, setAnimatedSplashDone] = useState(false);
+
+  // Hide the native splash as soon as app logic is ready
+  useEffect(() => {
+    if (isAppReady) {
+      SplashScreen.hideAsync();
     }
-  }, [isLoaded, isSecureApiReady, isSyncing, inAuthGroup]);
+  }, [isAppReady]);
 
-  // Keep showing splash screen while loading
-  if (!isLoaded || !isSecureApiReady || (isSyncing && !inAuthGroup)) {
-    return null; // Splash screen stays visible
+  // Keep native splash visible while loading
+  if (!isAppReady) {
+    return null;
+  }
+
+  // Show the animated branded splash on native
+  if (!animatedSplashDone) {
+    return <AnimatedSplash onFinish={() => setAnimatedSplashDone(true)} />;
   }
 
   return (
-    <View style={{ flex: 1 }} onLayout={onLayoutRootView}>
+    <View style={{ flex: 1 }}>
       <StatusBar style="dark" />
       <OfflineBanner />
       <Stack screenOptions={{ headerShown: false }}>
