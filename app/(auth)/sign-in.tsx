@@ -77,8 +77,7 @@ export default function SignInPage() {
         await setActive({ session: signInAttempt.createdSessionId });
         router.replace("/(app)");
       } else if (signInAttempt.status === "needs_second_factor") {
-        // Clerk automatically sends the verification code on new-device sign-in.
-        // Do NOT call prepareSecondFactor — it would send a duplicate code.
+        await signIn.prepareSecondFactor({ strategy: "email_code" });
         setSecondFactorPrepared(true);
         setStep("2fa");
       } else {
