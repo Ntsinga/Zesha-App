@@ -630,8 +630,7 @@ export function useAddBalanceScreen() {
       if (totalUpdated > 0) operations.push(`${totalUpdated} updated`);
 
       if (totalFailed > 0) {
-        const uniqueErrors = [...new Set(failedErrors)];
-        const errorSummary = uniqueErrors.join("; ");
+        const errorSummary = failedErrors.join("; ");
         return {
           success: true,
           message: `${operations.join(", ")}. ${totalFailed} failed — ${errorSummary}`,

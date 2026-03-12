@@ -773,8 +773,7 @@ export default function AddBalancePage() {
         );
 
       if (totalFailed > 0) {
-        const uniqueErrors = [...new Set(failedErrors)];
-        const errorSummary = uniqueErrors.join("; ");
+        const errorSummary = failedErrors.join("; ");
         Alert.alert(
           "Partial Success",
           `${operations.join(", ")}. ${totalFailed} failed — ${errorSummary}`,
