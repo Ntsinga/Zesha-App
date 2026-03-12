@@ -411,14 +411,20 @@ export function useBalanceMenuScreen() {
   ]);
 
   const handleNavigateCashCount = () => {
-    const openingId = shiftStatus?.openingId ?? "";
+    // Only exclude OPENING-linked records when we're in CLOSING phase.
+    // In OPENING phase, passing openingId would filter out the very entries
+    // the user just submitted, leaving the form blank on re-entry.
+    const openingId = currentSubtype === "CLOSING" ? (shiftStatus?.openingId ?? "") : "";
     router.push(
       `/add-cash-count?shift=${selectedShift}&openingId=${openingId}` as any,
     );
   };
 
   const handleNavigateAddBalance = () => {
-    const openingId = shiftStatus?.openingId ?? "";
+    // Only exclude OPENING-linked records when we're in CLOSING phase.
+    // In OPENING phase, passing openingId would filter out the very entries
+    // the user just submitted, leaving the form blank on re-entry.
+    const openingId = currentSubtype === "CLOSING" ? (shiftStatus?.openingId ?? "") : "";
     router.push(
       `/add-balance?shift=${selectedShift}&openingId=${openingId}` as any,
     );
