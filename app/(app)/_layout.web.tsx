@@ -73,6 +73,7 @@ export default function AppLayoutWeb() {
   const viewingAgencyName = useAppSelector(selectViewingAgencyName);
   const backendUser = useAppSelector((state) => state.auth.user);
   const isSyncing = useAppSelector((state) => state.auth.isSyncing);
+  const isAuthInitialized = useAppSelector((state) => state.auth.isInitialized);
 
   // Fallback to Clerk metadata role when backend user is unavailable
   // This handles the case where backend is down but Clerk has the role in publicMetadata
@@ -101,8 +102,9 @@ export default function AppLayoutWeb() {
   // Redirect superadmin to agencies page if they try to access agency-specific pages without viewing an agency
   // Uses effectiveRole which falls back to Clerk metadata when backend is unavailable
   useEffect(() => {
-    // Wait for Clerk to finish loading the user before making routing decisions
-    if (!isClerkUserLoaded) return;
+    // Wait for both Clerk and Redux auth to finish loading before making routing decisions
+    // This prevents premature redirects on browser refresh while initializeAuth() is still running
+    if (!isClerkUserLoaded || !isAuthInitialized) return;
 
     if (
       isSuperAdmin &&
@@ -119,6 +121,7 @@ export default function AppLayoutWeb() {
     pathname,
     router,
     isClerkUserLoaded,
+    isAuthInitialized,
     clerkMetadataRole,
     effectiveRole,
   ]);
