@@ -28,7 +28,7 @@
       "favicon": "./assets/icon.png",
       "output": "single"
     },
-    "plugins": ["expo-router", "expo-secure-store", "expo-web-browser"],
+    "plugins": ["expo-router"],
     "scheme": "teleba",
     "extra": {
       "router": {},

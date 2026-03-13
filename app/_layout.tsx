@@ -32,6 +32,8 @@ function AppContent() {
   const segments = useSegments();
   const params = useLocalSearchParams();
   const [isSecureApiReady, setIsSecureApiReady] = useState(false);
+  const initialNavDoneRef = React.useRef(false);
+  const [initialNavDone, setInitialNavDone] = useState(false);
 
   // Initialize secure API with Clerk token getter FIRST
   useEffect(() => {
@@ -81,12 +83,14 @@ function AppContent() {
         pathname: "/(auth)/set-password",
         params: { __clerk_ticket: params.__clerk_ticket as string },
       });
+      if (!initialNavDoneRef.current) { initialNavDoneRef.current = true; setInitialNavDone(true); }
       return;
     }
 
     // Allow unauthenticated access to welcome, sign-up, and set-password for invite flow
     if (!isSignedIn && (isOnWelcome || isOnSignUp || isOnSetPassword)) {
-      return; // Don't redirect, allow these pages during invite flow
+      if (!initialNavDoneRef.current) { initialNavDoneRef.current = true; setInitialNavDone(true); }
+      return;
     }
 
     // Check if authenticated user needs to set password
@@ -95,6 +99,7 @@ function AppContent() {
       if (!inAuthGroup || !isOnSetPassword) {
         router.replace("/(auth)/set-password");
       }
+      if (!initialNavDoneRef.current) { initialNavDoneRef.current = true; setInitialNavDone(true); }
       return;
     }
 
@@ -104,6 +109,12 @@ function AppContent() {
     } else if (isSignedIn && user?.passwordEnabled && inAuthGroup) {
       // Redirect to app if authenticated with password and in auth group
       router.replace("/(app)");
+    }
+
+    // Mark initial navigation decision as done (only once)
+    if (!initialNavDoneRef.current) {
+      initialNavDoneRef.current = true;
+      setInitialNavDone(true);
     }
   }, [isSignedIn, isLoaded, user?.passwordEnabled, segments, router]);
 
@@ -129,6 +140,11 @@ function AppContent() {
   // Show the animated branded splash on native
   if (!animatedSplashDone) {
     return <AnimatedSplash onFinish={() => setAnimatedSplashDone(true)} />;
+  }
+
+  // Hold rendering until the first routing decision has been made (prevents flash)
+  if (!initialNavDone) {
+    return null;
   }
 
   return (

@@ -1,6 +1,7 @@
 import "../global.css";
 import "../styles/web.css";
 import React, { useEffect, useState } from "react";
+import { View, StyleSheet } from "react-native";
 import { Stack } from "expo-router";
 import { Provider } from "react-redux";
 import ErrorBoundary from "../components/ErrorBoundary";
@@ -43,7 +44,7 @@ function AppContent() {
   }, [dispatch]);
 
   useEffect(() => {
-    if (!isLoaded) return;
+    if (!isLoaded || !animatedSplashDone) return;
 
     const currentPath = window.location.pathname;
     const isOnSetPassword = currentPath.includes("/set-password");
@@ -86,7 +87,7 @@ function AppContent() {
     if (isAuthPage && !isOnSetPassword) {
       router.replace("/");
     }
-  }, [isSignedIn, isLoaded, user?.id, user?.passwordEnabled, router]);
+  }, [isSignedIn, isLoaded, animatedSplashDone, user?.id, user?.passwordEnabled, router]);
 
   // Determine if we're on an auth page
   const currentPath =
@@ -99,32 +100,33 @@ function AppContent() {
 
   // For auth pages: only block on Clerk loading (not secure API or syncing)
   // For app pages: block on everything
-  if (!isLoaded) {
-    return <AnimatedSplash onFinish={() => setAnimatedSplashDone(true)} />;
-  }
-
-  // For non-auth pages, wait for secure API and auth initialization.
-  // Once we have a cached user from localStorage (via initializeAuth), proceed immediately.
-  // Don't block on backend sync — the cached user has role info needed for routing.
   const hasUserData = !!cachedUser || !!syncedUser;
   const shouldBlockRendering =
     !isSecureApiReady || (!hasUserData && !isAuthInitialized);
 
-  if (!isOnAuthPage && shouldBlockRendering) {
-    return <AnimatedSplash onFinish={() => setAnimatedSplashDone(true)} />;
-  }
-
-  if (!animatedSplashDone) {
-    return <AnimatedSplash onFinish={() => setAnimatedSplashDone(true)} />;
-  }
+  const showSplash =
+    !isLoaded ||
+    (!isOnAuthPage && shouldBlockRendering) ||
+    !animatedSplashDone;
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="(auth)" />
-      <Stack.Screen name="(app)" />
-    </Stack>
+    <View style={styles.container}>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="(auth)" />
+        <Stack.Screen name="(app)" />
+      </Stack>
+      {showSplash && (
+        <View style={StyleSheet.absoluteFill}>
+          <AnimatedSplash onFinish={() => setAnimatedSplashDone(true)} />
+        </View>
+      )}
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: { flex: 1 },
+});
 
 export default function RootLayoutWeb() {
   const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!;
