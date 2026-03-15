@@ -109,12 +109,20 @@ function AppContent() {
     (!isOnAuthPage && shouldBlockRendering) ||
     !animatedSplashDone;
 
+  // Only mount app screens once the secure API is ready. Auth screens mount
+  // immediately so sign-in/sign-up always work. Without this guard, child
+  // screens fire their data-fetch effects before initializeSecureApi() is
+  // called (Clerk's isLoaded is still false), producing 401s on refresh.
+  const canMountAppScreens = isOnAuthPage || isSecureApiReady;
+
   return (
     <View style={styles.container}>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="(auth)" />
-        <Stack.Screen name="(app)" />
-      </Stack>
+      {canMountAppScreens && (
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="(auth)" />
+          <Stack.Screen name="(app)" />
+        </Stack>
+      )}
       {showSplash && (
         <View style={StyleSheet.absoluteFill}>
           <AnimatedSplash onFinish={() => setAnimatedSplashDone(true)} />
