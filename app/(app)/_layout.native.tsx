@@ -19,6 +19,7 @@ import {
 import { useIsSuperAdmin } from "../../hooks/useEffectiveRole";
 import TopBar from "../../components/TopBar";
 import BottomNav from "../../components/BottomNav";
+import Toast from "react-native-toast-message";
 
 export default function AppLayout() {
   const router = useRouter();
@@ -99,6 +100,7 @@ export default function AppLayout() {
         </View>
         <BottomNav />
       </SafeAreaView>
+      <Toast />
     </GestureHandlerRootView>
   );
 }

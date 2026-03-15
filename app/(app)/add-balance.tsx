@@ -14,6 +14,7 @@ import {
   FlatList,
   ActivityIndicator,
 } from "react-native";
+import Toast from "react-native-toast-message";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
@@ -50,6 +51,8 @@ import * as FileSystem from "expo-file-system/legacy";
 import type { AppDispatch, RootState } from "../../store";
 import type { ShiftEnum, BalanceCreate, Account } from "../../types";
 import { useCurrencyFormatter } from "../../hooks/useCurrency";
+import { useEffectiveRole } from "../../hooks/useEffectiveRole";
+import { selectEffectiveCompanyId } from "../../store/slices/authSlice";
 
 interface BalanceEntry {
   id: string;
@@ -79,6 +82,10 @@ export default function AddBalancePage() {
   const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
   const { formatCurrency } = useCurrencyFormatter();
+  const effectiveRole = useEffectiveRole();
+  const isAdmin =
+    effectiveRole === "Administrator" ||
+    effectiveRole === "Super Administrator";
   const params = useLocalSearchParams();
   // Shift is passed from the balance menu screen - use it as-is
   const currentShift: ShiftEnum = (params.shift as ShiftEnum) || "AM";
@@ -89,9 +96,8 @@ export default function AddBalancePage() {
       null
     : null;
 
-  // Get companyId from auth state
-  const { user } = useSelector((state: RootState) => state.auth);
-  const companyId = user?.companyId;
+  // Get companyId from auth state - use viewingAgencyId if superadmin viewing agency
+  const companyId = useSelector(selectEffectiveCompanyId);
 
   // Get accounts, draft entries, and balances from Redux store
   const { items: accounts, isLoading: accountsLoading } = useSelector(
@@ -270,7 +276,7 @@ export default function AddBalancePage() {
         await extractAndValidateBalance(entryId, imageUri);
       }
     } catch (error) {
-      Alert.alert("Error", "Failed to take photo. Please try again.");
+      Toast.show({ type: "error", text1: "Error", text2: "Failed to take photo. Please try again." });
     }
   };
 
@@ -294,7 +300,7 @@ export default function AddBalancePage() {
         await extractAndValidateBalance(entryId, imageUri);
       }
     } catch (error) {
-      Alert.alert("Error", "Failed to pick image. Please try again.");
+      Toast.show({ type: "error", text1: "Error", text2: "Failed to pick image. Please try again." });
     }
   };
 
@@ -348,11 +354,11 @@ export default function AddBalancePage() {
 
       if (!result.success) {
         console.warn(`[AddBalance] Extraction unsuccessful:`, result.error);
-        Alert.alert(
-          "Extraction Notice",
-          result.error ||
-            "Could not extract balance from image. Please verify manually.",
-        );
+        Toast.show({
+          type: "info",
+          text1: "Extraction Notice",
+          text2: result.error || "Could not extract balance from image. Please verify manually.",
+        });
       }
     } catch (error) {
       console.error(`[AddBalance] Exception during extraction:`, error);
@@ -361,12 +367,13 @@ export default function AddBalancePage() {
           entry.id === entryId ? { ...entry, isExtracting: false } : entry,
         ),
       );
-      Alert.alert(
-        "Extraction Error",
-        `Failed to extract balance: ${
+      Toast.show({
+        type: "error",
+        text1: "Extraction Error",
+        text2: `Failed to extract balance: ${
           error instanceof Error ? error.message : "Unknown error"
         }`,
-      );
+      });
     }
   };
 
@@ -654,7 +661,7 @@ export default function AddBalancePage() {
     if (!validateEntries()) return;
 
     if (!companyId) {
-      Alert.alert("Error", "Company not found. Please log in again.");
+      Toast.show({ type: "error", text1: "Error", text2: "Company not found. Please log in again." });
       return;
     }
 
@@ -774,21 +781,26 @@ export default function AddBalancePage() {
 
       if (totalFailed > 0) {
         const errorSummary = failedErrors.join("; ");
-        Alert.alert(
-          "Partial Success",
-          `${operations.join(", ")}. ${totalFailed} failed — ${errorSummary}`,
-          [{ text: "OK", onPress: () => router.back() }],
-        );
+        Toast.show({
+          type: "error",
+          text1: "Partial Success",
+          text2: `${operations.join(", ")}. ${totalFailed} failed — ${errorSummary}`,
+        });
+        router.back();
       } else {
-        Alert.alert("Success", `Successfully ${operations.join(" and ")}!`, [
-          { text: "OK", onPress: () => router.back() },
-        ]);
+        Toast.show({
+          type: "success",
+          text1: "Success",
+          text2: `Successfully ${operations.join(" and ")}!`,
+        });
+        router.back();
       }
     } catch (error) {
-      Alert.alert(
-        "Error",
-        error instanceof Error ? error.message : "Failed to save balances",
-      );
+      Toast.show({
+        type: "error",
+        text1: "Error",
+        text2: error instanceof Error ? error.message : "Failed to save balances",
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -808,6 +820,48 @@ export default function AddBalancePage() {
   const insets = useSafeAreaInsets();
 
   const missingAccounts = getMissingAccounts();
+
+  // Empty state: accounts exist in redux but none are active
+  const activeAccounts = accounts.filter((a) => a.isActive);
+  if (freshDataReady && isInitialized && activeAccounts.length === 0) {
+    return (
+      <View className="flex-1 bg-gray-50">
+        <View className="px-5 pt-6 pb-2">
+          <View className="flex-row items-center mb-2">
+            <TouchableOpacity
+              onPress={() => router.back()}
+              className="p-2 bg-white rounded-full shadow-sm mr-4"
+            >
+              <ArrowLeft color="#C62828" size={24} />
+            </TouchableOpacity>
+            <Text className="text-2xl font-bold text-gray-800">
+              Add Float Balances
+            </Text>
+          </View>
+        </View>
+        <View className="flex-1 items-center justify-center px-8">
+          <View className="bg-amber-50 rounded-2xl p-6 w-full items-center">
+            <Text className="text-4xl mb-3">🏦</Text>
+            <Text className="text-lg font-bold text-gray-800 mb-2 text-center">
+              No Accounts Set Up
+            </Text>
+            <Text className="text-gray-500 text-sm text-center mb-6">
+              You need to create at least one account before adding float
+              balances.
+            </Text>
+            {isAdmin && (
+              <TouchableOpacity
+                onPress={() => router.replace("/accounts" as any)}
+                className="bg-brand-red px-6 py-3 rounded-xl"
+              >
+                <Text className="text-white font-semibold">Go to Accounts</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+      </View>
+    );
+  }
 
   // Show a loading screen while the forced fetch completes and entries are initialised
   if (!freshDataReady || !isInitialized) {

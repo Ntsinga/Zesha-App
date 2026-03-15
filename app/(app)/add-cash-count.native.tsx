@@ -8,6 +8,7 @@ import {
   KeyboardAvoidingView,
   Alert,
 } from "react-native";
+import Toast from "react-native-toast-message";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ArrowLeft, Save, Plus, Minus, Banknote } from "lucide-react-native";
 import { useCashCountScreen } from "../../hooks/screens/useCashCountScreen";
@@ -35,11 +36,9 @@ export default function AddCashCountPage() {
     const result = await handleSubmit();
     if (result.success) {
       handleBack();
-      setTimeout(() => {
-        Alert.alert("Success", result.message);
-      }, 100);
+      Toast.show({ type: "success", text1: "Success", text2: result.message });
     } else {
-      Alert.alert("Error", result.message);
+      Toast.show({ type: "error", text1: "Error", text2: result.message });
     }
   };
 

@@ -4,10 +4,10 @@ import {
   Text,
   TouchableOpacity,
   ScrollView,
-  Alert,
   ActivityIndicator,
   Modal,
 } from "react-native";
+import Toast from "react-native-toast-message";
 import { useRouter } from "expo-router";
 import {
   Banknote,
@@ -70,10 +70,11 @@ export default function BalancePage() {
         `/reconciliation?date=${today}&shift=${selectedShift}&subtype=${currentSubtype}` as any,
       );
     } else {
-      Alert.alert(
-        "Error",
-        result?.error || "Failed to calculate reconciliation",
-      );
+      Toast.show({
+        type: "error",
+        text1: "Error",
+        text2: result?.error || "Failed to calculate reconciliation",
+      });
     }
   };
 

@@ -6,11 +6,11 @@ import {
   TouchableOpacity,
   RefreshControl,
   TextInput,
-  Alert,
   Modal,
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
+import Toast from "react-native-toast-message";
 import {
   Plus,
   Trash2,
@@ -99,24 +99,25 @@ export default function Expenses() {
   const onSubmit = async () => {
     const result = await handleSubmit();
     if (result.success) {
-      Alert.alert(
-        "Success",
-        editingExpense
+      Toast.show({
+        type: "success",
+        text1: "Success",
+        text2: editingExpense
           ? "Expense updated successfully!"
           : "Expense added successfully!",
-      );
+      });
       setShowCategoryPicker(false);
     } else {
-      Alert.alert("Error", result.error || "An error occurred");
+      Toast.show({ type: "error", text1: "Error", text2: result.error || "An error occurred" });
     }
   };
 
   const onDelete = async (id: number) => {
     const result = await handleDelete(id);
     if (result.success) {
-      Alert.alert("Success", "Expense deleted successfully!");
+      Toast.show({ type: "success", text1: "Success", text2: "Expense deleted successfully!" });
     } else {
-      Alert.alert("Error", result.error || "An error occurred");
+      Toast.show({ type: "error", text1: "Error", text2: result.error || "An error occurred" });
     }
   };
 
@@ -124,9 +125,9 @@ export default function Expenses() {
     const result = await handleClear(id, clearNotes || undefined);
     setClearNotes("");
     if (result.success) {
-      Alert.alert("Success", "Expense marked as cleared!");
+      Toast.show({ type: "success", text1: "Success", text2: "Expense marked as cleared!" });
     } else {
-      Alert.alert("Error", result.error || "An error occurred");
+      Toast.show({ type: "error", text1: "Error", text2: result.error || "An error occurred" });
     }
   };
 

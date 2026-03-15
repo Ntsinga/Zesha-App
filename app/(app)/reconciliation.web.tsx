@@ -1,4 +1,5 @@
 import React, { useState as useLocalState } from "react";
+import { useToast } from "../../components/Toast.web";
 import { useLocalSearchParams } from "expo-router";
 import {
   ArrowLeft,
@@ -20,6 +21,7 @@ import {
   ArrowDownCircle,
   ShieldAlert,
   ShieldCheck,
+  Pencil,
 } from "lucide-react";
 import { useReconciliationScreen } from "../../hooks/screens/useReconciliationScreen";
 import type { ReconciliationSubtypeEnum, ShiftEnum } from "../../types";
@@ -65,6 +67,8 @@ export default function BalanceDetailWeb() {
     handleFinalize,
     handleApprove,
     handleReject,
+    handleNavigateEditBalances,
+    handleNavigateEditCashCount,
     // Balance validation
     hasDiscrepancies,
     discrepancyCount,
@@ -74,6 +78,7 @@ export default function BalanceDetailWeb() {
     shiftTransactions,
   } = useReconciliationScreen({ date, shift, subtype });
 
+  const { showToast } = useToast();
   const isOpening = subtype === "OPENING";
 
   // Local state for discrepancy confirmation dialog
@@ -339,6 +344,17 @@ export default function BalanceDetailWeb() {
               <div className="ml-auto font-bold" style={{ color: "#B8860B" }}>
                 {formatCurrency(totalFloat)}
               </div>
+              {!isFinalized && (
+                <button
+                  onClick={handleNavigateEditBalances}
+                  className="btn-icon-small"
+                  title="Edit floats"
+                  style={{ marginLeft: 8, color: "#B8860B", display: "flex", alignItems: "center", gap: 4, fontSize: 12, fontWeight: 600 }}
+                >
+                  <Pencil size={13} />
+                  Edit
+                </button>
+              )}
             </div>
             <table className="data-table">
               <thead>
@@ -501,6 +517,17 @@ export default function BalanceDetailWeb() {
               <div className="ml-auto font-bold text-green-700">
                 {formatCurrency(totalCash)}
               </div>
+              {!isFinalized && (
+                <button
+                  onClick={handleNavigateEditCashCount}
+                  className="btn-icon-small"
+                  title="Edit cash count"
+                  style={{ marginLeft: 8, color: "#16A34A", display: "flex", alignItems: "center", gap: 4, fontSize: 12, fontWeight: 600 }}
+                >
+                  <Pencil size={13} />
+                  Edit
+                </button>
+              )}
             </div>
             <table className="data-table">
               <thead>
@@ -729,7 +756,7 @@ export default function BalanceDetailWeb() {
                     if (result?.error === "HAS_DISCREPANCIES") {
                       setShowDiscrepancyConfirm(true);
                     } else if (!result?.success && result?.error) {
-                      alert(result.error);
+                      showToast(result.error, "error");
                     }
                   }}
                   disabled={isFinalizing}
@@ -876,7 +903,7 @@ export default function BalanceDetailWeb() {
                     return;
                   }
                   if (!result?.success && result?.error) {
-                    alert(result.error);
+                    showToast(result.error, "error");
                   }
                 }}
                 disabled={isFinalizing}

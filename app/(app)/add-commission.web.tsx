@@ -14,6 +14,7 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import { useAddCommissionScreen } from "../../hooks/screens/useAddCommissionScreen";
+import { useToast } from "../../components/Toast.web";
 import "../../styles/web.css";
 
 /**
@@ -24,6 +25,7 @@ export default function AddCommissionWeb() {
   const fileInputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const { showToast } = useToast();
 
   const {
     entries,
@@ -66,7 +68,7 @@ export default function AddCommissionWeb() {
         router.back();
       }, 1500);
     } else {
-      alert(result.message);
+      showToast(result.message, "error");
     }
   };
 

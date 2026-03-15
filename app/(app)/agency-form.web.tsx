@@ -15,6 +15,7 @@ import type {
 } from "@/types";
 import { CURRENCIES } from "@/hooks/screens/useSettingsScreen";
 import { ArrowLeft, Building2, Save, X, Plus, Mail } from "lucide-react";
+import { useToast } from "../../components/Toast.web";
 import "../../styles/web.css";
 
 export default function AgencyFormScreen() {
@@ -26,6 +27,8 @@ export default function AgencyFormScreen() {
   const { items: agencies, isLoading } = useAppSelector(
     (state) => state.companyInfo,
   );
+
+  const { showToast } = useToast();
 
   const isEditing = Boolean(id);
   const editingAgency = isEditing
@@ -156,10 +159,10 @@ export default function AgencyFormScreen() {
         await dispatch(
           updateCompanyInfo({ id: Number(id), data: updateData }),
         ).unwrap();
-        alert("Agency updated successfully!");
+        showToast("Agency updated successfully!", "success");
       } else {
         await dispatch(createCompanyInfo(formData)).unwrap();
-        alert("Agency created successfully!");
+        showToast("Agency created successfully!", "success");
       }
 
       // Refresh list and navigate back to agencies page

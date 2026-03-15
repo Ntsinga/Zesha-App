@@ -11,6 +11,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
+import Toast from "react-native-toast-message";
 import {
   Plus,
   Building2,
@@ -62,9 +63,9 @@ export default function Accounts() {
   const onSubmit = async () => {
     const result = await handleSubmit();
     if (result.success) {
-      Alert.alert("Success", result.message);
+      Toast.show({ type: "success", text1: "Success", text2: result.message });
     } else {
-      Alert.alert("Error", result.message);
+      Toast.show({ type: "error", text1: "Error", text2: result.message });
     }
   };
 
