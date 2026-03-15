@@ -37,6 +37,8 @@ const initialState: AuthState = {
 // Secure storage helpers (with web fallback)
 const USER_KEY = "backend_user";
 const CLERK_USER_ID_KEY = "clerk_user_id";
+const VIEWING_AGENCY_ID_KEY = "viewing_agency_id";
+const VIEWING_AGENCY_NAME_KEY = "viewing_agency_name";
 
 async function getSecureItem(key: string): Promise<string | null> {
   if (Platform.OS === "web") {
@@ -68,13 +70,19 @@ export const initializeAuth = createAsyncThunk(
     try {
       const clerkUserId = await getSecureItem(CLERK_USER_ID_KEY);
       const userJson = await getSecureItem(USER_KEY);
+      const viewingAgencyIdRaw = await getSecureItem(VIEWING_AGENCY_ID_KEY);
+      const viewingAgencyName = await getSecureItem(VIEWING_AGENCY_NAME_KEY);
+
+      const viewingAgencyId = viewingAgencyIdRaw
+        ? parseInt(viewingAgencyIdRaw, 10)
+        : null;
 
       if (clerkUserId && userJson) {
         const rawUser = JSON.parse(userJson);
         // Handle both legacy snake_case and new camelCase stored data
         // by normalizing to camelCase format
         const user = mapApiResponse<User>(rawUser);
-        return { clerkUserId, user };
+        return { clerkUserId, user, viewingAgencyId, viewingAgencyName };
       }
       return null;
     } catch (error) {
@@ -168,6 +176,8 @@ export const updateUserProfile = createAsyncThunk(
 export const clearLocalAuth = createAsyncThunk("auth/clearLocal", async () => {
   await deleteSecureItem(CLERK_USER_ID_KEY);
   await deleteSecureItem(USER_KEY);
+  await deleteSecureItem(VIEWING_AGENCY_ID_KEY);
+  await deleteSecureItem(VIEWING_AGENCY_NAME_KEY);
 });
 
 // Slice
@@ -192,10 +202,24 @@ const authSlice = createSlice({
     ) => {
       state.viewingAgencyId = action.payload.agencyId;
       state.viewingAgencyName = action.payload.agencyName;
+      if (Platform.OS === "web") {
+        localStorage.setItem(
+          VIEWING_AGENCY_ID_KEY,
+          String(action.payload.agencyId),
+        );
+        localStorage.setItem(
+          VIEWING_AGENCY_NAME_KEY,
+          action.payload.agencyName,
+        );
+      }
     },
     exitAgency: (state) => {
       state.viewingAgencyId = null;
       state.viewingAgencyName = null;
+      if (Platform.OS === "web") {
+        localStorage.removeItem(VIEWING_AGENCY_ID_KEY);
+        localStorage.removeItem(VIEWING_AGENCY_NAME_KEY);
+      }
     },
   },
   extraReducers: (builder) => {
@@ -211,6 +235,8 @@ const authSlice = createSlice({
           state.user = action.payload.user;
           state.clerkUserId = action.payload.clerkUserId;
           state.isAuthenticated = true;
+          state.viewingAgencyId = action.payload.viewingAgencyId;
+          state.viewingAgencyName = action.payload.viewingAgencyName;
         }
       })
       .addCase(initializeAuth.rejected, (state) => {

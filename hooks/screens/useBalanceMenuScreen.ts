@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { fetchCashCounts } from "../../store/slices/cashCountSlice";
 import { fetchBalances } from "../../store/slices/balancesSlice";
 import { fetchAccounts } from "../../store/slices/accountsSlice";
@@ -94,6 +94,16 @@ export function useBalanceMenuScreen() {
     if (!backendUser?.companyId) return;
     dispatch(fetchShiftStatus({ date: today, shift: selectedShift }));
   }, [dispatch, today, selectedShift, backendUser?.companyId]);
+
+  // Re-fetch shift status on screen focus (e.g. returning from reconciliation
+  // after finalize — ensures the phase advances from OPENING → CLOSING without
+  // requiring a manual refresh).
+  useFocusEffect(
+    useCallback(() => {
+      if (!backendUser?.companyId) return;
+      dispatch(fetchShiftStatus({ date: today, shift: selectedShift }));
+    }, [dispatch, today, selectedShift, backendUser?.companyId]),
+  );
 
   // Fetch data on mount
   useEffect(() => {
