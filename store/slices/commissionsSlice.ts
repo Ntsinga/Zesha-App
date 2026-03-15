@@ -47,8 +47,9 @@ const initialState: CommissionsState = {
 async function apiRequest<T>(
   endpoint: string,
   options?: RequestInit,
+  timeoutMs?: number,
 ): Promise<T> {
-  const data = await secureApiRequest<any>(endpoint, options);
+  const data = await secureApiRequest<any>(endpoint, options ?? {}, timeoutMs);
   return mapApiResponse<T>(data);
 }
 
@@ -162,7 +163,7 @@ export const createCommissionsBulk = createAsyncThunk<
     >(API_ENDPOINTS.commissions.bulk, {
       method: "POST",
       body: JSON.stringify({ commissions: mapApiRequest(data) }),
-    });
+    }, 60_000);
 
     // Backend may return array directly or wrapped in { commissions: [] }
     if (Array.isArray(response)) {
@@ -199,6 +200,7 @@ export const updateCommissionsBulk = createAsyncThunk<
         method: "PATCH",
         body: JSON.stringify(mapApiRequest(data)),
       },
+      60_000,
     );
     return response;
   } catch (error) {

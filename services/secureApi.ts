@@ -112,10 +112,13 @@ function retryDelay(ms: number): Promise<void> {
 /**
  * Make an authenticated API request with JSON parsing, error handling,
  * and automatic retry with exponential backoff for transient errors.
+ *
+ * @param timeoutMs - Override the default 30s timeout (e.g. pass 60_000 for bulk operations)
  */
 export async function secureApiRequest<T>(
   endpoint: string,
   options: RequestInit = {},
+  timeoutMs: number = REQUEST_TIMEOUT_MS,
 ): Promise<T> {
   const url = `${API_BASE_URL.replace(/\/$/, "")}${endpoint}`;
   let lastError: ApiError | null = null;
@@ -125,7 +128,7 @@ export async function secureApiRequest<T>(
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     const authHeaders = await getAuthHeaders();
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
       const response = await fetch(url, {
@@ -209,7 +212,7 @@ export async function secureApiRequest<T>(
       // Use duck-typing check because DOMException doesn't exist in React Native (Hermes)
       if (error instanceof Error && error.name === "AbortError") {
         const timeoutError = new ApiError(
-          `Request timed out after ${REQUEST_TIMEOUT_MS / 1000}s`,
+          `Request timed out after ${timeoutMs / 1000}s`,
           0,
           "TIMEOUT",
         );
