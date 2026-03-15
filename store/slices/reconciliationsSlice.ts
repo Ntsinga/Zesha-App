@@ -37,6 +37,7 @@ export interface ReconciliationsState {
   balanceValidation: BalanceValidationResult[];
   shiftStatus: ShiftStatus | null;
   isLoading: boolean;
+  isLoadingDetails: boolean;
   isCalculating: boolean;
   isFinalizing: boolean;
   isLoadingShiftStatus: boolean;
@@ -54,6 +55,7 @@ const initialState: ReconciliationsState = {
   balanceValidation: [],
   shiftStatus: null,
   isLoading: false,
+  isLoadingDetails: false,
   isCalculating: false,
   isFinalizing: false,
   isLoadingShiftStatus: false,
@@ -675,16 +677,16 @@ const reconciliationsSlice = createSlice({
     // Fetch details
     builder
       .addCase(fetchReconciliationDetails.pending, (state) => {
-        state.isLoading = true;
+        state.isLoadingDetails = true;
         state.error = null;
         state.reconciliationDetails = null;
       })
       .addCase(fetchReconciliationDetails.fulfilled, (state, action) => {
-        state.isLoading = false;
+        state.isLoadingDetails = false;
         state.reconciliationDetails = action.payload;
       })
       .addCase(fetchReconciliationDetails.rejected, (state, action) => {
-        state.isLoading = false;
+        state.isLoadingDetails = false;
         state.error = action.payload as string;
         state.reconciliationDetails = null;
       });
@@ -692,15 +694,12 @@ const reconciliationsSlice = createSlice({
     // Fetch balance validation
     builder
       .addCase(fetchBalanceValidation.pending, (state) => {
-        state.isLoading = true;
         state.error = null;
       })
       .addCase(fetchBalanceValidation.fulfilled, (state, action) => {
-        state.isLoading = false;
         state.balanceValidation = action.payload;
       })
       .addCase(fetchBalanceValidation.rejected, (state, action) => {
-        state.isLoading = false;
         state.error = action.payload as string;
       });
 

@@ -48,6 +48,7 @@ export function useReconciliationScreen({
   const {
     reconciliationDetails,
     isLoading,
+    isLoadingDetails,
     isFinalizing,
     isCalculating,
     error,
@@ -394,7 +395,7 @@ export function useReconciliationScreen({
   return {
     // State
     refreshing,
-    isLoading,
+    isLoading: isLoadingDetails,
     isFinalizing,
     isCalculating,
     error,
