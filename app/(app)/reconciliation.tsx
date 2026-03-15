@@ -10,6 +10,7 @@ import {
   TextInput,
   Alert,
 } from "react-native";
+import Toast from "react-native-toast-message";
 import {
   ArrowLeft,
   TrendingUp,
@@ -30,6 +31,7 @@ import {
   ArrowDownCircle,
   ShieldAlert,
   ShieldCheck,
+  Pencil,
 } from "lucide-react-native";
 import { useLocalSearchParams } from "expo-router";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
@@ -80,6 +82,8 @@ export default function BalanceDetailPage() {
     handleFinalize,
     handleApprove,
     handleReject,
+    handleNavigateEditBalances,
+    handleNavigateEditCashCount,
     // Balance validation
     hasDiscrepancies,
     discrepancyCount,
@@ -368,9 +372,18 @@ export default function BalanceDetailPage() {
         <View className="bg-white rounded-2xl p-4 mb-4 shadow-sm border border-gray-100">
           <View className="flex-row items-center mb-3">
             <Wallet color="#B8860B" size={20} />
-            <Text className="text-gray-700 font-semibold ml-2">
+            <Text className="text-gray-700 font-semibold ml-2 flex-1">
               Account Balances ({balances.length})
             </Text>
+            {!isFinalized && (
+              <TouchableOpacity
+                onPress={handleNavigateEditBalances}
+                className="flex-row items-center px-3 py-1 rounded-full bg-yellow-50 border border-yellow-200"
+              >
+                <Pencil size={12} color="#B8860B" />
+                <Text className="text-yellow-700 text-xs font-semibold ml-1">Edit</Text>
+              </TouchableOpacity>
+            )}
           </View>
 
           <Text className="text-2xl font-bold text-yellow-700 mb-3">
@@ -486,9 +499,18 @@ export default function BalanceDetailPage() {
         <View className="bg-white rounded-2xl p-4 mb-4 shadow-sm border border-gray-100">
           <View className="flex-row items-center mb-3">
             <Banknote color="#16A34A" size={20} />
-            <Text className="text-gray-700 font-semibold ml-2">
+            <Text className="text-gray-700 font-semibold ml-2 flex-1">
               Cash Count ({cashCounts.length} denominations)
             </Text>
+            {!isFinalized && (
+              <TouchableOpacity
+                onPress={handleNavigateEditCashCount}
+                className="flex-row items-center px-3 py-1 rounded-full bg-green-50 border border-green-200"
+              >
+                <Pencil size={12} color="#16A34A" />
+                <Text className="text-green-700 text-xs font-semibold ml-1">Edit</Text>
+              </TouchableOpacity>
+            )}
           </View>
 
           <Text className="text-2xl font-bold text-green-700 mb-3">
@@ -694,14 +716,14 @@ export default function BalanceDetailPage() {
                               return;
                             }
                             if (!r?.success && r?.error) {
-                              Alert.alert("Error", r.error);
+                              Toast.show({ type: "error", text1: "Error", text2: r.error });
                             }
                           },
                         },
                       ],
                     );
                   } else if (!result?.success && result?.error) {
-                    Alert.alert("Error", result.error);
+                    Toast.show({ type: "error", text1: "Error", text2: result.error });
                   }
                 }}
                 disabled={isFinalizing}

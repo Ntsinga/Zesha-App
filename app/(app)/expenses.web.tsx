@@ -13,6 +13,7 @@ import {
   useExpensesScreen,
   EXPENSE_CATEGORIES,
 } from "../../hooks/screens/useExpensesScreen";
+import { useToast } from "../../components/Toast.web";
 import "../../styles/web.css";
 
 /**
@@ -54,20 +55,21 @@ export default function ExpensesWeb() {
     formatCurrency,
   } = useExpensesScreen();
 
+  const { showToast } = useToast();
   const [clearNotes, setClearNotes] = useState("");
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const result = await handleSubmit();
     if (!result.success && result.error) {
-      alert(result.error);
+      showToast(result.error, "error");
     }
   };
 
   const onDelete = async (id: number) => {
     const result = await handleDelete(id);
     if (!result.success && result.error) {
-      alert(result.error);
+      showToast(result.error, "error");
     }
   };
 
@@ -75,7 +77,7 @@ export default function ExpensesWeb() {
     const result = await handleClear(id, clearNotes || undefined);
     setClearNotes("");
     if (!result.success && result.error) {
-      alert(result.error);
+      showToast(result.error, "error");
     }
   };
 

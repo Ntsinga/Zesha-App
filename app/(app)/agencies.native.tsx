@@ -9,6 +9,7 @@ import {
   Alert,
   ActivityIndicator,
 } from "react-native";
+import Toast from "react-native-toast-message";
 import { useRouter } from "expo-router";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { enterAgency, selectViewingAgencyId } from "@/store/slices/authSlice";
@@ -118,14 +119,16 @@ export default function AgenciesScreen() {
               await dispatch(deleteCompanyInfo(id)).unwrap();
               dispatch(fetchCompanyInfoList({}));
             } catch (err) {
-              Alert.alert(
-                "Error",
-                typeof err === "string"
-                  ? err
-                  : err instanceof Error
-                    ? err.message
-                    : "Failed to delete agency",
-              );
+              Toast.show({
+                type: "error",
+                text1: "Error",
+                text2:
+                  typeof err === "string"
+                    ? err
+                    : err instanceof Error
+                      ? err.message
+                      : "Failed to delete agency",
+              });
             }
           },
         },

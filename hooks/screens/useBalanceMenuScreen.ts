@@ -190,8 +190,13 @@ export function useBalanceMenuScreen() {
     currentSubtype === "CLOSING" || shiftPhase === "COMPLETE";
   const cashCountStatus = useMemo(() => {
     const todayCounts = cashCounts.filter((cc) => cc.date === today);
-    // In CLOSING phase, exclude cash counts already linked to the opening recon
-    const openingReconId = shiftStatus?.openingId ?? null;
+    // Only exclude opening-linked records when actually in CLOSING/COMPLETE phase.
+    // In OPENING phase (even after calculating), the records belong to this phase
+    // and should still count toward the green indicator.
+    const openingReconId =
+      shiftPhase === "CLOSING" || shiftPhase === "COMPLETE"
+        ? (shiftStatus?.openingId ?? null)
+        : null;
     const amCounts = todayCounts.filter(
       (cc) =>
         cc.shift === "AM" &&
@@ -230,15 +235,20 @@ export function useBalanceMenuScreen() {
       latestShiftTotal: total,
       hasTodayCashCount: hasAM || hasPM,
     };
-  }, [cashCounts, today, shiftStatus]);
+  }, [cashCounts, today, shiftStatus, shiftPhase]);
 
   // Calculate balance completion status
   const balanceStatus = useMemo(() => {
     const activeAccounts = accounts.filter((acc) => acc.isActive);
     const todayBalances = balances.filter((bal) => bal.date.startsWith(today));
 
-    // In CLOSING phase, exclude balances already linked to the opening recon
-    const openingReconId = shiftStatus?.openingId ?? null;
+    // Only exclude opening-linked records when actually in CLOSING/COMPLETE phase.
+    // In OPENING phase (even after calculating), the records belong to this phase
+    // and should still count toward the green indicator.
+    const openingReconId =
+      shiftPhase === "CLOSING" || shiftPhase === "COMPLETE"
+        ? (shiftStatus?.openingId ?? null)
+        : null;
     const amBalances = todayBalances.filter(
       (bal) =>
         bal.shift === "AM" &&
@@ -287,7 +297,7 @@ export function useBalanceMenuScreen() {
       latestBalanceTotal,
       hasTodayBalances: hasAM || hasPM,
     };
-  }, [balances, accounts, today, shiftStatus]);
+  }, [balances, accounts, today, shiftStatus, shiftPhase]);
 
   // Calculate commission completion status
   const commissionStatus = useMemo(() => {
@@ -546,8 +556,12 @@ export function useBalanceMenuScreen() {
         ? transactionStatus.amTransactionTotal
         : transactionStatus.pmTransactionTotal;
 
-    // Calculate totals for selected shift (exclude OPENING entries)
-    const _openingReconId = shiftStatus?.openingId ?? null;
+    // Calculate totals for selected shift.
+    // Only exclude opening-linked records when in CLOSING/COMPLETE phase.
+    const _openingReconId =
+      shiftPhase === "CLOSING" || shiftPhase === "COMPLETE"
+        ? (shiftStatus?.openingId ?? null)
+        : null;
     const todayCounts = cashCounts.filter(
       (cc) =>
         cc.date === today &&
@@ -608,6 +622,7 @@ export function useBalanceMenuScreen() {
     commissions,
     today,
     shiftStatus,
+    shiftPhase,
   ]);
 
   return {

@@ -27,6 +27,7 @@ import {
   exitAgency,
 } from "../../store/slices/authSlice";
 import TopBarWeb from "../../components/TopBar.web";
+import { ToastProvider } from "../../components/Toast.web";
 import "../../styles/web.css";
 
 interface NavItem {
@@ -230,6 +231,7 @@ export default function AppLayoutWeb() {
   };
 
   return (
+    <ToastProvider>
     <div className="web-layout">
       {/* Mobile Menu Overlay */}
       <div
@@ -419,5 +421,6 @@ export default function AppLayoutWeb() {
         </ul>
       </nav>
     </div>
+    </ToastProvider>
   );
 }

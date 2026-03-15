@@ -371,6 +371,16 @@ export function useReconciliationScreen({
     }
   };
 
+  // Navigate to the add-balance screen to update floats for this reconciliation
+  const handleNavigateEditBalances = () => {
+    router.push(`/add-balance?shift=${shift}` as any);
+  };
+
+  // Navigate to the add-cash-count screen to update cash count for this reconciliation
+  const handleNavigateEditCashCount = () => {
+    router.push(`/add-cash-count?shift=${shift}` as any);
+  };
+
   const getImageUri = (item: {
     imageData?: string | null;
     imageUrl?: string | null;
@@ -435,6 +445,8 @@ export function useReconciliationScreen({
     handleFinalize,
     handleApprove,
     handleReject,
+    handleNavigateEditBalances,
+    handleNavigateEditCashCount,
     getImageUri,
 
     // Formatters

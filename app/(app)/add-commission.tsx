@@ -13,6 +13,7 @@ import {
   FlatList,
   ActivityIndicator,
 } from "react-native";
+import Toast from "react-native-toast-message";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
@@ -216,7 +217,7 @@ export default function AddCommissionPage() {
         await extractAndValidateCommission(entryId, imageUri);
       }
     } catch {
-      Alert.alert("Error", "Failed to take photo. Please try again.");
+      Toast.show({ type: "error", text1: "Error", text2: "Failed to take photo. Please try again." });
     }
   };
 
@@ -236,7 +237,7 @@ export default function AddCommissionPage() {
         await extractAndValidateCommission(entryId, imageUri);
       }
     } catch {
-      Alert.alert("Error", "Failed to pick image. Please try again.");
+      Toast.show({ type: "error", text1: "Error", text2: "Failed to pick image. Please try again." });
     }
   };
 
@@ -280,11 +281,11 @@ export default function AddCommissionPage() {
         }),
       );
       if (!result.success || result.balance === null) {
-        Alert.alert(
-          "Extraction Notice",
-          result.error ||
-            "Could not extract commission from image. Please verify manually.",
-        );
+        Toast.show({
+          type: "info",
+          text1: "Extraction Notice",
+          text2: result.error || "Could not extract commission from image. Please verify manually.",
+        });
       }
     } catch (error) {
       setEntries((prev) =>
@@ -292,10 +293,11 @@ export default function AddCommissionPage() {
           entry.id === entryId ? { ...entry, isExtracting: false } : entry,
         ),
       );
-      Alert.alert(
-        "Extraction Error",
-        `Failed to extract commission: ${error instanceof Error ? error.message : "Unknown error"}`,
-      );
+      Toast.show({
+        type: "error",
+        text1: "Extraction Error",
+        text2: `Failed to extract commission: ${error instanceof Error ? error.message : "Unknown error"}`,
+      });
     }
   };
 
@@ -505,7 +507,7 @@ export default function AddCommissionPage() {
   const handleSubmit = async () => {
     if (!validateEntries()) return;
     if (!companyId) {
-      Alert.alert("Error", "Company not found. Please log in again.");
+      Toast.show({ type: "error", text1: "Error", text2: "Company not found. Please log in again." });
       return;
     }
 
@@ -596,21 +598,26 @@ export default function AddCommissionPage() {
         );
 
       if (totalFailed > 0) {
-        Alert.alert(
-          "Partial Success",
-          `${operations.join(", ")}. ${totalFailed} failed.`,
-          [{ text: "OK", onPress: () => router.back() }],
-        );
+        Toast.show({
+          type: "error",
+          text1: "Partial Success",
+          text2: `${operations.join(", ")}. ${totalFailed} failed.`,
+        });
+        router.back();
       } else {
-        Alert.alert("Success", `Successfully ${operations.join(" and ")}!`, [
-          { text: "OK", onPress: () => router.back() },
-        ]);
+        Toast.show({
+          type: "success",
+          text1: "Success",
+          text2: `Successfully ${operations.join(" and ")}!`,
+        });
+        router.back();
       }
     } catch (error) {
-      Alert.alert(
-        "Error",
-        error instanceof Error ? error.message : "Failed to save commissions",
-      );
+      Toast.show({
+        type: "error",
+        text1: "Error",
+        text2: error instanceof Error ? error.message : "Failed to save commissions",
+      });
     } finally {
       setIsSubmitting(false);
     }

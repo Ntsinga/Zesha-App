@@ -15,6 +15,9 @@ import {
 } from "lucide-react";
 import { useAddBalanceScreen } from "../../hooks/screens/useAddBalanceScreen";
 import { useCurrencyFormatter } from "../../hooks/useCurrency";
+import { useToast } from "../../components/Toast.web";
+import { useAppSelector } from "../../store/hooks";
+import { selectUserRole } from "../../store/slices/authSlice";
 import "../../styles/web.css";
 
 /**
@@ -25,6 +28,10 @@ export default function AddBalanceWeb() {
   const fileInputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const { formatCurrency } = useCurrencyFormatter();
+  const { showToast } = useToast();
+  const userRole = useAppSelector(selectUserRole);
+  const isAdmin =
+    userRole === "Administrator" || userRole === "Super Administrator";
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const {
@@ -69,7 +76,7 @@ export default function AddBalanceWeb() {
         router.back();
       }, 1500);
     } else {
-      alert(result.message);
+      showToast(result.message, "error");
     }
   };
 
@@ -97,6 +104,37 @@ export default function AddBalanceWeb() {
         <div className="loading-content">
           <Loader2 className="spinning" size={32} />
           <p className="loading-text">Loading accounts...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (activeAccounts.length === 0) {
+    return (
+      <div className="page-wrapper">
+        <header className="header-bar">
+          <div className="header-left">
+            <button className="btn-back" onClick={() => router.back()}>
+              <ArrowLeft size={20} />
+            </button>
+            <h1 className="header-title">Add Float Balances</h1>
+          </div>
+        </header>
+        <div className="dashboard-content">
+          <div className="empty-state">
+            <AlertTriangle size={48} className="empty-icon" style={{ color: "var(--color-warning)" }} />
+            <h3>No Accounts Set Up</h3>
+            <p>You need to create at least one account before adding float balances.</p>
+            {isAdmin && (
+              <button
+                className="btn btn-primary"
+                onClick={() => router.push("/accounts" as any)}
+              >
+                <Plus size={18} />
+                <span>Go to Accounts</span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
     );

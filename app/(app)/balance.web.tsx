@@ -10,10 +10,12 @@ import {
 } from "lucide-react";
 import { useRouter } from "expo-router";
 import { useBalanceMenuScreen } from "../../hooks/screens/useBalanceMenuScreen";
+import { useToast } from "../../components/Toast.web";
 import "../../styles/web.css";
 
 export default function BalancePage() {
   const router = useRouter();
+  const { showToast } = useToast();
 
   const {
     isLoading,
@@ -77,7 +79,7 @@ export default function BalancePage() {
         `/reconciliation?date=${today}&shift=${selectedShift}&subtype=${currentSubtype}` as any,
       );
     } else {
-      alert(result?.error || "Failed to calculate reconciliation");
+      showToast(result?.error || "Failed to calculate reconciliation", "error");
     }
   };
 

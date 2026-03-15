@@ -11,6 +11,7 @@ import {
   RefreshControl,
   Keyboard,
 } from "react-native";
+import Toast from "react-native-toast-message";
 import {
   LogOut,
   Users,
@@ -113,12 +114,12 @@ export default function Settings() {
     // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(trimmedEmail)) {
-      Alert.alert("Invalid Email", "Please enter a valid email address.");
+      Toast.show({ type: "error", text1: "Invalid Email", text2: "Please enter a valid email address." });
       return;
     }
 
     if (emails.includes(trimmedEmail)) {
-      Alert.alert("Duplicate", "This email is already added.");
+      Toast.show({ type: "error", text1: "Duplicate", text2: "This email is already added." });
       return;
     }
 
@@ -146,7 +147,7 @@ export default function Settings() {
             router.replace("/(auth)/sign-in");
           } catch (error) {
             console.error("Sign out error:", error);
-            Alert.alert("Error", "Failed to sign out. Please try again.");
+            Toast.show({ type: "error", text1: "Error", text2: "Failed to sign out. Please try again." });
           }
         },
       },
@@ -155,7 +156,7 @@ export default function Settings() {
 
   const handleSave = async () => {
     if (!name.trim()) {
-      Alert.alert("Error", "Company name is required.");
+      Toast.show({ type: "error", text1: "Error", text2: "Company name is required." });
       return;
     }
 
@@ -163,7 +164,7 @@ export default function Settings() {
     const outstanding = parseFloat(outstandingBalance) || 0;
 
     if (workingCapital < 0 || outstanding < 0) {
-      Alert.alert("Error", "Amounts cannot be negative.");
+      Toast.show({ type: "error", text1: "Error", text2: "Amounts cannot be negative." });
       return;
     }
 
@@ -182,20 +183,21 @@ export default function Settings() {
       if (company) {
         // Update existing company
         await dispatch(updateCompanyInfo({ id: company.id, data })).unwrap();
-        Alert.alert("Success", "Company settings updated successfully!");
+        Toast.show({ type: "success", text1: "Success", text2: "Company settings updated successfully!" });
       } else {
         // Create new company
         await dispatch(createCompanyInfo(data)).unwrap();
-        Alert.alert("Success", "Company created successfully!");
+        Toast.show({ type: "success", text1: "Success", text2: "Company created successfully!" });
       }
 
       // Refresh the list
       dispatch(fetchCompanyInfoList({}));
     } catch (err) {
-      Alert.alert(
-        "Error",
-        typeof err === "string" ? err : err instanceof Error ? err.message : "Failed to save settings",
-      );
+      Toast.show({
+        type: "error",
+        text1: "Error",
+        text2: typeof err === "string" ? err : err instanceof Error ? err.message : "Failed to save settings",
+      });
     } finally {
       setIsSaving(false);
     }
