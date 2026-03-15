@@ -42,8 +42,9 @@ const initialState: BalancesState = {
 async function apiRequest<T>(
   endpoint: string,
   options?: RequestInit,
+  timeoutMs?: number,
 ): Promise<T> {
-  const data = await secureApiRequest<any>(endpoint, options);
+  const data = await secureApiRequest<any>(endpoint, options ?? {}, timeoutMs);
   return mapApiResponse<T>(data);
 }
 
@@ -154,6 +155,7 @@ export const createBalancesBulk = createAsyncThunk<
         method: "POST",
         body: JSON.stringify(mapApiRequest(data)),
       },
+      60_000,
     );
     return response;
   } catch (error) {
@@ -181,6 +183,7 @@ export const updateBalancesBulk = createAsyncThunk<
         method: "PATCH",
         body: JSON.stringify(mapApiRequest(data)),
       },
+      60_000,
     );
     return response;
   } catch (error) {

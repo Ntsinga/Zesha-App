@@ -524,7 +524,7 @@ export default function AddBalancePage() {
       isValid = false;
     } else if (
       isNaN(parseFloat(entry.amount)) ||
-      parseFloat(entry.amount) < 0
+      parseFloat(entry.amount) <= 0
     ) {
       entryErrors.amount = "Invalid amount";
       isValid = false;
@@ -595,7 +595,7 @@ export default function AddBalancePage() {
         isValid = false;
       } else if (
         isNaN(parseFloat(entry.amount)) ||
-        parseFloat(entry.amount) < 0
+        parseFloat(entry.amount) <= 0
       ) {
         entryErrors.amount = "Invalid amount";
         isValid = false;
@@ -796,11 +796,32 @@ export default function AddBalancePage() {
         router.back();
       }
     } catch (error) {
-      Toast.show({
-        type: "error",
-        text1: "Error",
-        text2: error instanceof Error ? error.message : "Failed to save balances",
-      });
+      const message =
+        error instanceof Error
+          ? error.message
+          : typeof error === "string"
+            ? error
+            : "Failed to save balances";
+
+      // The server may have committed the data before the client timed out.
+      // Refresh so the user sees the real state, and warn instead of erroring.
+      if (message.toLowerCase().includes("timed out")) {
+        dispatch(fetchBalances({}));
+        dispatch(fetchDashboard({}));
+        Toast.show({
+          type: "info",
+          text1: "Connection Timed Out",
+          text2:
+            "Your balances may have already been saved. Please check the list before resubmitting.",
+        });
+        router.back();
+      } else {
+        Toast.show({
+          type: "error",
+          text1: "Error",
+          text2: message,
+        });
+      }
     } finally {
       setIsSubmitting(false);
     }
