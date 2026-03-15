@@ -5,7 +5,6 @@ import {
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
-  Modal,
 } from "react-native";
 import Toast from "react-native-toast-message";
 import { useRouter } from "expo-router";
@@ -33,9 +32,6 @@ export default function BalancePage() {
     shiftPhase,
     currentSubtype,
     shiftStatus,
-    handoverDecision,
-    setHandoverDecision,
-    showHandoverModal,
     buttonLabel,
     showCommissionsAndTransactions,
     hasAMShift,
@@ -80,87 +76,6 @@ export default function BalancePage() {
 
   return (
     <View className="flex-1 bg-gray-50">
-      {/* Handover Modal — PM shift, no records yet, awaiting decision */}
-      <Modal
-        visible={showHandoverModal}
-        transparent
-        animationType="fade"
-        statusBarTranslucent
-      >
-        <View
-          style={{
-            flex: 1,
-            backgroundColor: "rgba(0,0,0,0.5)",
-            justifyContent: "center",
-            alignItems: "center",
-            padding: 24,
-          }}
-        >
-          <View
-            style={{
-              backgroundColor: "#fff",
-              borderRadius: 20,
-              padding: 28,
-              width: "100%",
-              maxWidth: 360,
-            }}
-          >
-            <Text
-              style={{
-                fontSize: 18,
-                fontWeight: "700",
-                color: "#1f2937",
-                marginBottom: 10,
-                textAlign: "center",
-              }}
-            >
-              PM Shift
-            </Text>
-            <Text
-              style={{
-                fontSize: 14,
-                color: "#6b7280",
-                textAlign: "center",
-                marginBottom: 28,
-                lineHeight: 20,
-              }}
-            >
-              Are you taking over from the AM worker? This helps record a proper
-              float handover opening.
-            </Text>
-            <TouchableOpacity
-              onPress={() => setHandoverDecision(true)}
-              style={{
-                backgroundColor: "#C62828",
-                borderRadius: 12,
-                paddingVertical: 14,
-                alignItems: "center",
-                marginBottom: 12,
-              }}
-            >
-              <Text style={{ color: "#fff", fontWeight: "700", fontSize: 15 }}>
-                Yes, I'm taking over
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => setHandoverDecision(false)}
-              style={{
-                backgroundColor: "#f3f4f6",
-                borderRadius: 12,
-                paddingVertical: 14,
-                alignItems: "center",
-              }}
-            >
-              <Text
-                style={{ color: "#374151", fontWeight: "600", fontSize: 15 }}
-              >
-                No, I'm covering the full day
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ padding: 20, paddingBottom: 120 }}

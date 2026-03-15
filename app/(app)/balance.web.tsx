@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import {
   Banknote,
   Wallet,
@@ -26,9 +26,6 @@ export default function BalancePage() {
     setSelectedShift,
     shiftPhase,
     currentSubtype,
-    handoverDecision,
-    setHandoverDecision,
-    showHandoverModal,
     buttonLabel,
     showCommissionsAndTransactions,
     hasAMShift,
@@ -85,92 +82,6 @@ export default function BalancePage() {
 
   return (
     <div className="page-wrapper">
-      {/* Handover Modal — PM shift, no records yet, awaiting decision */}
-      {showHandoverModal && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 1000,
-            background: "rgba(0,0,0,0.5)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: 24,
-          }}
-        >
-          <div
-            style={{
-              background: "#fff",
-              borderRadius: 20,
-              padding: 32,
-              maxWidth: 400,
-              width: "100%",
-              boxShadow: "0 20px 60px rgba(0,0,0,0.2)",
-            }}
-          >
-            <h2
-              style={{
-                fontSize: 18,
-                fontWeight: 700,
-                color: "#1f2937",
-                textAlign: "center",
-                marginBottom: 10,
-              }}
-            >
-              PM Shift
-            </h2>
-            <p
-              style={{
-                fontSize: 14,
-                color: "#6b7280",
-                textAlign: "center",
-                marginBottom: 28,
-                lineHeight: "1.5",
-              }}
-            >
-              Are you taking over from the AM worker? This helps record a proper
-              float handover opening.
-            </p>
-            <button
-              onClick={() => setHandoverDecision(true)}
-              style={{
-                display: "block",
-                width: "100%",
-                background: "#C62828",
-                color: "#fff",
-                border: "none",
-                borderRadius: 12,
-                padding: "14px 0",
-                fontSize: 15,
-                fontWeight: 700,
-                cursor: "pointer",
-                marginBottom: 12,
-              }}
-            >
-              Yes, I’m taking over
-            </button>
-            <button
-              onClick={() => setHandoverDecision(false)}
-              style={{
-                display: "block",
-                width: "100%",
-                background: "#f3f4f6",
-                color: "#374151",
-                border: "none",
-                borderRadius: 12,
-                padding: "14px 0",
-                fontSize: 15,
-                fontWeight: 600,
-                cursor: "pointer",
-              }}
-            >
-              No, I’m covering the full day
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* Header Bar */}
       <header className="header-bar">
         <div className="header-left">
