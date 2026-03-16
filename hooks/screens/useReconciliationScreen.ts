@@ -53,6 +53,7 @@ export function useReconciliationScreen({
     isCalculating,
     error,
     balanceValidation,
+    shiftStatus,
   } = useAppSelector((state) => state.reconciliations);
   const { user: backendUser } = useAppSelector((state) => state.auth);
   const { items: transactions } = useAppSelector(
@@ -372,14 +373,18 @@ export function useReconciliationScreen({
     }
   };
 
-  // Navigate to the add-balance screen to update floats for this reconciliation
+  // Navigate to the add-balance screen to update floats for this reconciliation.
+  // When in CLOSING, pass openingId so the form excludes opening-linked records.
   const handleNavigateEditBalances = () => {
-    router.push(`/add-balance?shift=${shift}` as any);
+    const openingId = subtype === "CLOSING" ? (shiftStatus?.openingId ?? "") : "";
+    router.push(`/add-balance?shift=${shift}&openingId=${openingId}` as any);
   };
 
-  // Navigate to the add-cash-count screen to update cash count for this reconciliation
+  // Navigate to the add-cash-count screen to update cash count for this reconciliation.
+  // When in CLOSING, pass openingId so the form excludes opening-linked records.
   const handleNavigateEditCashCount = () => {
-    router.push(`/add-cash-count?shift=${shift}` as any);
+    const openingId = subtype === "CLOSING" ? (shiftStatus?.openingId ?? "") : "";
+    router.push(`/add-cash-count?shift=${shift}&openingId=${openingId}` as any);
   };
 
   const getImageUri = (item: {
