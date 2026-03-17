@@ -43,6 +43,20 @@ function AppContent() {
     dispatch(initializeAuth());
   }, [dispatch]);
 
+  // Handle invite ticket immediately — do NOT wait for animatedSplashDone.
+  // On Safari and other browsers with strict ITP, delaying this redirect by 4.4s
+  // (the splash duration) causes the loader to hang because the app path ("/")
+  // is not recognised as an auth page, keeping shouldBlockRendering true.
+  useEffect(() => {
+    if (!isLoaded) return;
+    const urlParams = new URLSearchParams(window.location.search);
+    const ticket = urlParams.has("__clerk_ticket");
+    const alreadyOnSetPassword = window.location.pathname.includes("/set-password");
+    if (ticket && !alreadyOnSetPassword) {
+      router.replace(`/set-password${window.location.search}`);
+    }
+  }, [isLoaded, router]);
+
   useEffect(() => {
     if (!isLoaded || !animatedSplashDone) return;
 
@@ -54,20 +68,15 @@ function AppContent() {
     const isAuthPage =
       isOnSignIn || isOnSignUp || isOnWelcome || isOnSetPassword;
 
-    // Check for invite ticket in URL
+    // Invite ticket is handled by the early effect above — skip here.
     const urlParams = new URLSearchParams(window.location.search);
-    const hasInviteTicket = urlParams.has("__clerk_ticket");
-
-    // Redirect invite ticket to set-password
-    if (hasInviteTicket && !isOnSetPassword) {
-      router.replace(`/set-password${window.location.search}`);
-      return;
-    }
+    if (urlParams.has("__clerk_ticket")) return;
 
     // Not signed in - redirect to sign-in unless on auth page
     if (!isSignedIn) {
       if (!isAuthPage) {
-        router.replace("/sign-in");
+        const intended = window.location.pathname + window.location.search;
+        router.replace(`/sign-in?redirect=${encodeURIComponent(intended)}`);
       }
       return;
     }
@@ -89,14 +98,18 @@ function AppContent() {
     }
   }, [isSignedIn, isLoaded, animatedSplashDone, user?.id, user?.passwordEnabled, router]);
 
-  // Determine if we're on an auth page
+  // Determine if we're on an auth page (also treats invite ticket URLs as auth
+  // pages so shouldBlockRendering never stalls the invite flow)
   const currentPath =
     typeof window !== "undefined" ? window.location.pathname : "";
+  const currentSearch =
+    typeof window !== "undefined" ? window.location.search : "";
   const isOnAuthPage =
     currentPath.includes("/sign-in") ||
     currentPath.includes("/sign-up") ||
     currentPath.includes("/welcome") ||
-    currentPath.includes("/set-password");
+    currentPath.includes("/set-password") ||
+    new URLSearchParams(currentSearch).has("__clerk_ticket");
 
   // For auth pages: only block on Clerk loading (not secure API or syncing)
   // For app pages: block on everything
