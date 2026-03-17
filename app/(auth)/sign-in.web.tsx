@@ -11,9 +11,15 @@ export default function SignInWeb() {
   const { isSignedIn } = useAuth();
   const router = useRouter();
 
-  // Already signed in — go straight to app
+  const getRedirectTarget = () => {
+    const params = new URLSearchParams(window.location.search);
+    const redirect = params.get("redirect");
+    return redirect && redirect.startsWith("/") ? redirect : "/(app)";
+  };
+
+  // Already signed in — go straight to intended page (or app)
   useEffect(() => {
-    if (isSignedIn) router.replace("/(app)");
+    if (isSignedIn) router.replace(getRedirectTarget());
   }, [isSignedIn]);
 
   const [step, setStep] = useState<Step>("email");
@@ -74,7 +80,7 @@ export default function SignInWeb() {
       const attempt = await signIn.create({ identifier: email, password });
       if (attempt.status === "complete") {
         await setActive({ session: attempt.createdSessionId });
-        router.replace("/(app)");
+        router.replace(getRedirectTarget());
       } else if (attempt.status === "needs_second_factor") {
         // Custom form: call prepareSecondFactor once ourselves (no Clerk component to double-trigger it)
         await signIn.prepareSecondFactor({ strategy: "email_code" });
@@ -86,8 +92,8 @@ export default function SignInWeb() {
     } catch (err: any) {
       const msg: string = err.errors?.[0]?.message ?? err.message ?? "";
       if (msg.toLowerCase().includes("session already exists")) {
-        // Already authenticated — just navigate to the app
-        router.replace("/(app)");
+        // Already authenticated — just navigate to the intended page
+        router.replace(getRedirectTarget());
         return;
       }
       setError(msg || "Sign in failed. Please try again.");
@@ -110,7 +116,7 @@ export default function SignInWeb() {
       });
       if (attempt.status === "complete") {
         await setActive({ session: attempt.createdSessionId });
-        router.replace("/(app)");
+        router.replace(getRedirectTarget());
       } else {
         setError("Verification failed. Please try again.");
       }
