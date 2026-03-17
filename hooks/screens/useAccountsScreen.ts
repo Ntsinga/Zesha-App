@@ -6,6 +6,7 @@ import {
   updateAccount,
   deleteAccount,
 } from "../../store/slices/accountsSlice";
+import { fetchCommissionSchedules } from "../../store/slices/commissionSchedulesSlice";
 import { selectEffectiveCompanyId } from "../../store/slices/authSlice";
 import type { AppDispatch, RootState } from "../../store";
 import type {
@@ -25,6 +26,9 @@ export function useAccountsScreen() {
   const { items: accounts, isLoading } = useSelector(
     (state: RootState) => state.accounts,
   );
+  const { items: commissionSchedules } = useSelector(
+    (state: RootState) => state.commissionSchedules,
+  );
 
   const [refreshing, setRefreshing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -42,11 +46,9 @@ export function useAccountsScreen() {
   const [accountType, setAccountType] = useState<AccountTypeEnum>("BANK");
   const [isActive, setIsActive] = useState(true);
   const [initialBalance, setInitialBalance] = useState<string>("");
-  const [commissionDepositPct, setCommissionDepositPct] = useState<string>("");
-  const [commissionWithdrawPct, setCommissionWithdrawPct] =
-    useState<string>("");
-  const [commissionChangeReason, setCommissionChangeReason] =
-    useState<string>("");
+  const [commissionScheduleId, setCommissionScheduleId] = useState<
+    number | null
+  >(null);
   const [commissionModel, setCommissionModel] =
     useState<CommissionModelEnum>("EXPECTED_ONLY");
 
@@ -65,6 +67,13 @@ export function useAccountsScreen() {
     dispatch(fetchAccounts({}));
   }, [dispatch]);
 
+  // Load schedules on mount (used by web schedule selector)
+  useEffect(() => {
+    if (companyId) {
+      dispatch(fetchCommissionSchedules({ companyId }));
+    }
+  }, [dispatch, companyId]);
+
   const onRefresh = async () => {
     setRefreshing(true);
     await dispatch(fetchAccounts({}));
@@ -76,9 +85,7 @@ export function useAccountsScreen() {
     setAccountType("BANK");
     setIsActive(true);
     setInitialBalance("");
-    setCommissionDepositPct("");
-    setCommissionWithdrawPct("");
-    setCommissionChangeReason("");
+    setCommissionScheduleId(null);
     setCommissionModel("EXPECTED_ONLY");
     setEditingAccount(null);
     setShowTypeDropdown(false);
@@ -94,17 +101,7 @@ export function useAccountsScreen() {
     setName(account.name);
     setAccountType(account.accountType);
     setIsActive(account.isActive);
-    setCommissionDepositPct(
-      account.commissionDepositPercentage != null
-        ? String(account.commissionDepositPercentage)
-        : "",
-    );
-    setCommissionWithdrawPct(
-      account.commissionWithdrawPercentage != null
-        ? String(account.commissionWithdrawPercentage)
-        : "",
-    );
-    setCommissionChangeReason("");
+    setCommissionScheduleId(account.commissionScheduleId ?? null);
     setCommissionModel(account.commissionModel ?? "EXPECTED_ONLY");
     setIsModalOpen(true);
   };
@@ -140,22 +137,7 @@ export function useAccountsScreen() {
               accountType: accountType,
               isActive: isActive,
               companyId: companyId,
-              ...(commissionDepositPct !== ""
-                ? {
-                    commissionDepositPercentage:
-                      parseFloat(commissionDepositPct),
-                  }
-                : {}),
-              ...(commissionWithdrawPct !== ""
-                ? {
-                    commissionWithdrawPercentage: parseFloat(
-                      commissionWithdrawPct,
-                    ),
-                  }
-                : {}),
-              ...(commissionChangeReason.trim()
-                ? { commissionRateChangeReason: commissionChangeReason.trim() }
-                : {}),
+              commissionScheduleId: commissionScheduleId ?? undefined,
               commissionModel,
             },
           }),
@@ -175,18 +157,7 @@ export function useAccountsScreen() {
             ...(initialBalance
               ? { initialBalance: parseFloat(initialBalance) }
               : {}),
-            ...(commissionDepositPct !== ""
-              ? {
-                  commissionDepositPercentage: parseFloat(commissionDepositPct),
-                }
-              : {}),
-            ...(commissionWithdrawPct !== ""
-              ? {
-                  commissionWithdrawPercentage: parseFloat(
-                    commissionWithdrawPct,
-                  ),
-                }
-              : {}),
+            commissionScheduleId: commissionScheduleId ?? undefined,
             commissionModel,
           }),
         ).unwrap();
@@ -302,14 +273,13 @@ export function useAccountsScreen() {
     setIsActive,
     initialBalance,
     setInitialBalance,
-    commissionDepositPct,
-    setCommissionDepositPct,
-    commissionWithdrawPct,
-    setCommissionWithdrawPct,
-    commissionChangeReason,
-    setCommissionChangeReason,
+    commissionScheduleId,
+    setCommissionScheduleId,
     commissionModel,
     setCommissionModel,
+
+    // Commission schedule options (for web selector)
+    commissionSchedules,
 
     // Stats
     stats,

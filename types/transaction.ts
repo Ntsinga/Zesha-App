@@ -2,7 +2,7 @@
  * Transaction types matching backend models/transactions.py and schemas/transaction.py
  */
 import type { BaseModel, BulkOperationResponse } from "./base";
-import type { ShiftEnum, TransactionTypeEnum } from "./enums";
+import type { ShiftEnum, TransactionSubtypeEnum, TransactionTypeEnum } from "./enums";
 import type { Account } from "./account";
 
 /**
@@ -21,6 +21,7 @@ export interface Transaction extends BaseModel {
   accountId: number;
   account?: Account; // Optional populated relationship
   transactionType: TransactionTypeEnum;
+  transactionSubtype?: TransactionSubtypeEnum | null;
   amount: number;
   transactionTime: string;
   shift: ShiftEnum;
