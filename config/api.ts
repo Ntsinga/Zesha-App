@@ -171,6 +171,28 @@ export const API_ENDPOINTS = {
     verifyAll: "/transactions/accounts/verify-all",
   },
 
+  // Commission Schedules - matches routers/commission_schedules.py
+  commissionSchedules: {
+    list: "/commission-schedules/",
+    create: "/commission-schedules/",
+    get: (id: number) => `/commission-schedules/${id}`,
+    update: (id: number) => `/commission-schedules/${id}`,
+    delete: (id: number) => `/commission-schedules/${id}`,
+    addRule: (scheduleId: number) =>
+      `/commission-schedules/${scheduleId}/rules`,
+    reviseRule: (scheduleId: number, ruleId: number) =>
+      `/commission-schedules/${scheduleId}/rules/${ruleId}/revise`,
+    deactivateRule: (scheduleId: number, ruleId: number) =>
+      `/commission-schedules/${scheduleId}/rules/${ruleId}`,
+    replaceTiers: (ruleId: number) =>
+      `/commission-schedules/rules/${ruleId}/tiers`,
+    // Templates (system-wide, managed by Super Admin)
+    listTemplates: "/commission-schedules/templates",
+    createTemplate: "/commission-schedules/templates",
+    copyTemplate: (templateId: number) =>
+      `/commission-schedules/templates/${templateId}/copy`,
+  },
+
   // AI Extraction
   extraction: {
     extract: "/extraction/extract",

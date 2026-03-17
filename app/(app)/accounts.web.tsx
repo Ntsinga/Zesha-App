@@ -9,6 +9,7 @@ import {
   RefreshCw,
   Search,
   Filter,
+  ChevronDown,
 } from "lucide-react";
 import {
   useAccountsScreen,
@@ -42,14 +43,11 @@ export default function Accounts() {
     setIsActive,
     initialBalance,
     setInitialBalance,
-    commissionDepositPct,
-    setCommissionDepositPct,
-    commissionWithdrawPct,
-    setCommissionWithdrawPct,
-    commissionChangeReason,
-    setCommissionChangeReason,
+    commissionScheduleId,
+    setCommissionScheduleId,
     commissionModel,
     setCommissionModel,
+    commissionSchedules,
     stats,
     onRefresh,
     openAddModal,
@@ -227,7 +225,7 @@ export default function Accounts() {
                   <th>Name</th>
                   <th>Type</th>
                   <th>Current Balance</th>
-                  <th>Commission (D / W)</th>
+                  <th>Commission Schedule</th>
                   <th>Status</th>
                 </tr>
               </thead>
@@ -257,9 +255,10 @@ export default function Accounts() {
                       {formatCurrency(account.currentBalance ?? 0)}
                     </td>
                     <td style={{ fontSize: 12, color: "#64748b" }}>
-                      {account.commissionDepositPercentage != null ||
-                      account.commissionWithdrawPercentage != null ? (
-                        `${parseFloat(Number(account.commissionDepositPercentage ?? 0).toFixed(2))}% / ${parseFloat(Number(account.commissionWithdrawPercentage ?? 0).toFixed(2))}%`
+                      {account.commissionScheduleId != null ? (
+                        commissionSchedules.find(
+                          (s) => s.id === account.commissionScheduleId,
+                        )?.name ?? `Schedule #${account.commissionScheduleId}`
                       ) : (
                         <span style={{ color: "#cbd5e1" }}>—</span>
                       )}
@@ -433,48 +432,46 @@ export default function Accounts() {
 
               <div style={{ display: "flex", gap: 12 }}>
                 <div className="form-group" style={{ flex: 1 }}>
-                  <label className="form-label">Deposit Commission %</label>
-                  <input
-                    type="number"
-                    value={commissionDepositPct}
-                    onChange={(e) => setCommissionDepositPct(e.target.value)}
-                    placeholder="e.g. 1.5"
-                    className="form-input"
-                    min="0"
-                    max="100"
-                    step="0.0001"
-                  />
-                </div>
-                <div className="form-group" style={{ flex: 1 }}>
-                  <label className="form-label">Withdraw Commission %</label>
-                  <input
-                    type="number"
-                    value={commissionWithdrawPct}
-                    onChange={(e) => setCommissionWithdrawPct(e.target.value)}
-                    placeholder="e.g. 0.75"
-                    className="form-input"
-                    min="0"
-                    max="100"
-                    step="0.0001"
-                  />
-                </div>
-              </div>
-
-              {editingAccount && (
-                <div className="form-group">
-                  <label className="form-label">Commission Change Reason</label>
-                  <input
-                    type="text"
-                    value={commissionChangeReason}
-                    onChange={(e) => setCommissionChangeReason(e.target.value)}
-                    placeholder="Reason for rate change (optional)"
-                    className="form-input"
-                  />
+                  <label className="form-label">Commission Schedule</label>
+                  <div style={{ position: "relative" }}>
+                    <select
+                      value={commissionScheduleId ?? ""}
+                      onChange={(e) =>
+                        setCommissionScheduleId(
+                          e.target.value ? Number(e.target.value) : null,
+                        )
+                      }
+                      className="form-input"
+                      style={{ appearance: "none", paddingRight: 32 }}
+                    >
+                      <option value="">No schedule assigned</option>
+                      {commissionSchedules
+                        .filter((s) => s.isActive)
+                        .map((s) => (
+                          <option key={s.id} value={s.id}>
+                            {s.name}
+                          </option>
+                        ))}
+                    </select>
+                    <ChevronDown
+                      size={16}
+                      style={{
+                        position: "absolute",
+                        right: 10,
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        pointerEvents: "none",
+                        color: "#64748b",
+                      }}
+                    />
+                  </div>
                   <span className="form-hint">
-                    Recorded in the audit log when rates are changed
+                    Defines how deposit and withdrawal commissions are
+                    calculated. Manage schedules in the Commission Schedules
+                    page.
                   </span>
                 </div>
-              )}
+              </div>
             </div>
 
             <div className="modal-footer">

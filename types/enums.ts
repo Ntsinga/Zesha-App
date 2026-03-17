@@ -46,6 +46,12 @@ export type TransactionTypeEnum =
   | "FLOAT_PURCHASE"
   | "CAPITAL_INJECTION";
 
+// Transaction subtypes - optional qualifier for commission rule matching
+export type TransactionSubtypeEnum = "AGENT_TO_AGENT";
+
+// Commission rule calculation type
+export type CommissionRuleTypeEnum = "PERCENTAGE" | "TIERED_FLAT";
+
 // Balance validation status - matches backend BalanceValidationEnum
 export type BalanceValidationEnum =
   | "PENDING"

@@ -18,6 +18,7 @@ import {
   ArrowLeftRight,
   ChevronLeft,
   ChevronRight,
+  Layers,
 } from "lucide-react";
 import { useAppSelector, useAppDispatch } from "../../store/hooks";
 import {
@@ -187,6 +188,11 @@ export default function AppLayoutWeb() {
       href: "/accounts",
       label: "Accounts",
       icon: <Receipt size={20} />,
+    },
+    {
+      href: "/commission-schedules",
+      label: "Commission Schedules",
+      icon: <Layers size={20} />,
     },
   ];
 
