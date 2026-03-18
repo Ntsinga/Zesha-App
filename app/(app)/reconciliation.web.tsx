@@ -784,6 +784,7 @@ export default function BalanceDetailWeb() {
               <div style={{ display: "flex", gap: "12px", padding: "1rem" }}>
                 <button
                   onClick={handleApprove}
+                  disabled={isFinalizing}
                   className="btn-success"
                   style={{
                     flex: 1,
@@ -791,13 +792,16 @@ export default function BalanceDetailWeb() {
                     alignItems: "center",
                     justifyContent: "center",
                     gap: 8,
+                    opacity: isFinalizing ? 0.6 : 1,
+                    cursor: isFinalizing ? "not-allowed" : "pointer",
                   }}
                 >
                   <Check size={18} />
-                  Approve
+                  {isFinalizing ? "Approving..." : "Approve"}
                 </button>
                 <button
                   onClick={handleReject}
+                  disabled={isFinalizing}
                   className="btn-danger"
                   style={{
                     flex: 1,
@@ -805,10 +809,12 @@ export default function BalanceDetailWeb() {
                     alignItems: "center",
                     justifyContent: "center",
                     gap: 8,
+                    opacity: isFinalizing ? 0.6 : 1,
+                    cursor: isFinalizing ? "not-allowed" : "pointer",
                   }}
                 >
                   <XCircle size={18} />
-                  Reject
+                  {isFinalizing ? "Processing..." : "Reject"}
                 </button>
               </div>
             )}
