@@ -473,6 +473,31 @@ export function useBalanceMenuScreen() {
 
       // Re-fetch shift status so the UI advances to CLOSING immediately
       dispatch(fetchShiftStatus({ date: today, shift: selectedShift }));
+      // Re-fetch cash counts and balances so their reconciliation_id links (set by
+      // the backend during calculation) are reflected in Redux.  Without this, the
+      // opening records still show reconciliation_id=null in the store, causing the
+      // closing cash-count / balance forms to display opening values on first render.
+      dispatch(
+        fetchCashCounts({
+          companyId: backendUser.companyId || 0,
+          dateFrom: today,
+          dateTo: today,
+        }),
+      );
+      dispatch(
+        fetchBalances({
+          companyId: backendUser.companyId || 0,
+          dateFrom: today,
+          dateTo: today,
+        }),
+      );
+      dispatch(
+        fetchCommissions({
+          companyId: backendUser.companyId || 0,
+          dateFrom: today,
+          dateTo: today,
+        }),
+      );
       return { success: true, subtype: currentSubtype };
     } catch (error: unknown) {
       const msg =
