@@ -5,6 +5,10 @@ import {
   updateCompanyInfo,
   createCompanyInfo,
 } from "../../store/slices/companyInfoSlice";
+import {
+  selectIsViewingAgency,
+  selectViewingAgencyName,
+} from "../../store/slices/authSlice";
 import { formatCurrency } from "../../utils/formatters";
 import type { AppDispatch, RootState } from "../../store";
 import type { CompanyInfo } from "../../types";
@@ -30,9 +34,13 @@ export function useSettingsScreen() {
   } = useSelector((state: RootState) => state.companyInfo);
 
   const { user: backendUser } = useSelector((state: RootState) => state.auth);
+  const isViewingAgency = useSelector(selectIsViewingAgency);
+  const viewingAgencyName = useSelector(selectViewingAgencyName);
   const canEditSettings =
     backendUser?.role === "Administrator" ||
     backendUser?.role === "Super Administrator";
+  const isSuperAdmin = backendUser?.role === "Super Administrator";
+  const showCompanySettings = !isSuperAdmin || isViewingAgency;
 
   // Fallback: use dashboard companyInfo if companyInfoSlice has no items yet
   const dashboardCompanyInfo = useSelector(
@@ -52,8 +60,10 @@ export function useSettingsScreen() {
   const [emails, setEmails] = useState<string[]>([]);
   const [newEmail, setNewEmail] = useState("");
 
-  // Get the first company - fall back to dashboard companyInfo if slice is empty
-  const company: CompanyInfo | undefined = companies[0] ?? dashboardCompanyInfo;
+  // Only bind settings to a company when the user is company-scoped or has entered an agency.
+  const company: CompanyInfo | undefined = showCompanySettings
+    ? companies[0] ?? dashboardCompanyInfo
+    : undefined;
 
   useEffect(() => {
     dispatch(fetchCompanyInfoList({}));
@@ -68,8 +78,16 @@ export function useSettingsScreen() {
       setCurrency(company.currency || "UGX");
       setDescription(company.description || "");
       setEmails(company.emails || []);
+    } else if (!showCompanySettings) {
+      setName("");
+      setTotalWorkingCapital("");
+      setOutstandingBalance("");
+      setCurrency("UGX");
+      setDescription("");
+      setEmails([]);
+      setNewEmail("");
     }
-  }, [company]);
+  }, [company, showCompanySettings]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -119,6 +137,13 @@ export function useSettingsScreen() {
     success: boolean;
     message: string;
   }> => {
+    if (!showCompanySettings) {
+      return {
+        success: false,
+        message: "Enter an agency before editing company settings.",
+      };
+    }
+
     const validation = validateForm();
     if (!validation.valid) {
       return { success: false, message: validation.message! };
@@ -183,6 +208,10 @@ export function useSettingsScreen() {
     isSaving,
     company,
     canEditSettings,
+    isSuperAdmin,
+    isViewingAgency,
+    viewingAgencyName,
+    showCompanySettings,
 
     // Form state
     name,

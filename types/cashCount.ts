@@ -5,8 +5,7 @@ import type { BaseModel, BulkOperationResponse } from "./base";
 import type { ReconciliationSubtypeEnum, ShiftEnum } from "./enums";
 
 /**
- * Denomination values in cents
- * 50000 = R500, 20000 = R200, etc.
+ * Denomination values in cents.
  */
 export type DenominationType =
   | 50000

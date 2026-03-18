@@ -56,6 +56,10 @@ export function useCashCountScreen() {
     (Array.isArray(subtypeRaw) ? subtypeRaw[0] : subtypeRaw) === "OPENING"
       ? "OPENING"
       : "CLOSING";
+  const returnTo = Array.isArray(params.returnTo)
+    ? params.returnTo[0]
+    : params.returnTo;
+  const returnDate = Array.isArray(params.date) ? params.date[0] : params.date;
 
   // Get cash counts from Redux — must come before entries useState
   // so we can use the already-cached data as the initial value
@@ -329,6 +333,16 @@ export function useCashCountScreen() {
     router.back();
   };
 
+  const handleReturnAfterSave = () => {
+    if (returnTo === "reconciliation" && returnDate) {
+      router.replace(
+        `/reconciliation?date=${returnDate}&shift=${shift}&subtype=${currentSubtype}&recalculate=${Date.now()}` as any,
+      );
+      return;
+    }
+    router.back();
+  };
+
   return {
     // State
     shift,
@@ -351,5 +365,6 @@ export function useCashCountScreen() {
     handleSubmit,
     clearAll,
     handleBack,
+    handleReturnAfterSave,
   };
 }

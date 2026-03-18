@@ -39,6 +39,7 @@ import {
 } from "../../store/slices/commissionsSlice";
 import { fetchDashboard } from "../../store/slices/dashboardSlice";
 import { fetchAccounts } from "../../store/slices/accountsSlice";
+import { selectEffectiveCompanyId } from "../../store/slices/authSlice";
 import {
   extractBalanceFromImage,
   validateBalance,
@@ -86,8 +87,7 @@ export default function AddCommissionPage() {
       ? "OPENING"
       : "CLOSING";
 
-  const { user } = useSelector((state: RootState) => state.auth);
-  const companyId = user?.companyId;
+  const companyId = useSelector(selectEffectiveCompanyId);
 
   const { items: accounts, isLoading: accountsLoading } = useSelector(
     (state: RootState) => state.accounts,

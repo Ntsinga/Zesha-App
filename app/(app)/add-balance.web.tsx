@@ -1,5 +1,5 @@
 import React, { useRef, useState } from "react";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   Plus,
   X,
@@ -25,6 +25,12 @@ import "../../styles/web.css";
  */
 export default function AddBalanceWeb() {
   const router = useRouter();
+  const params = useLocalSearchParams<{
+    date?: string;
+    returnTo?: string;
+    shift?: string;
+    subtype?: string;
+  }>();
   const fileInputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const { formatCurrency } = useCurrencyFormatter();
@@ -33,6 +39,15 @@ export default function AddBalanceWeb() {
   const isAdmin =
     userRole === "Administrator" || userRole === "Super Administrator";
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const returnTo = Array.isArray(params.returnTo)
+    ? params.returnTo[0]
+    : params.returnTo;
+  const returnDate = Array.isArray(params.date) ? params.date[0] : params.date;
+  const currentSubtype =
+    (Array.isArray(params.subtype) ? params.subtype[0] : params.subtype) ===
+    "OPENING"
+      ? "OPENING"
+      : "CLOSING";
 
   const {
     entries,
@@ -55,6 +70,16 @@ export default function AddBalanceWeb() {
     setAccountPickerVisible,
   } = useAddBalanceScreen();
 
+  const navigateAfterSave = () => {
+    if (returnTo === "reconciliation" && returnDate) {
+      router.replace(
+        `/reconciliation?date=${returnDate}&shift=${currentShift}&subtype=${currentSubtype}&recalculate=${Date.now()}` as any,
+      );
+      return;
+    }
+    router.back();
+  };
+
   // Handle file input change
   const handleFileChange = (
     entryId: string,
@@ -73,7 +98,7 @@ export default function AddBalanceWeb() {
     if (result.success) {
       setSuccessMessage(result.message);
       setTimeout(() => {
-        router.back();
+        navigateAfterSave();
       }, 1500);
     } else {
       showToast(result.message, "error");

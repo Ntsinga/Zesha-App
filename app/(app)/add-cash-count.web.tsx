@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { useRouter } from "expo-router";
 import { Save, Plus, Minus, Banknote, Trash2, ArrowLeft } from "lucide-react";
 import {
@@ -9,6 +9,7 @@ import "../../styles/web.css";
 
 export default function AddCashCountPage() {
   const router = useRouter();
+  const inputRefs = useRef<Array<HTMLInputElement | null>>([]);
   const {
     shift,
     entries,
@@ -24,7 +25,7 @@ export default function AddCashCountPage() {
     decrementQuantity,
     handleSubmit,
     clearAll,
-    handleBack,
+    handleReturnAfterSave,
   } = useCashCountScreen();
 
   const [message, setMessage] = useState<{
@@ -40,6 +41,7 @@ export default function AddCashCountPage() {
     });
 
     if (result.success) {
+      handleReturnAfterSave();
       setTimeout(() => {
         setMessage(null);
       }, 3000);
@@ -138,9 +140,26 @@ export default function AddCashCountPage() {
                   </button>
 
                   <input
+                    ref={(ref) => {
+                      inputRefs.current[index] = ref;
+                    }}
                     type="text"
                     value={entry.quantity}
                     onChange={(e) => updateQuantity(index, e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key !== "Enter") {
+                        return;
+                      }
+
+                      e.preventDefault();
+                      const nextInput = inputRefs.current[index + 1];
+                      if (nextInput) {
+                        nextInput.focus();
+                        nextInput.select();
+                        return;
+                      }
+                      void onSubmit();
+                    }}
                     placeholder="0"
                     className="quantity-input"
                     maxLength={4}
