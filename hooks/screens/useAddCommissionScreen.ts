@@ -22,6 +22,7 @@ import type {
   Account,
   DraftCommissionEntry,
   BalanceValidationResult,
+  ReconciliationSubtypeEnum,
 } from "../../types";
 
 export interface CommissionEntry {
@@ -54,6 +55,12 @@ export function useAddCommissionScreen() {
   const params = useLocalSearchParams();
   // Shift is passed from the balance menu screen - use it as-is
   const currentShift: ShiftEnum = (params.shift as ShiftEnum) || "AM";
+  // subtype is passed so we only show/edit records for the current phase
+  const subtypeRaw = params.subtype;
+  const currentSubtype: ReconciliationSubtypeEnum =
+    (Array.isArray(subtypeRaw) ? subtypeRaw[0] : subtypeRaw) === "OPENING"
+      ? "OPENING"
+      : "CLOSING";
 
   // Selectors
   const companyId = useAppSelector(selectEffectiveCompanyId);
@@ -100,7 +107,10 @@ export function useAddCommissionScreen() {
 
     // Use currentShift (from params) for prepopulation
     const shiftCommissions = commissions.filter(
-      (com) => com.date.startsWith(today) && com.shift === currentShift,
+      (com) =>
+        com.date.startsWith(today) &&
+        com.shift === currentShift &&
+        com.subtype === currentSubtype,
     );
 
     if (shiftCommissions.length > 0) {
@@ -467,6 +477,7 @@ export function useAddCommissionScreen() {
           companyId,
           accountId: entry.accountId!,
           shift: currentShift,
+          subtype: currentSubtype,
           amount: parseFloat(entry.amount),
           date: today,
         };
@@ -577,6 +588,7 @@ export function useAddCommissionScreen() {
               companyId: companyId,
               accountId: entry.accountId!,
               shift: currentShift,
+              subtype: currentSubtype,
               amount: parseFloat(entry.amount),
               date: today,
               imageData: imageData,

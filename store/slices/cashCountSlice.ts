@@ -5,6 +5,7 @@ import type {
   CashCountUpdate,
   CashCountFilters,
   BulkCashCountResponse,
+  ReconciliationSubtypeEnum,
   ShiftEnum,
 } from "@/types";
 import { mapApiResponse, mapApiRequest, buildTypedQueryString } from "@/types";
@@ -185,14 +186,15 @@ export const deleteCashCount = createAsyncThunk<
 
 export const deleteCashCountsByFilter = createAsyncThunk<
   { deletedCount: number },
-  { companyId: number; countDate: string; shift: ShiftEnum },
+  { companyId: number; countDate: string; shift: ShiftEnum; subtype?: ReconciliationSubtypeEnum },
   { rejectValue: string }
 >(
   "cashCount/deleteByFilter",
-  async ({ companyId, countDate, shift }, { rejectWithValue }) => {
+  async ({ companyId, countDate, shift, subtype }, { rejectWithValue }) => {
     try {
+      const subtypeParam = subtype != null ? `&subtype=${subtype}` : "";
       const result = await apiRequest<{ deletedCount: number }>(
-        `${API_ENDPOINTS.cashCount.deleteByFilter}?company_id=${companyId}&count_date=${countDate}&shift=${shift}`,
+        `${API_ENDPOINTS.cashCount.deleteByFilter}?company_id=${companyId}&count_date=${countDate}&shift=${shift}${subtypeParam}`,
         { method: "DELETE" },
       );
       return result;

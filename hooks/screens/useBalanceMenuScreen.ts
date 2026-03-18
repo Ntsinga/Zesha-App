@@ -154,22 +154,11 @@ export function useBalanceMenuScreen() {
     currentSubtype === "CLOSING" || shiftPhase === "COMPLETE";
   const cashCountStatus = useMemo(() => {
     const todayCounts = cashCounts.filter((cc) => cc.date === today);
-    // Only exclude opening-linked records when actually in CLOSING/COMPLETE phase.
-    // In OPENING phase (even after calculating), the records belong to this phase
-    // and should still count toward the green indicator.
-    const openingReconId =
-      shiftPhase === "CLOSING" || shiftPhase === "COMPLETE"
-        ? (shiftStatus?.openingId ?? null)
-        : null;
     const amCounts = todayCounts.filter(
-      (cc) =>
-        cc.shift === "AM" &&
-        (openingReconId === null || cc.reconciliationId !== openingReconId),
+      (cc) => cc.shift === "AM" && cc.subtype === currentSubtype,
     );
     const pmCounts = todayCounts.filter(
-      (cc) =>
-        cc.shift === "PM" &&
-        (openingReconId === null || cc.reconciliationId !== openingReconId),
+      (cc) => cc.shift === "PM" && cc.subtype === currentSubtype,
     );
 
     const hasAM = amCounts.length > 0;
@@ -199,29 +188,18 @@ export function useBalanceMenuScreen() {
       latestShiftTotal: total,
       hasTodayCashCount: hasAM || hasPM,
     };
-  }, [cashCounts, today, shiftStatus, shiftPhase]);
+  }, [cashCounts, today, currentSubtype]);
 
   // Calculate balance completion status
   const balanceStatus = useMemo(() => {
     const activeAccounts = accounts.filter((acc) => acc.isActive);
     const todayBalances = balances.filter((bal) => bal.date.startsWith(today));
 
-    // Only exclude opening-linked records when actually in CLOSING/COMPLETE phase.
-    // In OPENING phase (even after calculating), the records belong to this phase
-    // and should still count toward the green indicator.
-    const openingReconId =
-      shiftPhase === "CLOSING" || shiftPhase === "COMPLETE"
-        ? (shiftStatus?.openingId ?? null)
-        : null;
     const amBalances = todayBalances.filter(
-      (bal) =>
-        bal.shift === "AM" &&
-        (openingReconId === null || bal.reconciliationId !== openingReconId),
+      (bal) => bal.shift === "AM" && bal.subtype === currentSubtype,
     );
     const pmBalances = todayBalances.filter(
-      (bal) =>
-        bal.shift === "PM" &&
-        (openingReconId === null || bal.reconciliationId !== openingReconId),
+      (bal) => bal.shift === "PM" && bal.subtype === currentSubtype,
     );
 
     // Check if all active accounts have balances for each shift
@@ -261,7 +239,7 @@ export function useBalanceMenuScreen() {
       latestBalanceTotal,
       hasTodayBalances: hasAM || hasPM,
     };
-  }, [balances, accounts, today, shiftStatus, shiftPhase]);
+  }, [balances, accounts, today, currentSubtype]);
 
   // Calculate commission completion status
   const commissionStatus = useMemo(() => {
@@ -385,27 +363,19 @@ export function useBalanceMenuScreen() {
   ]);
 
   const handleNavigateCashCount = () => {
-    // Only exclude OPENING-linked records when we're in CLOSING phase.
-    // In OPENING phase, passing openingId would filter out the very entries
-    // the user just submitted, leaving the form blank on re-entry.
-    const openingId = currentSubtype === "CLOSING" ? (shiftStatus?.openingId ?? "") : "";
     router.push(
-      `/add-cash-count?shift=${selectedShift}&openingId=${openingId}` as any,
+      `/add-cash-count?shift=${selectedShift}&subtype=${currentSubtype}` as any,
     );
   };
 
   const handleNavigateAddBalance = () => {
-    // Only exclude OPENING-linked records when we're in CLOSING phase.
-    // In OPENING phase, passing openingId would filter out the very entries
-    // the user just submitted, leaving the form blank on re-entry.
-    const openingId = currentSubtype === "CLOSING" ? (shiftStatus?.openingId ?? "") : "";
     router.push(
-      `/add-balance?shift=${selectedShift}&openingId=${openingId}` as any,
+      `/add-balance?shift=${selectedShift}&subtype=${currentSubtype}` as any,
     );
   };
 
   const handleNavigateCommissions = () => {
-    router.push(`/add-commission?shift=${selectedShift}` as any);
+    router.push(`/add-commission?shift=${selectedShift}&subtype=${currentSubtype}` as any);
   };
 
   const handleNavigateTransactions = () => {

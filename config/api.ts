@@ -117,7 +117,7 @@ export const API_ENDPOINTS = {
       `/reconciliations/${date}/${shift}/${subtype}/finalize`,
     approve: (date: string, shift: string, subtype: string) =>
       `/reconciliations/${date}/${shift}/${subtype}/approve`,
-    balanceValidation: (date: string, shift: string) =>
+    balanceValidation: (date: string, shift: string, subtype: string) =>
       `/reconciliations/${date}/${shift}/balance-validation`,
     shiftStatus: (date: string, shift: string) =>
       `/reconciliations/status/${date}/${shift}`,
