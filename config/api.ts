@@ -117,7 +117,7 @@ export const API_ENDPOINTS = {
       `/reconciliations/${date}/${shift}/${subtype}/finalize`,
     approve: (date: string, shift: string, subtype: string) =>
       `/reconciliations/${date}/${shift}/${subtype}/approve`,
-    balanceValidation: (date: string, shift: string) =>
+    balanceValidation: (date: string, shift: string, subtype: string) =>
       `/reconciliations/${date}/${shift}/balance-validation`,
     shiftStatus: (date: string, shift: string) =>
       `/reconciliations/status/${date}/${shift}`,
@@ -145,6 +145,10 @@ export const API_ENDPOINTS = {
     delete: (id: number) => `/accounts/${id}`,
     deactivate: (id: number) => `/accounts/${id}/deactivate`,
     activate: (id: number) => `/accounts/${id}/activate`,
+    listTemplates: "/accounts/templates",
+    createTemplate: "/accounts/templates",
+    inheritTemplate: (templateId: number) =>
+      `/accounts/templates/${templateId}/inherit`,
   },
 
   // Transactions - matches routers/transactions.py
@@ -169,6 +173,28 @@ export const API_ENDPOINTS = {
     verifyBalance: (accountId: number) =>
       `/transactions/account/${accountId}/verify-balance`,
     verifyAll: "/transactions/accounts/verify-all",
+  },
+
+  // Commission Schedules - matches routers/commission_schedules.py
+  commissionSchedules: {
+    list: "/commission-schedules/",
+    create: "/commission-schedules/",
+    get: (id: number) => `/commission-schedules/${id}`,
+    update: (id: number) => `/commission-schedules/${id}`,
+    delete: (id: number) => `/commission-schedules/${id}`,
+    addRule: (scheduleId: number) =>
+      `/commission-schedules/${scheduleId}/rules`,
+    reviseRule: (scheduleId: number, ruleId: number) =>
+      `/commission-schedules/${scheduleId}/rules/${ruleId}/revise`,
+    deactivateRule: (scheduleId: number, ruleId: number) =>
+      `/commission-schedules/${scheduleId}/rules/${ruleId}`,
+    replaceTiers: (ruleId: number) =>
+      `/commission-schedules/rules/${ruleId}/tiers`,
+    // Templates (system-wide, managed by Super Admin)
+    listTemplates: "/commission-schedules/templates",
+    createTemplate: "/commission-schedules/templates",
+    copyTemplate: (templateId: number) =>
+      `/commission-schedules/templates/${templateId}/copy`,
   },
 
   // AI Extraction

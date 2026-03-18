@@ -9,18 +9,24 @@ import {
   RefreshCw,
   Search,
   Filter,
+  ChevronDown,
+  Copy,
+  LayoutTemplate,
+  ArrowLeft,
+  Layers,
 } from "lucide-react";
 import {
   useAccountsScreen,
   ACCOUNT_TYPES,
 } from "../../hooks/screens/useAccountsScreen";
 import { useCurrencyFormatter } from "../../hooks/useCurrency";
-import type { AccountTypeEnum, CommissionModelEnum } from "../../types";
+import type { Account, AccountTypeEnum, CommissionModelEnum } from "../../types";
 import "../../styles/web.css";
 
 export default function Accounts() {
   const {
     accounts,
+    allAccounts,
     isLoading,
     refreshing,
     isSubmitting,
@@ -42,14 +48,19 @@ export default function Accounts() {
     setIsActive,
     initialBalance,
     setInitialBalance,
-    commissionDepositPct,
-    setCommissionDepositPct,
-    commissionWithdrawPct,
-    setCommissionWithdrawPct,
-    commissionChangeReason,
-    setCommissionChangeReason,
+    commissionScheduleId,
+    setCommissionScheduleId,
     commissionModel,
     setCommissionModel,
+    commissionSchedules,
+    creationMode,
+    setCreationMode,
+    chooseCreationMode,
+    cloneSource,
+    selectCloneSource,
+    templates,
+    isTemplatesLoading,
+    handleInheritTemplate,
     stats,
     onRefresh,
     openAddModal,
@@ -68,6 +79,10 @@ export default function Accounts() {
     text: string;
   } | null>(null);
 
+  // Name used when inheriting a template (user can override)
+  const [inheritName, setInheritName] = useState("");
+  const [inheritingTemplate, setInheritingTemplate] = useState<Account | null>(null);
+
   const onSubmit = async () => {
     const result = await handleSubmit();
     setMessage({
@@ -76,6 +91,17 @@ export default function Accounts() {
     });
 
     if (result.success) {
+      setTimeout(() => setMessage(null), 3000);
+    }
+  };
+
+  const onInheritTemplate = async () => {
+    if (!inheritingTemplate) return;
+    const result = await handleInheritTemplate(inheritingTemplate, inheritName);
+    setMessage({ type: result.success ? "success" : "error", text: result.message });
+    if (result.success) {
+      setInheritingTemplate(null);
+      setInheritName("");
       setTimeout(() => setMessage(null), 3000);
     }
   };
@@ -227,7 +253,7 @@ export default function Accounts() {
                   <th>Name</th>
                   <th>Type</th>
                   <th>Current Balance</th>
-                  <th>Commission (D / W)</th>
+                  <th>Commission Schedule</th>
                   <th>Status</th>
                 </tr>
               </thead>
@@ -257,9 +283,10 @@ export default function Accounts() {
                       {formatCurrency(account.currentBalance ?? 0)}
                     </td>
                     <td style={{ fontSize: 12, color: "#64748b" }}>
-                      {account.commissionDepositPercentage != null ||
-                      account.commissionWithdrawPercentage != null ? (
-                        `${parseFloat(Number(account.commissionDepositPercentage ?? 0).toFixed(2))}% / ${parseFloat(Number(account.commissionWithdrawPercentage ?? 0).toFixed(2))}%`
+                      {account.commissionScheduleId != null ? (
+                        commissionSchedules.find(
+                          (s) => s.id === account.commissionScheduleId,
+                        )?.name ?? `Schedule #${account.commissionScheduleId}`
                       ) : (
                         <span style={{ color: "#cbd5e1" }}>—</span>
                       )}
@@ -289,7 +316,17 @@ export default function Accounts() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="modal-header">
-              <h2>{editingAccount ? "Edit Account" : "Add Account"}</h2>
+              <h2>
+                {editingAccount
+                  ? "Edit Account"
+                  : creationMode === null
+                    ? "Add Account"
+                    : creationMode === "new"
+                      ? "Create New Account"
+                      : creationMode === "template"
+                        ? "Use System Template"
+                        : "Clone Existing Account"}
+              </h2>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 {editingAccount && (
                   <button
@@ -305,13 +342,251 @@ export default function Accounts() {
                     <Trash2 size={18} />
                   </button>
                 )}
+                {!editingAccount && creationMode !== null && (
+                  <button
+                    className="btn-icon"
+                    onClick={() => setCreationMode(null)}
+                    title="Back"
+                  >
+                    <ArrowLeft size={18} />
+                  </button>
+                )}
                 <button className="btn-icon" onClick={closeModal}>
                   <X size={20} />
                 </button>
               </div>
             </div>
 
-            <div className="modal-form">
+            {/* Step 1 — Chooser (shown only for new account, not editing) */}
+            {!editingAccount && creationMode === null && (
+              <div className="modal-form">
+                <p style={{ fontSize: 13, color: "#64748b", marginBottom: 16 }}>
+                  How would you like to set up this account?
+                </p>
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  <button
+                    onClick={() => chooseCreationMode("new")}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 12,
+                      padding: "14px 16px", border: "1px solid #e2e8f0",
+                      borderRadius: 8, background: "#fff", cursor: "pointer",
+                      textAlign: "left",
+                    }}
+                  >
+                    <Plus size={20} style={{ color: "#3b82f6", flexShrink: 0 }} />
+                    <div>
+                      <div style={{ fontWeight: 600, fontSize: 14 }}>Create from scratch</div>
+                      <div style={{ fontSize: 12, color: "#64748b" }}>New account, assign any schedule</div>
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => chooseCreationMode("template")}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 12,
+                      padding: "14px 16px", border: "1px solid #e2e8f0",
+                      borderRadius: 8, background: "#fff", cursor: "pointer",
+                      textAlign: "left",
+                    }}
+                  >
+                    <LayoutTemplate size={20} style={{ color: "#8b5cf6", flexShrink: 0 }} />
+                    <div>
+                      <div style={{ fontWeight: 600, fontSize: 14 }}>Use system template</div>
+                      <div style={{ fontSize: 12, color: "#64748b" }}>
+                        Inherit a pre-configured account from Super Admin
+                      </div>
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => chooseCreationMode("clone")}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 12,
+                      padding: "14px 16px", border: "1px solid #e2e8f0",
+                      borderRadius: 8, background: "#fff", cursor: "pointer",
+                      textAlign: "left",
+                    }}
+                  >
+                    <Copy size={20} style={{ color: "#10b981", flexShrink: 0 }} />
+                    <div>
+                      <div style={{ fontWeight: 600, fontSize: 14 }}>Clone an existing account</div>
+                      <div style={{ fontSize: 12, color: "#64748b" }}>
+                        Reuse the commission schedule from another account
+                      </div>
+                    </div>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Step 2b — Template list */}
+            {!editingAccount && creationMode === "template" && (
+              <div className="modal-form">
+                {isTemplatesLoading ? (
+                  <div style={{ textAlign: "center", padding: 24 }}>
+                    <RefreshCw size={20} className="spin" />
+                  </div>
+                ) : templates.length === 0 ? (
+                  <div style={{ textAlign: "center", padding: 24, color: "#64748b", fontSize: 13 }}>
+                    No system templates available. Ask your Super Admin to create some.
+                  </div>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    {templates.map((tmpl) => (
+                      <div
+                        key={tmpl.id}
+                        style={{
+                          border: inheritingTemplate?.id === tmpl.id ? "1px solid #8b5cf6" : "1px solid #e2e8f0",
+                          borderRadius: 8, padding: "12px 14px",
+                          background: inheritingTemplate?.id === tmpl.id ? "#f5f3ff" : "#fff",
+                        }}
+                      >
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                          <div>
+                            <div style={{ fontWeight: 600, fontSize: 14 }}>{tmpl.name}</div>
+                            <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>
+                              {tmpl.accountType}
+                              {tmpl.commissionSchedule && (
+                                <span style={{ marginLeft: 8 }}>
+                                  <Layers size={10} style={{ display: "inline", marginRight: 3 }} />
+                                  {tmpl.commissionSchedule.name}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <button
+                            className="btn-primary"
+                            style={{ padding: "4px 12px", fontSize: 12 }}
+                            onClick={() => {
+                              setInheritingTemplate(tmpl);
+                              setInheritName(tmpl.name);
+                            }}
+                          >
+                            Use
+                          </button>
+                        </div>
+                        {inheritingTemplate?.id === tmpl.id && (
+                          <div style={{ marginTop: 10 }}>
+                            <label className="form-label">Account Name</label>
+                            <input
+                              type="text"
+                              value={inheritName}
+                              onChange={(e) => setInheritName(e.target.value)}
+                              placeholder="Enter a name for this account"
+                              className="form-input"
+                              autoFocus
+                            />
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {inheritingTemplate && (
+                  <div className="modal-footer" style={{ marginTop: 16 }}>
+                    <button
+                      className="btn-secondary"
+                      onClick={() => { setInheritingTemplate(null); setInheritName(""); }}
+                      style={{ flex: 1 }}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      className="btn-primary"
+                      onClick={onInheritTemplate}
+                      disabled={isSubmitting || !inheritName.trim()}
+                      style={{ flex: 2 }}
+                    >
+                      {isSubmitting ? <RefreshCw size={16} className="spin" /> : <Check size={16} />}
+                      {isSubmitting ? "Creating..." : "Create Account"}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Step 2c — Clone: pick a source account */}
+            {!editingAccount && creationMode === "clone" && (
+              <div className="modal-form">
+                <div className="form-group">
+                  <label className="form-label">Clone schedule from</label>
+                  <select
+                    className="form-input"
+                    style={{ appearance: "none" }}
+                    value={cloneSource?.id ?? ""}
+                    onChange={(e) => {
+                      const src = allAccounts.find((a) => a.id === Number(e.target.value));
+                      if (src) selectCloneSource(src);
+                    }}
+                  >
+                    <option value="">Select account to clone...</option>
+                    {allAccounts
+                      .filter((a) => a.commissionScheduleId != null)
+                      .map((a) => (
+                        <option key={a.id} value={a.id}>{a.name}</option>
+                      ))}
+                  </select>
+                  {cloneSource?.commissionSchedule && (
+                    <span className="form-hint">
+                      Schedule: {cloneSource.commissionSchedule.name}
+                    </span>
+                  )}
+                </div>
+
+                {cloneSource && (
+                  <>
+                    <div className="form-group">
+                      <label className="form-label">New Account Name *</label>
+                      <input
+                        type="text"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        placeholder="Enter account name"
+                        className="form-input"
+                        autoFocus
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Account Type</label>
+                      <div className="type-buttons">
+                        {ACCOUNT_TYPES.map((type) => (
+                          <button
+                            key={type.value}
+                            className={`type-button ${accountType === type.value ? "selected" : ""}`}
+                            onClick={() => setAccountType(type.value)}
+                          >
+                            {type.value === "BANK" ? <Building2 size={16} /> : <Smartphone size={16} />}
+                            {type.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="modal-footer">
+                      <button
+                        className="btn-secondary"
+                        onClick={closeModal}
+                        disabled={isSubmitting}
+                        style={{ flex: 1 }}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        className="btn-primary"
+                        onClick={onSubmit}
+                        disabled={isSubmitting || !name.trim()}
+                        style={{ flex: 2 }}
+                      >
+                        {isSubmitting ? <RefreshCw size={16} className="spin" /> : <Check size={16} />}
+                        {isSubmitting ? "Creating..." : "Create Account"}
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* Step 2a / Edit — standard form */}
+            {(editingAccount || creationMode === "new") && (
+              <>
+                <div className="modal-form">
               <div className="form-group">
                 <label className="form-label">Account Name *</label>
                 <input
@@ -433,48 +708,46 @@ export default function Accounts() {
 
               <div style={{ display: "flex", gap: 12 }}>
                 <div className="form-group" style={{ flex: 1 }}>
-                  <label className="form-label">Deposit Commission %</label>
-                  <input
-                    type="number"
-                    value={commissionDepositPct}
-                    onChange={(e) => setCommissionDepositPct(e.target.value)}
-                    placeholder="e.g. 1.5"
-                    className="form-input"
-                    min="0"
-                    max="100"
-                    step="0.0001"
-                  />
-                </div>
-                <div className="form-group" style={{ flex: 1 }}>
-                  <label className="form-label">Withdraw Commission %</label>
-                  <input
-                    type="number"
-                    value={commissionWithdrawPct}
-                    onChange={(e) => setCommissionWithdrawPct(e.target.value)}
-                    placeholder="e.g. 0.75"
-                    className="form-input"
-                    min="0"
-                    max="100"
-                    step="0.0001"
-                  />
-                </div>
-              </div>
-
-              {editingAccount && (
-                <div className="form-group">
-                  <label className="form-label">Commission Change Reason</label>
-                  <input
-                    type="text"
-                    value={commissionChangeReason}
-                    onChange={(e) => setCommissionChangeReason(e.target.value)}
-                    placeholder="Reason for rate change (optional)"
-                    className="form-input"
-                  />
+                  <label className="form-label">Commission Schedule</label>
+                  <div style={{ position: "relative" }}>
+                    <select
+                      value={commissionScheduleId ?? ""}
+                      onChange={(e) =>
+                        setCommissionScheduleId(
+                          e.target.value ? Number(e.target.value) : null,
+                        )
+                      }
+                      className="form-input"
+                      style={{ appearance: "none", paddingRight: 32 }}
+                    >
+                      <option value="">No schedule assigned</option>
+                      {commissionSchedules
+                        .filter((s) => s.isActive)
+                        .map((s) => (
+                          <option key={s.id} value={s.id}>
+                            {s.name}
+                          </option>
+                        ))}
+                    </select>
+                    <ChevronDown
+                      size={16}
+                      style={{
+                        position: "absolute",
+                        right: 10,
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        pointerEvents: "none",
+                        color: "#64748b",
+                      }}
+                    />
+                  </div>
                   <span className="form-hint">
-                    Recorded in the audit log when rates are changed
+                    Defines how deposit and withdrawal commissions are
+                    calculated. Manage schedules in the Commission Schedules
+                    page.
                   </span>
                 </div>
-              )}
+              </div>
             </div>
 
             <div className="modal-footer">
@@ -504,6 +777,8 @@ export default function Accounts() {
                     : "Create"}
               </button>
             </div>
+              </>
+            )}
           </div>
         </div>
       )}

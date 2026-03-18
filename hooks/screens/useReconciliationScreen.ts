@@ -82,6 +82,7 @@ export function useReconciliationScreen({
           companyId: backendUser.companyId,
           date,
           shift,
+          subtype,
         }),
       );
       dispatch(
@@ -202,6 +203,7 @@ export function useReconciliationScreen({
           companyId: backendUser.companyId,
           date,
           shift,
+          subtype,
         }),
       ),
       dispatch(
@@ -254,6 +256,7 @@ export function useReconciliationScreen({
             companyId: backendUser.companyId,
             date,
             shift,
+            subtype,
           }),
         ),
         dispatch(fetchDashboard({ forceRefresh: true })),
@@ -374,17 +377,13 @@ export function useReconciliationScreen({
   };
 
   // Navigate to the add-balance screen to update floats for this reconciliation.
-  // When in CLOSING, pass openingId so the form excludes opening-linked records.
   const handleNavigateEditBalances = () => {
-    const openingId = subtype === "CLOSING" ? (shiftStatus?.openingId ?? "") : "";
-    router.push(`/add-balance?shift=${shift}&openingId=${openingId}` as any);
+    router.push(`/add-balance?shift=${shift}&subtype=${subtype}` as any);
   };
 
   // Navigate to the add-cash-count screen to update cash count for this reconciliation.
-  // When in CLOSING, pass openingId so the form excludes opening-linked records.
   const handleNavigateEditCashCount = () => {
-    const openingId = subtype === "CLOSING" ? (shiftStatus?.openingId ?? "") : "";
-    router.push(`/add-cash-count?shift=${shift}&openingId=${openingId}` as any);
+    router.push(`/add-cash-count?shift=${shift}&subtype=${subtype}` as any);
   };
 
   const getImageUri = (item: {

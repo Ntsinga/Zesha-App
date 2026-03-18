@@ -2,7 +2,7 @@
  * Commission types matching backend models/commissions.py
  */
 import type { BaseModel, BulkUpdateOperationResponse } from "./base";
-import type { ShiftEnum, SourceEnum, AccountTypeEnum, CommissionVarianceStatus } from "./enums";
+import type { ShiftEnum, SourceEnum, AccountTypeEnum, CommissionVarianceStatus, ReconciliationSubtypeEnum } from "./enums";
 import type { Account } from "./account";
 
 /**
@@ -14,6 +14,7 @@ export interface Commission extends BaseModel {
   account?: Account; // Optional populated relationship
   reconciliationId?: number | null;
   shift: ShiftEnum;
+  subtype: ReconciliationSubtypeEnum;
   amount: number;
   imageUrl: string;
   mediaId?: string | null;
@@ -31,6 +32,7 @@ export interface CommissionCreate {
   companyId: number;
   accountId: number;
   shift: ShiftEnum;
+  subtype: ReconciliationSubtypeEnum;
   amount: number;
   imageUrl?: string | null;
   mediaId?: string | null;

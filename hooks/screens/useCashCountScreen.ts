@@ -12,7 +12,7 @@ import { fetchDashboard } from "../../store/slices/dashboardSlice";
 import { selectEffectiveCompanyId } from "../../store/slices/authSlice";
 import { useCurrencyFormatter } from "../useCurrency";
 import type { AppDispatch, RootState } from "../../store";
-import type { ShiftEnum, CashCountCreate } from "../../types";
+import type { ReconciliationSubtypeEnum, ShiftEnum, CashCountCreate } from "../../types";
 
 // Denomination values
 export const DENOMINATIONS = [
@@ -50,12 +50,12 @@ export function useCashCountScreen() {
 
   // Shift is passed from the balance menu screen - use it as-is
   const shift: ShiftEnum = (params.shift as ShiftEnum) || "AM";
-  // openingId is passed so we can exclude records already linked to the opening recon
-  const openingIdRaw = params.openingId;
-  const openingId = openingIdRaw
-    ? Number(Array.isArray(openingIdRaw) ? openingIdRaw[0] : openingIdRaw) ||
-      null
-    : null;
+  // subtype is passed so we only show/edit records for the current phase
+  const subtypeRaw = params.subtype;
+  const currentSubtype: ReconciliationSubtypeEnum =
+    (Array.isArray(subtypeRaw) ? subtypeRaw[0] : subtypeRaw) === "OPENING"
+      ? "OPENING"
+      : "CLOSING";
 
   // Get cash counts from Redux — must come before entries useState
   // so we can use the already-cached data as the initial value
@@ -72,7 +72,7 @@ export function useCashCountScreen() {
       (cc) =>
         cc.date === today &&
         cc.shift === shift &&
-        (openingId === null || cc.reconciliationId !== openingId),
+        cc.subtype === currentSubtype,
     );
   });
 
@@ -81,7 +81,7 @@ export function useCashCountScreen() {
       (cc) =>
         cc.date === today &&
         cc.shift === shift &&
-        (openingId === null || cc.reconciliationId !== openingId),
+        cc.subtype === currentSubtype,
     );
     const usedIds = new Set<number>();
     return DENOMINATIONS.map((d) => {
@@ -121,7 +121,7 @@ export function useCashCountScreen() {
       (cc) =>
         cc.date === today &&
         cc.shift === shift &&
-        (openingId === null || cc.reconciliationId !== openingId),
+        cc.subtype === currentSubtype,
     );
 
     if (shiftCounts.length > 0) {
@@ -151,7 +151,7 @@ export function useCashCountScreen() {
       setIsEditing(false);
       setEntries((prev) => prev.map((e) => ({ ...e, quantity: "" })));
     }
-  }, [cashCounts, shift, today, openingId]);
+}, [cashCounts, shift, today, currentSubtype]);
 
   const updateQuantity = (index: number, value: string) => {
     if (value !== "" && !/^\d+$/.test(value)) return;
@@ -243,6 +243,7 @@ export function useCashCountScreen() {
         amount: entry.displayValue * parseInt(entry.quantity),
         date: today,
         shift,
+        subtype: currentSubtype,
       }));
 
       try {
@@ -267,13 +268,16 @@ export function useCashCountScreen() {
     setIsSubmitting(true);
 
     try {
-      // If editing, delete existing cash counts for this shift first
+      // If editing, delete existing cash counts for this shift first.
+      // Pass subtype so the backend isolates OPENING vs CLOSING records —
+      // OPENING records must be preserved for the opening reconciliation snapshot.
       if (isEditing) {
         await dispatch(
           deleteCashCountsByFilter({
             companyId,
             countDate: today,
             shift,
+            subtype: currentSubtype,
           }),
         ).unwrap();
       }
@@ -285,6 +289,7 @@ export function useCashCountScreen() {
         amount: entry.displayValue * parseInt(entry.quantity),
         date: today,
         shift,
+        subtype: currentSubtype,
       }));
 
       await dispatch(createManyCashCounts(cashCountData)).unwrap();

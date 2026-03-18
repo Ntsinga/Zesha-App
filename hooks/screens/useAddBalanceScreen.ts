@@ -22,6 +22,7 @@ import type {
   Account,
   DraftBalanceEntry,
   BalanceValidationResult,
+  ReconciliationSubtypeEnum,
 } from "@/types";
 
 // Re-export for consumers that import from this hook
@@ -47,12 +48,12 @@ export function useAddBalanceScreen() {
   const params = useLocalSearchParams();
   // Shift is passed from the balance menu screen - use it as-is
   const currentShift: ShiftEnum = (params.shift as ShiftEnum) || "AM";
-  // openingId is passed so we can exclude records already linked to the opening recon
-  const openingIdRaw = params.openingId;
-  const openingId = openingIdRaw
-    ? Number(Array.isArray(openingIdRaw) ? openingIdRaw[0] : openingIdRaw) ||
-      null
-    : null;
+  // subtype is passed so we only show/edit records for the current phase
+  const subtypeRaw = params.subtype;
+  const currentSubtype: ReconciliationSubtypeEnum =
+    (Array.isArray(subtypeRaw) ? subtypeRaw[0] : subtypeRaw) === "OPENING"
+      ? "OPENING"
+      : "CLOSING";
 
   // Selectors
   const companyId = useSelector(selectEffectiveCompanyId);
@@ -87,7 +88,7 @@ export function useAddBalanceScreen() {
     string | null
   >(null);
 
-  // Fetch data on mount (or when openingId changes, i.e. OPENING→CLOSING nav)
+  // Fetch data on mount (or when subtype changes, i.e. OPENING→CLOSING nav)
   // force refresh to get latest reconciliation_id linkage from the backend.
   useEffect(() => {
     setFreshDataReady(false);
@@ -98,7 +99,7 @@ export function useAddBalanceScreen() {
         fetchBalances({ dateFrom: today, dateTo: today, forceRefresh: true }),
       ),
     ]).then(() => setFreshDataReady(true));
-  }, [dispatch, today, openingId]);
+  }, [dispatch, today, currentSubtype]);
 
   // Initialize entries from existing balances or draft entries
   useEffect(() => {
@@ -111,7 +112,7 @@ export function useAddBalanceScreen() {
       (bal) =>
         bal.date.startsWith(today) &&
         bal.shift === currentShift &&
-        (openingId === null || bal.reconciliationId !== openingId),
+        bal.subtype === currentSubtype,
     );
 
     if (todayBalances.length > 0) {
@@ -157,7 +158,7 @@ export function useAddBalanceScreen() {
     draftEntries,
     today,
     currentShift,
-    openingId,
+    currentSubtype,
     isInitialized,
     freshDataReady,
     accounts,
@@ -603,6 +604,7 @@ export function useAddBalanceScreen() {
               companyId: companyId,
               accountId: entry.accountId!,
               shift: currentShift,
+              subtype: currentSubtype,
               amount: parseFloat(entry.amount),
               source: "mobile_app" as const,
               date: today,

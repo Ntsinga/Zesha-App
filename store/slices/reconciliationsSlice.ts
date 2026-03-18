@@ -386,7 +386,7 @@ export const fetchBalanceValidation = createAsyncThunk<
         return rejectWithValue("No companyId found. Please log in again.");
       }
 
-      const query = buildTypedQueryString({ companyId });
+      const query = buildTypedQueryString({ companyId, subtype: params.subtype });
       // Backend returns { has_discrepancies, discrepancy_count, discrepancies: [...] }
       // We extract the discrepancies array and map it to camelCase
       const response = await secureApiRequest<{
@@ -394,7 +394,7 @@ export const fetchBalanceValidation = createAsyncThunk<
         discrepancy_count: number;
         discrepancies: Record<string, unknown>[];
       }>(
-        `${API_ENDPOINTS.reconciliations.balanceValidation(params.date, params.shift)}${query}`,
+        `${API_ENDPOINTS.reconciliations.balanceValidation(params.date, params.shift, params.subtype)}${query}`,
       );
       const items = Array.isArray(response?.discrepancies) ? response.discrepancies : [];
       return mapApiResponse<BalanceValidationResult[]>(items);

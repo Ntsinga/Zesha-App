@@ -5,6 +5,16 @@ import type { BaseModel, BulkOperationResponse } from "./base";
 import type { AccountTypeEnum, CommissionModelEnum } from "./enums";
 
 /**
+ * Embedded commission schedule summary (from backend AccountScheduleSummary)
+ */
+export interface AccountScheduleSummary {
+  id: number;
+  name: string;
+  isActive: boolean;
+  ruleCount: number;
+}
+
+/**
  * Account entity - matches backend Account model
  */
 export interface Account extends BaseModel {
@@ -12,12 +22,13 @@ export interface Account extends BaseModel {
   description: string | null;
   accountType: AccountTypeEnum;
   isActive: boolean;
-  companyId: number;
+  companyId: number | null;
+  isTemplate: boolean;
   initialBalance?: number | null;
   currentBalance?: number | null;
-  commissionDepositPercentage?: number | null;
-  commissionWithdrawPercentage?: number | null;
   commissionModel?: CommissionModelEnum;
+  commissionScheduleId?: number | null;
+  commissionSchedule?: AccountScheduleSummary | null;
 }
 
 /**
@@ -30,9 +41,19 @@ export interface AccountCreate {
   isActive?: boolean;
   companyId: number;
   initialBalance?: number;
-  commissionDepositPercentage?: number | null;
-  commissionWithdrawPercentage?: number | null;
   commissionModel?: CommissionModelEnum;
+  commissionScheduleId?: number | null;
+}
+
+/**
+ * Create a system-wide template account (Super Admin only)
+ */
+export interface AccountTemplateCreate {
+  name: string;
+  accountType: AccountTypeEnum;
+  description?: string;
+  commissionModel?: CommissionModelEnum;
+  commissionScheduleId?: number | null;
 }
 
 /**
@@ -44,10 +65,8 @@ export interface AccountUpdate {
   accountType?: AccountTypeEnum;
   isActive?: boolean;
   companyId?: number;
-  commissionDepositPercentage?: number | null;
-  commissionWithdrawPercentage?: number | null;
-  commissionRateChangeReason?: string;
   commissionModel?: CommissionModelEnum;
+  commissionScheduleId?: number | null;
 }
 
 /**
