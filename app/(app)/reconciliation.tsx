@@ -746,18 +746,26 @@ export default function BalanceDetailPage() {
             <View className="flex-row gap-3">
               <TouchableOpacity
                 onPress={handleApprove}
+                disabled={isFinalizing}
                 className="flex-1 flex-row items-center justify-center bg-green-500 py-4 rounded-xl"
+                style={{ opacity: isFinalizing ? 0.6 : 1 }}
               >
                 <Check color="#fff" size={20} />
-                <Text className="text-white font-semibold ml-2">Approve</Text>
+                <Text className="text-white font-semibold ml-2">
+                  {isFinalizing ? "Approving..." : "Approve"}
+                </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 onPress={handleReject}
+                disabled={isFinalizing}
                 className="flex-1 flex-row items-center justify-center bg-red-500 py-4 rounded-xl"
+                style={{ opacity: isFinalizing ? 0.6 : 1 }}
               >
                 <XCircle color="#fff" size={20} />
-                <Text className="text-white font-semibold ml-2">Reject</Text>
+                <Text className="text-white font-semibold ml-2">
+                  {isFinalizing ? "Processing..." : "Reject"}
+                </Text>
               </TouchableOpacity>
             </View>
           )}

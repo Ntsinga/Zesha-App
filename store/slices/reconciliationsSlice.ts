@@ -657,6 +657,7 @@ const reconciliationsSlice = createSlice({
       })
       .addCase(approveReconciliation.fulfilled, (state, action) => {
         state.isFinalizing = false;
+        state.error = null;
         // Update reconciliationDetails if exists
         if (state.reconciliationDetails?.reconciliation) {
           if (action.payload.action === "APPROVED") {
@@ -671,7 +672,9 @@ const reconciliationsSlice = createSlice({
       })
       .addCase(approveReconciliation.rejected, (state, action) => {
         state.isFinalizing = false;
-        state.error = action.payload as string;
+        // Do not set global error — approve/reject failures are handled locally
+        // (avoids replacing the whole screen with an error page on a double-tap).
+        state.error = null;
       });
 
     // Fetch details
