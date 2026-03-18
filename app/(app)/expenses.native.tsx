@@ -71,6 +71,18 @@ export default function Expenses() {
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [clearNotes, setClearNotes] = useState("");
 
+  // Format amount with commas for display, store raw number
+  const displayAmount = amount
+    ? Number(amount).toLocaleString("en-US", { maximumFractionDigits: 2 })
+    : "";
+
+  const handleAmountChange = (text: string) => {
+    const raw = text.replace(/,/g, "");
+    if (raw === "" || /^\d*\.?\d{0,2}$/.test(raw)) {
+      setAmount(raw);
+    }
+  };
+
   const getCategoryIcon = (category: string | null) => {
     switch (category) {
       case "Business Operations":
@@ -346,8 +358,8 @@ export default function Expenses() {
             <View className="mb-4">
               <Text className="text-gray-700 font-semibold mb-2">Amount *</Text>
               <TextInput
-                value={amount}
-                onChangeText={setAmount}
+                value={displayAmount}
+                onChangeText={handleAmountChange}
                 placeholder="0.00"
                 keyboardType="decimal-pad"
                 className="bg-gray-50 rounded-xl px-4 py-3 text-gray-800 border border-gray-200 text-lg"
