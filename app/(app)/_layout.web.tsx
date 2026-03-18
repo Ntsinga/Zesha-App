@@ -19,6 +19,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Layers,
+  LayoutTemplate,
 } from "lucide-react";
 import { useAppSelector, useAppDispatch } from "../../store/hooks";
 import {
@@ -146,6 +147,11 @@ export default function AppLayoutWeb() {
       href: "/agencies",
       label: "Manage Agencies",
       icon: <Building2 size={20} />,
+    },
+    {
+      href: "/account-templates",
+      label: "Account Templates",
+      icon: <LayoutTemplate size={20} />,
     },
   ];
 

@@ -145,6 +145,10 @@ export const API_ENDPOINTS = {
     delete: (id: number) => `/accounts/${id}`,
     deactivate: (id: number) => `/accounts/${id}/deactivate`,
     activate: (id: number) => `/accounts/${id}/activate`,
+    listTemplates: "/accounts/templates",
+    createTemplate: "/accounts/templates",
+    inheritTemplate: (templateId: number) =>
+      `/accounts/templates/${templateId}/inherit`,
   },
 
   // Transactions - matches routers/transactions.py

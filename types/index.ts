@@ -67,6 +67,8 @@ export {
   type AccountCreate,
   type AccountUpdate,
   type AccountFilters,
+  type AccountScheduleSummary,
+  type AccountTemplateCreate,
   type BulkAccountCreate,
   type BulkAccountResponse,
 } from "./account";
