@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef } from "react";
 import {
   View,
   Text,
@@ -14,6 +14,7 @@ import { ArrowLeft, Save, Plus, Minus, Banknote } from "lucide-react-native";
 import { useCashCountScreen } from "../../hooks/screens/useCashCountScreen";
 
 export default function AddCashCountPage() {
+  const inputRefs = useRef<Array<TextInput | null>>([]);
   const {
     shift,
     entries,
@@ -30,12 +31,13 @@ export default function AddCashCountPage() {
     handleSubmit,
     clearAll,
     handleBack,
+    handleReturnAfterSave,
   } = useCashCountScreen();
 
   const onSubmit = async () => {
     const result = await handleSubmit();
     if (result.success) {
-      handleBack();
+      handleReturnAfterSave();
       Toast.show({ type: "success", text1: "Success", text2: result.message });
     } else {
       Toast.show({ type: "error", text1: "Error", text2: result.message });
@@ -151,10 +153,24 @@ export default function AddCashCountPage() {
                   </TouchableOpacity>
 
                   <TextInput
+                    ref={(ref) => {
+                      inputRefs.current[index] = ref;
+                    }}
                     value={entry.quantity}
                     onChangeText={(value) => updateQuantity(index, value)}
+                    onSubmitEditing={() => {
+                      const nextInput = inputRefs.current[index + 1];
+                      if (nextInput) {
+                        nextInput.focus();
+                        return;
+                      }
+                      onSubmit();
+                    }}
                     placeholder="0"
                     keyboardType="number-pad"
+                    returnKeyType={index < entries.length - 1 ? "next" : "done"}
+                    blurOnSubmit={index === entries.length - 1}
+                    submitBehavior={index < entries.length - 1 ? "submit" : "blurAndSubmit"}
                     className="w-16 text-center text-xl font-bold text-gray-800 mx-2 bg-gray-100 rounded-xl py-2 border border-gray-300"
                     maxLength={4}
                   />

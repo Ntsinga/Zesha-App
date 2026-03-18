@@ -17,6 +17,8 @@ import {
   Users,
   ChevronRight,
   Receipt,
+  Building2,
+  Shield,
 } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { useDispatch, useSelector } from "react-redux";
@@ -26,7 +28,11 @@ import {
   updateCompanyInfo,
   createCompanyInfo,
 } from "../../store/slices/companyInfoSlice";
-import { clearLocalAuth } from "../../store/slices/authSlice";
+import {
+  clearLocalAuth,
+  selectIsViewingAgency,
+  selectViewingAgencyName,
+} from "../../store/slices/authSlice";
 import { useEffectiveRole } from "../../hooks/useEffectiveRole";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { formatCurrency } from "../../utils/formatters";
@@ -61,6 +67,9 @@ export default function Settings() {
   );
 
   const effectiveRole = useEffectiveRole();
+  const isViewingAgency = useSelector(selectIsViewingAgency);
+  const viewingAgencyName = useSelector(selectViewingAgencyName);
+  const isSuperAdmin = effectiveRole === "Super Administrator";
   const isAdmin =
     effectiveRole === "Administrator" ||
     effectiveRole === "Super Administrator";
@@ -82,8 +91,12 @@ export default function Settings() {
   const [emails, setEmails] = useState<string[]>([]);
   const [newEmail, setNewEmail] = useState("");
 
+  const showCompanyScopedOptions = !isSuperAdmin || isViewingAgency;
+
   // Get the first company - fall back to dashboard companyInfo if slice is empty
-  const company: CompanyInfo | undefined = companies[0] ?? dashboardCompanyInfo;
+  const company: CompanyInfo | undefined = showCompanyScopedOptions
+    ? companies[0] ?? dashboardCompanyInfo
+    : undefined;
 
   useEffect(() => {
     dispatch(fetchCompanyInfoList({}));
@@ -229,8 +242,48 @@ export default function Settings() {
 
         {/* Options */}
         <View>
+          {isSuperAdmin && !isViewingAgency && (
+            <View className="bg-white rounded-xl p-4 mb-3 shadow-sm">
+              <View className="flex-row items-center">
+                <View className="bg-gray-100 p-2 rounded-lg mr-3">
+                  <Shield color="#4B5563" size={20} />
+                </View>
+                <View className="flex-1">
+                  <Text className="font-semibold text-gray-900">
+                    Super Admin View
+                  </Text>
+                  <Text className="text-xs text-gray-500">
+                    Enter an agency to access company settings and agency-specific actions.
+                  </Text>
+                </View>
+              </View>
+            </View>
+          )}
+
+          {isSuperAdmin && !isViewingAgency && (
+            <TouchableOpacity
+              onPress={() => router.push("/agencies" as any)}
+              className="bg-white rounded-xl p-4 flex-row items-center justify-between mb-3 shadow-sm"
+            >
+              <View className="flex-row items-center">
+                <View className="bg-indigo-100 p-2 rounded-lg mr-3">
+                  <Building2 color="#4F46E5" size={20} />
+                </View>
+                <View>
+                  <Text className="font-semibold text-gray-900">
+                    Manage Agencies
+                  </Text>
+                  <Text className="text-xs text-gray-500">
+                    Choose an agency to enter or edit
+                  </Text>
+                </View>
+              </View>
+              <ChevronRight color="#9CA3AF" size={20} />
+            </TouchableOpacity>
+          )}
+
           {/* Manage Accounts - Only for Administrators */}
-          {isAdmin && (
+          {isAdmin && showCompanyScopedOptions && (
             <TouchableOpacity
               onPress={() => router.push("/accounts" as any)}
               className="bg-white rounded-xl p-4 flex-row items-center justify-between mb-3 shadow-sm"
@@ -253,23 +306,25 @@ export default function Settings() {
           )}
 
           {/* Expenses */}
-          <TouchableOpacity
-            onPress={() => router.push("/expenses" as any)}
-            className="bg-white rounded-xl p-4 flex-row items-center justify-between mb-3 shadow-sm"
-          >
-            <View className="flex-row items-center">
-              <View className="bg-red-100 p-2 rounded-lg mr-3">
-                <Receipt color="#DC2626" size={20} />
+          {showCompanyScopedOptions && (
+            <TouchableOpacity
+              onPress={() => router.push("/expenses" as any)}
+              className="bg-white rounded-xl p-4 flex-row items-center justify-between mb-3 shadow-sm"
+            >
+              <View className="flex-row items-center">
+                <View className="bg-red-100 p-2 rounded-lg mr-3">
+                  <Receipt color="#DC2626" size={20} />
+                </View>
+                <View>
+                  <Text className="font-semibold text-gray-900">Expenses</Text>
+                  <Text className="text-xs text-gray-500">
+                    View and record expenses
+                  </Text>
+                </View>
               </View>
-              <View>
-                <Text className="font-semibold text-gray-900">Expenses</Text>
-                <Text className="text-xs text-gray-500">
-                  View and record expenses
-                </Text>
-              </View>
-            </View>
-            <ChevronRight color="#9CA3AF" size={20} />
-          </TouchableOpacity>
+              <ChevronRight color="#9CA3AF" size={20} />
+            </TouchableOpacity>
+          )}
 
           {/* Sign Out */}
           <TouchableOpacity

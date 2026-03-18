@@ -14,6 +14,7 @@ import {
 } from "../../store/slices/reconciliationsSlice";
 import { fetchTransactions } from "../../store/slices/transactionsSlice";
 import { fetchDashboard } from "../../store/slices/dashboardSlice";
+import { selectEffectiveCompanyId } from "../../store/slices/authSlice";
 
 import type {
   ShiftEnum,
@@ -29,12 +30,14 @@ interface UseReconciliationScreenProps {
   date: string;
   shift: ShiftEnum;
   subtype: ReconciliationSubtypeEnum;
+  autoRecalculate?: boolean;
 }
 
 export function useReconciliationScreen({
   date,
   shift,
   subtype,
+  autoRecalculate = false,
 }: UseReconciliationScreenProps) {
   const router = useRouter();
   const dispatch = useAppDispatch();
@@ -56,6 +59,7 @@ export function useReconciliationScreen({
     shiftStatus,
   } = useAppSelector((state) => state.reconciliations);
   const { user: backendUser } = useAppSelector((state) => state.auth);
+  const effectiveCompanyId = useAppSelector(selectEffectiveCompanyId);
   const { items: transactions } = useAppSelector(
     (state) => state.transactions,
   );
@@ -68,10 +72,17 @@ export function useReconciliationScreen({
 
   // Fetch details on mount
   useEffect(() => {
-    if (date && shift && backendUser?.companyId) {
+    if (autoRecalculate) {
+      return () => {
+        dispatch(clearReconciliationDetails());
+        dispatch(clearBalanceValidation());
+      };
+    }
+
+    if (date && shift && effectiveCompanyId) {
       dispatch(
         fetchReconciliationDetails({
-          companyId: backendUser.companyId,
+          companyId: effectiveCompanyId,
           date,
           shift,
           subtype,
@@ -79,7 +90,7 @@ export function useReconciliationScreen({
       );
       dispatch(
         fetchBalanceValidation({
-          companyId: backendUser.companyId,
+          companyId: effectiveCompanyId,
           date,
           shift,
           subtype,
@@ -87,9 +98,9 @@ export function useReconciliationScreen({
       );
       dispatch(
         fetchTransactions({
-          companyId: backendUser.companyId,
+          companyId: effectiveCompanyId,
           startDate: date,
-          endDate: date,
+          endDate: `${date}T23:59:59`,
           shift,
         }),
       );
@@ -99,7 +110,7 @@ export function useReconciliationScreen({
       dispatch(clearReconciliationDetails());
       dispatch(clearBalanceValidation());
     };
-  }, [dispatch, date, shift, backendUser?.companyId]);
+  }, [dispatch, date, shift, subtype, effectiveCompanyId, autoRecalculate]);
 
   // Load notes from reconciliation details when they're fetched
   useEffect(() => {
@@ -187,12 +198,12 @@ export function useReconciliationScreen({
   }, [transactions, date, shift]);
 
   const onRefresh = async () => {
-    if (!date || !shift || !backendUser?.companyId) return;
+    if (!date || !shift || !effectiveCompanyId) return;
     setRefreshing(true);
     await Promise.all([
       dispatch(
         fetchReconciliationDetails({
-          companyId: backendUser.companyId,
+          companyId: effectiveCompanyId,
           date,
           shift,
           subtype,
@@ -200,7 +211,7 @@ export function useReconciliationScreen({
       ),
       dispatch(
         fetchBalanceValidation({
-          companyId: backendUser.companyId,
+          companyId: effectiveCompanyId,
           date,
           shift,
           subtype,
@@ -208,9 +219,9 @@ export function useReconciliationScreen({
       ),
       dispatch(
         fetchTransactions({
-          companyId: backendUser.companyId,
+          companyId: effectiveCompanyId,
           startDate: date,
-          endDate: date,
+          endDate: `${date}T23:59:59`,
           shift,
         }),
       ),
@@ -228,13 +239,13 @@ export function useReconciliationScreen({
 
   // Calculate/recalculate reconciliation
   const handleCalculate = async () => {
-    if (!date || !shift || !backendUser?.companyId)
+    if (!date || !shift || !effectiveCompanyId)
       return { success: false, error: "Missing date or shift" };
 
     try {
       await dispatch(
         calculateReconciliation({
-          companyId: backendUser.companyId,
+          companyId: effectiveCompanyId,
           date,
           shift,
           subtype,
@@ -245,7 +256,7 @@ export function useReconciliationScreen({
       await Promise.all([
         dispatch(
           fetchReconciliationDetails({
-            companyId: backendUser.companyId,
+            companyId: effectiveCompanyId,
             date,
             shift,
             subtype,
@@ -253,10 +264,18 @@ export function useReconciliationScreen({
         ),
         dispatch(
           fetchBalanceValidation({
-            companyId: backendUser.companyId,
+            companyId: effectiveCompanyId,
             date,
             shift,
             subtype,
+          }),
+        ),
+        dispatch(
+          fetchTransactions({
+            companyId: effectiveCompanyId,
+            startDate: date,
+            endDate: `${date}T23:59:59`,
+            shift,
           }),
         ),
         dispatch(fetchDashboard({ forceRefresh: true })),
@@ -275,7 +294,7 @@ export function useReconciliationScreen({
 
   // Finalize reconciliation (lock it)
   const handleFinalize = async (forceWithDiscrepancies = false) => {
-    if (!date || !shift || !backendUser?.id || !backendUser?.companyId) {
+    if (!date || !shift || !backendUser?.id || !effectiveCompanyId) {
       return { success: false, error: "Missing required data" };
     }
 
@@ -292,7 +311,7 @@ export function useReconciliationScreen({
     try {
       await dispatch(
         finalizeReconciliation({
-          companyId: backendUser.companyId,
+          companyId: effectiveCompanyId,
           date,
           shift,
           subtype,
@@ -378,12 +397,16 @@ export function useReconciliationScreen({
 
   // Navigate to the add-balance screen to update floats for this reconciliation.
   const handleNavigateEditBalances = () => {
-    router.push(`/add-balance?shift=${shift}&subtype=${subtype}` as any);
+    router.push(
+      `/add-balance?shift=${shift}&subtype=${subtype}&date=${date}&returnTo=reconciliation` as any,
+    );
   };
 
   // Navigate to the add-cash-count screen to update cash count for this reconciliation.
   const handleNavigateEditCashCount = () => {
-    router.push(`/add-cash-count?shift=${shift}&subtype=${subtype}` as any);
+    router.push(
+      `/add-cash-count?shift=${shift}&subtype=${subtype}&date=${date}&returnTo=reconciliation` as any,
+    );
   };
 
   const getImageUri = (item: {

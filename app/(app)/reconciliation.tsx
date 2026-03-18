@@ -1,4 +1,4 @@
-import React, { useState as useLocalState } from "react";
+import React, { useEffect, useState as useLocalState } from "react";
 import {
   View,
   Text,
@@ -33,20 +33,28 @@ import {
   ShieldCheck,
   Pencil,
 } from "lucide-react-native";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { useReconciliationScreen } from "../../hooks/screens/useReconciliationScreen";
 import type { ReconciliationSubtypeEnum, ShiftEnum } from "../../types";
 
+const processedAutoRecalculateTokens = new Set<string>();
+
 export default function BalanceDetailPage() {
+  const router = useRouter();
   const params = useLocalSearchParams<{
     date: string;
     shift: string;
     subtype: string;
+    recalculate?: string;
   }>();
   const date = params.date || new Date().toISOString().split("T")[0];
   const shift = (params.shift as ShiftEnum) || "AM";
   const subtype = (params.subtype as ReconciliationSubtypeEnum) || "CLOSING";
+  const recalculateToken = Array.isArray(params.recalculate)
+    ? params.recalculate[0]
+    : params.recalculate;
+  const shouldAutoRecalculate = Boolean(recalculateToken);
 
   const {
     refreshing,
@@ -91,12 +99,54 @@ export default function BalanceDetailPage() {
     validationByAccountId,
     // Linked transactions
     shiftTransactions,
-  } = useReconciliationScreen({ date, shift, subtype });
+  } = useReconciliationScreen({
+    date,
+    shift,
+    subtype,
+    autoRecalculate: shouldAutoRecalculate,
+  });
 
   // Extra fields from hook
   const isOpening = subtype === "OPENING";
 
   const [showDiscrepancyModal, setShowDiscrepancyModal] = useLocalState(false);
+  const [hasTriggeredAutoRecalculate, setHasTriggeredAutoRecalculate] =
+    useLocalState(false);
+
+  useEffect(() => {
+    if (
+      !recalculateToken ||
+      hasTriggeredAutoRecalculate ||
+      isCalculating ||
+      processedAutoRecalculateTokens.has(recalculateToken)
+    ) {
+      return;
+    }
+
+    processedAutoRecalculateTokens.add(recalculateToken);
+    setHasTriggeredAutoRecalculate(true);
+    router.replace(
+      `/reconciliation?date=${date}&shift=${shift}&subtype=${subtype}` as any,
+    );
+    void handleCalculate().then((result) => {
+      if (!result?.success && result?.error) {
+        Toast.show({ type: "error", text1: "Error", text2: result.error });
+      }
+    });
+  }, [
+    recalculateToken,
+    hasTriggeredAutoRecalculate,
+    isCalculating,
+    router,
+    date,
+    shift,
+    subtype,
+    handleCalculate,
+  ]);
+
+  if (shouldAutoRecalculate && (!reconciliation || isCalculating)) {
+    return <LoadingSpinner message="Recalculating reconciliation..." />;
+  }
 
   if (isLoading && !refreshing) {
     return <LoadingSpinner message="Loading reconciliation details..." />;

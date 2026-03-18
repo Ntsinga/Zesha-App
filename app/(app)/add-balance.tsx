@@ -95,6 +95,20 @@ export default function AddBalancePage() {
     (Array.isArray(subtypeRaw) ? subtypeRaw[0] : subtypeRaw) === "OPENING"
       ? "OPENING"
       : "CLOSING";
+  const returnTo = Array.isArray(params.returnTo)
+    ? params.returnTo[0]
+    : params.returnTo;
+  const returnDate = Array.isArray(params.date) ? params.date[0] : params.date;
+
+  const navigateAfterSave = () => {
+    if (returnTo === "reconciliation" && returnDate) {
+      router.replace(
+        `/reconciliation?date=${returnDate}&shift=${currentShift}&subtype=${currentSubtype}&recalculate=${Date.now()}` as any,
+      );
+      return;
+    }
+    router.back();
+  };
 
   // Get companyId from auth state - use viewingAgencyId if superadmin viewing agency
   const companyId = useSelector(selectEffectiveCompanyId);
@@ -787,14 +801,14 @@ export default function AddBalancePage() {
           text1: "Partial Success",
           text2: `${operations.join(", ")}. ${totalFailed} failed — ${errorSummary}`,
         });
-        router.back();
+        navigateAfterSave();
       } else {
         Toast.show({
           type: "success",
           text1: "Success",
           text2: `Successfully ${operations.join(" and ")}!`,
         });
-        router.back();
+        navigateAfterSave();
       }
     } catch (error) {
       const message =
@@ -815,7 +829,7 @@ export default function AddBalancePage() {
           text2:
             "Your balances may have already been saved. Please check the list before resubmitting.",
         });
-        router.back();
+        navigateAfterSave();
       } else {
         Toast.show({
           type: "error",
