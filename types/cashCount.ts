@@ -2,7 +2,7 @@
  * Cash count types matching backend models/cash_counts.py
  */
 import type { BaseModel, BulkOperationResponse } from "./base";
-import type { ShiftEnum } from "./enums";
+import type { ReconciliationSubtypeEnum, ShiftEnum } from "./enums";
 
 /**
  * Denomination values in cents
@@ -47,6 +47,7 @@ export interface CashCount extends BaseModel {
   amount: number;
   date: string;
   shift: ShiftEnum;
+  subtype: ReconciliationSubtypeEnum;
 }
 
 /**
@@ -59,6 +60,7 @@ export interface CashCountCreate {
   amount: number;
   date: string;
   shift: ShiftEnum;
+  subtype: ReconciliationSubtypeEnum;
   reconciliationId?: number | null;
 }
 

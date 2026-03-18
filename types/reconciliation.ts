@@ -246,6 +246,7 @@ export interface BalanceValidationParams {
   date: string;
   shift: ShiftEnum;
   companyId: number;
+  subtype: ReconciliationSubtypeEnum;
 }
 
 /**

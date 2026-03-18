@@ -46,7 +46,7 @@ import {
 } from "../../services/balanceExtractor";
 import * as FileSystem from "expo-file-system/legacy";
 import type { AppDispatch, RootState } from "../../store";
-import type { ShiftEnum, CommissionCreate, Account } from "../../types";
+import type { ShiftEnum, CommissionCreate, Account, ReconciliationSubtypeEnum } from "../../types";
 import { useCurrencyFormatter } from "../../hooks/useCurrency";
 
 interface CommissionEntry {
@@ -79,6 +79,12 @@ export default function AddCommissionPage() {
   const { formatCurrency } = useCurrencyFormatter();
   const params = useLocalSearchParams();
   const currentShift: ShiftEnum = (params.shift as ShiftEnum) || "AM";
+  // subtype distinguishes OPENING vs CLOSING phase records
+  const subtypeRaw = params.subtype;
+  const currentSubtype: ReconciliationSubtypeEnum =
+    (Array.isArray(subtypeRaw) ? subtypeRaw[0] : subtypeRaw) === "OPENING"
+      ? "OPENING"
+      : "CLOSING";
 
   const { user } = useSelector((state: RootState) => state.auth);
   const companyId = user?.companyId;
@@ -117,7 +123,10 @@ export default function AddCommissionPage() {
     if (isInitialized || accountsLoading) return;
 
     const shiftCommissions = commissions.filter(
-      (com) => com.date.startsWith(today) && com.shift === currentShift,
+      (com) =>
+        com.date.startsWith(today) &&
+        com.shift === currentShift &&
+        com.subtype === currentSubtype,
     );
 
     if (shiftCommissions.length > 0) {
@@ -164,6 +173,7 @@ export default function AddCommissionPage() {
     draftEntries,
     today,
     currentShift,
+    currentSubtype,
     isInitialized,
     accountsLoading,
     accounts,
@@ -573,6 +583,7 @@ export default function AddCommissionPage() {
               date: today,
               imageData,
               companyId: companyId || 0,
+              subtype: currentSubtype,
             };
             return commission;
           }),
