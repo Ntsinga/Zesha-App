@@ -40,7 +40,10 @@ export function useDashboardScreen() {
   // Currency formatter
   const { formatCurrency, formatCompactCurrency } = useCurrencyFormatter();
 
-  const today = new Date().toISOString().split("T")[0];
+  const today = (() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  })();
 
   // Fetch dashboard data on mount
   useEffect(() => {
@@ -54,7 +57,7 @@ export function useDashboardScreen() {
         fetchTransactions({
           companyId: backendUser.companyId,
           startDate: today,
-          endDate: today,
+          endDate: today + "T23:59:59",
         }),
       );
     }
@@ -81,7 +84,7 @@ export function useDashboardScreen() {
         fetchTransactions({
           companyId: backendUser.companyId,
           startDate: today,
-          endDate: today,
+          endDate: today + "T23:59:59",
         }),
       );
       dispatch(

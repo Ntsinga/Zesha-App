@@ -51,6 +51,7 @@ export default function Accounts() {
     openEditModal,
     closeModal,
     handleSubmit,
+    isSubmitting,
     confirmDelete,
   } = useAccountsScreen();
 
@@ -307,10 +308,19 @@ export default function Accounts() {
             {/* Submit Button */}
             <TouchableOpacity
               onPress={onSubmit}
-              className="bg-brand-red py-4 rounded-xl items-center"
+              disabled={isSubmitting}
+              className={`py-4 rounded-xl items-center ${
+                isSubmitting ? "bg-gray-400" : "bg-brand-red"
+              }`}
             >
               <Text className="text-white font-bold text-lg">
-                {editingAccount ? "Update Account" : "Create Account"}
+                {isSubmitting
+                  ? editingAccount
+                    ? "Updating..."
+                    : "Creating..."
+                  : editingAccount
+                    ? "Update Account"
+                    : "Create Account"}
               </Text>
             </TouchableOpacity>
           </View>
