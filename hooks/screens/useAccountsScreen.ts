@@ -5,7 +5,10 @@ import {
   createAccount,
   updateAccount,
   deleteAccount,
+  fetchAccountTemplates,
+  inheritAccountTemplate,
 } from "../../store/slices/accountsSlice";
+import { fetchCommissionSchedules } from "../../store/slices/commissionSchedulesSlice";
 import { selectEffectiveCompanyId } from "../../store/slices/authSlice";
 import type { AppDispatch, RootState } from "../../store";
 import type {
@@ -22,8 +25,11 @@ export const ACCOUNT_TYPES: { value: AccountTypeEnum; label: string }[] = [
 export function useAccountsScreen() {
   const dispatch = useDispatch<AppDispatch>();
   const companyId = useSelector(selectEffectiveCompanyId);
-  const { items: accounts, isLoading } = useSelector(
+  const { items: accounts, isLoading, templates, isTemplatesLoading } = useSelector(
     (state: RootState) => state.accounts,
+  );
+  const { items: commissionSchedules } = useSelector(
+    (state: RootState) => state.commissionSchedules,
   );
 
   const [refreshing, setRefreshing] = useState(false);
@@ -37,16 +43,19 @@ export function useAccountsScreen() {
   const [filterActive, setFilterActive] = useState<boolean | "ALL">("ALL");
   const [searchQuery, setSearchQuery] = useState("");
 
+  // 3-flow creation mode
+  type CreationMode = "new" | "template" | "clone" | null;
+  const [creationMode, setCreationMode] = useState<CreationMode>(null);
+  const [cloneSource, setCloneSource] = useState<Account | null>(null);
+
   // Form state
   const [name, setName] = useState("");
   const [accountType, setAccountType] = useState<AccountTypeEnum>("BANK");
   const [isActive, setIsActive] = useState(true);
   const [initialBalance, setInitialBalance] = useState<string>("");
-  const [commissionDepositPct, setCommissionDepositPct] = useState<string>("");
-  const [commissionWithdrawPct, setCommissionWithdrawPct] =
-    useState<string>("");
-  const [commissionChangeReason, setCommissionChangeReason] =
-    useState<string>("");
+  const [commissionScheduleId, setCommissionScheduleId] = useState<
+    number | null
+  >(null);
   const [commissionModel, setCommissionModel] =
     useState<CommissionModelEnum>("EXPECTED_ONLY");
 
@@ -65,6 +74,18 @@ export function useAccountsScreen() {
     dispatch(fetchAccounts({}));
   }, [dispatch]);
 
+  // Load schedules on mount (used by web schedule selector)
+  useEffect(() => {
+    if (companyId) {
+      dispatch(fetchCommissionSchedules({ companyId }));
+    }
+  }, [dispatch, companyId]);
+
+  // Load templates on mount for the template flow
+  useEffect(() => {
+    dispatch(fetchAccountTemplates());
+  }, [dispatch]);
+
   const onRefresh = async () => {
     setRefreshing(true);
     await dispatch(fetchAccounts({}));
@@ -76,16 +97,17 @@ export function useAccountsScreen() {
     setAccountType("BANK");
     setIsActive(true);
     setInitialBalance("");
-    setCommissionDepositPct("");
-    setCommissionWithdrawPct("");
-    setCommissionChangeReason("");
+    setCommissionScheduleId(null);
     setCommissionModel("EXPECTED_ONLY");
     setEditingAccount(null);
     setShowTypeDropdown(false);
+    setCreationMode(null);
+    setCloneSource(null);
   };
 
   const openAddModal = () => {
     resetForm();
+    setCreationMode(null); // step 1 chooser
     setIsModalOpen(true);
   };
 
@@ -94,17 +116,7 @@ export function useAccountsScreen() {
     setName(account.name);
     setAccountType(account.accountType);
     setIsActive(account.isActive);
-    setCommissionDepositPct(
-      account.commissionDepositPercentage != null
-        ? String(account.commissionDepositPercentage)
-        : "",
-    );
-    setCommissionWithdrawPct(
-      account.commissionWithdrawPercentage != null
-        ? String(account.commissionWithdrawPercentage)
-        : "",
-    );
-    setCommissionChangeReason("");
+    setCommissionScheduleId(account.commissionScheduleId ?? null);
     setCommissionModel(account.commissionModel ?? "EXPECTED_ONLY");
     setIsModalOpen(true);
   };
@@ -112,6 +124,53 @@ export function useAccountsScreen() {
   const closeModal = () => {
     setIsModalOpen(false);
     resetForm();
+  };
+
+  // Choose creation flow
+  const chooseCreationMode = (mode: "new" | "template" | "clone") => {
+    setCreationMode(mode);
+    if (mode === "clone" && accounts.length > 0) {
+      // Pre-select first account as clone source for convenience
+      setCloneSource(accounts[0]);
+    }
+  };
+
+  // Inherit a template — creates a company account linked to the template's schedule
+  const handleInheritTemplate = async (
+    template: Account,
+    overrideName?: string,
+  ): Promise<{ success: boolean; message: string }> => {
+    if (!companyId) {
+      return { success: false, message: "Company not found. Please log in again." };
+    }
+    const accountName = overrideName?.trim() || template.name;
+    if (!accountName) {
+      return { success: false, message: "Account name is required" };
+    }
+    setIsSubmitting(true);
+    try {
+      await dispatch(
+        inheritAccountTemplate({ templateId: template.id, name: accountName, companyId }),
+      ).unwrap();
+      await dispatch(fetchAccounts({ forceRefresh: true })).unwrap();
+      closeModal();
+      return { success: true, message: "Account created from template" };
+    } catch (error) {
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : "Failed to inherit template",
+      };
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Select a clone source — pre-fills schedule from that account
+  const selectCloneSource = (source: Account) => {
+    setCloneSource(source);
+    setAccountType(source.accountType);
+    setCommissionScheduleId(source.commissionScheduleId ?? null);
+    setCommissionModel(source.commissionModel ?? "EXPECTED_ONLY");
   };
 
   const handleSubmit = async (): Promise<{
@@ -140,22 +199,7 @@ export function useAccountsScreen() {
               accountType: accountType,
               isActive: isActive,
               companyId: companyId,
-              ...(commissionDepositPct !== ""
-                ? {
-                    commissionDepositPercentage:
-                      parseFloat(commissionDepositPct),
-                  }
-                : {}),
-              ...(commissionWithdrawPct !== ""
-                ? {
-                    commissionWithdrawPercentage: parseFloat(
-                      commissionWithdrawPct,
-                    ),
-                  }
-                : {}),
-              ...(commissionChangeReason.trim()
-                ? { commissionRateChangeReason: commissionChangeReason.trim() }
-                : {}),
+              commissionScheduleId: commissionScheduleId ?? undefined,
               commissionModel,
             },
           }),
@@ -175,18 +219,7 @@ export function useAccountsScreen() {
             ...(initialBalance
               ? { initialBalance: parseFloat(initialBalance) }
               : {}),
-            ...(commissionDepositPct !== ""
-              ? {
-                  commissionDepositPercentage: parseFloat(commissionDepositPct),
-                }
-              : {}),
-            ...(commissionWithdrawPct !== ""
-              ? {
-                  commissionWithdrawPercentage: parseFloat(
-                    commissionWithdrawPct,
-                  ),
-                }
-              : {}),
+            commissionScheduleId: commissionScheduleId ?? undefined,
             commissionModel,
           }),
         ).unwrap();
@@ -285,6 +318,16 @@ export function useAccountsScreen() {
     showDeleteConfirm,
     accountToDelete,
 
+    // 3-flow creation
+    creationMode,
+    setCreationMode,
+    chooseCreationMode,
+    cloneSource,
+    selectCloneSource,
+    templates,
+    isTemplatesLoading,
+    handleInheritTemplate,
+
     // Filters
     filterType,
     setFilterType,
@@ -302,14 +345,13 @@ export function useAccountsScreen() {
     setIsActive,
     initialBalance,
     setInitialBalance,
-    commissionDepositPct,
-    setCommissionDepositPct,
-    commissionWithdrawPct,
-    setCommissionWithdrawPct,
-    commissionChangeReason,
-    setCommissionChangeReason,
+    commissionScheduleId,
+    setCommissionScheduleId,
     commissionModel,
     setCommissionModel,
+
+    // Commission schedule options (for web selector)
+    commissionSchedules,
 
     // Stats
     stats,

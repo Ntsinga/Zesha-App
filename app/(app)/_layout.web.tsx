@@ -18,6 +18,8 @@ import {
   ArrowLeftRight,
   ChevronLeft,
   ChevronRight,
+  Layers,
+  LayoutTemplate,
 } from "lucide-react";
 import { useAppSelector, useAppDispatch } from "../../store/hooks";
 import {
@@ -146,6 +148,11 @@ export default function AppLayoutWeb() {
       label: "Manage Agencies",
       icon: <Building2 size={20} />,
     },
+    {
+      href: "/account-templates",
+      label: "Account Templates",
+      icon: <LayoutTemplate size={20} />,
+    },
   ];
 
   // Regular agency nav items (shown for regular users OR superadmin viewing an agency)
@@ -187,6 +194,11 @@ export default function AppLayoutWeb() {
       href: "/accounts",
       label: "Accounts",
       icon: <Receipt size={20} />,
+    },
+    {
+      href: "/commission-schedules",
+      label: "Commission Schedules",
+      icon: <Layers size={20} />,
     },
   ];
 
