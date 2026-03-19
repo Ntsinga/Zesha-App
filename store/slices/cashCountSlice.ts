@@ -68,9 +68,18 @@ export const fetchCashCounts = createAsyncThunk<
       return rejectWithValue("You're offline and no cached data is available.");
     }
 
+    const normalizedFilters = {
+      ...filters,
+      countDate:
+        filters.countDate ??
+        (filters.dateFrom && filters.dateFrom === filters.dateTo
+          ? filters.dateFrom
+          : undefined),
+    };
+
     // Build query with camelCase filters, convert to snake_case for API
     const query = buildTypedQueryString({
-      ...filters,
+      ...normalizedFilters,
       companyId,
     });
 
