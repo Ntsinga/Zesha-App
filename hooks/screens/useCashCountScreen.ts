@@ -91,7 +91,10 @@ export function useCashCountScreen() {
     return DENOMINATIONS.map((d) => {
       const match = shiftCounts.find((cc) => {
         if (usedIds.has(cc.id)) return false;
-        if (parseFloat(String(cc.denomination)) === d.value) {
+        if (
+          parseFloat(String(cc.denomination)) === d.value &&
+          (cc.isCoin ?? false) === (d.isCoin ?? false)
+        ) {
           usedIds.add(cc.id);
           return true;
         }
@@ -138,7 +141,10 @@ export function useCashCountScreen() {
           const match = shiftCounts.find((cc) => {
             if (usedCounts.has(cc.id)) return false;
             const ccDenom = parseFloat(String(cc.denomination));
-            if (ccDenom === entry.denomination) {
+            if (
+              ccDenom === entry.denomination &&
+              (cc.isCoin ?? false) === (entry.isCoin ?? false)
+            ) {
               usedCounts.add(cc.id);
               return true;
             }
@@ -243,6 +249,7 @@ export function useCashCountScreen() {
       const cashCountData = validEntries.map((entry) => ({
         companyId,
         denomination: entry.denomination,
+        isCoin: entry.isCoin ?? false,
         quantity: parseInt(entry.quantity),
         amount: entry.displayValue * parseInt(entry.quantity),
         date: today,
@@ -289,6 +296,7 @@ export function useCashCountScreen() {
       const cashCountData: CashCountCreate[] = validEntries.map((entry) => ({
         companyId: companyId,
         denomination: entry.denomination,
+        isCoin: entry.isCoin ?? false,
         quantity: parseInt(entry.quantity),
         amount: entry.displayValue * parseInt(entry.quantity),
         date: today,

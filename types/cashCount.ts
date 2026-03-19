@@ -42,6 +42,7 @@ export interface CashCount extends BaseModel {
   companyId: number;
   reconciliationId?: number | null;
   denomination: number;
+  isCoin: boolean;
   quantity: number;
   amount: number;
   date: string;
@@ -55,6 +56,7 @@ export interface CashCount extends BaseModel {
 export interface CashCountCreate {
   companyId: number;
   denomination: number;
+  isCoin: boolean;
   quantity: number;
   amount: number;
   date: string;
