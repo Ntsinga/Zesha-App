@@ -59,46 +59,23 @@ export function useBalanceMenuScreen() {
     accountsLoading ||
     transactionsLoading;
 
-  const [isRefreshingShiftStatus, setIsRefreshingShiftStatus] = useState(false);
-
   // Track the last fetch scopes to prevent redundant refetches when auth state
   // rehydrates without the effective company/day/phase actually changing.
   const lastBaseFetchKey = useRef<string | null>(null);
   const lastSubtypeFetchKey = useRef<string | null>(null);
-  const latestShiftStatusRequestId = useRef(0);
 
   const refreshShiftStatus = useCallback(
-    async (shift: ShiftEnum) => {
+    (shift: ShiftEnum) => {
       if (!effectiveCompanyId) return;
-
-      const requestId = ++latestShiftStatusRequestId.current;
-      setIsRefreshingShiftStatus(true);
-
-      try {
-        const status = await dispatch(
-          fetchShiftStatus({ date: today, shift }),
-        ).unwrap();
-
-        if (requestId !== latestShiftStatusRequestId.current) {
-          return;
-        }
-      } finally {
-        if (requestId === latestShiftStatusRequestId.current) {
-          setIsRefreshingShiftStatus(false);
-        }
-      }
+      return dispatch(fetchShiftStatus({ date: today, shift }));
     },
     [dispatch, effectiveCompanyId, today],
   );
 
-  // Fetch shift status whenever the selected shift or date changes
-  useEffect(() => {
-    void refreshShiftStatus(selectedShift);
-  }, [refreshShiftStatus, selectedShift]);
-
-  // Re-fetch shift status on screen focus (e.g. returning from reconciliation
-  // after finalize — ensures the phase advances from OPENING → CLOSING without
-  // requiring a manual refresh).
+  // Fetch shift status on screen focus (initial mount + returning from other
+  // screens) and whenever the selected shift changes.  useFocusEffect already
+  // re-runs when its callback identity changes, so a separate useEffect is not
+  // needed — having both caused duplicate API calls on every mount.
   useFocusEffect(
     useCallback(() => {
       void refreshShiftStatus(selectedShift);
@@ -130,9 +107,11 @@ export function useBalanceMenuScreen() {
     return "OPENING";
   }, [shiftPhase]);
 
+  // Phase is resolved as soon as we have ANY cached value for this shift.
+  // The background refresh (useFocusEffect) will update the cache if the phase
+  // changed, but we don't block the UI while waiting for the network.
   const isPhaseResolved =
-    selectedShift === "PM" ||
-    (resolvedShiftStatus !== null && !isRefreshingShiftStatus);
+    selectedShift === "PM" || resolvedShiftStatus !== null;
 
   // Fetch day-scoped data that doesn't vary by phase.
   useEffect(() => {
