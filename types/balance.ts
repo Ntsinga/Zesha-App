@@ -76,6 +76,7 @@ export interface BalanceUpdate {
 export interface BalanceFilters {
   accountId?: number;
   shift?: ShiftEnum;
+  subtype?: ReconciliationSubtypeEnum;
   dateFrom?: string;
   dateTo?: string;
   companyId?: number;

@@ -116,11 +116,12 @@ export function useCashCountScreen() {
     dispatch(
       fetchCashCounts({
         companyId: companyId || 0,
-        dateFrom: today,
-        dateTo: today,
+        countDate: today,
+        shift,
+        subtype: currentSubtype,
       }),
     );
-  }, [dispatch, today, companyId]);
+  }, [dispatch, today, companyId, shift, currentSubtype]);
 
   // Pre-populate entries when shift changes or cash counts are loaded
   useEffect(() => {
@@ -311,8 +312,9 @@ export function useCashCountScreen() {
       dispatch(
         fetchCashCounts({
           companyId: companyId,
-          dateFrom: today,
-          dateTo: today,
+          countDate: today,
+          shift,
+          subtype: currentSubtype,
         }),
       );
 

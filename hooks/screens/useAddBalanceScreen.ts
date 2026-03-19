@@ -96,7 +96,12 @@ export function useAddBalanceScreen() {
     Promise.all([
       dispatch(fetchAccounts({ isActive: true, forceRefresh: true })),
       dispatch(
-        fetchBalances({ dateFrom: today, dateTo: today, forceRefresh: true }),
+        fetchBalances({
+          dateFrom: today,
+          dateTo: today,
+          subtype: currentSubtype,
+          forceRefresh: true,
+        }),
       ),
     ]).then(() => setFreshDataReady(true));
   }, [dispatch, today, currentSubtype]);
@@ -488,6 +493,7 @@ export function useAddBalanceScreen() {
           companyId,
           accountId: entry.accountId!,
           shift: currentShift,
+          subtype: currentSubtype,
           amount: parseFloat(entry.amount),
           source: "mobile_app" as const,
           date: today,
@@ -659,6 +665,7 @@ export function useAddBalanceScreen() {
   }, [
     entries,
     currentShift,
+    currentSubtype,
     today,
     companyId,
     dispatch,

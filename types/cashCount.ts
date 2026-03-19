@@ -82,6 +82,8 @@ export interface CashCountUpdate {
 export interface CashCountFilters {
   denomination?: number;
   shift?: ShiftEnum;
+  subtype?: ReconciliationSubtypeEnum;
+  countDate?: string;
   dateFrom?: string;
   dateTo?: string;
   companyId?: number;
