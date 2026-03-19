@@ -25,6 +25,7 @@ export default function BalancePage() {
     selectedShift,
     setSelectedShift,
     shiftPhase,
+    isResolvingPhase,
     currentSubtype,
     buttonLabel,
     showCommissionsAndTransactions,
@@ -88,20 +89,28 @@ export default function BalancePage() {
           <h1 className="header-title">Daily Reconciliation</h1>
           {/* Phase status pill — shows shift + OPENING/CLOSING/COMPLETE */}
           {(() => {
+            const isLoadingPhase = isResolvingPhase;
             const isOpening =
+              !isLoadingPhase &&
               currentSubtype === "OPENING" && shiftPhase !== "COMPLETE";
-            const isComplete = shiftPhase === "COMPLETE";
-            const bg = isComplete
+            const isComplete = !isLoadingPhase && shiftPhase === "COMPLETE";
+            const bg = isLoadingPhase
+              ? "#f3f4f6"
+              : isComplete
               ? "#dcfce7"
               : isOpening
                 ? "#dbeafe"
                 : "#fef3c7";
-            const color = isComplete
+            const color = isLoadingPhase
+              ? "#6b7280"
+              : isComplete
               ? "#15803d"
               : isOpening
                 ? "#1d4ed8"
                 : "#92400e";
-            const label = isComplete
+            const label = isLoadingPhase
+              ? "Loading"
+              : isComplete
               ? "Complete"
               : isOpening
                 ? "Opening"

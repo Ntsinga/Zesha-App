@@ -30,6 +30,7 @@ export default function BalancePage() {
     selectedShift,
     setSelectedShift,
     shiftPhase,
+    isResolvingPhase,
     currentSubtype,
     shiftStatus,
     buttonLabel,
@@ -88,20 +89,28 @@ export default function BalancePage() {
             </Text>
             {/* Phase status pills — shift badge + OPENING/CLOSING/COMPLETE badge */}
             {(() => {
+              const isLoadingPhase = isResolvingPhase;
               const isOpening =
+                !isLoadingPhase &&
                 currentSubtype === "OPENING" && shiftPhase !== "COMPLETE";
-              const isComplete = shiftPhase === "COMPLETE";
-              const phaseBg = isComplete
+              const isComplete = !isLoadingPhase && shiftPhase === "COMPLETE";
+              const phaseBg = isLoadingPhase
+                ? "#f3f4f6"
+                : isComplete
                 ? "#dcfce7"
                 : isOpening
                   ? "#dbeafe"
                   : "#fef3c7";
-              const phaseColor = isComplete
+              const phaseColor = isLoadingPhase
+                ? "#6b7280"
+                : isComplete
                 ? "#15803d"
                 : isOpening
                   ? "#1d4ed8"
                   : "#92400e";
-              const phaseLabel = isComplete
+              const phaseLabel = isLoadingPhase
+                ? "Loading"
+                : isComplete
                 ? "Complete"
                 : isOpening
                   ? "Opening"

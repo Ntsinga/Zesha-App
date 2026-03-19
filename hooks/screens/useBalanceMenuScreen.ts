@@ -8,7 +8,6 @@ import { fetchCommissions } from "../../store/slices/commissionsSlice";
 import { fetchTransactions } from "../../store/slices/transactionsSlice";
 import {
   calculateReconciliation,
-  clearShiftStatus,
   fetchShiftStatus,
 } from "../../store/slices/reconciliationsSlice";
 import { selectEffectiveCompanyId } from "../../store/slices/authSlice";
@@ -60,14 +59,18 @@ export function useBalanceMenuScreen() {
     accountsLoading ||
     transactionsLoading;
 
-  // Track the last fetch scope to prevent redundant refetches when auth state
-  // rehydrates without the effective company/phase actually changing.
-  const lastFetchKey = useRef<string | null>(null);
+  const [shiftStatusCache, setShiftStatusCache] = useState<
+    Partial<Record<ShiftEnum, NonNullable<RootState["reconciliations"]["shiftStatus"]>>>
+  >({});
+
+  // Track the last fetch scopes to prevent redundant refetches when auth state
+  // rehydrates without the effective company/day/phase actually changing.
+  const lastBaseFetchKey = useRef<string | null>(null);
+  const lastSubtypeFetchKey = useRef<string | null>(null);
 
   // Fetch shift status whenever the selected shift or date changes
   useEffect(() => {
     if (!effectiveCompanyId) return;
-    dispatch(clearShiftStatus());
     dispatch(fetchShiftStatus({ date: today, shift: selectedShift }));
   }, [dispatch, today, selectedShift, effectiveCompanyId]);
 
@@ -81,6 +84,17 @@ export function useBalanceMenuScreen() {
     }, [dispatch, today, selectedShift, effectiveCompanyId]),
   );
 
+  useEffect(() => {
+    if (!isLoadingShiftStatus && shiftStatus) {
+      setShiftStatusCache((prev) => ({
+        ...prev,
+        [selectedShift]: shiftStatus,
+      }));
+    }
+  }, [isLoadingShiftStatus, shiftStatus, selectedShift]);
+
+  const resolvedShiftStatus = shiftStatusCache[selectedShift] ?? null;
+
   // Derive current shift phase.
   // AM tab:  OPENING → CLOSING (once AM OPENING finalized) → COMPLETE (once AM CLOSING finalized)
   // PM tab:  PM OPENING no longer exists — PM always starts at CLOSING.
@@ -91,43 +105,27 @@ export function useBalanceMenuScreen() {
   // automatically by the backend: PM CLOSING uses AM CLOSING as its base if it exists,
   // otherwise falls back to AM OPENING.
   const shiftPhase = useMemo((): "OPENING" | "CLOSING" | "COMPLETE" => {
-    if (shiftStatus?.closingFinalized) return "COMPLETE";
+    if (resolvedShiftStatus?.closingFinalized) return "COMPLETE";
     // PM shift never has an OPENING phase
     if (selectedShift === "PM") return "CLOSING";
-    if (shiftStatus?.openingFinalized) return "CLOSING";
+    if (resolvedShiftStatus?.openingFinalized) return "CLOSING";
     return "OPENING";
-  }, [shiftStatus, selectedShift]);
+  }, [resolvedShiftStatus, selectedShift]);
 
   const currentSubtype: ReconciliationSubtypeEnum = useMemo(() => {
     if (shiftPhase === "CLOSING" || shiftPhase === "COMPLETE") return "CLOSING";
     return "OPENING";
   }, [shiftPhase]);
 
-  const isPhaseResolved = selectedShift === "PM" || shiftStatus !== null;
+  const isPhaseResolved = selectedShift === "PM" || resolvedShiftStatus !== null;
 
-  // Fetch data for the current day and active reconciliation phase.
+  // Fetch day-scoped data that doesn't vary by phase.
   useEffect(() => {
     if (!effectiveCompanyId) return;
-    if (!isPhaseResolved) return;
-    const fetchKey = `${effectiveCompanyId}:${today}:${selectedShift}:${currentSubtype}`;
-    if (lastFetchKey.current === fetchKey) return;
-    lastFetchKey.current = fetchKey;
+    const fetchKey = `${effectiveCompanyId}:${today}`;
+    if (lastBaseFetchKey.current === fetchKey) return;
+    lastBaseFetchKey.current = fetchKey;
 
-    dispatch(
-      fetchCashCounts({
-        companyId: effectiveCompanyId,
-        countDate: today,
-        subtype: currentSubtype,
-      }),
-    );
-    dispatch(
-      fetchBalances({
-        companyId: effectiveCompanyId,
-        dateFrom: today,
-        dateTo: today,
-        subtype: currentSubtype,
-      }),
-    );
     dispatch(
       fetchCommissions({
         companyId: effectiveCompanyId,
@@ -143,6 +141,30 @@ export function useBalanceMenuScreen() {
         companyId: effectiveCompanyId,
         startDate: today,
         endDate: today,
+      }),
+    );
+  }, [dispatch, today, effectiveCompanyId]);
+
+  // Fetch phase-scoped data only after the AM phase is known.
+  useEffect(() => {
+    if (!effectiveCompanyId || !isPhaseResolved) return;
+    const fetchKey = `${effectiveCompanyId}:${today}:${selectedShift}:${currentSubtype}`;
+    if (lastSubtypeFetchKey.current === fetchKey) return;
+    lastSubtypeFetchKey.current = fetchKey;
+
+    dispatch(
+      fetchCashCounts({
+        companyId: effectiveCompanyId,
+        countDate: today,
+        subtype: currentSubtype,
+      }),
+    );
+    dispatch(
+      fetchBalances({
+        companyId: effectiveCompanyId,
+        dateFrom: today,
+        dateTo: today,
+        subtype: currentSubtype,
       }),
     );
   }, [
@@ -603,6 +625,8 @@ export function useBalanceMenuScreen() {
     shiftPhase,
   ]);
 
+  const isResolvingPhase = selectedShift === "AM" && !isPhaseResolved;
+
   return {
     // State
     isLoading,
@@ -614,6 +638,7 @@ export function useBalanceMenuScreen() {
     setSelectedShift,
     shiftStatus,
     shiftPhase,
+    isResolvingPhase,
     currentSubtype,
     buttonLabel,
     showCommissionsAndTransactions,
