@@ -547,7 +547,7 @@ export default function BalanceDetailWeb() {
                 ) : (
                   cashCounts.map((cc) => (
                     <tr key={cc.id}>
-                      <td>{formatCurrency(cc.denomination)}</td>
+                      <td>{formatCurrency(cc.denomination)}{cc.isCoin ? " (Coin)" : ""}</td>
                       <td className="text-center">×{cc.quantity}</td>
                       <td className="text-right font-semibold">
                         {formatCurrency(cc.amount)}

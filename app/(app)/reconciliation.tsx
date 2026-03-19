@@ -588,7 +588,7 @@ export default function BalanceDetailPage() {
                   }`}
                 >
                   <Text className="flex-1 text-gray-700">
-                    {formatCurrency(cc.denomination)}
+                    {formatCurrency(cc.denomination)}{cc.isCoin ? " (Coin)" : ""}
                   </Text>
                   <Text className="w-16 text-center text-gray-600">
                     ×{cc.quantity}
