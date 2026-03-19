@@ -45,7 +45,7 @@ export function useBalanceMenuScreen() {
     (state: RootState) => state.transactions,
   );
 
-  const { isCalculating, isLoadingShiftStatus } = useSelector(
+  const { isCalculating, isLoadingShiftStatus, shiftStatusByKey } = useSelector(
     (state: RootState) => state.reconciliations,
   );
 
@@ -59,9 +59,6 @@ export function useBalanceMenuScreen() {
     accountsLoading ||
     transactionsLoading;
 
-  const [shiftStatusCache, setShiftStatusCache] = useState<
-    Partial<Record<ShiftEnum, NonNullable<RootState["reconciliations"]["shiftStatus"]>>>
-  >({});
   const [isRefreshingShiftStatus, setIsRefreshingShiftStatus] = useState(false);
 
   // Track the last fetch scopes to prevent redundant refetches when auth state
@@ -85,11 +82,6 @@ export function useBalanceMenuScreen() {
         if (requestId !== latestShiftStatusRequestId.current) {
           return;
         }
-
-        setShiftStatusCache((prev) => ({
-          ...prev,
-          [shift]: status,
-        }));
       } finally {
         if (requestId === latestShiftStatusRequestId.current) {
           setIsRefreshingShiftStatus(false);
@@ -113,7 +105,8 @@ export function useBalanceMenuScreen() {
     }, [refreshShiftStatus, selectedShift]),
   );
 
-  const resolvedShiftStatus = shiftStatusCache[selectedShift] ?? null;
+  const resolvedShiftStatus =
+    shiftStatusByKey[`${today}:${selectedShift}`] ?? null;
 
   // Derive current shift phase.
   // AM tab:  OPENING → CLOSING (once AM OPENING finalized) → COMPLETE (once AM CLOSING finalized)
@@ -649,6 +642,14 @@ export function useBalanceMenuScreen() {
 
   const isResolvingPhase = selectedShift === "AM" && !isPhaseResolved;
 
+  const handleSelectShift = useCallback((shift: ShiftEnum) => {
+    if (shift === selectedShift) {
+      return;
+    }
+
+    setSelectedShift(shift);
+  }, [selectedShift]);
+
   return {
     // State
     isLoading,
@@ -657,7 +658,7 @@ export function useBalanceMenuScreen() {
     today,
     formatCurrency,
     selectedShift,
-    setSelectedShift,
+    setSelectedShift: handleSelectShift,
     shiftStatus: resolvedShiftStatus,
     shiftPhase,
     isResolvingPhase,

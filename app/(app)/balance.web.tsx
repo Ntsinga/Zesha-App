@@ -81,6 +81,16 @@ export default function BalancePage() {
     }
   };
 
+  const showPhaseDependentActions = !isResolvingPhase && showCommissionsAndTransactions;
+  const reconciliationHeading = isResolvingPhase
+    ? `Loading ${selectedShift} Shift`
+    : buttonLabel;
+  const reconciliationDescription = isResolvingPhase
+    ? `Checking the latest ${selectedShift} shift status before showing reconciliation steps`
+    : !showCommissionsAndTransactions
+      ? `Record float balances and cash count to start the ${selectedShift} shift`
+      : `Calculate the ${selectedShift} shift reconciliation to review discrepancies`;
+
   return (
     <div className="page-wrapper">
       {/* Header Bar */}
@@ -311,7 +321,7 @@ export default function BalancePage() {
           </div>
 
           {/* Add Commissions Card — only shown when commissions are relevant */}
-          {showCommissionsAndTransactions && (
+          {showPhaseDependentActions && (
             <div
               className={`balance-menu-card ${
                 hasSelectedCommissions ? "completed" : ""
@@ -369,7 +379,7 @@ export default function BalancePage() {
           )}
 
           {/* Record Transactions Card — only shown when transactions are relevant */}
-          {showCommissionsAndTransactions && (
+          {showPhaseDependentActions && (
             <div
               className={`balance-menu-card ${
                 hasSelectedTransactions ? "completed" : ""
@@ -441,33 +451,35 @@ export default function BalancePage() {
             </>
           ) : (
             <>
-              <h3 className="section-title-centered">{buttonLabel}</h3>
+              <h3 className="section-title-centered">{reconciliationHeading}</h3>
               <p className="section-description-centered">
-                {!showCommissionsAndTransactions
-                  ? `Record float balances and cash count to start the ${selectedShift} shift`
-                  : `Calculate the ${selectedShift} shift reconciliation to review discrepancies`}
+                {reconciliationDescription}
               </p>
 
               <button
                 onClick={handleCalculatePress}
                 disabled={
+                  isResolvingPhase ||
                   isCalculating ||
                   !hasSelectedCashCount ||
                   !hasSelectedBalances ||
-                  (showCommissionsAndTransactions && !hasSelectedCommissions)
+                  (showPhaseDependentActions && !hasSelectedCommissions)
                 }
                 className={`btn-calculate-centered ${
+                  isResolvingPhase ||
                   isCalculating ||
                   !hasSelectedCashCount ||
                   !hasSelectedBalances ||
-                  (showCommissionsAndTransactions && !hasSelectedCommissions)
+                  (showPhaseDependentActions && !hasSelectedCommissions)
                     ? "loading"
                     : ""
                 }`}
               >
                 <Calculator size={24} />
                 <span>
-                  {isCalculating
+                  {isResolvingPhase
+                    ? "Loading Shift Status..."
+                    : isCalculating
                     ? "Calculating..."
                     : !hasSelectedCashCount || !hasSelectedBalances
                       ? "Complete Required Steps First"

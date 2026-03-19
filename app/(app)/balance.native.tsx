@@ -75,6 +75,16 @@ export default function BalancePage() {
     }
   };
 
+  const showPhaseDependentActions = !isResolvingPhase && showCommissionsAndTransactions;
+  const reconciliationHeading = isResolvingPhase
+    ? `Loading ${selectedShift} Shift`
+    : buttonLabel;
+  const reconciliationDescription = isResolvingPhase
+    ? `Checking the latest ${selectedShift} shift status before showing reconciliation steps`
+    : !showCommissionsAndTransactions
+      ? `Record float balances and cash count to start the ${selectedShift} shift`
+      : `Calculate the ${selectedShift} shift reconciliation to review discrepancies`;
+
   return (
     <View className="flex-1 bg-gray-50">
       <ScrollView
@@ -347,7 +357,7 @@ export default function BalancePage() {
               </TouchableOpacity>
 
               {/* Add Commissions Option — only shown when commissions are relevant */}
-              {showCommissionsAndTransactions && (
+              {showPhaseDependentActions && (
                 <TouchableOpacity
                   onPress={handleNavigateCommissions}
                   style={{ borderRadius: 16 }}
@@ -417,7 +427,7 @@ export default function BalancePage() {
               )}
 
               {/* Record Transactions Option — only shown when transactions are relevant */}
-              {showCommissionsAndTransactions && (
+              {showPhaseDependentActions && (
                 <TouchableOpacity
                   onPress={handleNavigateTransactions}
                   style={{ borderRadius: 16 }}
@@ -505,17 +515,19 @@ export default function BalancePage() {
                   <TouchableOpacity
                     onPress={handleCalculatePress}
                     disabled={
+                      isResolvingPhase ||
                       isCalculating ||
                       !hasSelectedCashCount ||
                       !hasSelectedBalances ||
-                      (showCommissionsAndTransactions &&
+                      (showPhaseDependentActions &&
                         !hasSelectedCommissions)
                     }
                     className={`bg-brand-red rounded-2xl p-5 shadow-lg ${
+                      isResolvingPhase ||
                       isCalculating ||
                       !hasSelectedCashCount ||
                       !hasSelectedBalances ||
-                      (showCommissionsAndTransactions &&
+                      (showPhaseDependentActions &&
                         !hasSelectedCommissions)
                         ? "opacity-50"
                         : ""
@@ -524,13 +536,18 @@ export default function BalancePage() {
                     <View className="flex-row items-center justify-center">
                       <Calculator color="white" size={24} />
                       <Text className="text-white text-lg font-bold ml-3">
-                        {isCalculating
+                        {isResolvingPhase
+                          ? "Loading Shift Status..."
+                          : isCalculating
                           ? "Calculating..."
                           : !hasSelectedCashCount || !hasSelectedBalances
                             ? "Complete Required Steps First"
-                            : buttonLabel}
+                            : reconciliationHeading}
                       </Text>
                     </View>
+                    <Text className="text-white/80 text-sm text-center mt-2">
+                      {reconciliationDescription}
+                    </Text>
                   </TouchableOpacity>
                 )}
               </View>
