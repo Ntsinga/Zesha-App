@@ -45,7 +45,7 @@ export function useBalanceMenuScreen() {
     (state: RootState) => state.transactions,
   );
 
-  const { isCalculating, shiftStatus, isLoadingShiftStatus } = useSelector(
+  const { isCalculating, isLoadingShiftStatus } = useSelector(
     (state: RootState) => state.reconciliations,
   );
 
@@ -62,36 +62,56 @@ export function useBalanceMenuScreen() {
   const [shiftStatusCache, setShiftStatusCache] = useState<
     Partial<Record<ShiftEnum, NonNullable<RootState["reconciliations"]["shiftStatus"]>>>
   >({});
+  const [isRefreshingShiftStatus, setIsRefreshingShiftStatus] = useState(false);
 
   // Track the last fetch scopes to prevent redundant refetches when auth state
   // rehydrates without the effective company/day/phase actually changing.
   const lastBaseFetchKey = useRef<string | null>(null);
   const lastSubtypeFetchKey = useRef<string | null>(null);
+  const latestShiftStatusRequestId = useRef(0);
+
+  const refreshShiftStatus = useCallback(
+    async (shift: ShiftEnum) => {
+      if (!effectiveCompanyId) return;
+
+      const requestId = ++latestShiftStatusRequestId.current;
+      setIsRefreshingShiftStatus(true);
+
+      try {
+        const status = await dispatch(
+          fetchShiftStatus({ date: today, shift }),
+        ).unwrap();
+
+        if (requestId !== latestShiftStatusRequestId.current) {
+          return;
+        }
+
+        setShiftStatusCache((prev) => ({
+          ...prev,
+          [shift]: status,
+        }));
+      } finally {
+        if (requestId === latestShiftStatusRequestId.current) {
+          setIsRefreshingShiftStatus(false);
+        }
+      }
+    },
+    [dispatch, effectiveCompanyId, today],
+  );
 
   // Fetch shift status whenever the selected shift or date changes
   useEffect(() => {
-    if (!effectiveCompanyId) return;
-    dispatch(fetchShiftStatus({ date: today, shift: selectedShift }));
-  }, [dispatch, today, selectedShift, effectiveCompanyId]);
+    void refreshShiftStatus(selectedShift);
+  }, [refreshShiftStatus, selectedShift]);
 
   // Re-fetch shift status on screen focus (e.g. returning from reconciliation
   // after finalize — ensures the phase advances from OPENING → CLOSING without
   // requiring a manual refresh).
   useFocusEffect(
     useCallback(() => {
-      if (!effectiveCompanyId) return;
-      dispatch(fetchShiftStatus({ date: today, shift: selectedShift }));
-    }, [dispatch, today, selectedShift, effectiveCompanyId]),
+      void refreshShiftStatus(selectedShift);
+    }, [refreshShiftStatus, selectedShift]),
   );
-
-  useEffect(() => {
-    if (!isLoadingShiftStatus && shiftStatus) {
-      setShiftStatusCache((prev) => ({
-        ...prev,
-        [selectedShift]: shiftStatus,
-      }));
-    }
-  }, [isLoadingShiftStatus, shiftStatus, selectedShift]);
 
   const resolvedShiftStatus = shiftStatusCache[selectedShift] ?? null;
 
@@ -117,7 +137,9 @@ export function useBalanceMenuScreen() {
     return "OPENING";
   }, [shiftPhase]);
 
-  const isPhaseResolved = selectedShift === "PM" || resolvedShiftStatus !== null;
+  const isPhaseResolved =
+    selectedShift === "PM" ||
+    (resolvedShiftStatus !== null && !isRefreshingShiftStatus);
 
   // Fetch day-scoped data that doesn't vary by phase.
   useEffect(() => {
@@ -455,8 +477,8 @@ export function useBalanceMenuScreen() {
         endDate: today,
       }),
     );
-    // Also re-fetch shift status so phase updates if another device finalised
-    dispatch(fetchShiftStatus({ date: today, shift: selectedShift }));
+    // Also re-fetch shift status so phase updates if another device finalised.
+    void refreshShiftStatus(selectedShift);
   };
 
   const handleCalculate = async () => {
@@ -478,8 +500,8 @@ export function useBalanceMenuScreen() {
         }),
       ).unwrap();
 
-      // Re-fetch shift status so the UI advances to CLOSING immediately
-      dispatch(fetchShiftStatus({ date: today, shift: selectedShift }));
+      // Re-fetch shift status so the UI advances to CLOSING immediately.
+      await refreshShiftStatus(selectedShift);
       // Re-fetch cash counts and balances so their reconciliation_id links (set by
       // the backend during calculation) are reflected in Redux.  Without this, the
       // opening records still show reconciliation_id=null in the store, causing the
@@ -557,7 +579,7 @@ export function useBalanceMenuScreen() {
     // Only exclude opening-linked records when in CLOSING/COMPLETE phase.
     const _openingReconId =
       shiftPhase === "CLOSING" || shiftPhase === "COMPLETE"
-        ? (shiftStatus?.openingId ?? null)
+        ? (resolvedShiftStatus?.openingId ?? null)
         : null;
     const todayCounts = cashCounts.filter(
       (cc) =>
@@ -621,7 +643,7 @@ export function useBalanceMenuScreen() {
     commissions,
     today,
     currentSubtype,
-    shiftStatus,
+    resolvedShiftStatus,
     shiftPhase,
   ]);
 
@@ -636,7 +658,7 @@ export function useBalanceMenuScreen() {
     formatCurrency,
     selectedShift,
     setSelectedShift,
-    shiftStatus,
+    shiftStatus: resolvedShiftStatus,
     shiftPhase,
     isResolvingPhase,
     currentSubtype,
