@@ -8,6 +8,7 @@ import { fetchCommissions } from "../../store/slices/commissionsSlice";
 import { fetchTransactions } from "../../store/slices/transactionsSlice";
 import {
   calculateReconciliation,
+  clearShiftStatus,
   fetchShiftStatus,
 } from "../../store/slices/reconciliationsSlice";
 import { selectEffectiveCompanyId } from "../../store/slices/authSlice";
@@ -66,6 +67,7 @@ export function useBalanceMenuScreen() {
   // Fetch shift status whenever the selected shift or date changes
   useEffect(() => {
     if (!effectiveCompanyId) return;
+    dispatch(clearShiftStatus());
     dispatch(fetchShiftStatus({ date: today, shift: selectedShift }));
   }, [dispatch, today, selectedShift, effectiveCompanyId]);
 
@@ -101,10 +103,13 @@ export function useBalanceMenuScreen() {
     return "OPENING";
   }, [shiftPhase]);
 
+  const isPhaseResolved = selectedShift === "PM" || shiftStatus !== null;
+
   // Fetch data for the current day and active reconciliation phase.
   useEffect(() => {
     if (!effectiveCompanyId) return;
-    const fetchKey = `${effectiveCompanyId}:${today}:${currentSubtype}`;
+    if (!isPhaseResolved) return;
+    const fetchKey = `${effectiveCompanyId}:${today}:${selectedShift}:${currentSubtype}`;
     if (lastFetchKey.current === fetchKey) return;
     lastFetchKey.current = fetchKey;
 
@@ -140,7 +145,14 @@ export function useBalanceMenuScreen() {
         endDate: today,
       }),
     );
-  }, [dispatch, today, effectiveCompanyId, currentSubtype]);
+  }, [
+    dispatch,
+    today,
+    effectiveCompanyId,
+    isPhaseResolved,
+    selectedShift,
+    currentSubtype,
+  ]);
 
   // "Start" during OPENING (handover snapshot or AM overnight verification)
   // "Submit" during CLOSING (full end-of-shift reconciliation)
