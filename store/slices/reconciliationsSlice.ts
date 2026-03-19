@@ -26,6 +26,7 @@ import { API_ENDPOINTS } from "@/config/api";
 import { secureApiRequest } from "@/services/secureApi";
 import { isDeviceOffline } from "@/utils/offlineCheck";
 import type { RootState } from "../index";
+import { enterAgency, exitAgency } from "./authSlice";
 
 // Types
 export interface ReconciliationsState {
@@ -36,6 +37,7 @@ export interface ReconciliationsState {
   reconciliationDetails: ReconciliationDetail | null;
   balanceValidation: BalanceValidationResult[];
   shiftStatus: ShiftStatus | null;
+  shiftStatusByKey: Record<string, ShiftStatus>;
   isLoading: boolean;
   isLoadingDetails: boolean;
   isCalculating: boolean;
@@ -54,6 +56,7 @@ const initialState: ReconciliationsState = {
   reconciliationDetails: null,
   balanceValidation: [],
   shiftStatus: null,
+  shiftStatusByKey: {},
   isLoading: false,
   isLoadingDetails: false,
   isCalculating: false,
@@ -444,6 +447,7 @@ export const fetchReconciliationDetails = createAsyncThunk<
 export interface FetchShiftStatusParams {
   date: string;
   shift: ShiftEnum;
+  companyId?: number;
 }
 
 export const fetchShiftStatus = createAsyncThunk<
@@ -504,6 +508,7 @@ const reconciliationsSlice = createSlice({
     },
     clearShiftStatus: (state) => {
       state.shiftStatus = null;
+      state.shiftStatusByKey = {};
     },
     clearHistory: (state) => {
       state.history = [];
@@ -715,10 +720,20 @@ const reconciliationsSlice = createSlice({
       .addCase(fetchShiftStatus.fulfilled, (state, action) => {
         state.isLoadingShiftStatus = false;
         state.shiftStatus = action.payload;
+        const { date, shift } = action.meta.arg;
+        state.shiftStatusByKey[`${date}:${shift}`] = action.payload;
       })
       .addCase(fetchShiftStatus.rejected, (state, action) => {
         state.isLoadingShiftStatus = false;
         state.error = action.payload as string;
+      })
+      .addCase(enterAgency, (state) => {
+        state.shiftStatus = null;
+        state.shiftStatusByKey = {};
+      })
+      .addCase(exitAgency, (state) => {
+        state.shiftStatus = null;
+        state.shiftStatusByKey = {};
       });
   },
 });
