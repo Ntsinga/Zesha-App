@@ -285,12 +285,16 @@ const cashCountSlice = createSlice({
       .addCase(createManyCashCounts.fulfilled, (state, action) => {
         state.isLoading = false;
         if (action.payload.length > 0) {
-          // Replace any existing items for the same date+shift to avoid duplicates
+          // Replace any existing items for the same date+shift+subtype to avoid duplicates
           // when the edit flow deletes-then-recreates (stale items are still in state)
           const newDate = action.payload[0].date;
           const newShift = action.payload[0].shift;
+          const newSubtype = action.payload[0].subtype;
           const otherItems = state.items.filter(
-            (item) => item.date !== newDate || item.shift !== newShift,
+            (item) =>
+              item.date !== newDate ||
+              item.shift !== newShift ||
+              item.subtype !== newSubtype,
           );
           state.items = [...action.payload, ...otherItems];
         } else {
