@@ -10,6 +10,7 @@ import {
   calculateReconciliation,
   fetchShiftStatus,
 } from "../../store/slices/reconciliationsSlice";
+import { selectEffectiveCompanyId } from "../../store/slices/authSlice";
 import { useCurrencyFormatter } from "../useCurrency";
 import type { AppDispatch, RootState } from "../../store";
 import type { ReconciliationSubtypeEnum, ShiftEnum } from "../../types";
@@ -49,6 +50,7 @@ export function useBalanceMenuScreen() {
   );
 
   const { user: backendUser } = useSelector((state: RootState) => state.auth);
+  const effectiveCompanyId = useSelector(selectEffectiveCompanyId);
 
   const isLoading =
     cashCountLoading ||
@@ -57,68 +59,25 @@ export function useBalanceMenuScreen() {
     accountsLoading ||
     transactionsLoading;
 
-  // Track the last companyId we fetched for, to prevent re-fetching when
-  // the backendUser object reference changes but companyId stays the same
-  // (e.g. after Clerk sync completes and updates the Redux auth state).
-  const lastFetchedCompanyId = useRef<number | null>(null);
+  // Track the last fetch scope to prevent redundant refetches when auth state
+  // rehydrates without the effective company/phase actually changing.
+  const lastFetchKey = useRef<string | null>(null);
 
   // Fetch shift status whenever the selected shift or date changes
   useEffect(() => {
-    if (!backendUser?.companyId) return;
+    if (!effectiveCompanyId) return;
     dispatch(fetchShiftStatus({ date: today, shift: selectedShift }));
-  }, [dispatch, today, selectedShift, backendUser?.companyId]);
+  }, [dispatch, today, selectedShift, effectiveCompanyId]);
 
   // Re-fetch shift status on screen focus (e.g. returning from reconciliation
   // after finalize — ensures the phase advances from OPENING → CLOSING without
   // requiring a manual refresh).
   useFocusEffect(
     useCallback(() => {
-      if (!backendUser?.companyId) return;
+      if (!effectiveCompanyId) return;
       dispatch(fetchShiftStatus({ date: today, shift: selectedShift }));
-    }, [dispatch, today, selectedShift, backendUser?.companyId]),
+    }, [dispatch, today, selectedShift, effectiveCompanyId]),
   );
-
-  // Fetch data on mount
-  useEffect(() => {
-    // Don't fetch until we have a real companyId
-    if (!backendUser?.companyId) return;
-    // Skip if we already fetched for this companyId (prevents the
-    // isLoading flicker when auth sync re-triggers this effect)
-    if (lastFetchedCompanyId.current === backendUser.companyId) return;
-    lastFetchedCompanyId.current = backendUser.companyId;
-
-    dispatch(
-      fetchCashCounts({
-        companyId: backendUser.companyId,
-        dateFrom: today,
-        dateTo: today,
-      }),
-    );
-    dispatch(
-      fetchBalances({
-        companyId: backendUser.companyId,
-        dateFrom: today,
-        dateTo: today,
-      }),
-    );
-    dispatch(
-      fetchCommissions({
-        companyId: backendUser.companyId,
-        dateFrom: today,
-        dateTo: today,
-      }),
-    );
-    dispatch(
-      fetchAccounts({ companyId: backendUser.companyId, isActive: true }),
-    );
-    dispatch(
-      fetchTransactions({
-        companyId: backendUser.companyId,
-        startDate: today,
-        endDate: today,
-      }),
-    );
-  }, [dispatch, today, backendUser?.companyId]);
 
   // Derive current shift phase.
   // AM tab:  OPENING → CLOSING (once AM OPENING finalized) → COMPLETE (once AM CLOSING finalized)
@@ -141,6 +100,47 @@ export function useBalanceMenuScreen() {
     if (shiftPhase === "CLOSING" || shiftPhase === "COMPLETE") return "CLOSING";
     return "OPENING";
   }, [shiftPhase]);
+
+  // Fetch data for the current day and active reconciliation phase.
+  useEffect(() => {
+    if (!effectiveCompanyId) return;
+    const fetchKey = `${effectiveCompanyId}:${today}:${currentSubtype}`;
+    if (lastFetchKey.current === fetchKey) return;
+    lastFetchKey.current = fetchKey;
+
+    dispatch(
+      fetchCashCounts({
+        companyId: effectiveCompanyId,
+        countDate: today,
+        subtype: currentSubtype,
+      }),
+    );
+    dispatch(
+      fetchBalances({
+        companyId: effectiveCompanyId,
+        dateFrom: today,
+        dateTo: today,
+        subtype: currentSubtype,
+      }),
+    );
+    dispatch(
+      fetchCommissions({
+        companyId: effectiveCompanyId,
+        dateFrom: today,
+        dateTo: today,
+      }),
+    );
+    dispatch(
+      fetchAccounts({ companyId: effectiveCompanyId, isActive: true }),
+    );
+    dispatch(
+      fetchTransactions({
+        companyId: effectiveCompanyId,
+        startDate: today,
+        endDate: today,
+      }),
+    );
+  }, [dispatch, today, effectiveCompanyId, currentSubtype]);
 
   // "Start" during OPENING (handover snapshot or AM overnight verification)
   // "Submit" during CLOSING (full end-of-shift reconciliation)
@@ -387,33 +387,36 @@ export function useBalanceMenuScreen() {
   };
 
   const handleRefresh = () => {
+    if (!effectiveCompanyId) return;
+
     dispatch(
       fetchCashCounts({
-        companyId: backendUser?.companyId || 0,
-        dateFrom: today,
-        dateTo: today,
+        companyId: effectiveCompanyId,
+        countDate: today,
+        subtype: currentSubtype,
       }),
     );
     dispatch(
       fetchBalances({
-        companyId: backendUser?.companyId || 0,
+        companyId: effectiveCompanyId,
         dateFrom: today,
         dateTo: today,
+        subtype: currentSubtype,
       }),
     );
     dispatch(
       fetchCommissions({
-        companyId: backendUser?.companyId || 0,
+        companyId: effectiveCompanyId,
         dateFrom: today,
         dateTo: today,
       }),
     );
     dispatch(
-      fetchAccounts({ companyId: backendUser?.companyId || 0, isActive: true }),
+      fetchAccounts({ companyId: effectiveCompanyId, isActive: true }),
     );
     dispatch(
       fetchTransactions({
-        companyId: backendUser?.companyId || 0,
+        companyId: effectiveCompanyId,
         startDate: today,
         endDate: today,
       }),
@@ -423,7 +426,7 @@ export function useBalanceMenuScreen() {
   };
 
   const handleCalculate = async () => {
-    if (!backendUser?.id) {
+    if (!backendUser?.id || !effectiveCompanyId) {
       return {
         success: false,
         error: "User not authenticated",
@@ -433,7 +436,7 @@ export function useBalanceMenuScreen() {
     try {
       await dispatch(
         calculateReconciliation({
-          companyId: backendUser.companyId || 0,
+          companyId: effectiveCompanyId,
           date: today,
           shift: selectedShift,
           subtype: currentSubtype,
@@ -449,21 +452,22 @@ export function useBalanceMenuScreen() {
       // closing cash-count / balance forms to display opening values on first render.
       dispatch(
         fetchCashCounts({
-          companyId: backendUser.companyId || 0,
-          dateFrom: today,
-          dateTo: today,
+          companyId: effectiveCompanyId,
+          countDate: today,
+          subtype: currentSubtype,
         }),
       );
       dispatch(
         fetchBalances({
-          companyId: backendUser.companyId || 0,
+          companyId: effectiveCompanyId,
           dateFrom: today,
           dateTo: today,
+          subtype: currentSubtype,
         }),
       );
       dispatch(
         fetchCommissions({
-          companyId: backendUser.companyId || 0,
+          companyId: effectiveCompanyId,
           dateFrom: today,
           dateTo: today,
         }),
@@ -525,6 +529,7 @@ export function useBalanceMenuScreen() {
       (cc) =>
         cc.date === today &&
         cc.shift === selectedShift &&
+        cc.subtype === currentSubtype &&
         (_openingReconId === null || cc.reconciliationId !== _openingReconId),
     );
     const selectedShiftTotal = todayCounts.reduce(
@@ -536,6 +541,7 @@ export function useBalanceMenuScreen() {
       (bal) =>
         bal.date.startsWith(today) &&
         bal.shift === selectedShift &&
+        bal.subtype === currentSubtype &&
         (_openingReconId === null || bal.reconciliationId !== _openingReconId),
     );
     const selectedBalanceTotal = todayBalances.reduce(
@@ -580,6 +586,7 @@ export function useBalanceMenuScreen() {
     balances,
     commissions,
     today,
+    currentSubtype,
     shiftStatus,
     shiftPhase,
   ]);
