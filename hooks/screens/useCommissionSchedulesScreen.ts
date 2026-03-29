@@ -99,6 +99,9 @@ export function useCommissionSchedulesScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const isSubmittingRef = useRef(false);
 
+  // ── Modal-level errors (shown inside the modal, not behind the overlay) ────
+  const [addRuleError, setAddRuleError] = useState<string | null>(null);
+
   // ─── Create Schedule form ──────────────────────────────────────────────────
   const [scheduleName, setScheduleName] = useState("");
   const [scheduleDesc, setScheduleDesc] = useState("");
@@ -221,33 +224,37 @@ export function useCommissionSchedulesScreen() {
     setRuleVolumeCap("");
     setRuleCommissionCap("");
     setRuleTiers([emptyTier()]);
+    setAddRuleError(null);
     setIsAddRuleOpen(true);
   };
 
   const handleAddRule = async () => {
+    if (isSubmittingRef.current) return;
     if (!scheduleIdForRule) return;
+
+    setAddRuleError(null);
 
     if (ruleType === "PERCENTAGE") {
       if (!ruleRate || isNaN(Number(ruleRate)) || Number(ruleRate) <= 0) {
-        showMsg("error", "Enter a valid rate (e.g. 1.5 for 1.5%).");
+        setAddRuleError("Enter a valid rate (e.g. 1.5 for 1.5%).");
         return;
       }
     } else {
       if (ruleTiers.length === 0) {
-        showMsg("error", "At least one tier is required.");
+        setAddRuleError("At least one tier is required.");
         return;
       }
       for (const tier of ruleTiers) {
         if (!tier.minAmount || isNaN(Number(tier.minAmount))) {
-          showMsg("error", "Each tier must have a valid minimum amount.");
+          setAddRuleError("Each tier must have a valid minimum amount.");
           return;
         }
         if (!tier.customerChargeAmount || isNaN(Number(tier.customerChargeAmount))) {
-          showMsg("error", "Each tier must have a valid customer charge.");
+          setAddRuleError("Each tier must have a valid customer charge.");
           return;
         }
         if (!tier.agentCommissionAmount || isNaN(Number(tier.agentCommissionAmount))) {
-          showMsg("error", "Each tier must have a valid agent commission.");
+          setAddRuleError("Each tier must have a valid agent commission.");
           return;
         }
       }
@@ -264,6 +271,7 @@ export function useCommissionSchedulesScreen() {
           }))
         : undefined;
 
+    isSubmittingRef.current = true;
     setIsSubmitting(true);
     const result = await dispatch(
       addCommissionRule({
@@ -279,12 +287,15 @@ export function useCommissionSchedulesScreen() {
         },
       }),
     );
+    isSubmittingRef.current = false;
     setIsSubmitting(false);
     if (addCommissionRule.fulfilled.match(result)) {
       setIsAddRuleOpen(false);
+      setAddRuleError(null);
       showMsg("success", "Rule added successfully.");
     } else {
-      showMsg("error", (result.payload as string) ?? "Failed to add rule.");
+      const errMsg = (result.payload as string) ?? "Failed to add rule.";
+      setAddRuleError(errMsg);
     }
   };
 
@@ -461,7 +472,8 @@ export function useCommissionSchedulesScreen() {
     // --- Add rule modal ---
     isAddRuleOpen,
     openAddRule,
-    closeAddRule: () => setIsAddRuleOpen(false),
+    closeAddRule: () => { setIsAddRuleOpen(false); setAddRuleError(null); },
+    addRuleError,
     ruleTransactionType,
     setRuleTransactionType,
     ruleTransactionSubtype,
