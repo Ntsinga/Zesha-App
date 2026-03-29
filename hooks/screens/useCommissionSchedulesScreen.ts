@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import {
   fetchCommissionSchedules,
@@ -97,6 +97,7 @@ export function useCommissionSchedulesScreen() {
 
   // ── Submitting ─────────────────────────────────────────────────────────────
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const isSubmittingRef = useRef(false);
 
   // ─── Create Schedule form ──────────────────────────────────────────────────
   const [scheduleName, setScheduleName] = useState("");
@@ -153,6 +154,7 @@ export function useCommissionSchedulesScreen() {
   };
 
   const handleCreateSchedule = async () => {
+    if (isSubmittingRef.current) return;
     if (!scheduleName.trim()) {
       showMsg("error", "Schedule name is required.");
       return;
@@ -161,6 +163,7 @@ export function useCommissionSchedulesScreen() {
       showMsg("error", "No company context found.");
       return;
     }
+    isSubmittingRef.current = true;
     setIsSubmitting(true);
     const result = await dispatch(
       createCommissionSchedule({
@@ -169,10 +172,12 @@ export function useCommissionSchedulesScreen() {
         description: scheduleDesc.trim() || null,
       }),
     );
+    isSubmittingRef.current = false;
     setIsSubmitting(false);
     if (createCommissionSchedule.fulfilled.match(result)) {
       setIsCreateScheduleOpen(false);
       showMsg("success", "Schedule created successfully.");
+      await selectSchedule(result.payload.id);
     } else {
       showMsg("error", (result.payload as string) ?? "Failed to create schedule.");
     }
