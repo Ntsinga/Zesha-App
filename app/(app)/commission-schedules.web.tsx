@@ -308,6 +308,7 @@ export default function CommissionSchedulesPage() {
     isAddRuleOpen,
     openAddRule,
     closeAddRule,
+    addRuleError,
     ruleTransactionType,
     setRuleTransactionType,
     ruleTransactionSubtype,
@@ -1212,6 +1213,25 @@ export default function CommissionSchedulesPage() {
               </button>
             </div>
             <div className="modal-form">
+              {/* Inline error shown inside the modal so it's never hidden behind the overlay */}
+              {addRuleError && (
+                <div
+                  style={{
+                    background: "var(--color-danger-light)",
+                    color: "var(--color-danger)",
+                    borderRadius: 8,
+                    padding: "10px 14px",
+                    fontSize: 13,
+                    marginBottom: 16,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                  }}
+                >
+                  <X size={14} />
+                  {addRuleError}
+                </div>
+              )}
               {/* Guidance */}
               <div
                 style={{
