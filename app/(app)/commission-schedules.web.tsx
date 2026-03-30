@@ -1,9 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   Plus,
   RefreshCw,
   X,
   ChevronRight,
+  ChevronDown,
   ArrowLeft,
   Copy,
   Trash2,
@@ -37,6 +38,19 @@ const RULE_TYPE_LABELS: Record<CommissionRuleTypeEnum, string> = {
   PERCENTAGE: "Percentage",
   TIERED_FLAT: "Tiered Flat",
 };
+
+const amountFormatter = new Intl.NumberFormat("en-US", {
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 2,
+});
+
+function formatAmount(value: number | null | undefined): string {
+  if (value == null) {
+    return "-";
+  }
+
+  return amountFormatter.format(value);
+}
 
 // ─── Tier row (shared between add-rule and edit-tiers modals) ─────────────────
 
@@ -116,7 +130,7 @@ function TierRow({ tier, index, canRemove, onChange, onRemove }: TierRowProps) {
       </div>
       <div className="form-row" style={{ gap: 8 }}>
         <div className="form-group" style={{ marginBottom: 0 }}>
-          <label style={{ fontSize: 11 }}>Customer Charge</label>
+          <label style={{ fontSize: 11 }}>Customer Charge <span style={{ fontWeight: 400, color: "var(--color-text-muted)" }}>(optional)</span></label>
           <input
             className="form-input"
             type="number"
@@ -144,120 +158,220 @@ function TierRow({ tier, index, canRemove, onChange, onRemove }: TierRowProps) {
   );
 }
 
-// ─── Rule card ────────────────────────────────────────────────────────────────
+// ─── Rule group row (collapsed by transaction type, expands on click) ────────
 
-interface RuleCardProps {
-  rule: CommissionRule;
+interface RuleGroupRowProps {
+  txType: TransactionTypeEnum;
+  rules: CommissionRule[];
+  isExpanded: boolean;
+  onToggle: () => void;
   onDeactivate: (id: number) => void;
   onEditTiers: (rule: CommissionRule) => void;
   isSubmitting: boolean;
 }
 
-function RuleCard({ rule, onDeactivate, onEditTiers, isSubmitting }: RuleCardProps) {
+function RuleGroupRow({
+  txType,
+  rules,
+  isExpanded,
+  onToggle,
+  onDeactivate,
+  onEditTiers,
+  isSubmitting,
+}: RuleGroupRowProps) {
+  const activeCount = rules.filter((r) => r.isActive).length;
+  const Icon = isExpanded ? ChevronDown : ChevronRight;
+
   return (
     <div
       style={{
         border: "1px solid var(--color-border)",
         borderRadius: 10,
-        padding: "14px 16px",
-        background: rule.isActive ? "white" : "var(--color-bg)",
-        opacity: rule.isActive ? 1 : 0.7,
+        overflow: "hidden",
+        background: "white",
       }}
     >
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+      {/* ── Collapsed header row ── */}
+      <button
+        type="button"
+        onClick={onToggle}
+        style={{
+          width: "100%",
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          padding: "14px 16px",
+          background: "none",
+          border: "none",
+          cursor: "pointer",
+          textAlign: "left",
+        }}
+      >
+        <Icon size={16} style={{ color: "var(--color-text-secondary)", flexShrink: 0 }} />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 4 }}>
-            <span
-              className={`status-badge ${rule.isActive ? "passed" : "failed"}`}
-            >
-              {rule.isActive ? "Active" : "Inactive"}
-            </span>
-            <span
+          <span style={{ fontSize: 14, fontWeight: 600, color: "var(--color-text)" }}>
+            {TX_TYPE_LABELS[txType]}
+          </span>
+        </div>
+        <span
+          style={{
+            fontSize: 12,
+            color: activeCount > 0 ? "var(--color-success)" : "var(--color-text-muted)",
+            fontWeight: 500,
+            flexShrink: 0,
+          }}
+        >
+          {activeCount} active rule{activeCount !== 1 ? "s" : ""}
+        </span>
+        {rules.some((r) => r.ruleType === "PERCENTAGE" && r.isActive) && (
+          <span
+            style={{
+              fontSize: 11,
+              fontWeight: 600,
+              background: "#dbeafe",
+              color: "#1d4ed8",
+              padding: "2px 8px",
+              borderRadius: 20,
+              flexShrink: 0,
+            }}
+          >
+            %
+          </span>
+        )}
+        {rules.some((r) => r.ruleType === "TIERED_FLAT" && r.isActive) && (
+          <span
+            style={{
+              fontSize: 11,
+              fontWeight: 600,
+              background: "#ede9fe",
+              color: "#7c3aed",
+              padding: "2px 8px",
+              borderRadius: 20,
+              flexShrink: 0,
+            }}
+          >
+            Tiered
+          </span>
+        )}
+      </button>
+
+      {/* ── Expanded detail panel ── */}
+      {isExpanded && (
+        <div
+          style={{
+            borderTop: "1px solid var(--color-border)",
+            padding: "12px 16px",
+            display: "flex",
+            flexDirection: "column",
+            gap: 12,
+          }}
+        >
+          {[
+            ...rules.filter((r) => r.isActive),
+            ...rules.filter((r) => !r.isActive),
+          ].map((rule) => (
+            <div
+              key={rule.id}
               style={{
-                fontSize: 11,
-                fontWeight: 600,
-                background: rule.ruleType === "PERCENTAGE" ? "#dbeafe" : "#ede9fe",
-                color: rule.ruleType === "PERCENTAGE" ? "#1d4ed8" : "#7c3aed",
-                padding: "2px 8px",
-                borderRadius: 20,
+                background: rule.isActive ? "var(--color-bg)" : "#f9f9f9",
+                border: "1px solid var(--color-border)",
+                borderRadius: 8,
+                padding: "12px 14px",
+                opacity: rule.isActive ? 1 : 0.65,
               }}
             >
-              {RULE_TYPE_LABELS[rule.ruleType]}
-            </span>
-          </div>
-          <div style={{ fontSize: 14, fontWeight: 600, color: "var(--color-text)" }}>
-            {TX_TYPE_LABELS[rule.transactionType]}
-            {rule.transactionSubtype && (
-              <span style={{ fontSize: 12, color: "var(--color-text-secondary)", fontWeight: 400, marginLeft: 6 }}>
-                ({rule.transactionSubtype.replace(/_/g, " ")})
-              </span>
-            )}
-          </div>
-          {rule.ruleType === "PERCENTAGE" && rule.rate != null && (
-            <div style={{ fontSize: 13, color: "var(--color-text-secondary)", marginTop: 4 }}>
-              Rate: <strong>{rule.rate}%</strong>
-              {rule.volumeCap != null && <span style={{ marginLeft: 10 }}>Volume cap: {rule.volumeCap}</span>}
-              {rule.commissionCap != null && <span style={{ marginLeft: 10 }}>Commission cap: {rule.commissionCap}</span>}
-            </div>
-          )}
-          {rule.ruleType === "TIERED_FLAT" && (
-            <div style={{ fontSize: 13, color: "var(--color-text-secondary)", marginTop: 4 }}>
-              {rule.tiers.length} tier{rule.tiers.length !== 1 ? "s" : ""} defined
-            </div>
-          )}
-        </div>
+              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 4 }}>
+                    <span className={`status-badge ${rule.isActive ? "passed" : "failed"}`}>
+                      {rule.isActive ? "Active" : "Inactive"}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 600,
+                        background: rule.ruleType === "PERCENTAGE" ? "#dbeafe" : "#ede9fe",
+                        color: rule.ruleType === "PERCENTAGE" ? "#1d4ed8" : "#7c3aed",
+                        padding: "2px 8px",
+                        borderRadius: 20,
+                      }}
+                    >
+                      {RULE_TYPE_LABELS[rule.ruleType]}
+                    </span>
+                    {rule.transactionSubtype && (
+                      <span style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>
+                        {rule.transactionSubtype.replace(/_/g, " ")}
+                      </span>
+                    )}
+                  </div>
+                  {rule.ruleType === "PERCENTAGE" && rule.rate != null && (
+                    <div style={{ fontSize: 13, color: "var(--color-text-secondary)", marginTop: 4 }}>
+                      Rate: <strong>{rule.rate}%</strong>
+                      {rule.volumeCap != null && <span style={{ marginLeft: 10 }}>Volume cap: {formatAmount(rule.volumeCap)}</span>}
+                      {rule.commissionCap != null && <span style={{ marginLeft: 10 }}>Commission cap: {formatAmount(rule.commissionCap)}</span>}
+                    </div>
+                  )}
+                  {rule.ruleType === "TIERED_FLAT" && (
+                    <div style={{ fontSize: 13, color: "var(--color-text-secondary)", marginTop: 4 }}>
+                      {rule.tiers.length} tier{rule.tiers.length !== 1 ? "s" : ""} defined
+                    </div>
+                  )}
+                </div>
+                <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                  {rule.ruleType === "TIERED_FLAT" && rule.isActive && (
+                    <button
+                      className="btn-secondary btn-sm"
+                      onClick={() => onEditTiers(rule)}
+                      disabled={isSubmitting}
+                      title="Edit tiers"
+                    >
+                      <Layers size={13} />
+                      Tiers
+                    </button>
+                  )}
+                  {rule.isActive && (
+                    <button
+                      className="btn-secondary btn-sm"
+                      onClick={() => onDeactivate(rule.id)}
+                      disabled={isSubmitting}
+                      title="Deactivate rule"
+                      style={{ color: "var(--color-danger)", borderColor: "var(--color-danger)" }}
+                    >
+                      <Power size={13} />
+                    </button>
+                  )}
+                </div>
+              </div>
 
-        <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-          {rule.ruleType === "TIERED_FLAT" && rule.isActive && (
-            <button
-              className="btn-secondary btn-sm"
-              onClick={() => onEditTiers(rule)}
-              disabled={isSubmitting}
-              title="Edit tiers"
-            >
-              <Layers size={13} />
-              Tiers
-            </button>
-          )}
-          {rule.isActive && (
-            <button
-              className="btn-secondary btn-sm"
-              onClick={() => onDeactivate(rule.id)}
-              disabled={isSubmitting}
-              title="Deactivate rule"
-              style={{ color: "var(--color-danger)", borderColor: "var(--color-danger)" }}
-            >
-              <Power size={13} />
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Tier preview for TIERED_FLAT */}
-      {rule.ruleType === "TIERED_FLAT" && rule.tiers.length > 0 && (
-        <div style={{ marginTop: 10, overflowX: "auto" }}>
-          <table className="data-table" style={{ fontSize: 12 }}>
-            <thead>
-              <tr>
-                <th>Min</th>
-                <th>Max</th>
-                <th>Customer Charge</th>
-                <th>Agent Commission</th>
-              </tr>
-            </thead>
-            <tbody>
-              {[...rule.tiers]
-                .sort((a, b) => a.sortOrder - b.sortOrder)
-                .map((tier) => (
-                  <tr key={tier.id}>
-                    <td>{tier.minAmount}</td>
-                    <td>{tier.maxAmount ?? "∞"}</td>
-                    <td>{tier.customerChargeAmount}</td>
-                    <td>{tier.agentCommissionAmount}</td>
-                  </tr>
-                ))}
-            </tbody>
-          </table>
+              {/* Tier table */}
+              {rule.ruleType === "TIERED_FLAT" && rule.tiers.length > 0 && (
+                <div style={{ marginTop: 10, overflowX: "auto" }}>
+                  <table className="data-table" style={{ fontSize: 12 }}>
+                    <thead>
+                      <tr>
+                        <th>Min</th>
+                        <th>Max</th>
+                        <th>Customer Charge</th>
+                        <th>Agent Commission</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {[...rule.tiers]
+                        .sort((a, b) => a.sortOrder - b.sortOrder)
+                        .map((tier) => (
+                          <tr key={tier.id}>
+                            <td>{formatAmount(tier.minAmount)}</td>
+                            <td>{tier.maxAmount != null ? formatAmount(tier.maxAmount) : "∞"}</td>
+                            <td>{tier.customerChargeAmount != null ? formatAmount(tier.customerChargeAmount) : "—"}</td>
+                            <td>{formatAmount(tier.agentCommissionAmount)}</td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       )}
     </div>
@@ -270,6 +384,20 @@ export default function CommissionSchedulesPage() {
   const screen = useCommissionSchedulesScreen();
   const [showGuidance, setShowGuidance] = useState(true);
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
+
+  // Scroll to the inline error banner when it appears inside the Add Rule modal
+  const addRuleErrorRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (screen.addRuleError) {
+      addRuleErrorRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  }, [screen.addRuleError]);
+
+  // Track which transaction-type group is expanded in the rule list
+  const [expandedRuleGroup, setExpandedRuleGroup] = useState<string | null>(null);
+
+  const toggleRuleGroup = (key: string) =>
+    setExpandedRuleGroup((prev) => (prev === key ? null : key));
 
   const {
     schedules,
@@ -659,22 +787,34 @@ export default function CommissionSchedulesPage() {
                         style={{
                           display: "flex",
                           flexDirection: "column",
-                          gap: 12,
+                          gap: 10,
                         }}
                       >
-                        {/* Active rules first */}
-                        {[
-                          ...selectedSchedule.rules.filter((r) => r.isActive),
-                          ...selectedSchedule.rules.filter((r) => !r.isActive),
-                        ].map((rule) => (
-                          <RuleCard
-                            key={rule.id}
-                            rule={rule}
-                            onDeactivate={handleDeactivateRule}
-                            onEditTiers={openEditTiers}
-                            isSubmitting={isSubmitting}
-                          />
-                        ))}
+                        {/* Group rules by transaction type, preserving display order */}
+                        {([
+                          "DEPOSIT",
+                          "WITHDRAW",
+                          "FLOAT_PURCHASE",
+                          "CAPITAL_INJECTION",
+                        ] as TransactionTypeEnum[]).map((txType) => {
+                          const group = selectedSchedule.rules.filter(
+                            (r) => r.transactionType === txType,
+                          );
+                          if (group.length === 0) return null;
+                          const groupKey = txType;
+                          return (
+                            <RuleGroupRow
+                              key={groupKey}
+                              txType={txType}
+                              rules={group}
+                              isExpanded={expandedRuleGroup === groupKey}
+                              onToggle={() => toggleRuleGroup(groupKey)}
+                              onDeactivate={handleDeactivateRule}
+                              onEditTiers={openEditTiers}
+                              isSubmitting={isSubmitting}
+                            />
+                          );
+                        })}
                       </div>
                     )}
                   </div>
@@ -1216,6 +1356,7 @@ export default function CommissionSchedulesPage() {
               {/* Inline error shown inside the modal so it's never hidden behind the overlay */}
               {addRuleError && (
                 <div
+                  ref={addRuleErrorRef}
                   style={{
                     background: "var(--color-danger-light)",
                     color: "var(--color-danger)",
