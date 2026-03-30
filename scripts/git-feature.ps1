@@ -25,6 +25,27 @@ if ([string]::IsNullOrWhiteSpace($trimmedBranchName)) {
 
 $sharedBranchName = "feature/$trimmedBranchName"
 
+function Get-DevelopBranchName {
+  param(
+    [string]$RepositoryRoot
+  )
+
+  Push-Location $RepositoryRoot
+
+  try {
+    $developBranch = git config --get gitflow.branch.develop
+
+    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($developBranch)) {
+      return 'develop'
+    }
+
+    return $developBranch.Trim()
+  }
+  finally {
+    Pop-Location
+  }
+}
+
 function Invoke-Git {
   param(
     [string]$RepositoryRoot,
@@ -96,6 +117,39 @@ function Assert-BranchMissing {
   }
 }
 
+function Assert-LocalBranchExists {
+  param(
+    [string]$RepositoryRoot,
+    [string]$RepositoryLabel,
+    [string]$Name
+  )
+
+  Push-Location $RepositoryRoot
+
+  try {
+    & git show-ref --verify --quiet "refs/heads/$Name"
+
+    if ($LASTEXITCODE -ne 0) {
+      throw "$RepositoryLabel does not have a local branch named $Name. Create it first or run git flow init with that develop branch."
+    }
+  }
+  finally {
+    Pop-Location
+  }
+}
+
+function Update-DevelopBranch {
+  param(
+    [string]$RepositoryRoot,
+    [string]$RepositoryLabel,
+    [string]$DevelopBranch
+  )
+
+  Assert-LocalBranchExists -RepositoryRoot $RepositoryRoot -RepositoryLabel $RepositoryLabel -Name $DevelopBranch
+  Invoke-Git -RepositoryRoot $RepositoryRoot -Arguments @('switch', $DevelopBranch)
+  Invoke-Git -RepositoryRoot $RepositoryRoot -Arguments @('pull', '--ff-only', 'origin', $DevelopBranch)
+}
+
 function New-FeatureBranch {
   param(
     [string]$RepositoryRoot,
@@ -104,23 +158,11 @@ function New-FeatureBranch {
   )
 
   Assert-CleanWorkingTree -RepositoryRoot $RepositoryRoot -RepositoryLabel $RepositoryLabel
-  Invoke-Git -RepositoryRoot $RepositoryRoot -Arguments @('fetch', 'origin', 'develop')
-
-  Push-Location $RepositoryRoot
-
-  try {
-    & git show-ref --verify --quiet 'refs/remotes/origin/develop'
-
-    if ($LASTEXITCODE -ne 0) {
-      throw "$RepositoryLabel does not have origin/develop"
-    }
-  }
-  finally {
-    Pop-Location
-  }
+  $developBranch = Get-DevelopBranchName -RepositoryRoot $RepositoryRoot
 
   Assert-BranchMissing -RepositoryRoot $RepositoryRoot -RepositoryLabel $RepositoryLabel -Name $Name
-  Invoke-Git -RepositoryRoot $RepositoryRoot -Arguments @('switch', '-c', $Name, '--track', 'origin/develop')
+  Update-DevelopBranch -RepositoryRoot $RepositoryRoot -RepositoryLabel $RepositoryLabel -DevelopBranch $developBranch
+  Invoke-Git -RepositoryRoot $RepositoryRoot -Arguments @('switch', '-c', $Name)
 }
 
 New-FeatureBranch -RepositoryRoot $frontendRoot -RepositoryLabel 'Frontend' -Name $sharedBranchName
