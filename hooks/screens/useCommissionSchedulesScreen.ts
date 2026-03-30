@@ -249,8 +249,8 @@ export function useCommissionSchedulesScreen() {
           setAddRuleError("Each tier must have a valid minimum amount.");
           return;
         }
-        if (!tier.customerChargeAmount || isNaN(Number(tier.customerChargeAmount))) {
-          setAddRuleError("Each tier must have a valid customer charge.");
+        if (tier.customerChargeAmount !== "" && isNaN(Number(tier.customerChargeAmount))) {
+          setAddRuleError("Customer charge must be a valid number when provided.");
           return;
         }
         if (!tier.agentCommissionAmount || isNaN(Number(tier.agentCommissionAmount))) {
@@ -265,7 +265,7 @@ export function useCommissionSchedulesScreen() {
         ? ruleTiers.map((t, i) => ({
             minAmount: Number(t.minAmount),
             maxAmount: t.maxAmount ? Number(t.maxAmount) : null,
-            customerChargeAmount: Number(t.customerChargeAmount),
+            customerChargeAmount: t.customerChargeAmount !== "" ? Number(t.customerChargeAmount) : null,
             agentCommissionAmount: Number(t.agentCommissionAmount),
             sortOrder: i + 1,
           }))
@@ -323,7 +323,7 @@ export function useCommissionSchedulesScreen() {
           id: t.id.toString(),
           minAmount: String(t.minAmount),
           maxAmount: t.maxAmount != null ? String(t.maxAmount) : "",
-          customerChargeAmount: String(t.customerChargeAmount),
+          customerChargeAmount: t.customerChargeAmount != null ? String(t.customerChargeAmount) : "",
           agentCommissionAmount: String(t.agentCommissionAmount),
         })),
       );
@@ -340,8 +340,8 @@ export function useCommissionSchedulesScreen() {
         showMsg("error", "Each tier needs a valid minimum amount.");
         return;
       }
-      if (!tier.customerChargeAmount || isNaN(Number(tier.customerChargeAmount))) {
-        showMsg("error", "Each tier needs a valid customer charge.");
+      if (tier.customerChargeAmount !== "" && isNaN(Number(tier.customerChargeAmount))) {
+        showMsg("error", "Customer charge must be a valid number when provided.");
         return;
       }
       if (!tier.agentCommissionAmount || isNaN(Number(tier.agentCommissionAmount))) {
@@ -357,7 +357,7 @@ export function useCommissionSchedulesScreen() {
         tiers: editTiers.map((t, i) => ({
           minAmount: Number(t.minAmount),
           maxAmount: t.maxAmount ? Number(t.maxAmount) : null,
-          customerChargeAmount: Number(t.customerChargeAmount),
+          customerChargeAmount: t.customerChargeAmount !== "" ? Number(t.customerChargeAmount) : null,
           agentCommissionAmount: Number(t.agentCommissionAmount),
           sortOrder: i + 1,
         })),

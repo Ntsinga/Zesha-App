@@ -15,7 +15,7 @@ export interface CommissionTier extends BaseModel {
   ruleId: number;
   minAmount: number;
   maxAmount: number | null; // null = open-ended top tier
-  customerChargeAmount: number;
+  customerChargeAmount: number | null; // null = not applicable / not tracked
   agentCommissionAmount: number;
   sortOrder: number;
 }
@@ -23,7 +23,7 @@ export interface CommissionTier extends BaseModel {
 export interface CommissionTierCreate {
   minAmount: number;
   maxAmount: number | null;
-  customerChargeAmount: number;
+  customerChargeAmount: number | null; // null = not applicable / not tracked
   agentCommissionAmount: number;
   sortOrder: number;
 }

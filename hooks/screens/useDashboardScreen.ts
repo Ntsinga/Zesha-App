@@ -9,6 +9,11 @@ import { useAutoRefreshOnReconnect } from "../useAutoRefreshOnReconnect";
 import type { ShiftEnum } from "../../types";
 import type { AppDispatch, RootState } from "../../store";
 
+function parseUtcDateString(value: string): Date {
+  const hasExplicitTimezone = /[zZ]|[+-]\d{2}:?\d{2}$/.test(value);
+  return new Date(hasExplicitTimezone ? value : `${value}Z`);
+}
+
 /**
  * Shared Dashboard screen hook - contains all business logic
  * Used by both web and native Dashboard components
@@ -145,7 +150,7 @@ export function useDashboardScreen() {
         ? ` · ${transactionsSinceRecon} txn${transactionsSinceRecon !== 1 ? "s" : ""}`
         : "";
     if (lastReconBoundary) {
-      const t = new Date(lastReconBoundary).toLocaleTimeString("en-ZA", {
+      const t = parseUtcDateString(lastReconBoundary).toLocaleTimeString("en-ZA", {
         hour: "2-digit",
         minute: "2-digit",
       });
