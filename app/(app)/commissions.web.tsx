@@ -257,7 +257,9 @@ export default function CommissionsPage() {
                     </td>
                     <td>{formatCurrency(ec.transactionAmount)}</td>
                     <td style={{ color: "#7c3aed", fontWeight: 500 }}>
-                      {parseFloat(String(ec.commissionRate))}%
+                      {ec.commissionRate == null
+                        ? "tiered"
+                        : `${parseFloat(String(ec.commissionRate))}%`}
                     </td>
                     <td
                       style={{

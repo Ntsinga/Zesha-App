@@ -9,7 +9,7 @@ import type { Account } from "./account";
  * Lightweight commission info embedded in Transaction read
  */
 export interface ExpectedCommissionBrief {
-  commissionRate: number;
+  commissionRate: number | null;
   commissionAmount: number;
 }
 
