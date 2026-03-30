@@ -4,7 +4,7 @@
   "main": "index.tsx",
   "scripts": {
     "start": "expo start",
-    "dev:frontend": "expo start",
+    "dev:frontend": "powershell -ExecutionPolicy Bypass -File .\\scripts\\dev-frontend.ps1",
     "dev:fullstack": "powershell -ExecutionPolicy Bypass -File .\\scripts\\dev-fullstack.ps1",
     "android": "expo start --android",
     "ios": "expo start --ios",
