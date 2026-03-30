@@ -93,7 +93,9 @@ function CommissionItem({
           </Text>
           <Text className="text-xs text-gray-400">
             {formatCurrency(ec.transactionAmount)} ×{" "}
-            {parseFloat(String(ec.commissionRate))}%
+            {ec.commissionRate == null
+              ? "tiered"
+              : `${parseFloat(String(ec.commissionRate))}%`}
           </Text>
         </View>
       </View>

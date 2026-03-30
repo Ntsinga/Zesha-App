@@ -129,7 +129,7 @@ export interface ExpectedCommission {
   accountName: string | null;
   transactionType: "DEPOSIT" | "WITHDRAW";
   transactionAmount: number;
-  commissionRate: number;
+  commissionRate: number | null;
   commissionAmount: number;
   shift: ShiftEnum;
   date: string;
