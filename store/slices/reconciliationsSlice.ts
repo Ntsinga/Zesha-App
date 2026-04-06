@@ -87,7 +87,8 @@ export const fetchReconciliations = createAsyncThunk<
     try {
       // Get companyId from auth state
       const state = getState();
-      const companyId = state.auth.viewingAgencyId || state.auth.user?.companyId;
+      const companyId =
+        state.auth.viewingAgencyId || state.auth.user?.companyId;
 
       if (!companyId) {
         return rejectWithValue("No companyId found. Please log in again.");
@@ -99,7 +100,9 @@ export const fetchReconciliations = createAsyncThunk<
         if (state.reconciliations.items.length > 0) {
           return state.reconciliations.items;
         }
-        return rejectWithValue("You're offline and no cached data is available.");
+        return rejectWithValue(
+          "You're offline and no cached data is available.",
+        );
       }
 
       const query = buildTypedQueryString({ ...filters, companyId });
@@ -210,7 +213,8 @@ export const fetchReconciliationHistory = createAsyncThunk<
     try {
       // Get companyId from auth state
       const state = getState();
-      const companyId = state.auth.viewingAgencyId || state.auth.user?.companyId;
+      const companyId =
+        state.auth.viewingAgencyId || state.auth.user?.companyId;
 
       if (!companyId) {
         return rejectWithValue("No companyId found. Please log in again.");
@@ -242,7 +246,8 @@ export const calculateReconciliation = createAsyncThunk<
     try {
       // Get companyId from auth state
       const state = getState();
-      const companyId = state.auth.viewingAgencyId || state.auth.user?.companyId;
+      const companyId =
+        state.auth.viewingAgencyId || state.auth.user?.companyId;
 
       if (!companyId) {
         return rejectWithValue("No companyId found. Please log in again.");
@@ -383,13 +388,17 @@ export const fetchBalanceValidation = createAsyncThunk<
   async (params, { getState, rejectWithValue }) => {
     try {
       const state = getState();
-      const companyId = state.auth.viewingAgencyId || state.auth.user?.companyId;
+      const companyId =
+        state.auth.viewingAgencyId || state.auth.user?.companyId;
 
       if (!companyId) {
         return rejectWithValue("No companyId found. Please log in again.");
       }
 
-      const query = buildTypedQueryString({ companyId, subtype: params.subtype });
+      const query = buildTypedQueryString({
+        companyId,
+        subtype: params.subtype,
+      });
       // Backend returns { has_discrepancies, discrepancy_count, discrepancies: [...] }
       // We extract the discrepancies array and map it to camelCase
       const response = await secureApiRequest<{
@@ -399,7 +408,9 @@ export const fetchBalanceValidation = createAsyncThunk<
       }>(
         `${API_ENDPOINTS.reconciliations.balanceValidation(params.date, params.shift, params.subtype)}${query}`,
       );
-      const items = Array.isArray(response?.discrepancies) ? response.discrepancies : [];
+      const items = Array.isArray(response?.discrepancies)
+        ? response.discrepancies
+        : [];
       return mapApiResponse<BalanceValidationResult[]>(items);
     } catch (error) {
       return rejectWithValue(
@@ -422,13 +433,17 @@ export const fetchReconciliationDetails = createAsyncThunk<
     try {
       // Get companyId from auth state
       const state = getState();
-      const companyId = state.auth.viewingAgencyId || state.auth.user?.companyId;
+      const companyId =
+        state.auth.viewingAgencyId || state.auth.user?.companyId;
 
       if (!companyId) {
         return rejectWithValue("No companyId found. Please log in again.");
       }
 
-      const query = buildTypedQueryString({ companyId, subtype: params.subtype });
+      const query = buildTypedQueryString({
+        companyId,
+        subtype: params.subtype,
+      });
       const details = await apiRequest<ReconciliationDetail>(
         `${API_ENDPOINTS.reconciliations.details(params.date, params.shift)}${query}`,
       );
@@ -459,7 +474,8 @@ export const fetchShiftStatus = createAsyncThunk<
   async (params, { getState, rejectWithValue }) => {
     try {
       const state = getState();
-      const companyId = state.auth.viewingAgencyId || state.auth.user?.companyId;
+      const companyId =
+        state.auth.viewingAgencyId || state.auth.user?.companyId;
 
       if (!companyId) {
         return rejectWithValue("No companyId found. Please log in again.");
@@ -472,9 +488,7 @@ export const fetchShiftStatus = createAsyncThunk<
       return status;
     } catch (error) {
       return rejectWithValue(
-        error instanceof Error
-          ? error.message
-          : "Failed to fetch shift status",
+        error instanceof Error ? error.message : "Failed to fetch shift status",
       );
     }
   },
@@ -615,6 +629,18 @@ const reconciliationsSlice = createSlice({
       .addCase(calculateReconciliation.fulfilled, (state, action) => {
         state.isCalculating = false;
         state.calculatedResult = action.payload;
+        // Merge fresh totals back into reconciliationDetails so the UI reflects
+        // the updated commission, float, cash and variance values immediately.
+        if (state.reconciliationDetails?.reconciliation) {
+          const r = state.reconciliationDetails.reconciliation;
+          const res = action.payload;
+          r.totalCommissions = res.commissionTotal;
+          r.totalFloat = res.reportedTotals.totalFloat;
+          r.totalCash = res.reportedTotals.totalCash;
+          r.actualClosing = res.reportedTotals.grandTotal;
+          r.variance = res.variances.grandVariance;
+          r.status = res.status;
+        }
       })
       .addCase(calculateReconciliation.rejected, (state, action) => {
         state.isCalculating = false;

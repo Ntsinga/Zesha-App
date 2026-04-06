@@ -658,6 +658,19 @@ body {
   text-align: center;
 }
 
+/* Global alignment utilities (used on th/td without a parent .table class) */
+.text-right {
+  text-align: right;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.text-left {
+  text-align: left;
+}
+
 /* Badges */
 .badge {
   display: inline-flex;
