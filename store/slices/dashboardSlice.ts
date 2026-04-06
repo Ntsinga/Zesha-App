@@ -4,7 +4,7 @@ import type {
   CompanySnapshot,
   DashboardSummary,
   ShiftEnum,
-  Balance,
+  Account,
   CompanyInfo,
   CommissionBreakdown,
   LiveCapitalSnapshot,
@@ -158,30 +158,25 @@ export const fetchDashboard = createAsyncThunk<
       companyId,
     )}${query}`;
 
-    // Build balance query
-    const balanceQuery = buildTypedQueryString({
-      dateFrom: snapshotDate,
-      dateTo: snapshotDate,
-      shift: shift,
-      companyId: companyId,
-    });
+    // Build accounts query (for current float balances from last transaction)
+    const accountsQuery = buildTypedQueryString({ companyId: companyId });
 
-    // Fetch snapshot, balances, and live capital in PARALLEL for better performance
+    // Fetch snapshot, accounts, and live capital in PARALLEL for better performance
     const liveEndpoint = API_ENDPOINTS.companyInfo.liveSnapshot(companyId);
-    const [snapshot, balances, liveCapital] = await Promise.all([
+    const [snapshot, fetchedAccounts, liveCapital] = await Promise.all([
       apiRequest<CompanySnapshot>(snapshotEndpoint),
-      apiRequest<Balance[]>(`${API_ENDPOINTS.balances.list}${balanceQuery}`),
+      apiRequest<Account[]>(`${API_ENDPOINTS.accounts.list}${accountsQuery}`),
       apiRequest<LiveCapitalSnapshot>(liveEndpoint).catch(() => null),
     ]);
 
-    // Transform balances to AccountSummary format
-    const accounts: AccountSummary[] = balances.map((b) => ({
-        accountId: b.accountId,
-        accountName: b.account?.name || `Account ${b.accountId}`,
-        balance: b.amount,
-        shift: b.shift,
-        imageUrl: b.imageUrl,
-    }));
+    // Build account summaries using current_balance (running balance from last transaction)
+    const accounts: AccountSummary[] = fetchedAccounts
+      .filter((a) => a.isActive)
+      .map((a) => ({
+        accountId: a.id,
+        accountName: a.name,
+        balance: a.currentBalance ?? 0,
+      }));
 
     // Build summary from snapshot (including commission data)
     const summary: DashboardSummary = {
