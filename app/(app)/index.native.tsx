@@ -208,7 +208,9 @@ export default function DashboardNative() {
 
               {/* Total Expenses */}
               <View className="flex-row justify-between items-center py-3 border-t border-gray-100">
-                <Text className="text-gray-600 text-base">Today's Expenses</Text>
+                <Text className="text-gray-600 text-base">
+                  Today's Expenses
+                </Text>
                 <Text className="font-bold text-red-600 text-base">
                   {formatCurrency(todayExpenses)}
                 </Text>

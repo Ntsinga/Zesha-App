@@ -88,7 +88,9 @@ export default function Settings() {
               </div>
               <div className="card-body">
                 <p style={{ color: "#4B5563", marginBottom: 16 }}>
-                  You are in super admin mode{viewingAgencyName ? ` for ${viewingAgencyName}` : ""}. Company settings are only available after you enter an agency.
+                  You are in super admin mode
+                  {viewingAgencyName ? ` for ${viewingAgencyName}` : ""}.
+                  Company settings are only available after you enter an agency.
                 </p>
                 <button
                   className="btn-primary"
@@ -196,7 +198,9 @@ export default function Settings() {
                           : undefined
                       }
                     />
-                    <span style={{ fontSize: 12, color: "#9CA3AF", marginTop: 4 }}>
+                    <span
+                      style={{ fontSize: 12, color: "#9CA3AF", marginTop: 4 }}
+                    >
                       The total capital deployed across all accounts
                     </span>
                   </div>
@@ -220,8 +224,11 @@ export default function Settings() {
                           : undefined
                       }
                     />
-                    <span style={{ fontSize: 12, color: "#9CA3AF", marginTop: 4 }}>
-                      Capital not yet in circulation (deducted from expected total)
+                    <span
+                      style={{ fontSize: 12, color: "#9CA3AF", marginTop: 4 }}
+                    >
+                      Capital not yet in circulation (deducted from expected
+                      total)
                     </span>
                   </div>
                 </div>

@@ -59,9 +59,7 @@ export default function CommissionsPage() {
       <header className="header-bar">
         <div className="header-left">
           <h1 className="header-title">Expected Commissions</h1>
-          <span className="header-date">
-            Auto-calculated from transactions
-          </span>
+          <span className="header-date">Auto-calculated from transactions</span>
         </div>
         <div className="header-right">
           <button
@@ -126,7 +124,8 @@ export default function CommissionsPage() {
               </span>
               {topAccountSummary && (
                 <span className="stat-label">
-                  {formatCurrency(topAccountSummary.commissionAmount)} · {topAccountSummary.recordCount} txns
+                  {formatCurrency(topAccountSummary.commissionAmount)} ·{" "}
+                  {topAccountSummary.recordCount} txns
                 </span>
               )}
             </div>
@@ -137,7 +136,12 @@ export default function CommissionsPage() {
         <div className="filter-bar">
           <div
             className="filter-group"
-            style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              flexWrap: "wrap",
+            }}
           >
             <Filter size={16} />
 

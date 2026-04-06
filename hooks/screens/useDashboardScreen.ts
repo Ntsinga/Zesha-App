@@ -157,10 +157,13 @@ export function useDashboardScreen() {
         ? ` · ${transactionsSinceRecon} txn${transactionsSinceRecon !== 1 ? "s" : ""}`
         : "";
     if (lastReconBoundary) {
-      const t = parseUtcDateString(lastReconBoundary).toLocaleTimeString("en-ZA", {
-        hour: "2-digit",
-        minute: "2-digit",
-      });
+      const t = parseUtcDateString(lastReconBoundary).toLocaleTimeString(
+        "en-ZA",
+        {
+          hour: "2-digit",
+          minute: "2-digit",
+        },
+      );
       return `Live since ${t}${sincePart}`;
     }
     if (lastReconDate) return `Based on recon ${lastReconDate}${sincePart}`;
@@ -245,9 +248,11 @@ export function useDashboardScreen() {
     });
   }, [accounts, commissionByAccountId]);
 
-  const topTransactionAccount = useMemo<
-    { accountId: number; accountName: string; transactionCount: number } | null
-  >(() => {
+  const topTransactionAccount = useMemo<{
+    accountId: number;
+    accountName: string;
+    transactionCount: number;
+  } | null>(() => {
     const firstAccount = sortedAccounts[0];
     if (!firstAccount) return null;
 
@@ -284,9 +289,11 @@ export function useDashboardScreen() {
     [dailyCommissionTransactions],
   );
 
-  const topCommissionAccount = useMemo<
-    { accountId: number; accountName: string; commissionAmount: number } | null
-  >(() => {
+  const topCommissionAccount = useMemo<{
+    accountId: number;
+    accountName: string;
+    commissionAmount: number;
+  } | null>(() => {
     const commissionsByAccount = new Map<
       number,
       { accountName: string; commissionAmount: number }
@@ -310,9 +317,11 @@ export function useDashboardScreen() {
       });
     });
 
-    let topEntry:
-      | { accountId: number; accountName: string; commissionAmount: number }
-      | null = null;
+    let topEntry: {
+      accountId: number;
+      accountName: string;
+      commissionAmount: number;
+    } | null = null;
 
     commissionsByAccount.forEach((value, accountId) => {
       if (!topEntry || value.commissionAmount > topEntry.commissionAmount) {

@@ -16,9 +16,7 @@ export function useCommissionsScreen() {
   const { items: expectedCommissions, isLoading } = useSelector(
     (state: RootState) => state.expectedCommissions,
   );
-  const { items: accounts } = useSelector(
-    (state: RootState) => state.accounts,
-  );
+  const { items: accounts } = useSelector((state: RootState) => state.accounts);
   const companyId = useSelector(
     (state: RootState) =>
       state.auth.viewingAgencyId || state.auth.user?.companyId,
@@ -124,7 +122,8 @@ export function useCommissionsScreen() {
 
     filteredCommissions.forEach((commission) => {
       const existing = totals.get(commission.accountId);
-      const accountName = commission.accountName || `Account #${commission.accountId}`;
+      const accountName =
+        commission.accountName || `Account #${commission.accountId}`;
 
       if (existing) {
         existing.commissionAmount += commission.commissionAmount;
@@ -142,23 +141,18 @@ export function useCommissionsScreen() {
     return totals;
   }, [filteredCommissions]);
 
-  const topCommissionAccount = useMemo<
-    | {
-        accountId: number;
-        accountName: string;
-        commissionAmount: number;
-        recordCount: number;
-      }
-    | null
-  >(() => {
-    let topEntry:
-      | {
-          accountId: number;
-          accountName: string;
-          commissionAmount: number;
-          recordCount: number;
-        }
-      | null = null;
+  const topCommissionAccount = useMemo<{
+    accountId: number;
+    accountName: string;
+    commissionAmount: number;
+    recordCount: number;
+  } | null>(() => {
+    let topEntry: {
+      accountId: number;
+      accountName: string;
+      commissionAmount: number;
+      recordCount: number;
+    } | null = null;
 
     commissionByAccount.forEach((value, accountId) => {
       if (!topEntry || value.commissionAmount > topEntry.commissionAmount) {
@@ -178,8 +172,10 @@ export function useCommissionsScreen() {
     return [...accounts]
       .filter((a) => a.isActive)
       .sort((left, right) => {
-        const leftCommission = commissionByAccount.get(left.id)?.commissionAmount ?? 0;
-        const rightCommission = commissionByAccount.get(right.id)?.commissionAmount ?? 0;
+        const leftCommission =
+          commissionByAccount.get(left.id)?.commissionAmount ?? 0;
+        const rightCommission =
+          commissionByAccount.get(right.id)?.commissionAmount ?? 0;
 
         if (rightCommission !== leftCommission) {
           return rightCommission - leftCommission;
