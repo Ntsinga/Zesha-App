@@ -1,10 +1,7 @@
 import React from "react";
 import { useRouter } from "expo-router";
 import {
-  TrendingUp,
-  TrendingDown,
   Wallet,
-  Camera,
   RefreshCw,
   Banknote,
   PiggyBank,
@@ -13,8 +10,6 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   ArrowLeftRight,
-  ArrowDownCircle,
-  ArrowUpCircle,
   CheckCircle,
   AlertTriangle,
   Clock,
@@ -32,16 +27,10 @@ export default function DashboardWeb() {
     refreshing,
     snapshotDate,
     accounts,
-    totalFloat,
-    totalCash,
-    grandTotal,
-    expectedGrandTotal,
     displayVariance,
     totalExpenses,
     todayExpenses,
-    outstandingBalance,
     totalCommission,
-    dailyCommission,
     totalBankCommission,
     totalTelecomCommission,
     telecomPendingCount,
@@ -50,9 +39,6 @@ export default function DashboardWeb() {
     bankVariance,
     telecomVariance,
     transactionCount,
-    dailyDeposits,
-    dailyWithdrawals,
-    recentTransactions,
     displayCapital,
     displayFloat,
     displayCash,
@@ -323,7 +309,7 @@ export default function DashboardWeb() {
           </div>
         </div>
 
-        {/* Bottom Section: Table + Quick Actions */}
+        {/* Bottom Section: Current Balances Table */}
         <div className="dashboard-bottom">
           {/* Accounts Table */}
           <div className="table-card">
@@ -342,7 +328,6 @@ export default function DashboardWeb() {
                 <tr>
                   <th>Account</th>
                   <th>Current Balance</th>
-                  <th>Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -352,16 +337,11 @@ export default function DashboardWeb() {
                     <td className="amount">
                       {formatCurrency(account.balance || 0)}
                     </td>
-                    <td>
-                      <button className="btn-view">
-                        <Camera size={14} /> View
-                      </button>
-                    </td>
                   </tr>
                 ))}
                 {accounts.length === 0 && (
                   <tr>
-                    <td colSpan={3} className="empty">
+                    <td colSpan={2} className="empty">
                       <PiggyBank size={40} />
                       <p>No accounts found</p>
                     </td>
@@ -369,133 +349,6 @@ export default function DashboardWeb() {
                 )}
               </tbody>
             </table>
-          </div>
-
-          {/* Quick Actions Sidebar */}
-          <div className="actions-card">
-            <h3>Quick Actions</h3>
-            <div className="actions-list">
-              <button
-                onClick={() => router.push("/balance")}
-                className="action-btn primary"
-              >
-                <Wallet size={20} />
-                <span>Daily Reconciliation</span>
-              </button>
-              <button
-                onClick={() => router.push("/transactions")}
-                className="action-btn"
-              >
-                <ArrowLeftRight size={20} />
-                <span>Record Transaction</span>
-              </button>
-              <button
-                onClick={() => router.push("/add-cash-count")}
-                className="action-btn"
-              >
-                <Banknote size={20} />
-                <span>Cash Count</span>
-              </button>
-              <button
-                onClick={() => router.push("/expenses")}
-                className="action-btn"
-              >
-                <Receipt size={20} />
-                <span>Add Expense</span>
-              </button>
-              <button
-                onClick={() => router.push("/history")}
-                className="action-btn"
-              >
-                <TrendingUp size={20} />
-                <span>View History</span>
-              </button>
-            </div>
-
-            {/* Recent Transactions Feed */}
-            {recentTransactions.length > 0 && (
-              <>
-                <h3 style={{ marginTop: 24 }}>Recent Transactions</h3>
-                <div
-                  style={{ display: "flex", flexDirection: "column", gap: 8 }}
-                >
-                  {recentTransactions.map((txn) => (
-                    <div
-                      key={txn.id}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 10,
-                        padding: "8px 12px",
-                        borderRadius: 10,
-                        backgroundColor: "#f8fafc",
-                        border: "1px solid #f1f5f9",
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: 28,
-                          height: 28,
-                          borderRadius: "50%",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          backgroundColor:
-                            txn.transactionType === "DEPOSIT"
-                              ? "#dcfce7"
-                              : txn.transactionType === "WITHDRAW"
-                                ? "#fef2f2"
-                                : "#e0e7ff",
-                        }}
-                      >
-                        {txn.transactionType === "DEPOSIT" ? (
-                          <ArrowDownCircle size={14} color="#16a34a" />
-                        ) : txn.transactionType === "WITHDRAW" ? (
-                          <ArrowUpCircle size={14} color="#dc2626" />
-                        ) : (
-                          <ArrowLeftRight size={14} color="#4f46e5" />
-                        )}
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div
-                          style={{
-                            fontSize: 13,
-                            fontWeight: 500,
-                            color: "#1e293b",
-                            whiteSpace: "nowrap",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                          }}
-                        >
-                          {txn.account?.name || `Account ${txn.accountId}`}
-                        </div>
-                        <div style={{ fontSize: 11, color: "#94a3b8" }}>
-                          {txn.transactionType === "FLOAT_PURCHASE"
-                            ? "Float"
-                            : txn.transactionType}{" "}
-                          · {txn.shift}
-                        </div>
-                      </div>
-                      <div
-                        style={{
-                          fontWeight: 600,
-                          fontSize: 13,
-                          color:
-                            txn.transactionType === "DEPOSIT"
-                              ? "#16a34a"
-                              : txn.transactionType === "WITHDRAW"
-                                ? "#dc2626"
-                                : "#4f46e5",
-                        }}
-                      >
-                        {txn.transactionType === "WITHDRAW" ? "-" : "+"}
-                        {formatCurrency(txn.amount || 0)}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </>
-            )}
           </div>
         </div>
       </div>
