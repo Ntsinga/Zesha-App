@@ -140,7 +140,7 @@ export default function BalanceDetailWeb() {
       {/* Header */}
       <header className="header-bar">
         <div className="header-left">
-          <button onClick={handleBack} className="btn-icon" title="Go back">
+          <button onClick={handleBack} className="btn-back" title="Go back">
             <ArrowLeft size={20} />
           </button>
           <div>
@@ -175,16 +175,64 @@ export default function BalanceDetailWeb() {
       </header>
 
       <div className="dashboard-content">
-        {/* Summary Cards Row */}
-        <div className="stats-row">
-          {/* Actual Closing Card */}
-          <div className="stat-card highlight">
-            <div className="stat-header">
-              <span className="stat-label">Actual Closing</span>
-              <span className={`status-badge ${status?.toLowerCase()}`}>
-                {status === "PASSED" && <CheckCircle size={12} />}
-                {status === "FAILED" && <AlertTriangle size={12} />}
-                {status === "FLAGGED" && <Clock size={12} />}
+        {/* Stats Row — single horizontal row of 4 (or 3 for Opening) cards */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: `repeat(${isOpening ? 3 : 4}, 1fr)`,
+            gap: 16,
+          }}
+        >
+          {/* Actual Closing */}
+          <div
+            style={{
+              background: "linear-gradient(135deg, #dc2626 0%, #991b1b 100%)",
+              color: "white",
+              padding: "20px 24px",
+              borderRadius: 14,
+              display: "flex",
+              flexDirection: "column",
+              gap: 6,
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <span
+                style={{
+                  fontSize: 11,
+                  fontWeight: 600,
+                  opacity: 0.8,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
+                }}
+              >
+                Actual Closing
+              </span>
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 4,
+                  padding: "2px 9px",
+                  borderRadius: 20,
+                  backgroundColor:
+                    status === "PASSED"
+                      ? "rgba(34,197,94,0.25)"
+                      : status === "FAILED"
+                        ? "rgba(0,0,0,0.2)"
+                        : "rgba(255,255,255,0.2)",
+                  fontSize: 11,
+                  fontWeight: 600,
+                }}
+              >
+                {status === "PASSED" && <CheckCircle size={11} />}
+                {status === "FAILED" && <AlertTriangle size={11} />}
+                {status === "FLAGGED" && <Clock size={11} />}
                 {status === "PASSED"
                   ? "Passed"
                   : status === "FAILED"
@@ -192,68 +240,130 @@ export default function BalanceDetailWeb() {
                     : "Flagged"}
               </span>
             </div>
-            <div className="stat-number large">
+            <div style={{ fontSize: 28, fontWeight: 800, lineHeight: 1.1 }}>
               {formatCurrency(actualClosing)}
             </div>
-            <div className="stat-breakdown">
+            <div
+              style={{
+                display: "flex",
+                gap: 20,
+                marginTop: 4,
+                paddingTop: 10,
+                borderTop: "1px solid rgba(255,255,255,0.2)",
+              }}
+            >
               <div>
-                <span className="text-xs">Float</span>
-                <div className="font-bold">{formatCurrency(totalFloat)}</div>
+                <span
+                  style={{
+                    fontSize: 10,
+                    opacity: 0.65,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.4px",
+                    display: "block",
+                  }}
+                >
+                  Float
+                </span>
+                <span style={{ fontWeight: 700, fontSize: 14 }}>
+                  {formatCurrency(totalFloat)}
+                </span>
               </div>
-              <div className="text-right">
-                <span className="text-xs">Cash</span>
-                <div className="font-bold">{formatCurrency(totalCash)}</div>
+              <div>
+                <span
+                  style={{
+                    fontSize: 10,
+                    opacity: 0.65,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.4px",
+                    display: "block",
+                  }}
+                >
+                  Cash
+                </span>
+                <span style={{ fontWeight: 700, fontSize: 14 }}>
+                  {formatCurrency(totalCash)}
+                </span>
               </div>
             </div>
           </div>
 
-          {/* Variance Card */}
-          <div className="stat-card">
-            <div className="stat-icon">
+          {/* Variance */}
+          <div
+            className="stat-card"
+            style={{
+              flexDirection: "column",
+              alignItems: "flex-start",
+              gap: 4,
+            }}
+          >
+            <div className="stat-icon" style={{ marginBottom: 4 }}>
               {variance >= 0 ? (
                 <TrendingUp size={20} color="#16A34A" />
               ) : (
                 <TrendingDown size={20} color="#DC2626" />
               )}
             </div>
-            <div className="stat-info">
-              <span className="stat-label">Variance</span>
-              <span
-                className={`stat-number ${
-                  variance >= 0 ? "success" : "danger"
-                }`}
-              >
-                {variance >= 0 ? "+" : ""}
-                {formatCurrency(variance)}
-              </span>
-            </div>
+            <span className="stat-label">Variance</span>
+            <span
+              className={`stat-number ${variance >= 0 ? "success" : "danger"}`}
+            >
+              {variance >= 0 ? "+" : ""}
+              {formatCurrency(variance)}
+            </span>
+            <span style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>
+              vs expected closing
+            </span>
           </div>
 
-          {/* Expected Card */}
-          <div className="stat-card">
-            <div className="stat-icon total">
+          {/* Expected */}
+          <div
+            className="stat-card"
+            style={{
+              flexDirection: "column",
+              alignItems: "flex-start",
+              gap: 4,
+            }}
+          >
+            <div className="stat-icon total" style={{ marginBottom: 4 }}>
               <Clock size={20} />
             </div>
-            <div className="stat-info">
-              <span className="stat-label">Expected</span>
-              <span className="stat-number">
-                {formatCurrency(expectedClosing)}
-              </span>
-            </div>
+            <span className="stat-label">Expected Closing</span>
+            <span className="stat-number">
+              {formatCurrency(expectedClosing)}
+            </span>
+            <span style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>
+              based on recorded balances
+            </span>
           </div>
 
-          {/* Commissions Card — hidden for OPENING */}
+          {/* Commissions — Closing only */}
           {!isOpening && (
-            <div className="stat-card">
-              <div className="stat-icon danger">
+            <div
+              className="stat-card"
+              style={{
+                flexDirection: "column",
+                alignItems: "flex-start",
+                gap: 4,
+              }}
+            >
+              <div
+                className="stat-icon"
+                style={{
+                  background: "rgba(124,58,237,0.12)",
+                  color: "#7c3aed",
+                  marginBottom: 4,
+                }}
+              >
                 <Banknote size={20} />
               </div>
-              <div className="stat-info">
-                <span className="stat-label">Commissions</span>
-                <span className="stat-number danger">
-                  {formatCurrency(totalCommission)}
-                </span>
-              </div>
+              <span className="stat-label">Commissions</span>
+              <span className="stat-number" style={{ color: "#7c3aed" }}>
+                +{formatCurrency(totalCommission)}
+              </span>
+              <span style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>
+                {commissions.length} record
+                {commissions.length !== 1 ? "s" : ""}
+              </span>
             </div>
           )}
         </div>
@@ -269,7 +379,6 @@ export default function BalanceDetailWeb() {
               borderRadius: 12,
               backgroundColor: "#fef2f2",
               border: "1px solid #fecaca",
-              marginBottom: 24,
             }}
           >
             <ShieldAlert size={22} color="#DC2626" style={{ flexShrink: 0 }} />
@@ -344,6 +453,41 @@ export default function BalanceDetailWeb() {
                     ))
                   )}
                 </tbody>
+                {commissions.length > 0 && (
+                  <tfoot>
+                    <tr
+                      style={{
+                        borderTop: "2px solid var(--color-border)",
+                        background: "var(--color-bg)",
+                      }}
+                    >
+                      <td
+                        style={{
+                          padding: "12px 24px",
+                          fontWeight: 700,
+                          fontSize: 13,
+                          color: "var(--color-text-secondary)",
+                          textTransform: "uppercase",
+                          letterSpacing: "0.4px",
+                        }}
+                      >
+                        Total
+                      </td>
+                      <td
+                        className="text-right"
+                        style={{
+                          padding: "12px 24px",
+                          fontWeight: 800,
+                          fontSize: 15,
+                          color: "#7c3aed",
+                        }}
+                      >
+                        +{formatCurrency(totalCommission)}
+                      </td>
+                      <td />
+                    </tr>
+                  </tfoot>
+                )}
               </table>
             </div>
           )}

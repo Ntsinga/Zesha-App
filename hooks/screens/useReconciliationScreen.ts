@@ -126,10 +126,13 @@ export function useReconciliationScreen({
   const commissions: Commission[] = reconciliationDetails?.commissions || [];
   const reconciliation = reconciliationDetails?.reconciliation;
 
-  // Use reconciliation totals (pre-calculated on backend)
+  // Use reconciliation totals (pre-calculated on backend), fall back to
+  // summing commissions array so the card is never blank after Calculate.
   const totalFloat = reconciliation?.totalFloat || 0;
   const totalCash = reconciliation?.totalCash || 0;
-  const totalCommission = reconciliation?.totalCommissions || 0;
+  const totalCommission =
+    reconciliation?.totalCommissions ??
+    commissions.reduce((sum, c) => sum + (c.amount || 0), 0);
   const expectedClosing = reconciliation?.expectedClosing || 0;
   const actualClosing = reconciliation?.actualClosing || 0;
   const variance = reconciliation?.variance || 0;
