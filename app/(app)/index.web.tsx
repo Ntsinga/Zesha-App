@@ -176,9 +176,6 @@ export default function DashboardWeb() {
                   {displayVariance >= 0 ? "+" : ""}
                   {formatCurrency(displayVariance)}
                 </p>
-                <span className="metric-sub">
-                  vs expected {formatCompactCurrency(expectedGrandTotal)}
-                </span>
               </div>
               <div className="metric-divider" />
               <div className="metric">
@@ -196,15 +193,26 @@ export default function DashboardWeb() {
                   {totalExpenses > 0 ? "-" : totalExpenses < 0 ? "+" : ""}
                   {formatCurrency(Math.abs(totalExpenses))}
                 </p>
-                <span className="metric-sub">
-                  Today {formatCompactCurrency(todayExpenses)}
-                </span>
-                <button
-                  onClick={() => router.push("/expenses")}
-                  className="metric-link"
-                >
-                  View Details →
-                </button>
+                <div className="metric-footer">
+                  <span className="metric-sub">
+                    Today{" "}
+                    <span
+                      className={
+                        todayExpenses > 0
+                          ? "metric-sub-value-neg"
+                          : "metric-sub-value"
+                      }
+                    >
+                      {formatCompactCurrency(todayExpenses)}
+                    </span>
+                  </span>
+                  <button
+                    onClick={() => router.push("/expenses")}
+                    className="metric-link"
+                  >
+                    View Details →
+                  </button>
+                </div>
               </div>
               <div className="metric-divider" />
               <div className="metric">
