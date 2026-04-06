@@ -183,12 +183,17 @@ export default function DashboardWeb() {
               <div className="metric">
                 <div className="metric-top">
                   <span className="metric-name">Expenses</span>
-                  <div className="metric-badge negative">
+                  <div
+                    className={`metric-badge ${totalExpenses > 0 ? "negative" : "positive"}`}
+                  >
                     <Receipt size={16} />
                   </div>
                 </div>
-                <p className="metric-amount negative">
-                  -{formatCurrency(totalExpenses)}
+                <p
+                  className={`metric-amount ${totalExpenses > 0 ? "negative" : "positive"}`}
+                >
+                  {totalExpenses > 0 ? "-" : totalExpenses < 0 ? "+" : ""}
+                  {formatCurrency(Math.abs(totalExpenses))}
                 </p>
                 <button
                   onClick={() => router.push("/expenses")}

@@ -210,8 +210,11 @@ export default function DashboardNative() {
               {/* Total Expenses */}
               <View className="flex-row justify-between items-center py-3">
                 <Text className="text-gray-600 text-base">Total Expenses</Text>
-                <Text className="font-bold text-red-600 text-base">
-                  -{formatCurrency(totalExpenses)}
+                <Text
+                  className={`font-bold text-base ${totalExpenses > 0 ? "text-red-600" : "text-green-600"}`}
+                >
+                  {totalExpenses > 0 ? "-" : totalExpenses < 0 ? "+" : ""}
+                  {formatCurrency(Math.abs(totalExpenses))}
                 </Text>
               </View>
 
