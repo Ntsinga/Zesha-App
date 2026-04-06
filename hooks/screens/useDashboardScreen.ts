@@ -4,8 +4,10 @@ import { fetchDashboard, setShift } from "../../store/slices/dashboardSlice";
 import { updateCompanyInfo } from "../../store/slices/companyInfoSlice";
 import { fetchTransactions } from "../../store/slices/transactionsSlice";
 import { fetchCommissionVariance } from "../../store/slices/commissionsSlice";
+import { fetchExpenses } from "../../store/slices/expensesSlice";
 import { useCurrencyFormatter } from "../useCurrency";
 import { useAutoRefreshOnReconnect } from "../useAutoRefreshOnReconnect";
+import { selectEffectiveCompanyId } from "../../store/slices/authSlice";
 import type { ShiftEnum } from "../../types";
 import type { AppDispatch, RootState } from "../../store";
 
@@ -37,7 +39,9 @@ export function useDashboardScreen() {
   const { items: transactions } = useSelector(
     (state: RootState) => state.transactions,
   );
+  const { items: expenses } = useSelector((state: RootState) => state.expenses);
   const { user: backendUser } = useSelector((state: RootState) => state.auth);
+  const effectiveCompanyId = useSelector(selectEffectiveCompanyId);
   const { commissionVariance = [] } = useSelector(
     (state: RootState) => state.commissions,
   );
@@ -57,23 +61,36 @@ export function useDashboardScreen() {
 
   // Fetch today's transactions when user is available
   useEffect(() => {
-    if (backendUser?.companyId) {
+    if (effectiveCompanyId) {
       dispatch(
         fetchTransactions({
-          companyId: backendUser.companyId,
+          companyId: effectiveCompanyId,
           startDate: today,
           endDate: today + "T23:59:59",
         }),
       );
     }
-  }, [dispatch, backendUser?.companyId, today]);
+  }, [dispatch, effectiveCompanyId, today]);
+
+  // Fetch today's expenses so the dashboard can show the current day's spend
+  useEffect(() => {
+    if (effectiveCompanyId) {
+      dispatch(
+        fetchExpenses({
+          companyId: effectiveCompanyId,
+          dateFrom: today,
+          dateTo: today + "T23:59:59",
+        }),
+      );
+    }
+  }, [dispatch, effectiveCompanyId, today]);
 
   // Fetch commission variance (bank vs telecom reconciliation)
   useEffect(() => {
-    if (backendUser?.companyId) {
-      dispatch(fetchCommissionVariance({ companyId: backendUser.companyId }));
+    if (effectiveCompanyId) {
+      dispatch(fetchCommissionVariance({ companyId: effectiveCompanyId }));
     }
-  }, [dispatch, backendUser?.companyId, today]);
+  }, [dispatch, effectiveCompanyId, today]);
 
   // Auto-refresh after offline → online transition + sync complete
   useAutoRefreshOnReconnect(
@@ -84,23 +101,31 @@ export function useDashboardScreen() {
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await dispatch(fetchDashboard({ forceRefresh: true }));
-    if (backendUser?.companyId) {
+    if (effectiveCompanyId) {
       dispatch(
         fetchTransactions({
-          companyId: backendUser.companyId,
+          companyId: effectiveCompanyId,
           startDate: today,
           endDate: today + "T23:59:59",
         }),
       );
       dispatch(
+        fetchExpenses({
+          companyId: effectiveCompanyId,
+          dateFrom: today,
+          dateTo: today + "T23:59:59",
+          forceRefresh: true,
+        }),
+      );
+      dispatch(
         fetchCommissionVariance({
-          companyId: backendUser.companyId,
+          companyId: effectiveCompanyId,
           forceRefresh: true,
         }),
       );
     }
     setRefreshing(false);
-  }, [dispatch, backendUser?.companyId, today]);
+  }, [dispatch, effectiveCompanyId, today]);
 
   // Shift change handler
   const handleShiftChange = useCallback(
@@ -224,6 +249,11 @@ export function useDashboardScreen() {
       .slice(0, 5);
   }, [todayTransactions]);
 
+  const todayExpenses = useMemo(
+    () => expenses.reduce((sum, expense) => sum + (expense.amount || 0), 0),
+    [expenses],
+  );
+
   // Commission variance breakdown — bank vs telecom
   const bankVariance = useMemo(
     () => commissionVariance.filter((v) => v.accountType === "BANK"),
@@ -298,6 +328,7 @@ export function useDashboardScreen() {
     transactionCount,
     dailyDeposits,
     dailyWithdrawals,
+    todayExpenses,
     recentTransactions,
 
     // Commission variance breakdown

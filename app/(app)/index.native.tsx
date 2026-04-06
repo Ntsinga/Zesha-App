@@ -32,6 +32,7 @@ export default function DashboardNative() {
     expectedGrandTotal,
     displayVariance,
     totalExpenses,
+    todayExpenses,
     totalBankCommission,
     totalTelecomCommission,
     telecomPendingCount,
@@ -208,6 +209,13 @@ export default function DashboardNative() {
               </View>
 
               {/* Total Expenses */}
+              <View className="flex-row justify-between items-center py-3 border-t border-gray-100">
+                <Text className="text-gray-600 text-base">Today's Expenses</Text>
+                <Text className="font-bold text-red-600 text-base">
+                  {formatCurrency(todayExpenses)}
+                </Text>
+              </View>
+
               <View className="flex-row justify-between items-center py-3">
                 <Text className="text-gray-600 text-base">Total Expenses</Text>
                 <Text
