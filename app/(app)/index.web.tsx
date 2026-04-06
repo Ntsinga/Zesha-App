@@ -285,6 +285,15 @@ export default function DashboardWeb() {
                     Total: {formatCurrency(totalCommission)}
                   </span>
                 )}
+                <div className="metric-footer">
+                  <span />
+                  <button
+                    onClick={() => router.push("/commissions")}
+                    className="metric-link"
+                  >
+                    View Details →
+                  </button>
+                </div>
               </div>
               <div className="metric-divider" />
               <div className="metric">
