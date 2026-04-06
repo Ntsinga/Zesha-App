@@ -127,7 +127,7 @@ body {
 .topbar-container {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   padding: 12px 24px;
   max-width: 100%;
 }
