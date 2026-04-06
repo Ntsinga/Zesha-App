@@ -341,8 +341,7 @@ export default function DashboardWeb() {
               <thead>
                 <tr>
                   <th>Account</th>
-                  <th>Shift</th>
-                  <th>Balance</th>
+                  <th>Current Balance</th>
                   <th>Action</th>
                 </tr>
               </thead>
@@ -350,15 +349,6 @@ export default function DashboardWeb() {
                 {accounts.map((account, idx) => (
                   <tr key={`account-${idx}`}>
                     <td>{account.accountName}</td>
-                    <td>
-                      <span
-                        className={`shift-badge ${
-                          account.shift === "AM" ? "am" : "pm"
-                        }`}
-                      >
-                        {account.shift}
-                      </span>
-                    </td>
                     <td className="amount">
                       {formatCurrency(account.balance || 0)}
                     </td>
@@ -371,9 +361,9 @@ export default function DashboardWeb() {
                 ))}
                 {accounts.length === 0 && (
                   <tr>
-                    <td colSpan={4} className="empty">
+                    <td colSpan={3} className="empty">
                       <PiggyBank size={40} />
-                      <p>No balances recorded for this shift</p>
+                      <p>No accounts found</p>
                     </td>
                   </tr>
                 )}

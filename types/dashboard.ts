@@ -33,7 +33,7 @@ export interface AccountSummary {
   accountId: number;
   accountName: string;
   balance: number;
-  shift: ShiftEnum;
+  shift?: ShiftEnum;
   imageUrl?: string;
 }
 
