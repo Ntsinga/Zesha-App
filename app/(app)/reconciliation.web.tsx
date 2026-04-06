@@ -29,10 +29,16 @@ import "../../styles/web.css";
 
 export default function BalanceDetailWeb() {
   // Get params from Expo Router (reactive, works with router.push)
-  const params = useLocalSearchParams<{ date: string; shift: string; subtype: string }>();
+  const params = useLocalSearchParams<{
+    date: string;
+    shift: string;
+    subtype: string;
+    companyId?: string;
+  }>();
   const date = params.date || "";
   const shift = (params.shift as ShiftEnum) || "AM";
   const subtype = (params.subtype as ReconciliationSubtypeEnum) || "CLOSING";
+  const companyId = params.companyId ? Number(params.companyId) : null;
 
   const {
     refreshing,
@@ -76,7 +82,13 @@ export default function BalanceDetailWeb() {
     validationByAccountId,
     // Linked transactions
     shiftTransactions,
-  } = useReconciliationScreen({ date, shift, subtype });
+  } = useReconciliationScreen({
+    date,
+    shift,
+    subtype,
+    companyIdOverride:
+      companyId && Number.isFinite(companyId) ? companyId : undefined,
+  });
 
   const { showToast } = useToast();
   const isOpening = subtype === "OPENING";
@@ -232,17 +244,17 @@ export default function BalanceDetailWeb() {
 
           {/* Commissions Card — hidden for OPENING */}
           {!isOpening && (
-          <div className="stat-card">
-            <div className="stat-icon danger">
-              <Banknote size={20} />
+            <div className="stat-card">
+              <div className="stat-icon danger">
+                <Banknote size={20} />
+              </div>
+              <div className="stat-info">
+                <span className="stat-label">Commissions</span>
+                <span className="stat-number danger">
+                  {formatCurrency(totalCommission)}
+                </span>
+              </div>
             </div>
-            <div className="stat-info">
-              <span className="stat-label">Commissions</span>
-              <span className="stat-number danger">
-                {formatCurrency(totalCommission)}
-              </span>
-            </div>
-          </div>
           )}
         </div>
 
@@ -285,55 +297,55 @@ export default function BalanceDetailWeb() {
         <div className="detail-grid">
           {/* Commissions Table — hidden for OPENING */}
           {!isOpening && (
-          <div className="table-card">
-            <div className="card-header">
-              <Banknote size={18} />
-              <h3>Commissions ({commissions.length})</h3>
-            </div>
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Account</th>
-                  <th className="text-right">Amount</th>
-                  <th className="text-center">Image</th>
-                </tr>
-              </thead>
-              <tbody>
-                {commissions.length === 0 ? (
+            <div className="table-card">
+              <div className="card-header">
+                <Banknote size={18} />
+                <h3>Commissions ({commissions.length})</h3>
+              </div>
+              <table className="data-table">
+                <thead>
                   <tr>
-                    <td colSpan={3} className="empty">
-                      No commissions recorded
-                    </td>
+                    <th>Account</th>
+                    <th className="text-right">Amount</th>
+                    <th className="text-center">Image</th>
                   </tr>
-                ) : (
-                  commissions.map((commission) => (
-                    <tr key={commission.id}>
-                      <td>
-                        {commission.account?.name ||
-                          `Account ${commission.accountId}`}
-                      </td>
-                      <td className="text-right font-semibold">
-                        {formatCurrency(commission.amount)}
-                      </td>
-                      <td className="text-center">
-                        {(commission.imageData || commission.imageUrl) && (
-                          <button
-                            onClick={() => {
-                              const uri = getImageUri(commission);
-                              if (uri) setSelectedImage(uri);
-                            }}
-                            className="btn-icon-small"
-                          >
-                            <ImageIcon size={14} />
-                          </button>
-                        )}
+                </thead>
+                <tbody>
+                  {commissions.length === 0 ? (
+                    <tr>
+                      <td colSpan={3} className="empty">
+                        No commissions recorded
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                  ) : (
+                    commissions.map((commission) => (
+                      <tr key={commission.id}>
+                        <td>
+                          {commission.account?.name ||
+                            `Account ${commission.accountId}`}
+                        </td>
+                        <td className="text-right font-semibold">
+                          {formatCurrency(commission.amount)}
+                        </td>
+                        <td className="text-center">
+                          {(commission.imageData || commission.imageUrl) && (
+                            <button
+                              onClick={() => {
+                                const uri = getImageUri(commission);
+                                if (uri) setSelectedImage(uri);
+                              }}
+                              className="btn-icon-small"
+                            >
+                              <ImageIcon size={14} />
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           )}
 
           {/* Balances Table */}
@@ -349,7 +361,15 @@ export default function BalanceDetailWeb() {
                   onClick={handleNavigateEditBalances}
                   className="btn-icon-small"
                   title="Edit floats"
-                  style={{ marginLeft: 8, color: "#B8860B", display: "flex", alignItems: "center", gap: 4, fontSize: 12, fontWeight: 600 }}
+                  style={{
+                    marginLeft: 8,
+                    color: "#B8860B",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 4,
+                    fontSize: 12,
+                    fontWeight: 600,
+                  }}
                 >
                   <Pencil size={13} />
                   Edit
@@ -522,7 +542,15 @@ export default function BalanceDetailWeb() {
                   onClick={handleNavigateEditCashCount}
                   className="btn-icon-small"
                   title="Edit cash count"
-                  style={{ marginLeft: 8, color: "#16A34A", display: "flex", alignItems: "center", gap: 4, fontSize: 12, fontWeight: 600 }}
+                  style={{
+                    marginLeft: 8,
+                    color: "#16A34A",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 4,
+                    fontSize: 12,
+                    fontWeight: 600,
+                  }}
                 >
                   <Pencil size={13} />
                   Edit
@@ -547,7 +575,10 @@ export default function BalanceDetailWeb() {
                 ) : (
                   cashCounts.map((cc) => (
                     <tr key={cc.id}>
-                      <td>{formatCurrency(cc.denomination)}{cc.isCoin ? " (Coin)" : ""}</td>
+                      <td>
+                        {formatCurrency(cc.denomination)}
+                        {cc.isCoin ? " (Coin)" : ""}
+                      </td>
                       <td className="text-center">×{cc.quantity}</td>
                       <td className="text-right font-semibold">
                         {formatCurrency(cc.amount)}
@@ -561,98 +592,100 @@ export default function BalanceDetailWeb() {
 
           {/* Linked Transactions Table — hidden for OPENING */}
           {!isOpening && (
-          <div className="table-card full-width">
-            <div className="card-header">
-              <ArrowLeftRight size={18} color="#4F46E5" />
-              <h3>Transactions ({shiftTransactions.length})</h3>
-            </div>
-            {shiftTransactions.length === 0 ? (
-              <div
-                style={{
-                  padding: "24px",
-                  textAlign: "center",
-                  color: "#9ca3af",
-                }}
-              >
-                No transactions recorded for this shift
+            <div className="table-card full-width">
+              <div className="card-header">
+                <ArrowLeftRight size={18} color="#4F46E5" />
+                <h3>Transactions ({shiftTransactions.length})</h3>
               </div>
-            ) : (
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Time</th>
-                    <th>Type</th>
-                    <th>Account</th>
-                    <th className="text-right">Amount</th>
-                    <th className="text-right">Balance After</th>
-                    <th>Reference</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {shiftTransactions.map((txn) => (
-                    <tr key={txn.id}>
-                      <td className="text-xs text-gray-500">
-                        {txn.transactionTime
-                          ? new Date(txn.transactionTime).toLocaleTimeString(
-                              [],
-                              { hour: "2-digit", minute: "2-digit" },
-                            )
-                          : "—"}
-                      </td>
-                      <td>
-                        <span
-                          style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: 4,
-                            padding: "2px 10px",
-                            borderRadius: 12,
-                            fontSize: 11,
-                            fontWeight: 600,
-                            backgroundColor:
-                              txn.transactionType === "DEPOSIT"
-                                ? "#dcfce7"
-                                : txn.transactionType === "WITHDRAW"
-                                  ? "#fef2f2"
-                                  : "#e0e7ff",
-                            color:
-                              txn.transactionType === "DEPOSIT"
-                                ? "#16a34a"
-                                : txn.transactionType === "WITHDRAW"
-                                  ? "#dc2626"
-                                  : "#4f46e5",
-                          }}
-                        >
-                          {txn.transactionType === "DEPOSIT" ? (
-                            <ArrowDownCircle size={12} />
-                          ) : txn.transactionType === "WITHDRAW" ? (
-                            <ArrowUpCircle size={12} />
-                          ) : (
-                            <ArrowLeftRight size={12} />
-                          )}
-                          {txn.transactionType === "FLOAT_PURCHASE"
-                            ? "Float"
-                            : txn.transactionType}
-                        </span>
-                      </td>
-                      <td>{txn.account?.name || `Account ${txn.accountId}`}</td>
-                      <td className="text-right font-semibold">
-                        {formatCurrency(txn.amount || 0)}
-                      </td>
-                      <td className="text-right">
-                        {txn.balanceAfter != null
-                          ? formatCurrency(txn.balanceAfter)
-                          : "—"}
-                      </td>
-                      <td className="text-xs text-gray-500">
-                        {txn.reference || "—"}
-                      </td>
+              {shiftTransactions.length === 0 ? (
+                <div
+                  style={{
+                    padding: "24px",
+                    textAlign: "center",
+                    color: "#9ca3af",
+                  }}
+                >
+                  No transactions recorded for this shift
+                </div>
+              ) : (
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>Time</th>
+                      <th>Type</th>
+                      <th>Account</th>
+                      <th className="text-right">Amount</th>
+                      <th className="text-right">Balance After</th>
+                      <th>Reference</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
+                  </thead>
+                  <tbody>
+                    {shiftTransactions.map((txn) => (
+                      <tr key={txn.id}>
+                        <td className="text-xs text-gray-500">
+                          {txn.transactionTime
+                            ? new Date(txn.transactionTime).toLocaleTimeString(
+                                [],
+                                { hour: "2-digit", minute: "2-digit" },
+                              )
+                            : "—"}
+                        </td>
+                        <td>
+                          <span
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 4,
+                              padding: "2px 10px",
+                              borderRadius: 12,
+                              fontSize: 11,
+                              fontWeight: 600,
+                              backgroundColor:
+                                txn.transactionType === "DEPOSIT"
+                                  ? "#dcfce7"
+                                  : txn.transactionType === "WITHDRAW"
+                                    ? "#fef2f2"
+                                    : "#e0e7ff",
+                              color:
+                                txn.transactionType === "DEPOSIT"
+                                  ? "#16a34a"
+                                  : txn.transactionType === "WITHDRAW"
+                                    ? "#dc2626"
+                                    : "#4f46e5",
+                            }}
+                          >
+                            {txn.transactionType === "DEPOSIT" ? (
+                              <ArrowDownCircle size={12} />
+                            ) : txn.transactionType === "WITHDRAW" ? (
+                              <ArrowUpCircle size={12} />
+                            ) : (
+                              <ArrowLeftRight size={12} />
+                            )}
+                            {txn.transactionType === "FLOAT_PURCHASE"
+                              ? "Float"
+                              : txn.transactionType}
+                          </span>
+                        </td>
+                        <td>
+                          {txn.account?.name || `Account ${txn.accountId}`}
+                        </td>
+                        <td className="text-right font-semibold">
+                          {formatCurrency(txn.amount || 0)}
+                        </td>
+                        <td className="text-right">
+                          {txn.balanceAfter != null
+                            ? formatCurrency(txn.balanceAfter)
+                            : "—"}
+                        </td>
+                        <td className="text-xs text-gray-500">
+                          {txn.reference || "—"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
           )}
 
           {/* Notes Section */}

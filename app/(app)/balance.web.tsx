@@ -8,14 +8,23 @@ import {
   Calculator,
   ArrowLeftRight,
 } from "lucide-react";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useBalanceMenuScreen } from "../../hooks/screens/useBalanceMenuScreen";
 import { useToast } from "../../components/Toast.web";
 import "../../styles/web.css";
 
 export default function BalancePage() {
   const router = useRouter();
+  const params = useLocalSearchParams<{
+    shift?: string;
+    companyId?: string;
+    date?: string;
+  }>();
   const { showToast } = useToast();
+  const initialShift = params.shift === "PM" ? "PM" : "AM";
+  const companyId = params.companyId ? Number(params.companyId) : null;
+  const dateOverride = params.date;
+  const lockInitialShift = Boolean(params.shift);
 
   const {
     isLoading,
@@ -53,7 +62,13 @@ export default function BalancePage() {
     handleBack,
     handleRefresh,
     handleCalculate,
-  } = useBalanceMenuScreen();
+  } = useBalanceMenuScreen({
+    initialShift,
+    lockInitialShift,
+    dateOverride,
+    companyIdOverride:
+      companyId && Number.isFinite(companyId) ? companyId : undefined,
+  });
 
   // Icon styles are fully inline to bypass react-native-css-interop's wrap-jsx,
   // which was causing the icon div to unmount/remount on className resolution
@@ -81,7 +96,8 @@ export default function BalancePage() {
     }
   };
 
-  const showPhaseDependentActions = !isResolvingPhase && showCommissionsAndTransactions;
+  const showPhaseDependentActions =
+    !isResolvingPhase && showCommissionsAndTransactions;
   const reconciliationHeading = isResolvingPhase
     ? `Loading ${selectedShift} Shift`
     : buttonLabel;
@@ -102,29 +118,30 @@ export default function BalancePage() {
             const isLoadingPhase = isResolvingPhase;
             const isOpening =
               !isLoadingPhase &&
-              currentSubtype === "OPENING" && shiftPhase !== "COMPLETE";
+              currentSubtype === "OPENING" &&
+              shiftPhase !== "COMPLETE";
             const isComplete = !isLoadingPhase && shiftPhase === "COMPLETE";
             const bg = isLoadingPhase
               ? "#f3f4f6"
               : isComplete
-              ? "#dcfce7"
-              : isOpening
-                ? "#dbeafe"
-                : "#fef3c7";
+                ? "#dcfce7"
+                : isOpening
+                  ? "#dbeafe"
+                  : "#fef3c7";
             const color = isLoadingPhase
               ? "#6b7280"
               : isComplete
-              ? "#15803d"
-              : isOpening
-                ? "#1d4ed8"
-                : "#92400e";
+                ? "#15803d"
+                : isOpening
+                  ? "#1d4ed8"
+                  : "#92400e";
             const label = isLoadingPhase
               ? "Loading"
               : isComplete
-              ? "Complete"
-              : isOpening
-                ? "Opening"
-                : "Closing";
+                ? "Complete"
+                : isOpening
+                  ? "Opening"
+                  : "Closing";
             return (
               <div
                 style={{
@@ -451,7 +468,9 @@ export default function BalancePage() {
             </>
           ) : (
             <>
-              <h3 className="section-title-centered">{reconciliationHeading}</h3>
+              <h3 className="section-title-centered">
+                {reconciliationHeading}
+              </h3>
               <p className="section-description-centered">
                 {reconciliationDescription}
               </p>
@@ -480,10 +499,10 @@ export default function BalancePage() {
                   {isResolvingPhase
                     ? "Loading Shift Status..."
                     : isCalculating
-                    ? "Calculating..."
-                    : !hasSelectedCashCount || !hasSelectedBalances
-                      ? "Complete Required Steps First"
-                      : buttonLabel}
+                      ? "Calculating..."
+                      : !hasSelectedCashCount || !hasSelectedBalances
+                        ? "Complete Required Steps First"
+                        : buttonLabel}
                 </span>
               </button>
             </>

@@ -31,6 +31,7 @@ interface UseReconciliationScreenProps {
   shift: ShiftEnum;
   subtype: ReconciliationSubtypeEnum;
   autoRecalculate?: boolean;
+  companyIdOverride?: number;
 }
 
 export function useReconciliationScreen({
@@ -38,6 +39,7 @@ export function useReconciliationScreen({
   shift,
   subtype,
   autoRecalculate = false,
+  companyIdOverride,
 }: UseReconciliationScreenProps) {
   const router = useRouter();
   const dispatch = useAppDispatch();
@@ -60,9 +62,8 @@ export function useReconciliationScreen({
   } = useAppSelector((state) => state.reconciliations);
   const { user: backendUser } = useAppSelector((state) => state.auth);
   const effectiveCompanyId = useAppSelector(selectEffectiveCompanyId);
-  const { items: transactions } = useAppSelector(
-    (state) => state.transactions,
-  );
+  const resolvedCompanyId = companyIdOverride ?? effectiveCompanyId;
+  const { items: transactions } = useAppSelector((state) => state.transactions);
 
   // Check if user can review reconciliations (supervisor or admin)
   const canReview =
@@ -79,10 +80,10 @@ export function useReconciliationScreen({
       };
     }
 
-    if (date && shift && effectiveCompanyId) {
+    if (date && shift && resolvedCompanyId) {
       dispatch(
         fetchReconciliationDetails({
-          companyId: effectiveCompanyId,
+          companyId: resolvedCompanyId,
           date,
           shift,
           subtype,
@@ -90,7 +91,7 @@ export function useReconciliationScreen({
       );
       dispatch(
         fetchBalanceValidation({
-          companyId: effectiveCompanyId,
+          companyId: resolvedCompanyId,
           date,
           shift,
           subtype,
@@ -98,7 +99,7 @@ export function useReconciliationScreen({
       );
       dispatch(
         fetchTransactions({
-          companyId: effectiveCompanyId,
+          companyId: resolvedCompanyId,
           startDate: date,
           endDate: `${date}T23:59:59`,
           shift,
@@ -110,7 +111,7 @@ export function useReconciliationScreen({
       dispatch(clearReconciliationDetails());
       dispatch(clearBalanceValidation());
     };
-  }, [dispatch, date, shift, subtype, effectiveCompanyId, autoRecalculate]);
+  }, [dispatch, date, shift, subtype, resolvedCompanyId, autoRecalculate]);
 
   // Load notes from reconciliation details when they're fetched
   useEffect(() => {
@@ -198,12 +199,12 @@ export function useReconciliationScreen({
   }, [transactions, date, shift]);
 
   const onRefresh = async () => {
-    if (!date || !shift || !effectiveCompanyId) return;
+    if (!date || !shift || !resolvedCompanyId) return;
     setRefreshing(true);
     await Promise.all([
       dispatch(
         fetchReconciliationDetails({
-          companyId: effectiveCompanyId,
+          companyId: resolvedCompanyId,
           date,
           shift,
           subtype,
@@ -211,7 +212,7 @@ export function useReconciliationScreen({
       ),
       dispatch(
         fetchBalanceValidation({
-          companyId: effectiveCompanyId,
+          companyId: resolvedCompanyId,
           date,
           shift,
           subtype,
@@ -219,7 +220,7 @@ export function useReconciliationScreen({
       ),
       dispatch(
         fetchTransactions({
-          companyId: effectiveCompanyId,
+          companyId: resolvedCompanyId,
           startDate: date,
           endDate: `${date}T23:59:59`,
           shift,
@@ -239,13 +240,13 @@ export function useReconciliationScreen({
 
   // Calculate/recalculate reconciliation
   const handleCalculate = async () => {
-    if (!date || !shift || !effectiveCompanyId)
+    if (!date || !shift || !resolvedCompanyId)
       return { success: false, error: "Missing date or shift" };
 
     try {
       await dispatch(
         calculateReconciliation({
-          companyId: effectiveCompanyId,
+          companyId: resolvedCompanyId,
           date,
           shift,
           subtype,
@@ -256,7 +257,7 @@ export function useReconciliationScreen({
       await Promise.all([
         dispatch(
           fetchReconciliationDetails({
-            companyId: effectiveCompanyId,
+            companyId: resolvedCompanyId,
             date,
             shift,
             subtype,
@@ -264,7 +265,7 @@ export function useReconciliationScreen({
         ),
         dispatch(
           fetchBalanceValidation({
-            companyId: effectiveCompanyId,
+            companyId: resolvedCompanyId,
             date,
             shift,
             subtype,
@@ -272,13 +273,18 @@ export function useReconciliationScreen({
         ),
         dispatch(
           fetchTransactions({
-            companyId: effectiveCompanyId,
+            companyId: resolvedCompanyId,
             startDate: date,
             endDate: `${date}T23:59:59`,
             shift,
           }),
         ),
-        dispatch(fetchDashboard({ forceRefresh: true })),
+        dispatch(
+          fetchDashboard({
+            companyId: resolvedCompanyId,
+            forceRefresh: true,
+          }),
+        ),
       ]);
       return { success: true };
     } catch (error: unknown) {
@@ -294,7 +300,7 @@ export function useReconciliationScreen({
 
   // Finalize reconciliation (lock it)
   const handleFinalize = async (forceWithDiscrepancies = false) => {
-    if (!date || !shift || !backendUser?.id || !effectiveCompanyId) {
+    if (!date || !shift || !backendUser?.id || !resolvedCompanyId) {
       return { success: false, error: "Missing required data" };
     }
 
@@ -311,7 +317,7 @@ export function useReconciliationScreen({
     try {
       await dispatch(
         finalizeReconciliation({
-          companyId: effectiveCompanyId,
+          companyId: resolvedCompanyId,
           date,
           shift,
           subtype,
@@ -321,7 +327,12 @@ export function useReconciliationScreen({
         }),
       ).unwrap();
       // Refresh live float after finalization
-      dispatch(fetchDashboard({ forceRefresh: true }));
+      dispatch(
+        fetchDashboard({
+          companyId: resolvedCompanyId,
+          forceRefresh: true,
+        }),
+      );
       return { success: true };
     } catch (error: unknown) {
       const msg =
