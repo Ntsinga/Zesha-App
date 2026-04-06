@@ -6,6 +6,32 @@ import { formatDate } from "../../utils/formatters";
 import type { AppDispatch, RootState } from "../../store";
 import type { BalanceHistoryEntry } from "../../types";
 
+type WorkflowStatusFilter =
+  | "ALL"
+  | "DRAFT"
+  | "CALCULATED"
+  | "AWAITING_REVIEW"
+  | "APPROVED"
+  | "REJECTED";
+
+function getWorkflowStatus(record: BalanceHistoryEntry): WorkflowStatusFilter {
+  if (!record.isFinalized) {
+    return record.reconciliationStatus === "CALCULATED"
+      ? "CALCULATED"
+      : "DRAFT";
+  }
+
+  if (record.approvalStatus === "APPROVED") {
+    return "APPROVED";
+  }
+
+  if (record.approvalStatus === "REJECTED") {
+    return "REJECTED";
+  }
+
+  return "AWAITING_REVIEW";
+}
+
 /**
  * Shared hook for Balance History screen
  * Contains all business logic used by both web and native versions
@@ -43,7 +69,10 @@ export function useBalanceHistoryScreen() {
 
   const [refreshing, setRefreshing] = useState(false);
   const [filterShift, setFilterShift] = useState<"ALL" | "AM" | "PM">("ALL");
-  const [searchDate, setSearchDate] = useState("");
+  const [filterStatus, setFilterStatus] =
+    useState<WorkflowStatusFilter>("ALL");
+  const [filterDateFrom, setFilterDateFrom] = useState("");
+  const [filterDateTo, setFilterDateTo] = useState("");
 
   // Load history on mount
   useEffect(() => {
@@ -57,13 +86,17 @@ export function useBalanceHistoryScreen() {
     setRefreshing(false);
   }, [dispatch]);
 
-  // Filter history based on shift and date
+  // Filter history based on shift and date range
   const filteredHistory = Array.isArray(history)
     ? history.filter((record) => {
         const matchesShift =
           filterShift === "ALL" || record.shift === filterShift;
-        const matchesDate = !searchDate || record.date.includes(searchDate);
-        return matchesShift && matchesDate;
+        const matchesStatus =
+          filterStatus === "ALL" ||
+          getWorkflowStatus(record) === filterStatus;
+        const matchesFrom = !filterDateFrom || record.date >= filterDateFrom;
+        const matchesTo = !filterDateTo || record.date <= filterDateTo;
+        return matchesShift && matchesStatus && matchesFrom && matchesTo;
       })
     : [];
 
@@ -85,7 +118,9 @@ export function useBalanceHistoryScreen() {
     refreshing,
     error,
     filterShift,
-    searchDate,
+    filterStatus,
+    filterDateFrom,
+    filterDateTo,
 
     // Data
     history: filteredHistory,
@@ -96,7 +131,9 @@ export function useBalanceHistoryScreen() {
 
     // Actions
     setFilterShift,
-    setSearchDate,
+    setFilterStatus,
+    setFilterDateFrom,
+    setFilterDateTo,
     onRefresh,
 
     // Formatters

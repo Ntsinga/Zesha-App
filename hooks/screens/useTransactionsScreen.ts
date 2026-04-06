@@ -182,6 +182,43 @@ export function useTransactionsScreen() {
     );
   }, [transactions]);
 
+  const transactionCountsByAccount = useMemo(() => {
+    const counts = new Map<number, number>();
+
+    sortedTransactions.forEach((transaction) => {
+      counts.set(
+        transaction.accountId,
+        (counts.get(transaction.accountId) ?? 0) + 1,
+      );
+    });
+
+    return counts;
+  }, [sortedTransactions]);
+
+  const topTransactionAccount = useMemo<
+    { accountId: number; accountName: string; transactionCount: number } | null
+  >(() => {
+    let topAccountId: number | null = null;
+    let topCount = 0;
+
+    transactionCountsByAccount.forEach((count, accountId) => {
+      if (count > topCount) {
+        topAccountId = accountId;
+        topCount = count;
+      }
+    });
+
+    if (topAccountId === null) return null;
+
+    const matchingAccount = accounts.find((account) => account.id === topAccountId);
+
+    return {
+      accountId: topAccountId,
+      accountName: matchingAccount?.name ?? `Account ${topAccountId}`,
+      transactionCount: topCount,
+    };
+  }, [accounts, transactionCountsByAccount]);
+
   // ---- Summary metrics ----
   const metrics = useMemo(() => {
     let totalDeposits = 0;
@@ -226,8 +263,17 @@ export function useTransactionsScreen() {
 
   // ---- Active accounts for selects ----
   const activeAccounts = useMemo(() => {
-    return accounts.filter((a) => a.isActive);
-  }, [accounts]);
+    return [...accounts]
+      .filter((a) => a.isActive)
+      .sort((left, right) => {
+        const countDelta =
+          (transactionCountsByAccount.get(right.id) ?? 0) -
+          (transactionCountsByAccount.get(left.id) ?? 0);
+
+        if (countDelta !== 0) return countDelta;
+        return left.name.localeCompare(right.name);
+      });
+  }, [accounts, transactionCountsByAccount]);
 
   // ---- Commission preview for transaction form ----
   const transactionCommissionPreview = useMemo(() => {
@@ -497,6 +543,7 @@ export function useTransactionsScreen() {
     transactions: sortedTransactions,
     accounts: activeAccounts,
     metrics,
+    topTransactionAccount,
     companyId,
     transactionCommissionPreview,
 

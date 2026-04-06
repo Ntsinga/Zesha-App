@@ -68,6 +68,9 @@ export default function AddCashCountPage() {
           </div>
         </div>
         <div className="header-right">
+          <div className="shift-buttons">
+            <span className="shift-button selected">{shift} Shift</span>
+          </div>
           <button className="btn-secondary" onClick={onClearAll}>
             <Trash2 size={16} />
             Clear All
@@ -86,14 +89,6 @@ export default function AddCashCountPage() {
             {message.text}
           </div>
         )}
-
-        {/* Shift Badge (read-only, set from reconciliation screen) */}
-        <div className="shift-selector">
-          <label className="form-label">Shift</label>
-          <div className="shift-buttons">
-            <span className={`shift-button selected`}>{shift} Shift</span>
-          </div>
-        </div>
 
         {/* Denominations Grid */}
         <div className="cash-count-grid">

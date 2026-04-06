@@ -33,11 +33,9 @@ export default function DashboardNative() {
     displayVariance,
     totalExpenses,
     todayExpenses,
+    dailyCommission,
     totalBankCommission,
     totalTelecomCommission,
-    telecomPendingCount,
-    telecomVarianceCount,
-    telecomHasIssues,
     transactionCount,
     recentTransactions,
     displayCapital,
@@ -233,19 +231,9 @@ export default function DashboardNative() {
                     <Text className="text-gray-600 text-base">
                       Daily Commission
                     </Text>
-                    {telecomHasIssues && (
-                      <Ionicons name="warning" size={14} color="#F59E0B" />
-                    )}
                   </View>
-                  <Text
-                    className={`font-bold text-base ${
-                      telecomHasIssues ? "text-amber-500" : "text-green-600"
-                    }`}
-                  >
-                    +
-                    {formatCurrency(
-                      totalBankCommission + totalTelecomCommission,
-                    )}
+                  <Text className="font-bold text-base text-green-600">
+                    +{formatCurrency(dailyCommission)}
                   </Text>
                 </View>
                 {/* Bank sub-row */}
@@ -266,30 +254,11 @@ export default function DashboardNative() {
                 <View className="flex-row justify-between items-center px-2 py-0.5">
                   <View className="flex-row items-center" style={{ gap: 4 }}>
                     <Ionicons
-                      name={
-                        telecomPendingCount > 0
-                          ? "time"
-                          : telecomVarianceCount > 0
-                            ? "warning"
-                            : "checkmark-circle"
-                      }
+                      name="checkmark-circle"
                       size={12}
-                      color={
-                        telecomPendingCount > 0
-                          ? "#F59E0B"
-                          : telecomVarianceCount > 0
-                            ? "#DC2626"
-                            : "#16A34A"
-                      }
+                      color="#16A34A"
                     />
-                    <Text className="text-xs text-gray-400">
-                      Telecom
-                      {telecomPendingCount > 0
-                        ? ` · ${telecomPendingCount} pending`
-                        : telecomVarianceCount > 0
-                          ? ` · ${telecomVarianceCount} variance`
-                          : ""}
-                    </Text>
+                    <Text className="text-xs text-gray-400">Telecom</Text>
                   </View>
                   <Text className="text-xs text-gray-500">
                     {formatCurrency(totalTelecomCommission)}

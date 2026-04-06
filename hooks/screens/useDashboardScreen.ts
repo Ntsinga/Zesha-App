@@ -3,7 +3,6 @@ import { useDispatch, useSelector } from "react-redux";
 import { fetchDashboard, setShift } from "../../store/slices/dashboardSlice";
 import { updateCompanyInfo } from "../../store/slices/companyInfoSlice";
 import { fetchTransactions } from "../../store/slices/transactionsSlice";
-import { fetchCommissionVariance } from "../../store/slices/commissionsSlice";
 import { fetchExpenses } from "../../store/slices/expensesSlice";
 import { useCurrencyFormatter } from "../useCurrency";
 import { useAutoRefreshOnReconnect } from "../useAutoRefreshOnReconnect";
@@ -42,9 +41,6 @@ export function useDashboardScreen() {
   const { items: expenses } = useSelector((state: RootState) => state.expenses);
   const { user: backendUser } = useSelector((state: RootState) => state.auth);
   const effectiveCompanyId = useSelector(selectEffectiveCompanyId);
-  const { commissionVariance = [] } = useSelector(
-    (state: RootState) => state.commissions,
-  );
 
   // Currency formatter
   const { formatCurrency, formatCompactCurrency } = useCurrencyFormatter();
@@ -85,13 +81,6 @@ export function useDashboardScreen() {
     }
   }, [dispatch, effectiveCompanyId, today]);
 
-  // Fetch commission variance (bank vs telecom reconciliation)
-  useEffect(() => {
-    if (effectiveCompanyId) {
-      dispatch(fetchCommissionVariance({ companyId: effectiveCompanyId }));
-    }
-  }, [dispatch, effectiveCompanyId, today]);
-
   // Auto-refresh after offline → online transition + sync complete
   useAutoRefreshOnReconnect(
     useCallback(() => fetchDashboard({ forceRefresh: true }), []),
@@ -114,12 +103,6 @@ export function useDashboardScreen() {
           companyId: effectiveCompanyId,
           dateFrom: today,
           dateTo: today + "T23:59:59",
-          forceRefresh: true,
-        }),
-      );
-      dispatch(
-        fetchCommissionVariance({
-          companyId: effectiveCompanyId,
           forceRefresh: true,
         }),
       );
@@ -147,7 +130,6 @@ export function useDashboardScreen() {
   const totalWorkingCapital = summary?.totalWorkingCapital ?? 0;
   const companyName = companyInfo?.name ?? "Company";
   const totalCommission = summary?.totalCommission ?? 0;
-  const dailyCommission = summary?.dailyCommission ?? 0;
 
   // Role check — capital injection allowed for everyone except plain Agent
   const canInjectCapital =
@@ -221,6 +203,177 @@ export function useDashboardScreen() {
     return transactions.filter((t) => t.transactionTime?.startsWith(today));
   }, [transactions, today]);
 
+  const transactionCountsByAccountToday = useMemo(() => {
+    const counts = new Map<number, number>();
+
+    todayTransactions.forEach((transaction) => {
+      counts.set(
+        transaction.accountId,
+        (counts.get(transaction.accountId) ?? 0) + 1,
+      );
+    });
+
+    return counts;
+  }, [todayTransactions]);
+
+  // Commission earned per account today (all accounts, used for sorting + table)
+  const commissionByAccountId = useMemo(() => {
+    const map = new Map<number, number>();
+    todayTransactions.forEach((t) => {
+      if (
+        (t.transactionType === "DEPOSIT" || t.transactionType === "WITHDRAW") &&
+        (t.expectedCommission?.commissionAmount ?? 0) > 0
+      ) {
+        map.set(
+          t.accountId,
+          (map.get(t.accountId) ?? 0) +
+            (t.expectedCommission?.commissionAmount ?? 0),
+        );
+      }
+    });
+    return map;
+  }, [todayTransactions]);
+
+  const sortedAccounts = useMemo(() => {
+    return [...accounts].sort((left, right) => {
+      const commDelta =
+        (commissionByAccountId.get(right.accountId) ?? 0) -
+        (commissionByAccountId.get(left.accountId) ?? 0);
+
+      if (commDelta !== 0) return commDelta;
+      return left.accountName.localeCompare(right.accountName);
+    });
+  }, [accounts, commissionByAccountId]);
+
+  const topTransactionAccount = useMemo<
+    { accountId: number; accountName: string; transactionCount: number } | null
+  >(() => {
+    const firstAccount = sortedAccounts[0];
+    if (!firstAccount) return null;
+
+    const transactionCount =
+      transactionCountsByAccountToday.get(firstAccount.accountId) ?? 0;
+
+    if (transactionCount === 0) return null;
+
+    return {
+      accountId: firstAccount.accountId,
+      accountName: firstAccount.accountName,
+      transactionCount,
+    };
+  }, [sortedAccounts, transactionCountsByAccountToday]);
+
+  const dailyCommissionTransactions = useMemo(
+    () =>
+      todayTransactions.filter(
+        (transaction) =>
+          (transaction.transactionType === "DEPOSIT" ||
+            transaction.transactionType === "WITHDRAW") &&
+          (transaction.expectedCommission?.commissionAmount ?? 0) > 0,
+      ),
+    [todayTransactions],
+  );
+
+  const dailyCommission = useMemo(
+    () =>
+      dailyCommissionTransactions.reduce(
+        (sum, transaction) =>
+          sum + (transaction.expectedCommission?.commissionAmount ?? 0),
+        0,
+      ),
+    [dailyCommissionTransactions],
+  );
+
+  const topCommissionAccount = useMemo<
+    { accountId: number; accountName: string; commissionAmount: number } | null
+  >(() => {
+    const commissionsByAccount = new Map<
+      number,
+      { accountName: string; commissionAmount: number }
+    >();
+
+    dailyCommissionTransactions.forEach((transaction) => {
+      const existing = commissionsByAccount.get(transaction.accountId);
+      const accountName =
+        transaction.account?.name || `Account ${transaction.accountId}`;
+      const commissionAmount =
+        transaction.expectedCommission?.commissionAmount ?? 0;
+
+      if (existing) {
+        existing.commissionAmount += commissionAmount;
+        return;
+      }
+
+      commissionsByAccount.set(transaction.accountId, {
+        accountName,
+        commissionAmount,
+      });
+    });
+
+    let topEntry:
+      | { accountId: number; accountName: string; commissionAmount: number }
+      | null = null;
+
+    commissionsByAccount.forEach((value, accountId) => {
+      if (!topEntry || value.commissionAmount > topEntry.commissionAmount) {
+        topEntry = {
+          accountId,
+          accountName: value.accountName,
+          commissionAmount: value.commissionAmount,
+        };
+      }
+    });
+
+    return topEntry;
+  }, [dailyCommissionTransactions]);
+
+  // Top 5 accounts by transaction count today
+  const topTransactionAccounts = useMemo<
+    { accountId: number; accountName: string; transactionCount: number }[]
+  >(() => {
+    return sortedAccounts
+      .map((account) => ({
+        accountId: account.accountId,
+        accountName: account.accountName,
+        transactionCount:
+          transactionCountsByAccountToday.get(account.accountId) ?? 0,
+      }))
+      .filter((entry) => entry.transactionCount > 0)
+      .slice(0, 5);
+  }, [sortedAccounts, transactionCountsByAccountToday]);
+
+  // Top 5 accounts by commission earned today
+  const topCommissionAccounts = useMemo<
+    { accountId: number; accountName: string; commissionAmount: number }[]
+  >(() => {
+    const commissionsByAccount = new Map<
+      number,
+      { accountName: string; commissionAmount: number }
+    >();
+
+    dailyCommissionTransactions.forEach((transaction) => {
+      const existing = commissionsByAccount.get(transaction.accountId);
+      const accountName =
+        transaction.account?.name || `Account ${transaction.accountId}`;
+      const commissionAmount =
+        transaction.expectedCommission?.commissionAmount ?? 0;
+
+      if (existing) {
+        existing.commissionAmount += commissionAmount;
+      } else {
+        commissionsByAccount.set(transaction.accountId, {
+          accountName,
+          commissionAmount,
+        });
+      }
+    });
+
+    return Array.from(commissionsByAccount.entries())
+      .map(([accountId, value]) => ({ accountId, ...value }))
+      .sort((a, b) => b.commissionAmount - a.commissionAmount)
+      .slice(0, 5);
+  }, [dailyCommissionTransactions]);
+
   const transactionCount = todayTransactions.length;
 
   const dailyDeposits = useMemo(
@@ -254,38 +407,28 @@ export function useDashboardScreen() {
     [expenses],
   );
 
-  // Commission variance breakdown — bank vs telecom
-  const bankVariance = useMemo(
-    () => commissionVariance.filter((v) => v.accountType === "BANK"),
-    [commissionVariance],
-  );
-  const telecomVariance = useMemo(
-    () => commissionVariance.filter((v) => v.accountType === "TELECOM"),
-    [commissionVariance],
-  );
   const totalBankCommission = useMemo(
-    () => bankVariance.reduce((sum, v) => sum + v.expected, 0),
-    [bankVariance],
+    () =>
+      dailyCommissionTransactions
+        .filter((transaction) => transaction.account?.accountType === "BANK")
+        .reduce(
+          (sum, transaction) =>
+            sum + (transaction.expectedCommission?.commissionAmount ?? 0),
+          0,
+        ),
+    [dailyCommissionTransactions],
   );
   const totalTelecomCommission = useMemo(
     () =>
-      telecomVariance.reduce(
-        (sum, v) => sum + (v.actual > 0 ? v.actual : v.expected),
-        0,
-      ),
-    [telecomVariance],
+      dailyCommissionTransactions
+        .filter((transaction) => transaction.account?.accountType === "TELECOM")
+        .reduce(
+          (sum, transaction) =>
+            sum + (transaction.expectedCommission?.commissionAmount ?? 0),
+          0,
+        ),
+    [dailyCommissionTransactions],
   );
-  const telecomPendingCount = useMemo(
-    () => telecomVariance.filter((v) => v.actual === 0).length,
-    [telecomVariance],
-  );
-  const telecomVarianceCount = useMemo(
-    () =>
-      telecomVariance.filter((v) => v.status !== "MATCHED" && v.actual > 0)
-        .length,
-    [telecomVariance],
-  );
-  const telecomHasIssues = telecomPendingCount > 0 || telecomVarianceCount > 0;
 
   return {
     // State
@@ -293,7 +436,7 @@ export function useDashboardScreen() {
     error,
     refreshing,
     snapshotDate,
-    accounts,
+    accounts: sortedAccounts,
 
     // Computed values
     companyName,
@@ -307,6 +450,11 @@ export function useDashboardScreen() {
     totalWorkingCapital,
     totalCommission,
     dailyCommission,
+    topTransactionAccount,
+    topCommissionAccount,
+    topTransactionAccounts,
+    topCommissionAccounts,
+    commissionByAccountId,
 
     // Role
     canInjectCapital,
@@ -331,16 +479,8 @@ export function useDashboardScreen() {
     todayExpenses,
     recentTransactions,
 
-    // Commission variance breakdown
-    commissionVariance,
-    bankVariance,
-    telecomVariance,
     totalBankCommission,
     totalTelecomCommission,
-    telecomPendingCount,
-    telecomVarianceCount,
-    telecomHasIssues,
-
     // Formatters
     formatCurrency,
     formatCompactCurrency,
