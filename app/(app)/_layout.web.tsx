@@ -114,6 +114,7 @@ export default function AppLayoutWeb() {
       !isViewingAgency &&
       pathname !== "/agencies" &&
       pathname !== "/agency-form" &&
+      pathname !== "/account-templates" &&
       pathname !== "/settings"
     ) {
       router.replace("/agencies");
