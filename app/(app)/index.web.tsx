@@ -220,7 +220,9 @@ export default function DashboardWeb() {
                   }}
                 >
                   <CheckCircle size={11} color="#16a34a" />
-                  <span>Bank: {formatCompactCurrency(totalBankCommission)}</span>
+                  <span>
+                    Bank: {formatCompactCurrency(totalBankCommission)}
+                  </span>
                 </div>
                 <div
                   style={{
@@ -288,7 +290,10 @@ export default function DashboardWeb() {
           {/* Top by Transactions */}
           <div className="top-accounts-card">
             <div className="top-accounts-header">
-              <ArrowLeftRight size={15} className="top-accounts-icon transactions" />
+              <ArrowLeftRight
+                size={15}
+                className="top-accounts-icon transactions"
+              />
               <h3 className="top-accounts-title">Top by Transactions</h3>
               <button
                 onClick={() => router.push("/transactions")}
@@ -302,9 +307,12 @@ export default function DashboardWeb() {
                 {topTransactionAccounts.map((entry, idx) => (
                   <li key={entry.accountId} className="top-accounts-item">
                     <span className="top-accounts-rank">{idx + 1}</span>
-                    <span className="top-accounts-name">{entry.accountName}</span>
+                    <span className="top-accounts-name">
+                      {entry.accountName}
+                    </span>
                     <span className="top-accounts-value transactions">
-                      {entry.transactionCount} txn{entry.transactionCount !== 1 ? "s" : ""}
+                      {entry.transactionCount} txn
+                      {entry.transactionCount !== 1 ? "s" : ""}
                     </span>
                   </li>
                 ))}
@@ -331,7 +339,9 @@ export default function DashboardWeb() {
                 {topCommissionAccounts.map((entry, idx) => (
                   <li key={entry.accountId} className="top-accounts-item">
                     <span className="top-accounts-rank">{idx + 1}</span>
-                    <span className="top-accounts-name">{entry.accountName}</span>
+                    <span className="top-accounts-name">
+                      {entry.accountName}
+                    </span>
                     <span className="top-accounts-value commission">
                       +{formatCompactCurrency(entry.commissionAmount)}
                     </span>
@@ -368,15 +378,26 @@ export default function DashboardWeb() {
               </thead>
               <tbody>
                 {accounts.map((account, idx) => {
-                  const commission = commissionByAccountId.get(account.accountId) ?? 0;
+                  const commission =
+                    commissionByAccountId.get(account.accountId) ?? 0;
                   return (
                     <tr key={`account-${idx}`}>
                       <td>{account.accountName}</td>
                       <td className="amount">
                         {formatCurrency(account.balance || 0)}
                       </td>
-                      <td className="amount" style={{ color: commission > 0 ? "var(--color-success)" : "var(--color-text-muted)" }}>
-                        {commission > 0 ? `+${formatCurrency(commission)}` : "—"}
+                      <td
+                        className="amount"
+                        style={{
+                          color:
+                            commission > 0
+                              ? "var(--color-success)"
+                              : "var(--color-text-muted)",
+                        }}
+                      >
+                        {commission > 0
+                          ? `+${formatCurrency(commission)}`
+                          : "—"}
                       </td>
                     </tr>
                   );

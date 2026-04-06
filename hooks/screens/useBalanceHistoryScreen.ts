@@ -69,8 +69,7 @@ export function useBalanceHistoryScreen() {
 
   const [refreshing, setRefreshing] = useState(false);
   const [filterShift, setFilterShift] = useState<"ALL" | "AM" | "PM">("ALL");
-  const [filterStatus, setFilterStatus] =
-    useState<WorkflowStatusFilter>("ALL");
+  const [filterStatus, setFilterStatus] = useState<WorkflowStatusFilter>("ALL");
   const [filterDateFrom, setFilterDateFrom] = useState("");
   const [filterDateTo, setFilterDateTo] = useState("");
 
@@ -92,8 +91,7 @@ export function useBalanceHistoryScreen() {
         const matchesShift =
           filterShift === "ALL" || record.shift === filterShift;
         const matchesStatus =
-          filterStatus === "ALL" ||
-          getWorkflowStatus(record) === filterStatus;
+          filterStatus === "ALL" || getWorkflowStatus(record) === filterStatus;
         const matchesFrom = !filterDateFrom || record.date >= filterDateFrom;
         const matchesTo = !filterDateTo || record.date <= filterDateTo;
         return matchesShift && matchesStatus && matchesFrom && matchesTo;

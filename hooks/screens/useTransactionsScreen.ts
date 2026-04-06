@@ -195,9 +195,11 @@ export function useTransactionsScreen() {
     return counts;
   }, [sortedTransactions]);
 
-  const topTransactionAccount = useMemo<
-    { accountId: number; accountName: string; transactionCount: number } | null
-  >(() => {
+  const topTransactionAccount = useMemo<{
+    accountId: number;
+    accountName: string;
+    transactionCount: number;
+  } | null>(() => {
     let topAccountId: number | null = null;
     let topCount = 0;
 
@@ -210,7 +212,9 @@ export function useTransactionsScreen() {
 
     if (topAccountId === null) return null;
 
-    const matchingAccount = accounts.find((account) => account.id === topAccountId);
+    const matchingAccount = accounts.find(
+      (account) => account.id === topAccountId,
+    );
 
     return {
       accountId: topAccountId,
