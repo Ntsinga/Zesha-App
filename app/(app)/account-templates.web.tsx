@@ -1,12 +1,8 @@
 import React from "react";
-import {
-  Plus,
-  RefreshCw,
-  X,
-  LayoutTemplate,
-  CheckCircle,
-} from "lucide-react";
+import { Plus, RefreshCw, X, LayoutTemplate, CheckCircle } from "lucide-react";
 import { useAccountTemplatesScreen } from "../../hooks/screens/useAccountTemplatesScreen";
+import { useAppSelector } from "../../store/hooks";
+import { selectViewingAgencyId } from "../../store/slices/authSlice";
 import type { AccountTypeEnum, CommissionModelEnum } from "../../types";
 import "../../styles/web.css";
 
@@ -26,6 +22,8 @@ const COMMISSION_MODEL_LABELS: Record<CommissionModelEnum, string> = {
 // ─── Page ──────────────────────────────────────────────────────────────────────
 
 export default function AccountTemplatesPage() {
+  const viewingAgencyId = useAppSelector(selectViewingAgencyId);
+
   const {
     // data
     templates,
@@ -79,10 +77,12 @@ export default function AccountTemplatesPage() {
           >
             <RefreshCw size={18} className={isTemplatesLoading ? "spin" : ""} />
           </button>
-          <button className="btn-primary" onClick={openModal}>
-            <Plus size={16} />
-            New Template
-          </button>
+          {!viewingAgencyId && (
+            <button className="btn-primary" onClick={openModal}>
+              <Plus size={16} />
+              New Template
+            </button>
+          )}
         </div>
       </header>
 
@@ -125,7 +125,10 @@ export default function AccountTemplatesPage() {
           </div>
         ) : templates.length === 0 ? (
           <div className="empty-state">
-            <LayoutTemplate size={40} style={{ opacity: 0.3, marginBottom: 12 }} />
+            <LayoutTemplate
+              size={40}
+              style={{ opacity: 0.3, marginBottom: 12 }}
+            />
             <p style={{ fontSize: 15, color: "var(--color-text-muted)" }}>
               No account templates yet. Create one to allow agencies to inherit
               pre-configured accounts.
@@ -153,18 +156,29 @@ export default function AccountTemplatesPage() {
                       </span>
                     </td>
                     <td>
-                      {t.commissionModel
-                        ? COMMISSION_MODEL_LABELS[t.commissionModel] ?? t.commissionModel
-                        : <span style={{ color: "var(--color-text-muted)" }}>—</span>}
+                      {t.commissionModel ? (
+                        (COMMISSION_MODEL_LABELS[t.commissionModel] ??
+                        t.commissionModel)
+                      ) : (
+                        <span style={{ color: "var(--color-text-muted)" }}>
+                          —
+                        </span>
+                      )}
                     </td>
                     <td>
                       {t.commissionSchedule ? (
-                        <span style={{ fontSize: 13 }}>{t.commissionSchedule.name}</span>
+                        <span style={{ fontSize: 13 }}>
+                          {t.commissionSchedule.name}
+                        </span>
                       ) : (
-                        <span style={{ color: "var(--color-text-muted)" }}>None</span>
+                        <span style={{ color: "var(--color-text-muted)" }}>
+                          None
+                        </span>
                       )}
                     </td>
-                    <td style={{ color: "var(--color-text-muted)", fontSize: 13 }}>
+                    <td
+                      style={{ color: "var(--color-text-muted)", fontSize: 13 }}
+                    >
                       {t.description ?? "—"}
                     </td>
                   </tr>
@@ -182,10 +196,7 @@ export default function AccountTemplatesPage() {
           style={{ background: "rgba(0,0,0,0.4)" }}
           onClick={closeModal}
         >
-          <div
-            className="modal-content"
-            onClick={(e) => e.stopPropagation()}
-          >
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h2>New Account Template</h2>
               <button className="modal-close" onClick={closeModal}>
@@ -227,7 +238,9 @@ export default function AccountTemplatesPage() {
                   className="form-input"
                   value={formCommissionModel}
                   onChange={(e) =>
-                    setFormCommissionModel(e.target.value as CommissionModelEnum)
+                    setFormCommissionModel(
+                      e.target.value as CommissionModelEnum,
+                    )
                   }
                 >
                   <option value="EXPECTED_ONLY">Expected Only</option>
@@ -244,7 +257,7 @@ export default function AccountTemplatesPage() {
                   value={formScheduleId ?? ""}
                   onChange={(e) =>
                     setFormScheduleId(
-                      e.target.value ? Number(e.target.value) : null
+                      e.target.value ? Number(e.target.value) : null,
                     )
                   }
                   disabled={isSchedulesLoading}
@@ -257,7 +270,9 @@ export default function AccountTemplatesPage() {
                   ))}
                 </select>
                 {isSchedulesLoading && (
-                  <span style={{ fontSize: 12, color: "var(--color-text-muted)" }}>
+                  <span
+                    style={{ fontSize: 12, color: "var(--color-text-muted)" }}
+                  >
                     Loading schedules…
                   </span>
                 )}

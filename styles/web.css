@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Montserrat:wght@300;400;500;600&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Montserrat:wght@300;400;500;600&display=swap");
 
 /* ============================================
    TELEBA WEB APP - GLOBAL STYLES
@@ -7,8 +7,8 @@
 /* CSS Variables for easy theming */
 :root {
   /* Primary Colors */
-  --color-primary: #C0152A;
-  --color-primary-dark: #9A0E1F;
+  --color-primary: #c0152a;
+  --color-primary-dark: #9a0e1f;
   --color-primary-light: #f5c6cb;
 
   /* Secondary/Accent Colors */
@@ -19,7 +19,7 @@
   /* Status Colors */
   --color-success: #16a34a;
   --color-success-light: #dcfce7;
-  --color-danger: #C0152A;
+  --color-danger: #c0152a;
   --color-danger-light: #fde8eb;
   --color-warning: #f59e0b;
   --color-warning-light: #fef3c7;
@@ -38,7 +38,7 @@
   /* Sidebar */
   --sidebar-width: 260px;
   --sidebar-collapsed-width: 68px;
-  --sidebar-bg: linear-gradient(180deg, #C0152A 0%, #6B0714 100%);
+  --sidebar-bg: linear-gradient(180deg, #c0152a 0%, #6b0714 100%);
 
   /* Spacing */
   --space-xs: 4px;
@@ -1497,24 +1497,6 @@ body {
 
 .btn-refresh:hover {
   background: var(--color-bg);
-}
-
-.btn-back {
-  width: 40px;
-  height: 40px;
-  border-radius: 8px;
-  border: 1px solid var(--color-border);
-  background: white;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-primary);
-  margin-right: 12px;
-}
-
-.btn-back:hover {
-  background: var(--color-primary-light);
 }
 
 /* Dashboard Content */
@@ -4041,13 +4023,13 @@ body {
   justify-content: center;
   overflow: hidden;
   min-height: 100vh;
-  background: linear-gradient(145deg, #C0152A 0%, #9A0E1F 50%, #6B0714 100%);
+  background: linear-gradient(145deg, #c0152a 0%, #9a0e1f 50%, #6b0714 100%);
   padding: 48px;
 }
 
 /* Decorative rings */
 .auth-brand-side::before {
-  content: '';
+  content: "";
   position: absolute;
   width: 700px;
   height: 700px;
@@ -4060,7 +4042,7 @@ body {
 }
 
 .auth-brand-side::after {
-  content: '';
+  content: "";
   position: absolute;
   width: 520px;
   height: 520px;
@@ -4112,7 +4094,11 @@ body {
   left: 0;
   right: 0;
   height: 55%;
-  background: radial-gradient(ellipse at 30% 0%, rgba(255, 110, 110, 0.16) 0%, transparent 65%);
+  background: radial-gradient(
+    ellipse at 30% 0%,
+    rgba(255, 110, 110, 0.16) 0%,
+    transparent 65%
+  );
   pointer-events: none;
 }
 
@@ -4123,14 +4109,22 @@ body {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -52%);
-  background: radial-gradient(ellipse, rgba(255, 50, 50, 0.22) 0%, transparent 70%);
+  background: radial-gradient(
+    ellipse,
+    rgba(255, 50, 50, 0.22) 0%,
+    transparent 70%
+  );
   pointer-events: none;
 }
 
 .auth-vignette {
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse at center, transparent 45%, rgba(0, 0, 0, 0.48) 100%);
+  background: radial-gradient(
+    ellipse at center,
+    transparent 45%,
+    rgba(0, 0, 0, 0.48) 100%
+  );
   pointer-events: none;
 }
 
@@ -4164,14 +4158,25 @@ body {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  background: radial-gradient(circle, rgba(255, 215, 0, 0.16) 0%, transparent 70%);
+  background: radial-gradient(
+    circle,
+    rgba(255, 215, 0, 0.16) 0%,
+    transparent 70%
+  );
   border-radius: 50%;
   animation: auth-halo 3.5s ease-in-out infinite;
 }
 
 @keyframes auth-halo {
-  0%, 100% { opacity: 0.5; transform: translate(-50%, -50%) scale(1); }
-  50%      { opacity: 1;   transform: translate(-50%, -50%) scale(1.1); }
+  0%,
+  100% {
+    opacity: 0.5;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.1);
+  }
 }
 
 .auth-icon-wrap svg {
@@ -4195,15 +4200,18 @@ body {
   font-size: 36px;
   font-weight: 700;
   color: white;
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
 }
 
 .auth-brand-title {
-  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-family: "Cormorant Garamond", Georgia, serif;
   font-size: 52px;
   font-weight: 700;
   letter-spacing: 0.16em;
-  background: linear-gradient(180deg, #FFE566 0%, #FFD700 50%, #B8860B 100%);
+  background: linear-gradient(180deg, #ffe566 0%, #ffd700 50%, #b8860b 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -4221,13 +4229,18 @@ body {
 .auth-divider-line {
   width: 50px;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255, 215, 0, 0.55), transparent);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 215, 0, 0.55),
+    transparent
+  );
 }
 
 .auth-divider-diamond {
   width: 6px;
   height: 6px;
-  background: #FFD700;
+  background: #ffd700;
   transform: rotate(45deg);
   opacity: 0.8;
 }
@@ -4279,7 +4292,7 @@ body {
 .auth-form-title {
   font-size: 24px;
   font-weight: 700;
-  color: #C0152A;
+  color: #c0152a;
   margin-bottom: 4px;
 }
 
@@ -4300,7 +4313,7 @@ body {
 }
 
 .auth-signup-link {
-  color: #C0152A;
+  color: #c0152a;
   font-weight: 600;
   text-decoration: none;
   transition: all 0.2s;
@@ -4348,7 +4361,7 @@ body {
 
 .clerk-social-button-split:hover {
   background: #fde8eb !important;
-  border-color: #C0152A !important;
+  border-color: #c0152a !important;
 }
 
 .clerk-input-split {
@@ -4363,14 +4376,14 @@ body {
 }
 
 .clerk-input-split:focus {
-  border-color: #C0152A !important;
+  border-color: #c0152a !important;
   box-shadow: 0 0 0 3px rgba(192, 21, 42, 0.1) !important;
   outline: none !important;
   background: white !important;
 }
 
 .clerk-primary-button-split {
-  background: linear-gradient(135deg, #C0152A 0%, #8E0C1A 100%) !important;
+  background: linear-gradient(135deg, #c0152a 0%, #8e0c1a 100%) !important;
   color: white !important;
   border-radius: 50px !important;
   padding: 16px 28px !important;
@@ -4386,7 +4399,7 @@ body {
 }
 
 .clerk-primary-button-split:hover {
-  background: linear-gradient(135deg, #9A0E1F 0%, #6B0714 100%) !important;
+  background: linear-gradient(135deg, #9a0e1f 0%, #6b0714 100%) !important;
   box-shadow: 0 6px 20px rgba(192, 21, 42, 0.45) !important;
   transform: translateY(-1px);
 }
@@ -4400,7 +4413,7 @@ body {
 }
 
 .clerk-primary-button-split:hover {
-  background: linear-gradient(135deg, #9A0E1F 0%, #6B0714 100%) !important;
+  background: linear-gradient(135deg, #9a0e1f 0%, #6b0714 100%) !important;
   box-shadow: 0 6px 20px rgba(192, 21, 42, 0.45) !important;
   transform: translateY(-1px);
 }
@@ -6818,22 +6831,23 @@ body {
 .btn-back {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
-  padding: 10px 20px;
+  padding: 8px 16px;
   background: white;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  color: var(--color-text);
+  color: var(--color-primary);
   cursor: pointer;
   font-size: 14px;
   font-weight: 500;
   transition: all 0.2s ease;
   text-decoration: none;
+  white-space: nowrap;
 }
 
 .btn-back:hover {
-  background: var(--color-bg);
-  color: var(--color-primary);
+  background: var(--color-primary-light);
   border-color: var(--color-primary);
 }
 
@@ -7017,27 +7031,39 @@ body {
 }
 
 @keyframes toast-in {
-  from { opacity: 0; transform: translateY(12px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .toast-success {
   border-left-color: var(--color-success);
 }
 
-.toast-success .toast-icon { color: var(--color-success); }
+.toast-success .toast-icon {
+  color: var(--color-success);
+}
 
 .toast-error {
   border-left-color: var(--color-danger);
 }
 
-.toast-error .toast-icon { color: var(--color-danger); }
+.toast-error .toast-icon {
+  color: var(--color-danger);
+}
 
 .toast-info {
   border-left-color: var(--color-info);
 }
 
-.toast-info .toast-icon { color: var(--color-info); }
+.toast-info .toast-icon {
+  color: var(--color-info);
+}
 
 .toast-icon {
   flex-shrink: 0;
