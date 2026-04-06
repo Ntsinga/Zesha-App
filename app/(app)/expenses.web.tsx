@@ -8,6 +8,9 @@ import {
   Filter,
   Receipt,
   CheckCircle,
+  TrendingDown,
+  AlertCircle,
+  Tag,
 } from "lucide-react";
 import {
   useExpensesScreen,
@@ -38,6 +41,10 @@ export default function ExpensesWeb() {
     setFilterStatus,
     expenses,
     totalAmount,
+    pendingTotal,
+    clearedTotal,
+    topExpense,
+    categoryTotals,
     setName,
     setAmount,
     setDescription,
@@ -98,9 +105,6 @@ export default function ExpensesWeb() {
       <header className="header-bar">
         <div className="header-left">
           <h1 className="header-title">Expenses</h1>
-          <span className="header-date">
-            Total: {formatCurrency(totalAmount)}
-          </span>
         </div>
         <div className="header-right">
           <button
@@ -114,22 +118,168 @@ export default function ExpensesWeb() {
       </header>
 
       <div className="dashboard-content">
-        {/* Summary Card */}
-        <div className="summary-card">
-          <div className="summary-icon">
-            <Receipt size={24} />
+        {/* Summary Row */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+            gap: "14px",
+          }}
+        >
+          {/* Total */}
+          <div className="summary-card" style={{ padding: "16px" }}>
+            <div
+              className="summary-icon"
+              style={{
+                background: "rgba(239,68,68,0.12)",
+                color: "#ef4444",
+              }}
+            >
+              <Receipt size={18} />
+            </div>
+            <div className="summary-details">
+              <span className="summary-label">Total Expenses</span>
+              <span className="summary-amount" style={{ color: "#ef4444" }}>
+                -{formatCurrency(totalAmount)}
+              </span>
+            </div>
+            <div className="summary-count">
+              <span className="count-number">{expenses.length}</span>
+              <span className="count-label">items</span>
+            </div>
           </div>
-          <div className="summary-details">
-            <span className="summary-label">Total Expenses</span>
-            <span className="summary-amount negative">
-              -{formatCurrency(totalAmount)}
-            </span>
+
+          {/* Pending */}
+          <div className="summary-card" style={{ padding: "16px" }}>
+            <div
+              className="summary-icon"
+              style={{
+                background: "rgba(234,179,8,0.12)",
+                color: "#ca8a04",
+              }}
+            >
+              <AlertCircle size={18} />
+            </div>
+            <div className="summary-details">
+              <span className="summary-label">Pending</span>
+              <span className="summary-amount" style={{ color: "#ca8a04" }}>
+                -{formatCurrency(pendingTotal)}
+              </span>
+            </div>
           </div>
-          <div className="summary-count">
-            <span className="count-number">{expenses.length}</span>
-            <span className="count-label">items</span>
+
+          {/* Cleared */}
+          <div className="summary-card" style={{ padding: "16px" }}>
+            <div
+              className="summary-icon"
+              style={{
+                background: "rgba(34,197,94,0.12)",
+                color: "#16a34a",
+              }}
+            >
+              <CheckCircle size={18} />
+            </div>
+            <div className="summary-details">
+              <span className="summary-label">Cleared</span>
+              <span className="summary-amount" style={{ color: "#16a34a" }}>
+                {clearedTotal > 0 ? `-${formatCurrency(clearedTotal)}` : "—"}
+              </span>
+            </div>
           </div>
+
+          {/* Top Expense */}
+          {topExpense && (
+            <div className="summary-card" style={{ padding: "16px" }}>
+              <div
+                className="summary-icon"
+                style={{
+                  background: "rgba(239,68,68,0.12)",
+                  color: "#ef4444",
+                }}
+              >
+                <TrendingDown size={18} />
+              </div>
+              <div
+                className="summary-details"
+                style={{ minWidth: 0, overflow: "hidden" }}
+              >
+                <span className="summary-label">Top Expense</span>
+                <span
+                  className="summary-amount"
+                  style={{
+                    color: "#ef4444",
+                    fontSize: 14,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {topExpense.name}
+                </span>
+              </div>
+              <div className="summary-count">
+                <span
+                  className="count-number"
+                  style={{ fontSize: 14, color: "#ef4444" }}
+                >
+                  -{formatCurrency(topExpense.amount)}
+                </span>
+              </div>
+            </div>
+          )}
         </div>
+
+        {/* Category Breakdown */}
+        {categoryTotals.length > 0 && (
+          <div
+            style={{
+              display: "flex",
+              gap: "10px",
+              flexWrap: "wrap",
+              alignItems: "center",
+            }}
+          >
+            <Tag
+              size={14}
+              style={{ color: "var(--color-text-muted)", flexShrink: 0 }}
+            />
+            {categoryTotals.map(({ category: cat, total }) => (
+              <button
+                key={cat}
+                onClick={() =>
+                  setFilterCategory(filterCategory === cat ? "ALL" : cat)
+                }
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  padding: "5px 12px",
+                  borderRadius: "999px",
+                  border: "1px solid",
+                  borderColor:
+                    filterCategory === cat ? "#ef4444" : "var(--color-border)",
+                  background:
+                    filterCategory === cat ? "rgba(239,68,68,0.1)" : "white",
+                  cursor: "pointer",
+                  fontSize: 12,
+                  fontWeight: 600,
+                  color:
+                    filterCategory === cat ? "#ef4444" : "var(--color-text)",
+                }}
+              >
+                <span>{cat}</span>
+                <span
+                  style={{
+                    fontWeight: 700,
+                    color: filterCategory === cat ? "#ef4444" : "#94a3b8",
+                  }}
+                >
+                  -{formatCurrency(total)}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Filters + Add Button */}
         <div className="filter-bar">

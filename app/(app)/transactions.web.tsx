@@ -187,7 +187,7 @@ export default function TransactionsWeb() {
           className="metrics-row"
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(4, 1fr)",
+            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
             gap: "16px",
             marginBottom: "0px",
           }}
@@ -249,23 +249,6 @@ export default function TransactionsWeb() {
                   {topTransactionAccount.transactionCount}
                 </span>
                 <span className="count-label">txns</span>
-              </div>
-            )}
-          </div>
-
-          {/* Transaction Count */}
-          <div className="summary-card" style={{ padding: "16px" }}>
-            <div className="summary-icon">
-              <Hash size={17} />
-            </div>
-            <div className="summary-details">
-              <span className="summary-label">Total Transactions</span>
-              <span className="summary-amount">{metrics.transactionCount}</span>
-            </div>
-            {metrics.floatCount > 0 && (
-              <div className="summary-count">
-                <span className="count-number">{metrics.floatCount}</span>
-                <span className="count-label">float</span>
               </div>
             )}
           </div>
@@ -1108,30 +1091,75 @@ export default function TransactionsWeb() {
                   handleCreateCapitalInjection();
                 }}
               >
-                {/* Account */}
+                {/* Injection Type Toggle */}
                 <div className="form-group">
-                  <label className="form-label">Account</label>
-                  <select
-                    value={capitalInjectionForm.accountId || ""}
-                    onChange={(e) =>
-                      setCapitalInjectionForm((prev) => ({
-                        ...prev,
-                        accountId: e.target.value
-                          ? Number(e.target.value)
-                          : null,
-                      }))
-                    }
-                    className="form-input"
-                    required
-                  >
-                    <option value="">Select account</option>
-                    {accounts.map((acc) => (
-                      <option key={acc.id} value={acc.id}>
-                        {acc.name}
-                      </option>
+                  <label className="form-label">Injection Type</label>
+                  <div style={{ display: "flex", gap: "8px" }}>
+                    {(["FLOAT", "CASH"] as const).map((t) => (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() =>
+                          setCapitalInjectionForm((prev) => ({
+                            ...prev,
+                            injectionType: t,
+                            accountId: null,
+                          }))
+                        }
+                        style={{
+                          flex: 1,
+                          padding: "9px 0",
+                          borderRadius: "8px",
+                          border: "1px solid",
+                          borderColor:
+                            capitalInjectionForm.injectionType === t
+                              ? "#0d9488"
+                              : "var(--color-border)",
+                          background:
+                            capitalInjectionForm.injectionType === t
+                              ? "#0d9488"
+                              : "#f8fafc",
+                          color:
+                            capitalInjectionForm.injectionType === t
+                              ? "#fff"
+                              : "var(--color-text)",
+                          fontWeight: 600,
+                          fontSize: "13px",
+                          cursor: "pointer",
+                        }}
+                      >
+                        {t === "FLOAT" ? "E-Float Account" : "Cash (Physical)"}
+                      </button>
                     ))}
-                  </select>
+                  </div>
                 </div>
+
+                {/* Account — only for FLOAT */}
+                {capitalInjectionForm.injectionType === "FLOAT" && (
+                  <div className="form-group">
+                    <label className="form-label">Account</label>
+                    <select
+                      value={capitalInjectionForm.accountId || ""}
+                      onChange={(e) =>
+                        setCapitalInjectionForm((prev) => ({
+                          ...prev,
+                          accountId: e.target.value
+                            ? Number(e.target.value)
+                            : null,
+                        }))
+                      }
+                      className="form-input"
+                      required
+                    >
+                      <option value="">Select account</option>
+                      {accounts.map((acc) => (
+                        <option key={acc.id} value={acc.id}>
+                          {acc.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
 
                 {/* Amount */}
                 <div className="form-group">
@@ -1233,8 +1261,9 @@ export default function TransactionsWeb() {
                     type="submit"
                     disabled={
                       isCreating ||
-                      !capitalInjectionForm.accountId ||
-                      !capitalInjectionForm.amount
+                      !capitalInjectionForm.amount ||
+                      (capitalInjectionForm.injectionType === "FLOAT" &&
+                        !capitalInjectionForm.accountId)
                     }
                     className="btn-submit"
                     style={{ background: "#0d9488" }}

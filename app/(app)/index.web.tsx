@@ -34,8 +34,6 @@ export default function DashboardWeb() {
     transactionCount,
     topTransactionAccount,
     topCommissionAccount,
-    topTransactionAccounts,
-    topCommissionAccounts,
     commissionByAccountId,
     displayCapital,
     displayFloat,
@@ -240,11 +238,49 @@ export default function DashboardWeb() {
                   </span>
                 </div>
                 <div className="metric-footer">
-                  <span className="metric-sub">
-                    {topCommissionAccount
-                      ? `${topCommissionAccount.accountName} · ${formatCompactCurrency(topCommissionAccount.commissionAmount)}`
-                      : "No commission yet"}
-                  </span>
+                  {topCommissionAccount ? (
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        background: "rgba(22,163,74,0.08)",
+                        borderRadius: "6px",
+                        padding: "5px 8px",
+                        gap: 8,
+                        flex: 1,
+                        minWidth: 0,
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: 12,
+                          fontWeight: 600,
+                          color: "#15803d",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {topCommissionAccount.accountName}
+                      </span>
+                      <span
+                        style={{
+                          fontSize: 12,
+                          fontWeight: 700,
+                          color: "#16a34a",
+                          flexShrink: 0,
+                        }}
+                      >
+                        +
+                        {formatCompactCurrency(
+                          topCommissionAccount.commissionAmount,
+                        )}
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="metric-sub">No commission yet</span>
+                  )}
                   <button
                     onClick={() => router.push("/commissions")}
                     className="metric-link"
@@ -268,11 +304,46 @@ export default function DashboardWeb() {
                   {transactionCount}
                 </p>
                 <div className="metric-footer">
-                  <span className="metric-sub">
-                    {topTransactionAccount
-                      ? `${topTransactionAccount.accountName} · ${topTransactionAccount.transactionCount} txns`
-                      : "today"}
-                  </span>
+                  {topTransactionAccount ? (
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        background: "rgba(79,70,229,0.08)",
+                        borderRadius: "6px",
+                        padding: "5px 8px",
+                        gap: 8,
+                        flex: 1,
+                        minWidth: 0,
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: 12,
+                          fontWeight: 600,
+                          color: "#4338ca",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {topTransactionAccount.accountName}
+                      </span>
+                      <span
+                        style={{
+                          fontSize: 12,
+                          fontWeight: 700,
+                          color: "#4f46e5",
+                          flexShrink: 0,
+                        }}
+                      >
+                        {topTransactionAccount.transactionCount} txns
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="metric-sub">today</span>
+                  )}
                   <button
                     onClick={() => router.push("/transactions")}
                     className="metric-link"
@@ -282,75 +353,6 @@ export default function DashboardWeb() {
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-
-        {/* Middle Section: Top Accounts */}
-        <div className="top-accounts-row">
-          {/* Top by Transactions */}
-          <div className="top-accounts-card">
-            <div className="top-accounts-header">
-              <ArrowLeftRight
-                size={15}
-                className="top-accounts-icon transactions"
-              />
-              <h3 className="top-accounts-title">Top by Transactions</h3>
-              <button
-                onClick={() => router.push("/transactions")}
-                className="metric-link"
-              >
-                View All →
-              </button>
-            </div>
-            {topTransactionAccounts.length > 0 ? (
-              <ol className="top-accounts-list">
-                {topTransactionAccounts.map((entry, idx) => (
-                  <li key={entry.accountId} className="top-accounts-item">
-                    <span className="top-accounts-rank">{idx + 1}</span>
-                    <span className="top-accounts-name">
-                      {entry.accountName}
-                    </span>
-                    <span className="top-accounts-value transactions">
-                      {entry.transactionCount} txn
-                      {entry.transactionCount !== 1 ? "s" : ""}
-                    </span>
-                  </li>
-                ))}
-              </ol>
-            ) : (
-              <p className="top-accounts-empty">No transactions today</p>
-            )}
-          </div>
-
-          {/* Top by Commission */}
-          <div className="top-accounts-card">
-            <div className="top-accounts-header">
-              <DollarSign size={15} className="top-accounts-icon commission" />
-              <h3 className="top-accounts-title">Top by Commission</h3>
-              <button
-                onClick={() => router.push("/commissions")}
-                className="metric-link"
-              >
-                View All →
-              </button>
-            </div>
-            {topCommissionAccounts.length > 0 ? (
-              <ol className="top-accounts-list">
-                {topCommissionAccounts.map((entry, idx) => (
-                  <li key={entry.accountId} className="top-accounts-item">
-                    <span className="top-accounts-rank">{idx + 1}</span>
-                    <span className="top-accounts-name">
-                      {entry.accountName}
-                    </span>
-                    <span className="top-accounts-value commission">
-                      +{formatCompactCurrency(entry.commissionAmount)}
-                    </span>
-                  </li>
-                ))}
-              </ol>
-            ) : (
-              <p className="top-accounts-empty">No commission today</p>
-            )}
           </div>
         </div>
 

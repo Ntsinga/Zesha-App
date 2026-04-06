@@ -6,6 +6,7 @@ import {
   createTransaction,
   createFloatPurchase,
   createCapitalInjection,
+  createCashCapitalInjection,
   confirmTransaction,
   reverseTransaction,
   updateTransaction,
@@ -22,6 +23,7 @@ import type {
   TransactionCreate,
   FloatPurchaseCreate,
   CapitalInjectionCreate,
+  CashCapitalInjectionCreate,
   Transaction,
 } from "../../types/transaction";
 
@@ -62,6 +64,7 @@ const initialFloatPurchaseForm: FloatPurchaseFormState = {
 };
 
 export interface CapitalInjectionFormState {
+  injectionType: "FLOAT" | "CASH";
   accountId: number | null;
   amount: string;
   reference: string;
@@ -69,6 +72,7 @@ export interface CapitalInjectionFormState {
 }
 
 const initialCapitalInjectionForm: CapitalInjectionFormState = {
+  injectionType: "FLOAT",
   accountId: null,
   amount: "",
   reference: "",
@@ -395,26 +399,37 @@ export function useTransactionsScreen() {
   }, [dispatch, companyId, floatPurchaseForm, filterDateFrom, filterDateTo]);
 
   const handleCreateCapitalInjection = useCallback(async () => {
+    if (!capitalInjectionForm.amount || !companyId) return;
     if (
-      !capitalInjectionForm.accountId ||
-      !capitalInjectionForm.amount ||
-      !companyId
+      capitalInjectionForm.injectionType === "FLOAT" &&
+      !capitalInjectionForm.accountId
     ) {
       return;
     }
 
-    const data: CapitalInjectionCreate = {
-      companyId,
-      accountId: capitalInjectionForm.accountId,
-      amount: parseFloat(capitalInjectionForm.amount),
-      transactionTime: new Date().toISOString(),
-      reference: capitalInjectionForm.reference || undefined,
-      notes: capitalInjectionForm.notes || undefined,
-    };
-
     setSubmitError(null);
     try {
-      await dispatch(createCapitalInjection(data)).unwrap();
+      if (capitalInjectionForm.injectionType === "FLOAT") {
+        const data: CapitalInjectionCreate = {
+          companyId,
+          accountId: capitalInjectionForm.accountId!,
+          amount: parseFloat(capitalInjectionForm.amount),
+          transactionTime: new Date().toISOString(),
+          reference: capitalInjectionForm.reference || undefined,
+          notes: capitalInjectionForm.notes || undefined,
+        };
+        await dispatch(createCapitalInjection(data)).unwrap();
+      } else {
+        const data: CashCapitalInjectionCreate = {
+          companyId,
+          amount: parseFloat(capitalInjectionForm.amount),
+          transactionTime: new Date().toISOString(),
+          reference: capitalInjectionForm.reference || undefined,
+          notes: capitalInjectionForm.notes || undefined,
+        };
+        await dispatch(createCashCapitalInjection(data)).unwrap();
+      }
+
       setShowCapitalInjection(false);
       setCapitalInjectionForm(initialCapitalInjectionForm);
       dispatch(
