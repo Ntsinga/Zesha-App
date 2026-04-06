@@ -272,7 +272,7 @@ export default function Settings() {
               </div>
             </div>
 
-            <UserManagement />
+            {canEditSettings && <UserManagement />}
           </>
         )}
       </div>

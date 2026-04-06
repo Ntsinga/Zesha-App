@@ -44,6 +44,7 @@ export default function TransactionsWeb() {
     setFilterDateFrom,
     filterDateTo,
     setFilterDateTo,
+    topTransactionAccount,
     showAddTransaction,
     setShowAddTransaction,
     showFloatPurchase,
@@ -76,7 +77,6 @@ export default function TransactionsWeb() {
     formatDateTime,
   } = useTransactionsScreen();
 
-  // ---- Type icon helper ----
   const TypeIcon = ({ type }: { type: TransactionTypeEnum }) => {
     switch (type) {
       case "DEPOSIT":
@@ -90,7 +90,6 @@ export default function TransactionsWeb() {
     }
   };
 
-  // ---- Loading state ----
   if (isLoading && transactions.length === 0) {
     return (
       <div className="loading-container">
@@ -233,32 +232,25 @@ export default function TransactionsWeb() {
             </div>
           </div>
 
-          {/* Net Movement */}
+          {/* Top Account */}
           <div className="summary-card" style={{ padding: "16px" }}>
-            <div
-              className="summary-icon"
-              style={{
-                background:
-                  metrics.netMovement >= 0
-                    ? "rgba(34,197,94,0.15)"
-                    : "rgba(239,68,68,0.15)",
-                color: metrics.netMovement >= 0 ? "#22c55e" : "#ef4444",
-              }}
-            >
-              <Activity size={17} />
+            <div className="summary-icon">
+              <Hash size={17} />
             </div>
             <div className="summary-details">
-              <span className="summary-label">Net Movement</span>
-              <span
-                className="summary-amount"
-                style={{
-                  color: metrics.netMovement >= 0 ? "#22c55e" : "#ef4444",
-                }}
-              >
-                {metrics.netMovement >= 0 ? "+" : ""}
-                {formatCurrency(metrics.netMovement)}
+              <span className="summary-label">Top Account</span>
+              <span className="summary-amount">
+                {topTransactionAccount?.accountName ?? "No activity"}
               </span>
             </div>
+            {topTransactionAccount && (
+              <div className="summary-count">
+                <span className="count-number">
+                  {topTransactionAccount.transactionCount}
+                </span>
+                <span className="count-label">txns</span>
+              </div>
+            )}
           </div>
 
           {/* Transaction Count */}
@@ -315,19 +307,6 @@ export default function TransactionsWeb() {
               <option value="WITHDRAW">Withdrawals</option>
               <option value="FLOAT_PURCHASE">Float Purchases</option>
               <option value="CAPITAL_INJECTION">Capital Injections</option>
-            </select>
-
-            {/* Shift filter */}
-            <select
-              value={filterShift}
-              onChange={(e) =>
-                setFilterShift(e.target.value as "AM" | "PM" | "ALL")
-              }
-              className="filter-select"
-            >
-              <option value="ALL">All Shifts</option>
-              <option value="AM">AM</option>
-              <option value="PM">PM</option>
             </select>
 
             {/* Account filter */}

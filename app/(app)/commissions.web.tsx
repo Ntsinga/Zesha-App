@@ -29,11 +29,18 @@ export default function CommissionsPage() {
     filteredCommissions,
     accounts,
     metrics,
+    topCommissionAccount,
     onRefresh,
     handleResetFilters,
     formatCurrency,
     formatDateTime,
   } = useCommissionsScreen();
+
+  const topAccountSummary: {
+    accountName: string;
+    commissionAmount: number;
+    recordCount: number;
+  } | null = topCommissionAccount;
 
   if (isLoading && filteredCommissions.length === 0) {
     return (
@@ -109,8 +116,19 @@ export default function CommissionsPage() {
               <Hash size={24} />
             </div>
             <div className="stat-content">
-              <span className="stat-label">Transactions</span>
-              <span className="stat-value">{metrics.recordCount}</span>
+              <span className="stat-label">Top Account</span>
+              <span
+                className="stat-value"
+                style={{ fontSize: topAccountSummary ? "18px" : undefined }}
+                title={topAccountSummary?.accountName ?? "No commissions"}
+              >
+                {topAccountSummary?.accountName ?? "No commissions"}
+              </span>
+              {topAccountSummary && (
+                <span className="stat-label">
+                  {formatCurrency(topAccountSummary.commissionAmount)} · {topAccountSummary.recordCount} txns
+                </span>
+              )}
             </div>
           </div>
         </div>

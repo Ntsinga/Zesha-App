@@ -116,9 +116,78 @@ export function useCommissionsScreen() {
     };
   }, [filteredCommissions]);
 
+  const commissionByAccount = useMemo(() => {
+    const totals = new Map<
+      number,
+      { accountName: string; commissionAmount: number; recordCount: number }
+    >();
+
+    filteredCommissions.forEach((commission) => {
+      const existing = totals.get(commission.accountId);
+      const accountName = commission.accountName || `Account #${commission.accountId}`;
+
+      if (existing) {
+        existing.commissionAmount += commission.commissionAmount;
+        existing.recordCount += 1;
+        return;
+      }
+
+      totals.set(commission.accountId, {
+        accountName,
+        commissionAmount: commission.commissionAmount,
+        recordCount: 1,
+      });
+    });
+
+    return totals;
+  }, [filteredCommissions]);
+
+  const topCommissionAccount = useMemo<
+    | {
+        accountId: number;
+        accountName: string;
+        commissionAmount: number;
+        recordCount: number;
+      }
+    | null
+  >(() => {
+    let topEntry:
+      | {
+          accountId: number;
+          accountName: string;
+          commissionAmount: number;
+          recordCount: number;
+        }
+      | null = null;
+
+    commissionByAccount.forEach((value, accountId) => {
+      if (!topEntry || value.commissionAmount > topEntry.commissionAmount) {
+        topEntry = {
+          accountId,
+          accountName: value.accountName,
+          commissionAmount: value.commissionAmount,
+          recordCount: value.recordCount,
+        };
+      }
+    });
+
+    return topEntry;
+  }, [commissionByAccount]);
+
   const activeAccounts = useMemo(() => {
-    return accounts.filter((a) => a.isActive);
-  }, [accounts]);
+    return [...accounts]
+      .filter((a) => a.isActive)
+      .sort((left, right) => {
+        const leftCommission = commissionByAccount.get(left.id)?.commissionAmount ?? 0;
+        const rightCommission = commissionByAccount.get(right.id)?.commissionAmount ?? 0;
+
+        if (rightCommission !== leftCommission) {
+          return rightCommission - leftCommission;
+        }
+
+        return left.name.localeCompare(right.name);
+      });
+  }, [accounts, commissionByAccount]);
 
   const handleBack = useCallback(() => {
     router.back();
@@ -149,6 +218,7 @@ export function useCommissionsScreen() {
     filteredCommissions,
     accounts: activeAccounts,
     metrics,
+    topCommissionAccount,
 
     // Actions
     onRefresh,

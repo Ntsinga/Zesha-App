@@ -529,6 +529,12 @@ body {
   border: none;
 }
 
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 .btn-primary {
   background-color: var(--color-primary);
   color: white;
@@ -1160,6 +1166,12 @@ body {
   text-decoration: none;
 }
 
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 .btn-primary {
   background-color: var(--color-primary);
   color: white;
@@ -1664,13 +1676,12 @@ body {
 }
 
 .metric-amount {
-  font-size: 20px;
+  font-size: clamp(14px, 1.15vw, 20px);
   font-weight: 700;
   margin: 0 0 4px;
   color: var(--color-text);
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
 }
 
 .metric-amount.positive {
@@ -1720,10 +1731,114 @@ body {
 
 /* Bottom Section - Table + Actions */
 .dashboard-bottom {
+  flex-shrink: 0;
+}
+
+/* Top Accounts Row */
+.top-accounts-row {
   display: grid;
-  grid-template-columns: 1fr 280px;
-  gap: 24px;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  flex-shrink: 0;
+}
+
+.top-accounts-card {
+  background: white;
+  border-radius: 16px;
+  border: 1px solid var(--color-border);
+  padding: 20px 24px;
+}
+
+.top-accounts-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.top-accounts-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0;
   flex: 1;
+}
+
+.top-accounts-icon {
+  flex-shrink: 0;
+}
+
+.top-accounts-icon.transactions {
+  color: #4f46e5;
+}
+
+.top-accounts-icon.commission {
+  color: var(--color-success);
+}
+
+.top-accounts-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.top-accounts-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: var(--color-bg);
+  border-radius: 8px;
+}
+
+.top-accounts-rank {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+  flex-shrink: 0;
+}
+
+.top-accounts-name {
+  flex: 1;
+  font-size: 13px;
+  color: var(--color-text);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.top-accounts-value {
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.top-accounts-value.transactions {
+  color: #4f46e5;
+}
+
+.top-accounts-value.commission {
+  color: var(--color-success);
+}
+
+.top-accounts-empty {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  text-align: center;
+  padding: 20px 0;
+  margin: 0;
 }
 
 /* Table Card */
@@ -2535,17 +2650,16 @@ body {
    ============================================ */
 
 .balance-menu-grid {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
   gap: var(--space-md);
-  max-width: 800px;
 }
 
 .balance-menu-card {
   display: flex;
   align-items: center;
-  gap: var(--space-lg);
-  padding: var(--space-lg);
+  gap: var(--space-md);
+  padding: 18px 20px;
   background: var(--color-bg-card);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
@@ -2567,12 +2681,12 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 64px;
-  min-width: 64px;
-  height: 64px;
-  min-height: 64px;
+  width: 56px;
+  min-width: 56px;
+  height: 56px;
+  min-height: 56px;
   aspect-ratio: 1;
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   background: var(--color-primary-light);
   color: var(--color-primary);
   flex-shrink: 0;
@@ -2611,7 +2725,7 @@ body {
 }
 
 .balance-menu-title {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--color-text);
 }
@@ -2621,9 +2735,9 @@ body {
 }
 
 .balance-menu-description {
-  font-size: 14px;
+  font-size: 13px;
   color: var(--color-text-secondary);
-  margin-top: 4px;
+  margin-top: 3px;
 }
 
 .balance-menu-description.completed {
@@ -2705,16 +2819,16 @@ body {
 }
 
 .shift-selector-btn {
-  flex: 1;
-  padding: 12px 24px;
+  padding: 6px 16px;
   border: none;
-  border-radius: var(--radius-md);
+  border-radius: 999px;
   background: transparent;
   color: var(--color-text-secondary);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
+  white-space: nowrap;
 }
 
 .shift-selector-btn:hover {
@@ -2788,11 +2902,11 @@ body {
 
 .shift-selector-centered {
   display: inline-flex;
-  gap: var(--space-sm);
-  padding: 6px;
+  gap: 4px;
+  padding: 4px;
   background: var(--color-bg);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
+  border-radius: 999px;
   margin-bottom: var(--space-lg);
 }
 
@@ -2800,17 +2914,16 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: var(--space-md);
-  padding: 14px 28px;
+  gap: 8px;
+  padding: 10px 22px;
   background: var(--color-primary);
   color: white;
   border: none;
   border-radius: var(--radius-lg);
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
-  margin-left: var(--space-md);
 }
 
 .btn-calculate-centered:hover:not(:disabled) {
@@ -2839,36 +2952,35 @@ body {
 
 .shift-buttons {
   display: flex;
-  gap: var(--space-md);
-  margin-top: var(--space-sm);
+  gap: 4px;
+  padding: 4px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  display: inline-flex;
 }
 
 .shift-button {
-  flex: 1;
-  max-width: 200px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--space-sm);
-  padding: var(--space-md);
-  background: var(--color-bg);
-  border: 2px solid var(--color-border);
-  border-radius: var(--radius-md);
-  font-size: 16px;
+  padding: 6px 16px;
+  background: transparent;
+  border: none;
+  border-radius: 999px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--color-text-secondary);
-  cursor: pointer;
-  transition: all 0.2s;
+  white-space: nowrap;
+  cursor: default;
 }
 
 .shift-button:hover {
-  border-color: var(--color-primary);
-  color: var(--color-primary);
+  color: var(--color-text);
 }
 
 .shift-button.selected {
   background: var(--color-primary);
-  border-color: var(--color-primary);
   color: white;
 }
 
@@ -5731,6 +5843,11 @@ body {
 
   .card-body {
     padding: 16px;
+  }
+
+  /* Top accounts panels mobile */
+  .top-accounts-row {
+    grid-template-columns: 1fr;
   }
 
   /* Tables mobile - horizontal scroll */

@@ -47,13 +47,17 @@ export default function BalanceHistoryWeb() {
     refreshing,
     history,
     filterShift,
-    searchDate,
+    filterStatus,
+    filterDateFrom,
+    filterDateTo,
     totalRecords,
     passedCount,
     failedCount,
     flaggedCount,
     setFilterShift,
-    setSearchDate,
+    setFilterStatus,
+    setFilterDateFrom,
+    setFilterDateTo,
     onRefresh,
     formatCurrency,
     formatDate,
@@ -147,13 +151,47 @@ export default function BalanceHistoryWeb() {
             </select>
           </div>
           <div className="filter-group">
+            <select
+              value={filterStatus}
+              onChange={(e) =>
+                setFilterStatus(
+                  e.target.value as
+                    | "ALL"
+                    | "DRAFT"
+                    | "CALCULATED"
+                    | "AWAITING_REVIEW"
+                    | "APPROVED"
+                    | "REJECTED",
+                )
+              }
+              className="filter-select"
+            >
+              <option value="ALL">All Statuses</option>
+              <option value="DRAFT">Draft</option>
+              <option value="CALCULATED">Calculated</option>
+              <option value="AWAITING_REVIEW">Awaiting Review</option>
+              <option value="APPROVED">Approved</option>
+              <option value="REJECTED">Rejected</option>
+            </select>
+          </div>
+          <div className="filter-group">
             <Search size={16} />
             <input
               type="date"
-              value={searchDate}
-              onChange={(e) => setSearchDate(e.target.value)}
+              value={filterDateFrom}
+              onChange={(e) => setFilterDateFrom(e.target.value)}
               className="filter-input"
-              placeholder="Filter by date"
+              placeholder="From date"
+            />
+          </div>
+          <span style={{ color: "#94a3b8", alignSelf: "center" }}>–</span>
+          <div className="filter-group">
+            <input
+              type="date"
+              value={filterDateTo}
+              onChange={(e) => setFilterDateTo(e.target.value)}
+              className="filter-input"
+              placeholder="To date"
             />
           </div>
           <button onClick={() => router.push("/balance")} className="btn-add">

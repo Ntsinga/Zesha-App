@@ -11,8 +11,6 @@ import {
   ArrowDownRight,
   ArrowLeftRight,
   CheckCircle,
-  AlertTriangle,
-  Clock,
 } from "lucide-react";
 import { useDashboardScreen } from "../../hooks/screens/useDashboardScreen";
 import "../../styles/web.css";
@@ -30,15 +28,15 @@ export default function DashboardWeb() {
     displayVariance,
     totalExpenses,
     todayExpenses,
-    totalCommission,
+    dailyCommission,
     totalBankCommission,
     totalTelecomCommission,
-    telecomPendingCount,
-    telecomVarianceCount,
-    telecomHasIssues,
-    bankVariance,
-    telecomVariance,
     transactionCount,
+    topTransactionAccount,
+    topCommissionAccount,
+    topTransactionAccounts,
+    topCommissionAccounts,
+    commissionByAccountId,
     displayCapital,
     displayFloat,
     displayCash,
@@ -203,76 +201,48 @@ export default function DashboardWeb() {
               <div className="metric-divider" />
               <div className="metric">
                 <div className="metric-top">
-                  <span className="metric-name">Commission</span>
-                  <div
-                    className={`metric-badge ${telecomHasIssues ? "negative" : "positive"}`}
-                  >
-                    {telecomHasIssues ? (
-                      <AlertTriangle size={16} />
-                    ) : (
-                      <DollarSign size={16} />
-                    )}
+                  <span className="metric-name">Daily Commission</span>
+                  <div className="metric-badge positive">
+                    <DollarSign size={16} />
                   </div>
                 </div>
                 <p className="metric-amount positive">
-                  +
-                  {formatCurrency(totalBankCommission + totalTelecomCommission)}
+                  +{formatCurrency(dailyCommission)}
                 </p>
-                {/* Bank line — expected only, always matched */}
-                {bankVariance.length > 0 && (
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 4,
-                      marginTop: 4,
-                      fontSize: 11,
-                      color: "#64748b",
-                    }}
-                  >
-                    <CheckCircle size={11} color="#16a34a" />
-                    <span>
-                      Bank: {formatCompactCurrency(totalBankCommission)}
-                    </span>
-                  </div>
-                )}
-                {/* Telecom line — reconcile daily */}
-                {telecomVariance.length > 0 && (
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 4,
-                      marginTop: 2,
-                      fontSize: 11,
-                      color: telecomHasIssues ? "#dc2626" : "#64748b",
-                    }}
-                  >
-                    {telecomPendingCount > 0 ? (
-                      <Clock size={11} color="#f59e0b" />
-                    ) : telecomVarianceCount > 0 ? (
-                      <AlertTriangle size={11} color="#dc2626" />
-                    ) : (
-                      <CheckCircle size={11} color="#16a34a" />
-                    )}
-                    <span>
-                      Telecom: {formatCompactCurrency(totalTelecomCommission)}
-                      {telecomPendingCount > 0
-                        ? ` · ${telecomPendingCount} pending`
-                        : telecomVarianceCount > 0
-                          ? ` · ${telecomVarianceCount} variance`
-                          : ""}
-                    </span>
-                  </div>
-                )}
-                {/* Fallback if no variance data yet */}
-                {bankVariance.length === 0 && telecomVariance.length === 0 && (
-                  <span className="metric-sub">
-                    Total: {formatCurrency(totalCommission)}
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 4,
+                    marginTop: 4,
+                    fontSize: 11,
+                    color: "#64748b",
+                  }}
+                >
+                  <CheckCircle size={11} color="#16a34a" />
+                  <span>Bank: {formatCompactCurrency(totalBankCommission)}</span>
+                </div>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 4,
+                    marginTop: 2,
+                    fontSize: 11,
+                    color: "#64748b",
+                  }}
+                >
+                  <CheckCircle size={11} color="#16a34a" />
+                  <span>
+                    Telecom: {formatCompactCurrency(totalTelecomCommission)}
                   </span>
-                )}
+                </div>
                 <div className="metric-footer">
-                  <span />
+                  <span className="metric-sub">
+                    {topCommissionAccount
+                      ? `${topCommissionAccount.accountName} · ${formatCompactCurrency(topCommissionAccount.commissionAmount)}`
+                      : "No commission yet"}
+                  </span>
                   <button
                     onClick={() => router.push("/commissions")}
                     className="metric-link"
@@ -296,7 +266,11 @@ export default function DashboardWeb() {
                   {transactionCount}
                 </p>
                 <div className="metric-footer">
-                  <span className="metric-sub">today</span>
+                  <span className="metric-sub">
+                    {topTransactionAccount
+                      ? `${topTransactionAccount.accountName} · ${topTransactionAccount.transactionCount} txns`
+                      : "today"}
+                  </span>
                   <button
                     onClick={() => router.push("/transactions")}
                     className="metric-link"
@@ -309,7 +283,68 @@ export default function DashboardWeb() {
           </div>
         </div>
 
-        {/* Bottom Section: Current Balances Table */}
+        {/* Middle Section: Top Accounts */}
+        <div className="top-accounts-row">
+          {/* Top by Transactions */}
+          <div className="top-accounts-card">
+            <div className="top-accounts-header">
+              <ArrowLeftRight size={15} className="top-accounts-icon transactions" />
+              <h3 className="top-accounts-title">Top by Transactions</h3>
+              <button
+                onClick={() => router.push("/transactions")}
+                className="metric-link"
+              >
+                View All →
+              </button>
+            </div>
+            {topTransactionAccounts.length > 0 ? (
+              <ol className="top-accounts-list">
+                {topTransactionAccounts.map((entry, idx) => (
+                  <li key={entry.accountId} className="top-accounts-item">
+                    <span className="top-accounts-rank">{idx + 1}</span>
+                    <span className="top-accounts-name">{entry.accountName}</span>
+                    <span className="top-accounts-value transactions">
+                      {entry.transactionCount} txn{entry.transactionCount !== 1 ? "s" : ""}
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <p className="top-accounts-empty">No transactions today</p>
+            )}
+          </div>
+
+          {/* Top by Commission */}
+          <div className="top-accounts-card">
+            <div className="top-accounts-header">
+              <DollarSign size={15} className="top-accounts-icon commission" />
+              <h3 className="top-accounts-title">Top by Commission</h3>
+              <button
+                onClick={() => router.push("/commissions")}
+                className="metric-link"
+              >
+                View All →
+              </button>
+            </div>
+            {topCommissionAccounts.length > 0 ? (
+              <ol className="top-accounts-list">
+                {topCommissionAccounts.map((entry, idx) => (
+                  <li key={entry.accountId} className="top-accounts-item">
+                    <span className="top-accounts-rank">{idx + 1}</span>
+                    <span className="top-accounts-name">{entry.accountName}</span>
+                    <span className="top-accounts-value commission">
+                      +{formatCompactCurrency(entry.commissionAmount)}
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <p className="top-accounts-empty">No commission today</p>
+            )}
+          </div>
+        </div>
+
+        {/* Bottom Section: Current Balances */}
         <div className="dashboard-bottom">
           {/* Accounts Table */}
           <div className="table-card">
@@ -327,21 +362,28 @@ export default function DashboardWeb() {
               <thead>
                 <tr>
                   <th>Account</th>
-                  <th>Current Balance</th>
+                  <th style={{ textAlign: "right" }}>Current Balance</th>
+                  <th style={{ textAlign: "right" }}>Commission Today</th>
                 </tr>
               </thead>
               <tbody>
-                {accounts.map((account, idx) => (
-                  <tr key={`account-${idx}`}>
-                    <td>{account.accountName}</td>
-                    <td className="amount">
-                      {formatCurrency(account.balance || 0)}
-                    </td>
-                  </tr>
-                ))}
+                {accounts.map((account, idx) => {
+                  const commission = commissionByAccountId.get(account.accountId) ?? 0;
+                  return (
+                    <tr key={`account-${idx}`}>
+                      <td>{account.accountName}</td>
+                      <td className="amount">
+                        {formatCurrency(account.balance || 0)}
+                      </td>
+                      <td className="amount" style={{ color: commission > 0 ? "var(--color-success)" : "var(--color-text-muted)" }}>
+                        {commission > 0 ? `+${formatCurrency(commission)}` : "—"}
+                      </td>
+                    </tr>
+                  );
+                })}
                 {accounts.length === 0 && (
                   <tr>
-                    <td colSpan={2} className="empty">
+                    <td colSpan={3} className="empty">
                       <PiggyBank size={40} />
                       <p>No accounts found</p>
                     </td>

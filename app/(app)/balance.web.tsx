@@ -5,7 +5,6 @@ import {
   ChevronRight,
   CheckCircle,
   RefreshCw,
-  Calculator,
   ArrowLeftRight,
 } from "lucide-react";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -77,10 +76,10 @@ export default function BalancePage() {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    width: 64,
-    height: 64,
-    minWidth: 64,
-    minHeight: 64,
+    width: 56,
+    height: 56,
+    minWidth: 56,
+    minHeight: 56,
     borderRadius: 12,
     flexShrink: 0,
   };
@@ -221,6 +220,21 @@ export default function BalancePage() {
           >
             <div className="spinner"></div>
             <p className="loading-text">Loading reconciliation data...</p>
+          </div>
+        )}
+
+        {/* Phase heading — above the cards */}
+        {shiftPhase === "COMPLETE" ? (
+          <div className="balance-phase-heading">
+            <h3 className="section-title-centered">{selectedShift} Shift Complete</h3>
+            <p className="section-description-centered">
+              All reconciliations for the {selectedShift} shift have been finalized.
+            </p>
+          </div>
+        ) : (
+          <div className="balance-phase-heading">
+            <h3 className="section-title-centered">{reconciliationHeading}</h3>
+            <p className="section-description-centered">{reconciliationDescription}</p>
           </div>
         )}
 
@@ -454,60 +468,30 @@ export default function BalancePage() {
           )}
         </div>
 
-        {/* Calculate Reconciliation Section */}
-        <div className="reconciliation-section-centered">
-          {shiftPhase === "COMPLETE" ? (
-            <>
-              <h3 className="section-title-centered">
-                {selectedShift} Shift Complete
-              </h3>
-              <p className="section-description-centered">
-                All reconciliations for the {selectedShift} shift have been
-                finalized.
-              </p>
-            </>
-          ) : (
-            <>
-              <h3 className="section-title-centered">
-                {reconciliationHeading}
-              </h3>
-              <p className="section-description-centered">
-                {reconciliationDescription}
-              </p>
-
-              <button
-                onClick={handleCalculatePress}
-                disabled={
-                  isResolvingPhase ||
-                  isCalculating ||
-                  !hasSelectedCashCount ||
-                  !hasSelectedBalances ||
-                  (showPhaseDependentActions && !hasSelectedCommissions)
-                }
-                className={`btn-calculate-centered ${
-                  isResolvingPhase ||
-                  isCalculating ||
-                  !hasSelectedCashCount ||
-                  !hasSelectedBalances ||
-                  (showPhaseDependentActions && !hasSelectedCommissions)
-                    ? "loading"
-                    : ""
-                }`}
-              >
-                <Calculator size={24} />
-                <span>
-                  {isResolvingPhase
-                    ? "Loading Shift Status..."
-                    : isCalculating
-                      ? "Calculating..."
-                      : !hasSelectedCashCount || !hasSelectedBalances
-                        ? "Complete Required Steps First"
-                        : buttonLabel}
-                </span>
-              </button>
-            </>
-          )}
-        </div>
+        {/* Calculate button */}
+        {shiftPhase !== "COMPLETE" && (
+          <div style={{ display: "flex", justifyContent: "flex-end" }}>
+            <button
+              onClick={handleCalculatePress}
+              disabled={
+                isResolvingPhase ||
+                isCalculating ||
+                !hasSelectedCashCount ||
+                !hasSelectedBalances ||
+                (showPhaseDependentActions && !hasSelectedCommissions)
+              }
+              className="btn btn-primary"
+            >
+              {isResolvingPhase
+                ? "Loading Shift Status..."
+                : isCalculating
+                  ? "Calculating..."
+                  : !hasSelectedCashCount || !hasSelectedBalances
+                    ? "Complete Required Steps First"
+                    : buttonLabel}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
