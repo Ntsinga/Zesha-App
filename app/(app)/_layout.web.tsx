@@ -1,5 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { useRouter, usePathname, Slot } from "expo-router";
+import {
+  useRouter,
+  usePathname,
+  useLocalSearchParams,
+  Slot,
+} from "expo-router";
 import { useAuth, useUser } from "@clerk/clerk-react";
 import {
   LayoutDashboard,
@@ -26,6 +31,7 @@ import {
   selectUserRole,
   selectViewingAgencyId,
   selectViewingAgencyName,
+  enterAgency,
   exitAgency,
 } from "../../store/slices/authSlice";
 import TopBarWeb from "../../components/TopBar.web";
@@ -85,6 +91,14 @@ export default function AppLayoutWeb() {
   const effectiveRole = userRole ?? clerkMetadataRole;
   const isSuperAdmin = effectiveRole === "Super Administrator";
   const isViewingAgency = viewingAgencyId !== null;
+  const searchParams = useLocalSearchParams<{
+    companyId?: string;
+    companyName?: string;
+  }>();
+  const deepLinkCompanyId = searchParams.companyId
+    ? Number(searchParams.companyId)
+    : null;
+  const deepLinkCompanyName = searchParams.companyName ?? null;
 
   // Determine what to show in sidebar subtitle
   // Superadmin NOT viewing agency: "Admin Portal"
@@ -102,6 +116,33 @@ export default function AppLayoutWeb() {
     setIsMobileMenuOpen(false);
   }, [pathname]);
 
+  useEffect(() => {
+    if (!isClerkUserLoaded || !isAuthInitialized) return;
+    if (
+      !isSuperAdmin ||
+      !deepLinkCompanyId ||
+      !Number.isFinite(deepLinkCompanyId)
+    )
+      return;
+    if (viewingAgencyId === deepLinkCompanyId) return;
+
+    dispatch(
+      enterAgency({
+        agencyId: deepLinkCompanyId,
+        agencyName:
+          deepLinkCompanyName?.trim() || `Agency ${deepLinkCompanyId}`,
+      }),
+    );
+  }, [
+    dispatch,
+    isClerkUserLoaded,
+    isAuthInitialized,
+    isSuperAdmin,
+    deepLinkCompanyId,
+    deepLinkCompanyName,
+    viewingAgencyId,
+  ]);
+
   // Redirect superadmin to agencies page if they try to access agency-specific pages without viewing an agency
   // Uses effectiveRole which falls back to Clerk metadata when backend is unavailable
   useEffect(() => {
@@ -115,7 +156,8 @@ export default function AppLayoutWeb() {
       pathname !== "/agencies" &&
       pathname !== "/agency-form" &&
       pathname !== "/account-templates" &&
-      pathname !== "/settings"
+      pathname !== "/settings" &&
+      !deepLinkCompanyId
     ) {
       router.replace("/agencies");
     }
@@ -126,8 +168,7 @@ export default function AppLayoutWeb() {
     router,
     isClerkUserLoaded,
     isAuthInitialized,
-    clerkMetadataRole,
-    effectiveRole,
+    deepLinkCompanyId,
   ]);
 
   // Prevent body scroll when mobile menu is open
@@ -245,40 +286,186 @@ export default function AppLayoutWeb() {
 
   return (
     <ToastProvider>
-    <div className="web-layout">
-      {/* Mobile Menu Overlay */}
-      <div
-        className={`mobile-menu-overlay ${isMobileMenuOpen ? "active" : ""}`}
-        onClick={() => setIsMobileMenuOpen(false)}
-      />
+      <div className="web-layout">
+        {/* Mobile Menu Overlay */}
+        <div
+          className={`mobile-menu-overlay ${isMobileMenuOpen ? "active" : ""}`}
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
 
-      {/* Mobile Slide-out Menu */}
-      <div className={`mobile-menu ${isMobileMenuOpen ? "active" : ""}`}>
-        <div className="mobile-menu-header">
-          <div className="mobile-menu-brand">
-            <div className="mobile-menu-logo">
-              <Building2 size={24} color="white" />
+        {/* Mobile Slide-out Menu */}
+        <div className={`mobile-menu ${isMobileMenuOpen ? "active" : ""}`}>
+          <div className="mobile-menu-header">
+            <div className="mobile-menu-brand">
+              <div className="mobile-menu-logo">
+                <Building2 size={24} color="white" />
+              </div>
+              <div>
+                <div className="mobile-menu-title">Teleba</div>
+                <div className="mobile-menu-subtitle">{sidebarSubtitle}</div>
+              </div>
             </div>
-            <div>
-              <div className="mobile-menu-title">Teleba</div>
-              <div className="mobile-menu-subtitle">{sidebarSubtitle}</div>
-            </div>
+            <button
+              className="mobile-menu-close"
+              onClick={() => setIsMobileMenuOpen(false)}
+              aria-label="Close menu"
+            >
+              <X size={24} color="white" />
+            </button>
           </div>
-          <button
-            className="mobile-menu-close"
-            onClick={() => setIsMobileMenuOpen(false)}
-            aria-label="Close menu"
-          >
-            <X size={24} color="white" />
-          </button>
+          <nav className="mobile-menu-nav">
+            <ul>
+              {navItems.map((item) => (
+                <li key={item.href}>
+                  <button
+                    onClick={() => handleNavigation(item.href)}
+                    className={`mobile-menu-link ${isActive(item.href) ? "active" : ""}`}
+                  >
+                    {item.icon}
+                    <span>{item.label}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </nav>
+          <div className="mobile-menu-footer">
+            <button
+              onClick={() => handleNavigation("/settings")}
+              className="mobile-menu-link"
+            >
+              <Settings size={20} />
+              <span>Settings</span>
+            </button>
+            <button onClick={handleSignOut} className="mobile-menu-link">
+              <LogOut size={20} />
+              <span>Logout</span>
+            </button>
+          </div>
         </div>
-        <nav className="mobile-menu-nav">
+
+        {/* Desktop Sidebar */}
+        <aside className={`sidebar${isSidebarCollapsed ? " collapsed" : ""}`}>
+          <div className="sidebar-header">
+            <div className="sidebar-brand">
+              <div className="sidebar-logo">
+                <Building2 size={24} color="white" />
+              </div>
+              {!isSidebarCollapsed && (
+                <div>
+                  <div className="sidebar-title">Teleba</div>
+                  <div className="sidebar-subtitle">{sidebarSubtitle}</div>
+                </div>
+              )}
+            </div>
+            <button
+              onClick={toggleSidebar}
+              className="sidebar-collapse-btn"
+              title={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              aria-label={
+                isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"
+              }
+            >
+              {isSidebarCollapsed ? (
+                <ChevronRight size={18} />
+              ) : (
+                <ChevronLeft size={18} />
+              )}
+            </button>
+          </div>
+
+          <nav className="sidebar-nav">
+            <ul>
+              {navItems.map((item) => (
+                <li key={item.href} className="nav-item">
+                  <button
+                    onClick={() => router.push(item.href as any)}
+                    className={`nav-link ${isActive(item.href) ? "active" : ""}`}
+                    title={isSidebarCollapsed ? item.label : undefined}
+                  >
+                    {item.icon}
+                    {!isSidebarCollapsed && <span>{item.label}</span>}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </nav>
+
+          <div className="sidebar-footer">
+            <button
+              onClick={() => router.push("/settings")}
+              className="nav-link"
+              title={isSidebarCollapsed ? "Settings" : undefined}
+            >
+              <Settings size={20} />
+              {!isSidebarCollapsed && <span>Settings</span>}
+            </button>
+            <button
+              onClick={handleSignOut}
+              className="nav-link"
+              title={isSidebarCollapsed ? "Logout" : undefined}
+            >
+              <LogOut size={20} />
+              {!isSidebarCollapsed && <span>Logout</span>}
+            </button>
+          </div>
+        </aside>
+
+        {/* Main Content Area */}
+        <main
+          className={`content-area${isSidebarCollapsed ? " sidebar-collapsed" : ""}`}
+        >
+          {/* Agency Viewing Banner - only shown when superadmin is viewing an agency */}
+          {isSuperAdmin && isViewingAgency && (
+            <div className="agency-viewing-banner">
+              <div className="banner-content">
+                <div className="banner-icon">
+                  <Building2 size={18} color="white" />
+                </div>
+                <span className="banner-text">
+                  Viewing: <strong>{viewingAgencyName}</strong>
+                </span>
+              </div>
+              <button className="btn-exit-agency" onClick={handleExitAgency}>
+                <LogIn size={16} style={{ transform: "scaleX(-1)" }} />
+                <span>Exit Agency</span>
+              </button>
+            </div>
+          )}
+
+          {/* Mobile Header - only visible on mobile */}
+          <header className="mobile-header">
+            <div className="mobile-header-brand">
+              <div className="mobile-header-logo">
+                <Building2 size={20} color="white" />
+              </div>
+              <span className="mobile-header-title">Teleba</span>
+            </div>
+            <button
+              className="hamburger-btn"
+              onClick={() => setIsMobileMenuOpen(true)}
+              aria-label="Open menu"
+            >
+              <Menu size={24} />
+            </button>
+          </header>
+
+          {/* Desktop TopBar - hidden on mobile */}
+          <TopBarWeb />
+
+          {/* Page Content - scrollable container */}
+          <div className="page-scroll-container">
+            <Slot />
+          </div>
+        </main>
+
+        {/* Mobile Bottom Navigation */}
+        <nav className="mobile-bottom-nav">
           <ul>
-            {navItems.map((item) => (
-              <li key={item.href}>
+            {mobileNavItems.map((item) => (
+              <li key={item.href} className="mobile-nav-item">
                 <button
-                  onClick={() => handleNavigation(item.href)}
-                  className={`mobile-menu-link ${isActive(item.href) ? "active" : ""}`}
+                  onClick={() => router.push(item.href as any)}
+                  className={`mobile-nav-link ${isActive(item.href) ? "active" : ""}`}
                 >
                   {item.icon}
                   <span>{item.label}</span>
@@ -287,153 +474,7 @@ export default function AppLayoutWeb() {
             ))}
           </ul>
         </nav>
-        <div className="mobile-menu-footer">
-          <button
-            onClick={() => handleNavigation("/settings")}
-            className="mobile-menu-link"
-          >
-            <Settings size={20} />
-            <span>Settings</span>
-          </button>
-          <button onClick={handleSignOut} className="mobile-menu-link">
-            <LogOut size={20} />
-            <span>Logout</span>
-          </button>
-        </div>
       </div>
-
-      {/* Desktop Sidebar */}
-      <aside className={`sidebar${isSidebarCollapsed ? " collapsed" : ""}`}>
-        <div className="sidebar-header">
-          <div className="sidebar-brand">
-            <div className="sidebar-logo">
-              <Building2 size={24} color="white" />
-            </div>
-            {!isSidebarCollapsed && (
-              <div>
-                <div className="sidebar-title">Teleba</div>
-                <div className="sidebar-subtitle">{sidebarSubtitle}</div>
-              </div>
-            )}
-          </div>
-          <button
-            onClick={toggleSidebar}
-            className="sidebar-collapse-btn"
-            title={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-            aria-label={
-              isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"
-            }
-          >
-            {isSidebarCollapsed ? (
-              <ChevronRight size={18} />
-            ) : (
-              <ChevronLeft size={18} />
-            )}
-          </button>
-        </div>
-
-        <nav className="sidebar-nav">
-          <ul>
-            {navItems.map((item) => (
-              <li key={item.href} className="nav-item">
-                <button
-                  onClick={() => router.push(item.href as any)}
-                  className={`nav-link ${isActive(item.href) ? "active" : ""}`}
-                  title={isSidebarCollapsed ? item.label : undefined}
-                >
-                  {item.icon}
-                  {!isSidebarCollapsed && <span>{item.label}</span>}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </nav>
-
-        <div className="sidebar-footer">
-          <button
-            onClick={() => router.push("/settings")}
-            className="nav-link"
-            title={isSidebarCollapsed ? "Settings" : undefined}
-          >
-            <Settings size={20} />
-            {!isSidebarCollapsed && <span>Settings</span>}
-          </button>
-          <button
-            onClick={handleSignOut}
-            className="nav-link"
-            title={isSidebarCollapsed ? "Logout" : undefined}
-          >
-            <LogOut size={20} />
-            {!isSidebarCollapsed && <span>Logout</span>}
-          </button>
-        </div>
-      </aside>
-
-      {/* Main Content Area */}
-      <main
-        className={`content-area${isSidebarCollapsed ? " sidebar-collapsed" : ""}`}
-      >
-        {/* Agency Viewing Banner - only shown when superadmin is viewing an agency */}
-        {isSuperAdmin && isViewingAgency && (
-          <div className="agency-viewing-banner">
-            <div className="banner-content">
-              <div className="banner-icon">
-                <Building2 size={18} color="white" />
-              </div>
-              <span className="banner-text">
-                Viewing: <strong>{viewingAgencyName}</strong>
-              </span>
-            </div>
-            <button className="btn-exit-agency" onClick={handleExitAgency}>
-              <LogIn size={16} style={{ transform: "scaleX(-1)" }} />
-              <span>Exit Agency</span>
-            </button>
-          </div>
-        )}
-
-        {/* Mobile Header - only visible on mobile */}
-        <header className="mobile-header">
-          <div className="mobile-header-brand">
-            <div className="mobile-header-logo">
-              <Building2 size={20} color="white" />
-            </div>
-            <span className="mobile-header-title">Teleba</span>
-          </div>
-          <button
-            className="hamburger-btn"
-            onClick={() => setIsMobileMenuOpen(true)}
-            aria-label="Open menu"
-          >
-            <Menu size={24} />
-          </button>
-        </header>
-
-        {/* Desktop TopBar - hidden on mobile */}
-        <TopBarWeb />
-
-        {/* Page Content - scrollable container */}
-        <div className="page-scroll-container">
-          <Slot />
-        </div>
-      </main>
-
-      {/* Mobile Bottom Navigation */}
-      <nav className="mobile-bottom-nav">
-        <ul>
-          {mobileNavItems.map((item) => (
-            <li key={item.href} className="mobile-nav-item">
-              <button
-                onClick={() => router.push(item.href as any)}
-                className={`mobile-nav-link ${isActive(item.href) ? "active" : ""}`}
-              >
-                {item.icon}
-                <span>{item.label}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      </nav>
-    </div>
     </ToastProvider>
   );
 }

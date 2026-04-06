@@ -15,14 +15,26 @@ import { useCurrencyFormatter } from "../useCurrency";
 import type { AppDispatch, RootState } from "../../store";
 import type { ReconciliationSubtypeEnum, ShiftEnum } from "../../types";
 
-export function useBalanceMenuScreen() {
+interface UseBalanceMenuScreenOptions {
+  initialShift?: ShiftEnum;
+  lockInitialShift?: boolean;
+  dateOverride?: string;
+  companyIdOverride?: number;
+}
+
+export function useBalanceMenuScreen({
+  initialShift = "AM",
+  lockInitialShift = false,
+  dateOverride,
+  companyIdOverride,
+}: UseBalanceMenuScreenOptions = {}) {
   const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
   const { formatCurrency } = useCurrencyFormatter();
-  const [selectedShift, setSelectedShift] = useState<ShiftEnum>("AM");
+  const [selectedShift, setSelectedShift] = useState<ShiftEnum>(initialShift);
 
   // Get today's date
-  const today = new Date().toISOString().split("T")[0];
+  const today = dateOverride || new Date().toISOString().split("T")[0];
 
   // Get cash counts, balances, commissions, and accounts from Redux
   const { items: cashCounts, isLoading: cashCountLoading } = useSelector(
@@ -51,6 +63,7 @@ export function useBalanceMenuScreen() {
 
   const { user: backendUser } = useSelector((state: RootState) => state.auth);
   const effectiveCompanyId = useSelector(selectEffectiveCompanyId);
+  const resolvedCompanyId = companyIdOverride ?? effectiveCompanyId;
 
   const isLoading =
     cashCountLoading ||
@@ -66,10 +79,12 @@ export function useBalanceMenuScreen() {
 
   const refreshShiftStatus = useCallback(
     (shift: ShiftEnum) => {
-      if (!effectiveCompanyId) return;
-      return dispatch(fetchShiftStatus({ date: today, shift }));
+      if (!resolvedCompanyId) return;
+      return dispatch(
+        fetchShiftStatus({ date: today, shift, companyId: resolvedCompanyId }),
+      );
     },
-    [dispatch, effectiveCompanyId, today],
+    [dispatch, resolvedCompanyId, today],
   );
 
   // Fetch shift status on screen focus (initial mount + returning from other
@@ -115,47 +130,45 @@ export function useBalanceMenuScreen() {
 
   // Fetch day-scoped data that doesn't vary by phase.
   useEffect(() => {
-    if (!effectiveCompanyId) return;
-    const fetchKey = `${effectiveCompanyId}:${today}`;
+    if (!resolvedCompanyId) return;
+    const fetchKey = `${resolvedCompanyId}:${today}`;
     if (lastBaseFetchKey.current === fetchKey) return;
     lastBaseFetchKey.current = fetchKey;
 
     dispatch(
       fetchCommissions({
-        companyId: effectiveCompanyId,
+        companyId: resolvedCompanyId,
         dateFrom: today,
         dateTo: today,
       }),
     );
-    dispatch(
-      fetchAccounts({ companyId: effectiveCompanyId, isActive: true }),
-    );
+    dispatch(fetchAccounts({ companyId: resolvedCompanyId, isActive: true }));
     dispatch(
       fetchTransactions({
-        companyId: effectiveCompanyId,
+        companyId: resolvedCompanyId,
         startDate: today,
         endDate: today,
       }),
     );
-  }, [dispatch, today, effectiveCompanyId]);
+  }, [dispatch, today, resolvedCompanyId]);
 
   // Fetch phase-scoped data only after the AM phase is known.
   useEffect(() => {
-    if (!effectiveCompanyId || !isPhaseResolved) return;
-    const fetchKey = `${effectiveCompanyId}:${today}:${selectedShift}:${currentSubtype}`;
+    if (!resolvedCompanyId || !isPhaseResolved) return;
+    const fetchKey = `${resolvedCompanyId}:${today}:${selectedShift}:${currentSubtype}`;
     if (lastSubtypeFetchKey.current === fetchKey) return;
     lastSubtypeFetchKey.current = fetchKey;
 
     dispatch(
       fetchCashCounts({
-        companyId: effectiveCompanyId,
+        companyId: resolvedCompanyId,
         countDate: today,
         subtype: currentSubtype,
       }),
     );
     dispatch(
       fetchBalances({
-        companyId: effectiveCompanyId,
+        companyId: resolvedCompanyId,
         dateFrom: today,
         dateTo: today,
         subtype: currentSubtype,
@@ -164,7 +177,7 @@ export function useBalanceMenuScreen() {
   }, [
     dispatch,
     today,
-    effectiveCompanyId,
+    resolvedCompanyId,
     isPhaseResolved,
     selectedShift,
     currentSubtype,
@@ -350,6 +363,13 @@ export function useBalanceMenuScreen() {
   const [hasAutoSelected, setHasAutoSelected] = useState(false);
 
   useEffect(() => {
+    if (lockInitialShift) {
+      if (!hasAutoSelected) {
+        setHasAutoSelected(true);
+      }
+      return;
+    }
+
     // Only auto-select once on initial load
     if (hasAutoSelected) return;
 
@@ -388,6 +408,7 @@ export function useBalanceMenuScreen() {
     transactionStatus.hasPMTransactions,
     transactionStatus.hasAMTransactions,
     hasAutoSelected,
+    lockInitialShift,
   ]);
 
   const handleNavigateCashCount = () => {
@@ -403,7 +424,9 @@ export function useBalanceMenuScreen() {
   };
 
   const handleNavigateCommissions = () => {
-    router.push(`/add-commission?shift=${selectedShift}&subtype=${currentSubtype}` as any);
+    router.push(
+      `/add-commission?shift=${selectedShift}&subtype=${currentSubtype}` as any,
+    );
   };
 
   const handleNavigateTransactions = () => {
@@ -415,18 +438,18 @@ export function useBalanceMenuScreen() {
   };
 
   const handleRefresh = () => {
-    if (!effectiveCompanyId) return;
+    if (!resolvedCompanyId) return;
 
     dispatch(
       fetchCashCounts({
-        companyId: effectiveCompanyId,
+        companyId: resolvedCompanyId,
         countDate: today,
         subtype: currentSubtype,
       }),
     );
     dispatch(
       fetchBalances({
-        companyId: effectiveCompanyId,
+        companyId: resolvedCompanyId,
         dateFrom: today,
         dateTo: today,
         subtype: currentSubtype,
@@ -434,17 +457,15 @@ export function useBalanceMenuScreen() {
     );
     dispatch(
       fetchCommissions({
-        companyId: effectiveCompanyId,
+        companyId: resolvedCompanyId,
         dateFrom: today,
         dateTo: today,
       }),
     );
-    dispatch(
-      fetchAccounts({ companyId: effectiveCompanyId, isActive: true }),
-    );
+    dispatch(fetchAccounts({ companyId: resolvedCompanyId, isActive: true }));
     dispatch(
       fetchTransactions({
-        companyId: effectiveCompanyId,
+        companyId: resolvedCompanyId,
         startDate: today,
         endDate: today,
       }),
@@ -454,7 +475,7 @@ export function useBalanceMenuScreen() {
   };
 
   const handleCalculate = async () => {
-    if (!backendUser?.id || !effectiveCompanyId) {
+    if (!backendUser?.id || !resolvedCompanyId) {
       return {
         success: false,
         error: "User not authenticated",
@@ -464,7 +485,7 @@ export function useBalanceMenuScreen() {
     try {
       await dispatch(
         calculateReconciliation({
-          companyId: effectiveCompanyId,
+          companyId: resolvedCompanyId,
           date: today,
           shift: selectedShift,
           subtype: currentSubtype,
@@ -480,14 +501,14 @@ export function useBalanceMenuScreen() {
       // closing cash-count / balance forms to display opening values on first render.
       dispatch(
         fetchCashCounts({
-          companyId: effectiveCompanyId,
+          companyId: resolvedCompanyId,
           countDate: today,
           subtype: currentSubtype,
         }),
       );
       dispatch(
         fetchBalances({
-          companyId: effectiveCompanyId,
+          companyId: resolvedCompanyId,
           dateFrom: today,
           dateTo: today,
           subtype: currentSubtype,
@@ -495,7 +516,7 @@ export function useBalanceMenuScreen() {
       );
       dispatch(
         fetchCommissions({
-          companyId: effectiveCompanyId,
+          companyId: resolvedCompanyId,
           dateFrom: today,
           dateTo: today,
         }),
@@ -621,13 +642,16 @@ export function useBalanceMenuScreen() {
 
   const isResolvingPhase = selectedShift === "AM" && !isPhaseResolved;
 
-  const handleSelectShift = useCallback((shift: ShiftEnum) => {
-    if (shift === selectedShift) {
-      return;
-    }
+  const handleSelectShift = useCallback(
+    (shift: ShiftEnum) => {
+      if (shift === selectedShift) {
+        return;
+      }
 
-    setSelectedShift(shift);
-  }, [selectedShift]);
+      setSelectedShift(shift);
+    },
+    [selectedShift],
+  );
 
   return {
     // State
