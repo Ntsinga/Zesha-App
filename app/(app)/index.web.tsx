@@ -36,8 +36,9 @@ export default function DashboardWeb() {
     totalCash,
     grandTotal,
     expectedGrandTotal,
-    capitalVariance,
+    displayVariance,
     totalExpenses,
+    todayExpenses,
     outstandingBalance,
     totalCommission,
     dailyCommission,
@@ -157,10 +158,10 @@ export default function DashboardWeb() {
                   <span className="metric-name">Variance</span>
                   <div
                     className={`metric-badge ${
-                      capitalVariance >= 0 ? "positive" : "negative"
+                      displayVariance >= 0 ? "positive" : "negative"
                     }`}
                   >
-                    {capitalVariance >= 0 ? (
+                    {displayVariance >= 0 ? (
                       <ArrowUpRight size={16} />
                     ) : (
                       <ArrowDownRight size={16} />
@@ -169,11 +170,11 @@ export default function DashboardWeb() {
                 </div>
                 <p
                   className={`metric-amount ${
-                    capitalVariance >= 0 ? "positive" : "negative"
+                    displayVariance >= 0 ? "positive" : "negative"
                   }`}
                 >
-                  {capitalVariance >= 0 ? "+" : ""}
-                  {formatCurrency(capitalVariance)}
+                  {displayVariance >= 0 ? "+" : ""}
+                  {formatCurrency(displayVariance)}
                 </p>
                 <span className="metric-sub">
                   vs expected {formatCompactCurrency(expectedGrandTotal)}
@@ -195,6 +196,9 @@ export default function DashboardWeb() {
                   {totalExpenses > 0 ? "-" : totalExpenses < 0 ? "+" : ""}
                   {formatCurrency(Math.abs(totalExpenses))}
                 </p>
+                <span className="metric-sub">
+                  Today {formatCompactCurrency(todayExpenses)}
+                </span>
                 <button
                   onClick={() => router.push("/expenses")}
                   className="metric-link"
