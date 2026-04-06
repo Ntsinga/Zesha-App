@@ -309,13 +309,15 @@ export default function DashboardWeb() {
                 <p className="metric-amount" style={{ color: "#4f46e5" }}>
                   {transactionCount}
                 </p>
-                <span className="metric-sub">today</span>
-                <button
-                  onClick={() => router.push("/transactions")}
-                  className="metric-link"
-                >
-                  View All →
-                </button>
+                <div className="metric-footer">
+                  <span className="metric-sub">today</span>
+                  <button
+                    onClick={() => router.push("/transactions")}
+                    className="metric-link"
+                  >
+                    View All →
+                  </button>
+                </div>
               </div>
             </div>
           </div>
