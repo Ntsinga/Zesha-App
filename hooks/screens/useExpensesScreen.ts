@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   fetchExpenses,
@@ -61,7 +61,9 @@ export function useExpensesScreen() {
 
   // Filter state
   const [filterCategory, setFilterCategory] = useState<string>("ALL");
-  const [filterStatus, setFilterStatus] = useState<ExpenseStatus | "ALL">("ALL");
+  const [filterStatus, setFilterStatus] = useState<ExpenseStatus | "ALL">(
+    "ALL",
+  );
 
   // Load expenses on mount
   useEffect(() => {
@@ -144,7 +146,10 @@ export function useExpensesScreen() {
     // Offline queue
     if (!isConnected) {
       if (editingExpense) {
-        return { success: false, error: "Editing expenses requires an internet connection." };
+        return {
+          success: false,
+          error: "Editing expenses requires an internet connection.",
+        };
       }
 
       try {
@@ -164,7 +169,10 @@ export function useExpensesScreen() {
         closeModal();
         return { success: true };
       } catch {
-        return { success: false, error: "Failed to queue expense for offline sync." };
+        return {
+          success: false,
+          error: "Failed to queue expense for offline sync.",
+        };
       }
     }
 
@@ -245,9 +253,7 @@ export function useExpensesScreen() {
       clearedNotes?: string,
     ): Promise<{ success: boolean; error?: string }> => {
       try {
-        await dispatch(
-          clearExpense({ id, data: { clearedNotes } }),
-        ).unwrap();
+        await dispatch(clearExpense({ id, data: { clearedNotes } })).unwrap();
         setClearConfirmId(null);
         dispatch(fetchDashboard({}));
         return { success: true };
@@ -268,6 +274,46 @@ export function useExpensesScreen() {
   const filteredExpenses = expenses
     .filter((e) => filterCategory === "ALL" || e.category === filterCategory)
     .filter((e) => filterStatus === "ALL" || e.status === filterStatus);
+
+  // Computed breakdowns (always from all expenses, not filtered)
+  const pendingTotal = useMemo(
+    () =>
+      expenses
+        .filter((e) => e.status === "PENDING")
+        .reduce((sum, e) => sum + e.amount, 0),
+    [expenses],
+  );
+
+  const clearedTotal = useMemo(
+    () =>
+      expenses
+        .filter((e) => e.status === "CLEARED")
+        .reduce((sum, e) => sum + e.amount, 0),
+    [expenses],
+  );
+
+  const topExpense = useMemo(
+    () =>
+      expenses.length === 0
+        ? null
+        : expenses.reduce(
+            (max, e) => (e.amount > max.amount ? e : max),
+            expenses[0],
+          ),
+    [expenses],
+  );
+
+  const categoryTotals = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const e of expenses) {
+      const cat = e.category || "Other";
+      map.set(cat, (map.get(cat) ?? 0) + e.amount);
+    }
+    return Array.from(map.entries())
+      .map(([category, total]) => ({ category, total }))
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 4);
+  }, [expenses]);
 
   return {
     // State
@@ -294,6 +340,10 @@ export function useExpensesScreen() {
     // Data
     expenses: filteredExpenses,
     totalAmount,
+    pendingTotal,
+    clearedTotal,
+    topExpense,
+    categoryTotals,
     categories: EXPENSE_CATEGORIES,
 
     // Form setters

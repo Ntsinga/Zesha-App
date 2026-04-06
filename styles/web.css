@@ -2226,7 +2226,7 @@ body {
 }
 
 .summary-amount {
-  font-size: 23px;
+  font-size: 17px;
   font-weight: 700;
 }
 
@@ -2241,7 +2241,7 @@ body {
 
 .count-number {
   display: block;
-  font-size: 24px;
+  font-size: 18px;
   font-weight: 700;
   color: var(--color-text);
 }
