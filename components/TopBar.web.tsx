@@ -1,7 +1,6 @@
 import React, { useMemo } from "react";
 import { useUser } from "@clerk/clerk-react";
 import { useAppSelector } from "../store/hooks";
-import { usePathname } from "expo-router";
 import {
   selectUser,
   selectUserRole,
@@ -9,23 +8,6 @@ import {
   selectViewingAgencyName,
 } from "../store/slices/authSlice";
 import "../styles/web.css";
-
-// Map routes to page titles
-const PAGE_TITLES: Record<string, string> = {
-  "/": "Dashboard",
-  "/agencies": "Manage Agencies",
-  "/agency-form": "Agency Details",
-  "/balance": "Daily Reconciliation",
-  "/history": "Reconciliation History",
-  "/commissions": "Commissions",
-  "/expenses": "Expenses",
-  "/accounts": "Accounts",
-  "/settings": "Settings",
-  "/add-balance": "Add Balance",
-  "/add-commission": "Add Commission",
-  "/add-cash-count": "Cash Count",
-  "/reconciliation": "Reconciliation",
-};
 
 /**
  * Modern top bar component showing user name and role
@@ -39,7 +21,6 @@ const PAGE_TITLES: Record<string, string> = {
  * - Proper color contrast (WCAG AA compliant)
  */
 export default function TopBarWeb() {
-  const pathname = usePathname();
   const backendUser = useAppSelector(selectUser);
   const role = useAppSelector(selectUserRole);
   const viewingAgencyId = useAppSelector(selectViewingAgencyId);
@@ -48,9 +29,6 @@ export default function TopBarWeb() {
 
   const isSuperAdmin = role === "Super Administrator";
   const isViewingAgency = viewingAgencyId !== null;
-
-  // Get current page title
-  const pageTitle = PAGE_TITLES[pathname] || "";
 
   // Memoize computed values to prevent unnecessary recalculations
   // Use backend user if available, otherwise fall back to Clerk user
@@ -116,11 +94,6 @@ export default function TopBarWeb() {
   return (
     <header className="topbar" role="banner" aria-label="User information bar">
       <div className="topbar-container">
-        {/* Left side - Page title */}
-        <div className="topbar-left" aria-label="Page context">
-          <h1 className="topbar-page-title">{pageTitle}</h1>
-        </div>
-
         {/* Right side - User info */}
         <div className="topbar-right">
           <div
