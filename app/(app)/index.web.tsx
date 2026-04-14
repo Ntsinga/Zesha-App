@@ -125,7 +125,7 @@ export default function DashboardWeb() {
                     }}
                   />
                 )}
-                <span style={{ fontSize: 11, color: "rgba(255,255,255,0.55)" }}>
+                <span style={{ fontSize: 11, color: "#6b7280" }}>
                   {capitalLabel}
                 </span>
               </div>
