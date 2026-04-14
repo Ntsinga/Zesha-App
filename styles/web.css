@@ -5719,7 +5719,7 @@ body {
 
   /* Show mobile elements */
   .mobile-bottom-nav {
-    display: block;
+    display: none;
   }
 
   .mobile-header {
@@ -5737,13 +5737,13 @@ body {
   /* Adjust content area for mobile */
   .content-area {
     margin-left: 0;
-    padding-bottom: 80px; /* Space for bottom nav */
+    padding-bottom: 0;
     min-height: 100vh;
   }
 
   .main-content {
     margin-left: 0;
-    padding-bottom: 80px;
+    padding-bottom: 0;
   }
 
   /* Hide desktop topbar on mobile */
@@ -6494,7 +6494,7 @@ body {
 /* Landscape mobile adjustments */
 @media (max-width: 768px) and (orientation: landscape) {
   .mobile-bottom-nav {
-    padding: 6px 0;
+    display: none;
   }
 
   .mobile-nav-link {
@@ -6509,7 +6509,7 @@ body {
 
   .content-area,
   .page-wrapper {
-    padding-bottom: 56px;
+    padding-bottom: 0;
   }
 
   .header-bar {
