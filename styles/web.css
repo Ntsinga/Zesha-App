@@ -119,8 +119,8 @@ body {
   position: sticky;
   top: 0;
   z-index: 100;
-  background-color: #ffffff;
-  border-bottom: 1px solid var(--color-border);
+  background-color: #f5f1ea;
+  border-bottom: 1px solid #e5e7eb;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
@@ -502,9 +502,9 @@ body {
 
 /* Featured Card (Gold) */
 .card-featured {
-  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
-  border: none;
-  box-shadow: var(--shadow-gold);
+  background: linear-gradient(135deg, #fef9c3 0%, #f5f5f5 100%);
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.07);
   color: #78350f;
   position: relative;
   overflow: hidden;
@@ -1567,34 +1567,19 @@ body {
 
 /* Grand Total Card */
 .grand-total-card {
-  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  background: linear-gradient(135deg, #fef9c3 0%, #f5f5f5 100%);
   border-radius: 16px;
   padding: 24px;
   position: relative;
   overflow: hidden;
-  box-shadow: 0 8px 32px rgba(245, 158, 11, 0.25);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.07);
+  border: 1px solid #e5e7eb;
   min-width: 0;
 }
 
 .gt-decor-1,
 .gt-decor-2 {
-  position: absolute;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.gt-decor-1 {
-  width: 150px;
-  height: 150px;
-  top: -50px;
-  right: -30px;
-}
-
-.gt-decor-2 {
-  width: 100px;
-  height: 100px;
-  bottom: -30px;
-  left: 20%;
+  display: none;
 }
 
 .gt-content {
@@ -1606,7 +1591,7 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #78350f;
+  color: #92400e;
   font-weight: 600;
   font-size: 14px;
   margin-bottom: 8px;
@@ -1615,7 +1600,7 @@ body {
 .gt-amount {
   font-size: 36px;
   font-weight: 800;
-  color: #78350f;
+  color: #1f2937;
   margin: 0 0 16px;
   letter-spacing: -1px;
   white-space: nowrap;
@@ -1625,7 +1610,7 @@ body {
   display: flex;
   gap: 20px;
   padding-top: 16px;
-  border-top: 1px solid rgba(120, 53, 15, 0.15);
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
   flex-wrap: wrap;
 }
 
@@ -1638,13 +1623,13 @@ body {
 
 .gt-label {
   font-size: 11px;
-  color: rgba(120, 53, 15, 0.7);
+  color: #6b7280;
 }
 
 .gt-value {
   font-size: 16px;
   font-weight: 700;
-  color: #78350f;
+  color: #1f2937;
 }
 
 /* Metrics Card - Combined */
