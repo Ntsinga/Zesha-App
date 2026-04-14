@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+﻿import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -19,16 +19,7 @@ import {
   deleteCompanyInfo,
 } from "@/store/slices/companyInfoSlice";
 import type { CompanyInfo } from "@/types";
-import { CURRENCIES } from "@/hooks/screens/useSettingsScreen";
-import {
-  Building2,
-  Plus,
-  Edit2,
-  Trash2,
-  DollarSign,
-  LogIn,
-  RefreshCw,
-} from "lucide-react-native";
+import { Building2, Plus, Edit2, Trash2, RefreshCw } from "lucide-react-native";
 
 export default function AgenciesScreen() {
   const router = useRouter();
@@ -43,7 +34,6 @@ export default function AgenciesScreen() {
   } = useAppSelector((state) => state.companyInfo);
 
   const [refreshing, setRefreshing] = useState(false);
-  const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
 
   // Load agencies on mount
   useEffect(() => {
@@ -59,7 +49,7 @@ export default function AgenciesScreen() {
     setRefreshing(false);
   }, [dispatch]);
 
-  // Still loading auth — don't flash access denied
+  // Still loading auth â€” don't flash access denied
   if (!authReady) {
     return (
       <View
@@ -104,7 +94,7 @@ export default function AgenciesScreen() {
     router.push(`/agency-form?id=${agency.id}`);
   };
 
-  // Delete agency
+  // Delete agency with confirmation
   const handleDelete = async (id: number) => {
     Alert.alert(
       "Delete Agency",
@@ -136,27 +126,43 @@ export default function AgenciesScreen() {
     );
   };
 
-  // Format currency
-  const formatCurrency = (amount: number, currency: string) => {
-    return `${currency} ${amount.toLocaleString()}`;
-  };
-
   return (
     <View style={styles.container}>
-      {/* Action Bar */}
-      <View style={styles.actionBar}>
-        <TouchableOpacity
-          style={styles.refreshButton}
-          onPress={onRefresh}
-          disabled={isLoading}
-        >
-          <RefreshCw size={20} color="#6B7280" />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.createButton} onPress={handleCreate}>
-          <Plus size={18} color="#FFFFFF" />
-          <Text style={styles.createButtonText}>New Agency</Text>
-        </TouchableOpacity>
+      {/* Header */}
+      <View style={styles.header}>
+        <View>
+          <Text style={styles.headerTitle}>Agencies</Text>
+          <Text style={styles.headerSubtitle}>
+            {agencies.length} {agencies.length === 1 ? "agency" : "agencies"}
+          </Text>
+        </View>
+        <View style={styles.headerActions}>
+          <TouchableOpacity
+            style={styles.iconBtn}
+            onPress={onRefresh}
+            disabled={isLoading}
+          >
+            <RefreshCw size={18} color="#6B7280" />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.createButton} onPress={handleCreate}>
+            <Plus size={16} color="#FFFFFF" />
+            <Text style={styles.createButtonText}>New</Text>
+          </TouchableOpacity>
+        </View>
       </View>
+
+      {/* Column headers */}
+      {agencies.length > 0 && (
+        <View style={styles.columnHeaders}>
+          <Text style={[styles.colLabel, { flex: 1 }]}>Agency</Text>
+          <Text style={[styles.colLabel, { width: 52, textAlign: "center" }]}>
+            CCY
+          </Text>
+          <Text style={[styles.colLabel, { width: 80, textAlign: "right" }]}>
+            Actions
+          </Text>
+        </View>
+      )}
 
       {/* Content */}
       <ScrollView
@@ -194,89 +200,52 @@ export default function AgenciesScreen() {
             </TouchableOpacity>
           </View>
         ) : (
-          agencies.map((agency) => (
-            <View
+          agencies.map((agency, index) => (
+            <TouchableOpacity
               key={agency.id}
               style={[
-                styles.agencyCard,
-                viewingAgencyId === agency.id && styles.agencyCardActive,
+                styles.row,
+                index % 2 === 1 && styles.rowAlt,
+                viewingAgencyId === agency.id && styles.rowActive,
               ]}
+              onPress={() => handleEnterAgency(agency)}
+              activeOpacity={0.7}
             >
-              <View style={styles.cardHeader}>
-                <View style={styles.agencyIcon}>
-                  <Building2 size={24} color="#C62828" />
-                </View>
-                <View style={styles.agencyInfo}>
-                  <Text style={styles.agencyName}>{agency.name}</Text>
-                  {agency.description && (
-                    <Text style={styles.agencyDescription} numberOfLines={2}>
-                      {agency.description}
-                    </Text>
-                  )}
-                </View>
+              {/* Name + subtitle */}
+              <View style={styles.rowMain}>
+                <Text style={styles.rowName} numberOfLines={1}>
+                  {agency.name}
+                </Text>
+                <Text style={styles.rowSub} numberOfLines={1}>
+                  {agency.location ||
+                    agency.adminName ||
+                    (agency.emails?.[0] ?? "â€”")}
+                </Text>
               </View>
 
-              <View style={styles.statsRow}>
-                <View style={styles.statItem}>
-                  <DollarSign size={14} color="#B8860B" />
-                  <View style={styles.statContent}>
-                    <Text style={styles.statLabel}>Working Capital</Text>
-                    <Text style={styles.statValue}>
-                      {formatCurrency(
-                        agency.totalWorkingCapital,
-                        agency.currency,
-                      )}
-                    </Text>
-                  </View>
-                </View>
-                <View style={styles.statItem}>
-                  <DollarSign size={14} color="#B8860B" />
-                  <View style={styles.statContent}>
-                    <Text style={styles.statLabel}>Currency</Text>
-                    <Text style={styles.statValue}>{agency.currency}</Text>
-                  </View>
-                </View>
+              {/* Currency badge */}
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{agency.currency}</Text>
               </View>
 
-              {agency.emails && agency.emails.length > 0 && (
-                <View style={styles.emailsRow}>
-                  {agency.emails.slice(0, 2).map((email, i) => (
-                    <View key={i} style={styles.emailTag}>
-                      <Text style={styles.emailTagText}>{email}</Text>
-                    </View>
-                  ))}
-                  {agency.emails.length > 2 && (
-                    <View style={styles.emailTag}>
-                      <Text style={styles.emailTagText}>
-                        +{agency.emails.length - 2} more
-                      </Text>
-                    </View>
-                  )}
-                </View>
-              )}
-
-              <View style={styles.actionsRow}>
+              {/* Action buttons */}
+              <View style={styles.rowActions}>
                 <TouchableOpacity
-                  style={styles.enterButton}
-                  onPress={() => handleEnterAgency(agency)}
-                >
-                  <LogIn size={16} color="#FFFFFF" />
-                  <Text style={styles.enterButtonText}>Enter</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.iconButton}
+                  style={styles.iconBtn}
                   onPress={() => handleEdit(agency)}
+                  hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
                 >
-                  <Edit2 size={18} color="#6B7280" />
+                  <Edit2 size={16} color="#6B7280" />
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[styles.iconButton, styles.deleteButton]}
+                  style={styles.iconBtnDanger}
                   onPress={() => handleDelete(agency.id)}
+                  hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
                 >
-                  <Trash2 size={18} color="#DC2626" />
+                  <Trash2 size={16} color="#DC2626" />
                 </TouchableOpacity>
               </View>
-            </View>
+            </TouchableOpacity>
           ))
         )}
       </ScrollView>
@@ -289,50 +258,150 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#F9FAFB",
   },
-  actionBar: {
+  // Header
+  header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
     backgroundColor: "#FFFFFF",
     borderBottomWidth: 1,
     borderBottomColor: "#E5E7EB",
   },
-  refreshButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    justifyContent: "center",
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#1F2937",
+  },
+  headerSubtitle: {
+    fontSize: 12,
+    color: "#6B7280",
+    marginTop: 1,
+  },
+  headerActions: {
+    flexDirection: "row",
     alignItems: "center",
+    gap: 8,
   },
   createButton: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: 6,
     backgroundColor: "#C62828",
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 8,
   },
   createButtonText: {
     color: "#FFFFFF",
     fontSize: 14,
     fontWeight: "600",
   },
+  // Column headers
+  columnHeaders: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: "#F3F4F6",
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E7EB",
+  },
+  colLabel: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#9CA3AF",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  // List rows
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    padding: 16,
     paddingBottom: 100,
   },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    backgroundColor: "#FFFFFF",
+    borderBottomWidth: 1,
+    borderBottomColor: "#F3F4F6",
+    gap: 10,
+  },
+  rowAlt: {
+    backgroundColor: "#FAFAFA",
+  },
+  rowActive: {
+    backgroundColor: "#FFF0F0",
+    borderLeftWidth: 3,
+    borderLeftColor: "#C62828",
+  },
+  rowMain: {
+    flex: 1,
+    minWidth: 0,
+  },
+  rowName: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#1F2937",
+  },
+  rowSub: {
+    fontSize: 12,
+    color: "#6B7280",
+    marginTop: 2,
+  },
+  badge: {
+    width: 52,
+    alignItems: "center",
+    backgroundColor: "#F3F4F6",
+    paddingVertical: 4,
+    paddingHorizontal: 6,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+  },
+  badgeText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#4B5563",
+    letterSpacing: 0.3,
+  },
+  rowActions: {
+    width: 80,
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: 6,
+  },
+  iconBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    backgroundColor: "#FFFFFF",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  iconBtnDanger: {
+    width: 34,
+    height: 34,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#FECACA",
+    backgroundColor: "#FEF2F2",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  // Misc
   errorBanner: {
     backgroundColor: "#FEE2E2",
     padding: 12,
+    margin: 16,
     borderRadius: 10,
-    marginBottom: 16,
   },
   errorBannerText: {
     color: "#DC2626",
@@ -350,6 +419,7 @@ const styles = StyleSheet.create({
   emptyState: {
     alignItems: "center",
     paddingVertical: 60,
+    paddingHorizontal: 32,
   },
   emptyStateTitle: {
     fontSize: 18,
@@ -362,128 +432,7 @@ const styles = StyleSheet.create({
     color: "#6B7280",
     marginTop: 8,
     marginBottom: 24,
-  },
-  agencyCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  agencyCardActive: {
-    borderColor: "#C62828",
-    borderWidth: 2,
-  },
-  cardHeader: {
-    flexDirection: "row",
-    gap: 14,
-    marginBottom: 16,
-  },
-  agencyIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: "#FEE2E2",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  agencyInfo: {
-    flex: 1,
-  },
-  agencyName: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#1F2937",
-  },
-  agencyDescription: {
-    fontSize: 13,
-    color: "#6B7280",
-    marginTop: 4,
-  },
-  statsRow: {
-    flexDirection: "row",
-    gap: 20,
-    marginBottom: 16,
-    paddingVertical: 12,
-    borderTopWidth: 1,
-    borderTopColor: "#F3F4F6",
-  },
-  statItem: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 6,
-  },
-  statContent: {
-    flex: 1,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: "#6B7280",
-  },
-  statValue: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#B8860B",
-    marginTop: 2,
-  },
-  emailsRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-    marginBottom: 16,
-  },
-  emailTag: {
-    backgroundColor: "#F3F4F6",
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-    borderRadius: 12,
-  },
-  emailTagText: {
-    fontSize: 12,
-    color: "#6B7280",
-  },
-  actionsRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: "#F3F4F6",
-  },
-  enterButton: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    backgroundColor: "#C62828",
-    paddingVertical: 12,
-    borderRadius: 10,
-  },
-  enterButtonText: {
-    color: "#FFFFFF",
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  iconButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  deleteButton: {
-    borderColor: "#FECACA",
-    backgroundColor: "#FEF2F2",
+    textAlign: "center",
   },
   accessDenied: {
     flex: 1,
