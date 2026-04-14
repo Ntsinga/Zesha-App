@@ -15,6 +15,8 @@ export interface CompanyInfo extends BaseModel {
   outstandingBalance: number;
   currency: string;
   description: string | null;
+  location: string | null;
+  adminName: string | null;
 }
 
 /**
@@ -27,6 +29,8 @@ export interface CompanyInfoCreate {
   outstandingBalance?: number;
   currency?: string;
   description?: string;
+  location?: string;
+  adminName?: string;
 }
 
 /**
@@ -39,6 +43,8 @@ export interface CompanyInfoUpdate {
   outstandingBalance?: number;
   currency?: string;
   description?: string;
+  location?: string;
+  adminName?: string;
 }
 
 /**

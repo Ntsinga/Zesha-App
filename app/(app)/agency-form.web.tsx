@@ -43,6 +43,8 @@ export default function AgencyFormScreen() {
     outstandingBalance: 0,
     description: "",
     emails: [],
+    location: "",
+    adminName: "",
   });
   const [emailInput, setEmailInput] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
@@ -64,6 +66,8 @@ export default function AgencyFormScreen() {
         outstandingBalance: editingAgency.outstandingBalance,
         description: editingAgency.description || "",
         emails: editingAgency.emails || [],
+        location: editingAgency.location || "",
+        adminName: editingAgency.adminName || "",
       });
     }
   }, [isEditing, editingAgency]);
@@ -155,6 +159,8 @@ export default function AgencyFormScreen() {
           outstandingBalance: formData.outstandingBalance,
           description: formData.description,
           emails: formData.emails,
+          location: formData.location,
+          adminName: formData.adminName,
         };
         await dispatch(
           updateCompanyInfo({ id: Number(id), data: updateData }),
@@ -291,6 +297,39 @@ export default function AgencyFormScreen() {
                 placeholder="Brief description of the agency"
                 className="form-textarea"
                 rows={3}
+              />
+            </div>
+
+            {/* Location */}
+            <div className="form-group">
+              <label htmlFor="location">Location</label>
+              <input
+                type="text"
+                id="location"
+                value={formData.location || ""}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, location: e.target.value }))
+                }
+                placeholder="City, Country"
+                className="form-input"
+              />
+            </div>
+
+            {/* Admin Name */}
+            <div className="form-group">
+              <label htmlFor="adminName">Admin Name</label>
+              <input
+                type="text"
+                id="adminName"
+                value={formData.adminName || ""}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    adminName: e.target.value,
+                  }))
+                }
+                placeholder="Primary contact / admin"
+                className="form-input"
               />
             </div>
 

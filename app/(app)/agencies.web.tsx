@@ -13,15 +13,7 @@ import {
 } from "@/store/slices/companyInfoSlice";
 import type { CompanyInfo } from "@/types";
 import { CURRENCIES } from "@/hooks/screens/useSettingsScreen";
-import {
-  Building2,
-  Plus,
-  Edit2,
-  Trash2,
-  DollarSign,
-  LogIn,
-  RefreshCw,
-} from "lucide-react";
+import { Building2, Plus, Edit2, Trash2, RefreshCw } from "lucide-react";
 import "../../styles/web.css";
 
 export default function AgenciesScreen() {
@@ -131,20 +123,28 @@ export default function AgenciesScreen() {
 
   return (
     <div className="page-wrapper">
-      {/* Action bar */}
-      <div className="agencies-action-bar">
-        <button
-          className="btn-refresh"
-          onClick={handleRefresh}
-          disabled={isLoading}
-        >
-          <RefreshCw size={18} className={isLoading ? "spin" : ""} />
-        </button>
-        <button className="btn btn-primary" onClick={handleCreate}>
-          <Plus size={18} />
-          <span>New Agency</span>
-        </button>
-      </div>
+      {/* Header */}
+      <header className="header-bar">
+        <div className="header-left">
+          <h1 className="header-title">Agencies</h1>
+          <span className="header-date">
+            {agencies.length} {agencies.length === 1 ? "agency" : "agencies"}
+          </span>
+        </div>
+        <div className="header-right">
+          <button
+            className="btn-refresh"
+            onClick={handleRefresh}
+            disabled={isLoading}
+          >
+            <RefreshCw size={18} className={isLoading ? "spin" : ""} />
+          </button>
+          <button className="btn btn-primary" onClick={handleCreate}>
+            <Plus size={18} />
+            <span>New Agency</span>
+          </button>
+        </div>
+      </header>
 
       {/* Content */}
       <div className="dashboard-content">
@@ -166,102 +166,91 @@ export default function AgenciesScreen() {
             </button>
           </div>
         ) : (
-          <div className="agencies-grid">
-            {agencies.map((agency) => (
-              <div
-                key={agency.id}
-                className={`agency-card ${
-                  viewingAgencyId === agency.id ? "agency-card-active" : ""
-                }`}
-              >
-                <div className="agency-card-header">
-                  <div className="agency-icon">
-                    <Building2 size={24} />
-                  </div>
-                  <div className="agency-info">
-                    <h3>{agency.name}</h3>
-                    {agency.description && (
-                      <p className="agency-description">{agency.description}</p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="agency-stats">
-                  <div className="agency-stat">
-                    <DollarSign size={16} />
-                    <div className="stat-content">
-                      <span className="stat-label">Working Capital</span>
-                      <strong className="stat-value">
-                        {formatCurrency(
-                          agency.totalWorkingCapital,
-                          agency.currency,
-                        )}
-                      </strong>
-                    </div>
-                  </div>
-                  <div className="agency-stat">
-                    <div className="stat-content">
-                      <span className="stat-label">Currency</span>
-                      <strong className="stat-value">{agency.currency}</strong>
-                    </div>
-                  </div>
-                </div>
-
-                {agency.emails && agency.emails.length > 0 && (
-                  <div className="agency-emails">
-                    {agency.emails.slice(0, 2).map((email, i) => (
-                      <span key={i} className="email-tag">
-                        {email}
-                      </span>
-                    ))}
-                    {agency.emails.length > 2 && (
-                      <span className="email-tag">
-                        +{agency.emails.length - 2} more
-                      </span>
-                    )}
-                  </div>
-                )}
-
-                <div className="agency-actions">
-                  <button
-                    className="btn btn-primary"
+          <div className="data-table-container">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Currency</th>
+                  <th>Location</th>
+                  <th>Admin</th>
+                  <th>Email</th>
+                  <th style={{ width: 100 }}></th>
+                </tr>
+              </thead>
+              <tbody>
+                {agencies.map((agency) => (
+                  <tr
+                    key={agency.id}
+                    className={`agency-table-row${viewingAgencyId === agency.id ? " agency-row-active" : ""}`}
                     onClick={() => handleEnterAgency(agency)}
+                    style={{ cursor: "pointer" }}
                   >
-                    <LogIn size={16} />
-                    <span>Enter Agency</span>
-                  </button>
-                  <button
-                    className="btn btn-outline"
-                    onClick={() => handleEdit(agency)}
-                  >
-                    <Edit2 size={16} />
-                  </button>
-                  {deleteConfirm === agency.id ? (
-                    <>
-                      <button
-                        className="btn btn-danger"
-                        onClick={() => handleDelete(agency.id)}
-                      >
-                        Confirm
-                      </button>
-                      <button
-                        className="btn btn-outline"
-                        onClick={() => setDeleteConfirm(null)}
-                      >
-                        Cancel
-                      </button>
-                    </>
-                  ) : (
-                    <button
-                      className="btn btn-outline btn-danger-outline"
-                      onClick={() => setDeleteConfirm(agency.id)}
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
+                    <td>
+                      <span className="agency-table-name">{agency.name}</span>
+                      {agency.description && (
+                        <span className="agency-table-desc">
+                          {agency.description}
+                        </span>
+                      )}
+                    </td>
+                    <td>
+                      <span className="badge badge-neutral">
+                        {agency.currency}
+                      </span>
+                    </td>
+                    <td>
+                      {agency.location || <span className="text-muted">—</span>}
+                    </td>
+                    <td>
+                      {agency.adminName || (
+                        <span className="text-muted">—</span>
+                      )}
+                    </td>
+                    <td>
+                      {agency.emails && agency.emails.length > 0 ? (
+                        <span>{agency.emails[0]}</span>
+                      ) : (
+                        <span className="text-muted">—</span>
+                      )}
+                    </td>
+                    <td onClick={(e) => e.stopPropagation()}>
+                      <div className="agency-actions">
+                        <button
+                          className="btn btn-outline"
+                          onClick={() => handleEdit(agency)}
+                        >
+                          <Edit2 size={15} />
+                        </button>
+                        {deleteConfirm === agency.id ? (
+                          <>
+                            <button
+                              className="btn btn-danger"
+                              onClick={() => handleDelete(agency.id)}
+                            >
+                              Confirm
+                            </button>
+                            <button
+                              className="btn btn-outline"
+                              onClick={() => setDeleteConfirm(null)}
+                            >
+                              Cancel
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            className="btn btn-outline btn-danger-outline"
+                            onClick={() => setDeleteConfirm(agency.id)}
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </div>
