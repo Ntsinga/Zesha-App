@@ -18,7 +18,11 @@ import { fetchAccounts } from "../../store/slices/accountsSlice";
 import { fetchDashboard } from "../../store/slices/dashboardSlice";
 import { useCurrencyFormatter } from "../useCurrency";
 import { formatDateTime } from "../../utils/formatters";
-import type { ShiftEnum, TransactionTypeEnum } from "../../types";
+import type {
+  ShiftEnum,
+  TransactionTypeEnum,
+  FloatSourceEnum,
+} from "../../types";
 import type {
   TransactionCreate,
   FloatPurchaseCreate,
@@ -41,6 +45,7 @@ export interface FloatPurchaseFormState {
   sourceAccountId: number | null;
   destinationAccountId: number | null;
   amount: string;
+  floatSource: FloatSourceEnum | null;
   reference: string;
   notes: string;
   isConfirmed: boolean;
@@ -58,6 +63,7 @@ const initialFloatPurchaseForm: FloatPurchaseFormState = {
   sourceAccountId: null,
   destinationAccountId: null,
   amount: "",
+  floatSource: null,
   reference: "",
   notes: "",
   isConfirmed: true,
@@ -355,20 +361,26 @@ export function useTransactionsScreen() {
 
   const handleCreateFloatPurchase = useCallback(async () => {
     if (
-      !floatPurchaseForm.sourceAccountId ||
       !floatPurchaseForm.destinationAccountId ||
       !floatPurchaseForm.amount ||
       !companyId
     ) {
       return;
     }
+    // Internal transfer requires a source account
+    if (!floatPurchaseForm.floatSource && !floatPurchaseForm.sourceAccountId) {
+      return;
+    }
 
     const data: FloatPurchaseCreate = {
       companyId,
-      sourceAccountId: floatPurchaseForm.sourceAccountId,
       destinationAccountId: floatPurchaseForm.destinationAccountId,
       amount: parseFloat(floatPurchaseForm.amount),
       transactionTime: new Date().toISOString(),
+      floatSource: floatPurchaseForm.floatSource ?? undefined,
+      sourceAccountId: floatPurchaseForm.floatSource
+        ? undefined
+        : (floatPurchaseForm.sourceAccountId ?? undefined),
       reference: floatPurchaseForm.reference || undefined,
       notes: floatPurchaseForm.notes || undefined,
       isConfirmed: floatPurchaseForm.isConfirmed,

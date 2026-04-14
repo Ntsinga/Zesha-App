@@ -24,6 +24,7 @@ export {
   type CommissionModelEnum,
   type TransactionSubtypeEnum,
   type CommissionRuleTypeEnum,
+  type FloatSourceEnum,
 } from "./enums";
 
 // ============= Base Types =============

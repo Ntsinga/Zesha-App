@@ -507,7 +507,7 @@ export default function Transactions() {
                         {formatCurrency(tx.expectedCommission.commissionAmount)}
                       </Text>
                     )}
-                    {!tx.reconciliationId && (
+                    {!tx.reconciliationId && !tx.floatSource && (
                       <TouchableOpacity
                         onPress={() => handleReverse(tx)}
                         disabled={isReversing}
@@ -604,18 +604,25 @@ export default function Transactions() {
               <TouchableOpacity
                 key={t}
                 onPress={() =>
-                  setInjectionForm((f) => ({ ...f, injectionType: t, accountId: undefined }))
+                  setInjectionForm((f) => ({
+                    ...f,
+                    injectionType: t,
+                    accountId: undefined,
+                  }))
                 }
                 className="flex-1 py-2.5 rounded-xl border items-center"
                 style={{
-                  backgroundColor: injectionForm.injectionType === t ? "#0d9488" : "#F9FAFB",
-                  borderColor: injectionForm.injectionType === t ? "#0d9488" : "#E5E7EB",
+                  backgroundColor:
+                    injectionForm.injectionType === t ? "#0d9488" : "#F9FAFB",
+                  borderColor:
+                    injectionForm.injectionType === t ? "#0d9488" : "#E5E7EB",
                 }}
               >
                 <Text
                   className="text-sm font-semibold"
                   style={{
-                    color: injectionForm.injectionType === t ? "#FFFFFF" : "#374151",
+                    color:
+                      injectionForm.injectionType === t ? "#FFFFFF" : "#374151",
                   }}
                 >
                   {t === "FLOAT" ? "E-Float Account" : "Cash (Physical)"}
@@ -719,14 +726,16 @@ export default function Transactions() {
             disabled={
               isSubmittingInjection ||
               !injectionForm.amount ||
-              (injectionForm.injectionType === "FLOAT" && !injectionForm.accountId)
+              (injectionForm.injectionType === "FLOAT" &&
+                !injectionForm.accountId)
             }
             className="py-4 rounded-xl items-center"
             style={{
               backgroundColor:
                 isSubmittingInjection ||
                 !injectionForm.amount ||
-                (injectionForm.injectionType === "FLOAT" && !injectionForm.accountId)
+                (injectionForm.injectionType === "FLOAT" &&
+                  !injectionForm.accountId)
                   ? "#99f6e4"
                   : "#0d9488",
             }}

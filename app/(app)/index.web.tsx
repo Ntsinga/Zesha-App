@@ -35,6 +35,7 @@ export default function DashboardWeb() {
     topTransactionAccount,
     topCommissionAccount,
     commissionByAccountId,
+    transactionCountsByAccountToday,
     displayCapital,
     displayFloat,
     displayCash,
@@ -376,12 +377,15 @@ export default function DashboardWeb() {
                   <th>Account</th>
                   <th style={{ textAlign: "right" }}>Current Balance</th>
                   <th style={{ textAlign: "right" }}>Commission Today</th>
+                  <th style={{ textAlign: "right" }}>Txns Today</th>
                 </tr>
               </thead>
               <tbody>
                 {accounts.map((account, idx) => {
                   const commission =
                     commissionByAccountId.get(account.accountId) ?? 0;
+                  const txnCount =
+                    transactionCountsByAccountToday.get(account.accountId) ?? 0;
                   return (
                     <tr key={`account-${idx}`}>
                       <td>{account.accountName}</td>
@@ -401,12 +405,23 @@ export default function DashboardWeb() {
                           ? `+${formatCurrency(commission)}`
                           : "—"}
                       </td>
+                      <td
+                        className="amount"
+                        style={{
+                          color:
+                            txnCount > 0
+                              ? "#4f46e5"
+                              : "var(--color-text-muted)",
+                        }}
+                      >
+                        {txnCount > 0 ? txnCount : "—"}
+                      </td>
                     </tr>
                   );
                 })}
                 {accounts.length === 0 && (
                   <tr>
-                    <td colSpan={3} className="empty">
+                    <td colSpan={4} className="empty">
                       <PiggyBank size={40} />
                       <p>No accounts found</p>
                     </td>

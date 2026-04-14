@@ -589,7 +589,9 @@ const transactionsSlice = createSlice({
       })
       .addCase(createFloatPurchase.fulfilled, (state, action) => {
         state.isCreating = false;
-        state.items.unshift(action.payload.sourceTransaction);
+        if (action.payload.sourceTransaction) {
+          state.items.unshift(action.payload.sourceTransaction);
+        }
         state.items.unshift(action.payload.destinationTransaction);
         state.lastFetched = null;
       })

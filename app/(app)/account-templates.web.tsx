@@ -249,9 +249,9 @@ export default function AccountTemplatesPage() {
                 </select>
               </div>
 
-              {/* Commission Schedule */}
+              {/* Commission Structure */}
               <div className="form-group">
-                <label className="form-label">Commission Schedule</label>
+                <label className="form-label">Commission Structure</label>
                 <select
                   className="form-input"
                   value={formScheduleId ?? ""}

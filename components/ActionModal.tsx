@@ -26,7 +26,7 @@ import {
   createFloatPurchase,
 } from "../store/slices/transactionsSlice";
 import { fetchAccounts } from "../store/slices/accountsSlice";
-import type { ShiftEnum } from "../types";
+import type { FloatSourceEnum, ShiftEnum } from "../types";
 
 type TxMode = "DEPOSIT" | "WITHDRAW" | "FLOAT";
 
@@ -99,17 +99,15 @@ export const AddTransactionForm: React.FC<AddTransactionFormProps> = ({
 
   const { items: accounts } = useAppSelector((state) => state.accounts);
   const companyId = useAppSelector(
-    (state) =>
-      state.auth.viewingAgencyId || state.auth.user?.companyId,
+    (state) => state.auth.viewingAgencyId || state.auth.user?.companyId,
   );
-  const isCreating = useAppSelector(
-    (state) => state.transactions.isCreating,
-  );
+  const isCreating = useAppSelector((state) => state.transactions.isCreating);
 
   const [mode, setMode] = useState<TxMode>("DEPOSIT");
   const [accountId, setAccountId] = useState<number | null>(null);
   const [sourceAccountId, setSourceAccountId] = useState<number | null>(null);
   const [destAccountId, setDestAccountId] = useState<number | null>(null);
+  const [floatSource, setFloatSource] = useState<FloatSourceEnum | null>(null);
   const [amount, setAmount] = useState("");
   const [reference, setReference] = useState("");
   const [notes, setNotes] = useState("");
@@ -139,6 +137,7 @@ export const AddTransactionForm: React.FC<AddTransactionFormProps> = ({
     setAccountId(null);
     setSourceAccountId(null);
     setDestAccountId(null);
+    setFloatSource(null);
     setAmount("");
     setReference("");
     setNotes("");
@@ -173,18 +172,25 @@ export const AddTransactionForm: React.FC<AddTransactionFormProps> = ({
 
     try {
       if (mode === "FLOAT") {
-        if (!sourceAccountId || !destAccountId) {
+        if (!destAccountId) {
+          Alert.alert("Validation", "Please select a destination account.");
+          return;
+        }
+        if (!floatSource && !sourceAccountId) {
           Alert.alert(
             "Validation",
-            "Please select both source and destination accounts.",
+            "Please select a source account for internal transfers.",
           );
           return;
         }
         await dispatch(
           createFloatPurchase({
             companyId,
-            sourceAccountId,
             destinationAccountId: destAccountId,
+            sourceAccountId: floatSource
+              ? undefined
+              : (sourceAccountId ?? undefined),
+            floatSource: floatSource ?? undefined,
             amount: parseFloat(amount),
             transactionTime: new Date().toISOString(),
             reference: reference || undefined,
@@ -228,6 +234,7 @@ export const AddTransactionForm: React.FC<AddTransactionFormProps> = ({
     accountId,
     sourceAccountId,
     destAccountId,
+    floatSource,
     amount,
     shift,
     reference,
@@ -306,22 +313,70 @@ export const AddTransactionForm: React.FC<AddTransactionFormProps> = ({
       {/* Account selector(s) */}
       {mode === "FLOAT" ? (
         <>
+          {/* Float Source selector */}
           <Text className="text-sm font-medium text-gray-600 mb-1">
-            Source Account
+            Float Source{" "}
+            <Text className="text-gray-400 font-normal">(optional)</Text>
           </Text>
-          <TouchableOpacity
-            onPress={() =>
-              pickAccount("Select Source", destAccountId, setSourceAccountId)
-            }
-            className="border border-gray-200 rounded-xl px-4 py-3 mb-4 flex-row justify-between items-center"
-          >
-            <Text
-              className={sourceAccountId ? "text-gray-800" : "text-gray-400"}
-            >
-              {getAccountName(sourceAccountId) ?? "Select source account..."}
-            </Text>
-            <ChevronDown size={16} color="#9ca3af" />
-          </TouchableOpacity>
+          {([null, "AGENT", "BANK"] as (FloatSourceEnum | null)[]).map(
+            (val) => (
+              <TouchableOpacity
+                key={val ?? "internal"}
+                onPress={() => {
+                  setFloatSource(val);
+                  if (val) setSourceAccountId(null); // clear source if switching to external
+                }}
+                className="border rounded-xl px-4 py-3 mb-2 flex-row justify-between items-center"
+                style={{
+                  borderColor: floatSource === val ? "#2563eb" : "#e5e7eb",
+                  backgroundColor: floatSource === val ? "#dbeafe" : "#f9fafb",
+                }}
+              >
+                <Text
+                  style={{
+                    color: floatSource === val ? "#2563eb" : "#6b7280",
+                    fontWeight: "500",
+                    fontSize: 13,
+                  }}
+                >
+                  {val === null
+                    ? "Internal transfer (between accounts)"
+                    : val === "AGENT"
+                      ? "Agent (external top-up)"
+                      : "Bank (external top-up)"}
+                </Text>
+              </TouchableOpacity>
+            ),
+          )}
+
+          {/* Source Account — only for internal transfers */}
+          {!floatSource && (
+            <>
+              <Text className="text-sm font-medium text-gray-600 mb-1 mt-2">
+                Source Account
+              </Text>
+              <TouchableOpacity
+                onPress={() =>
+                  pickAccount(
+                    "Select Source",
+                    destAccountId,
+                    setSourceAccountId,
+                  )
+                }
+                className="border border-gray-200 rounded-xl px-4 py-3 mb-4 flex-row justify-between items-center"
+              >
+                <Text
+                  className={
+                    sourceAccountId ? "text-gray-800" : "text-gray-400"
+                  }
+                >
+                  {getAccountName(sourceAccountId) ??
+                    "Select source account..."}
+                </Text>
+                <ChevronDown size={16} color="#9ca3af" />
+              </TouchableOpacity>
+            </>
+          )}
 
           <Text className="text-sm font-medium text-gray-600 mb-1">
             Destination Account
@@ -330,7 +385,7 @@ export const AddTransactionForm: React.FC<AddTransactionFormProps> = ({
             onPress={() =>
               pickAccount(
                 "Select Destination",
-                sourceAccountId,
+                floatSource ? null : sourceAccountId,
                 setDestAccountId,
               )
             }

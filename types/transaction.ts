@@ -2,7 +2,12 @@
  * Transaction types matching backend models/transactions.py and schemas/transaction.py
  */
 import type { BaseModel, BulkOperationResponse } from "./base";
-import type { ShiftEnum, TransactionSubtypeEnum, TransactionTypeEnum } from "./enums";
+import type {
+  FloatSourceEnum,
+  ShiftEnum,
+  TransactionSubtypeEnum,
+  TransactionTypeEnum,
+} from "./enums";
 import type { Account } from "./account";
 
 /**
@@ -28,6 +33,7 @@ export interface Transaction extends BaseModel {
   balanceAfter: number;
   linkedTransactionId?: number | null;
   reconciliationId?: number | null;
+  floatSource?: FloatSourceEnum | null;
   reference?: string | null;
   notes?: string | null;
   isConfirmed: boolean;
@@ -52,15 +58,21 @@ export interface TransactionCreate {
 }
 
 /**
- * Create a float purchase (linked transfer between accounts)
- * Creates two linked transactions: debit from source, credit to destination
+ * Create a float purchase.
+ *
+ * Internal transfer (floatSource omitted):
+ *   sourceAccountId + destinationAccountId required; creates a linked debit/credit pair.
+ *
+ * External top-up (floatSource = "AGENT" | "BANK"):
+ *   Only destinationAccountId required; creates a single credit transaction.
  */
 export interface FloatPurchaseCreate {
   companyId: number;
-  sourceAccountId: number;
+  sourceAccountId?: number | null; // Required for internal transfer; omit for external
   destinationAccountId: number;
   amount: number;
   transactionTime: string;
+  floatSource?: FloatSourceEnum | null; // Set for AGENT/BANK external top-ups
   reference?: string | null;
   notes?: string | null;
   isConfirmed?: boolean; // default true; false = pending destination confirmation
@@ -102,10 +114,11 @@ export interface CashCapitalInjectionResult {
 }
 
 /**
- * Float purchase read response - both linked transactions
+ * Float purchase read response.
+ * sourceTransaction is null for external top-ups (floatSource = AGENT/BANK).
  */
 export interface FloatPurchaseRead {
-  sourceTransaction: Transaction;
+  sourceTransaction: Transaction | null;
   destinationTransaction: Transaction;
 }
 

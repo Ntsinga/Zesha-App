@@ -8,7 +8,7 @@
 export const Colors = {
   // Primary Brand Colors
   primary: {
-    main: "#C62828", // Brand Red - Main actions, primary buttons
+    main: "#5b0611", // Brand Red - Main actions, primary buttons
     light: "#FFEBEE", // Light Red - Hover states, backgrounds
     dark: "#B71C1C", // Dark Red - Active states
   },

@@ -46,6 +46,9 @@ export type TransactionTypeEnum =
   | "FLOAT_PURCHASE"
   | "CAPITAL_INJECTION";
 
+// Float purchase source - matches backend FloatSourceEnum
+export type FloatSourceEnum = "AGENT" | "BANK";
+
 // Transaction subtypes - optional qualifier for commission rule matching
 export type TransactionSubtypeEnum = "AGENT_TO_AGENT";
 

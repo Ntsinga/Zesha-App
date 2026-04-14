@@ -5,7 +5,7 @@ export default function CommissionSchedules() {
   return (
     <View style={styles.container}>
       <Text style={styles.text}>
-        Commission Schedules are available on the web app.
+        Commission Structures are available on the web app.
       </Text>
     </View>
   );
