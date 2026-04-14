@@ -464,6 +464,7 @@ export function useDashboardScreen() {
     topTransactionAccounts,
     topCommissionAccounts,
     commissionByAccountId,
+    transactionCountsByAccountToday,
 
     // Role
     canInjectCapital,

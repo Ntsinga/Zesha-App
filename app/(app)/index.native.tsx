@@ -8,14 +8,9 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import {
-  ArrowLeftRight,
-  ArrowDownCircle,
-  ArrowUpCircle,
-} from "lucide-react-native";
+import { ArrowLeftRight } from "lucide-react-native";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { useDashboardScreen } from "../../hooks/screens/useDashboardScreen";
-import type { AccountSummary } from "../../types";
 
 /**
  * Native Dashboard - redesigned to match modern UI
@@ -37,7 +32,8 @@ export default function DashboardNative() {
     totalBankCommission,
     totalTelecomCommission,
     transactionCount,
-    recentTransactions,
+    accounts,
+    commissionByAccountId,
     displayCapital,
     displayFloat,
     displayCash,
@@ -339,76 +335,55 @@ export default function DashboardNative() {
           </View>
         </View>
 
-        {/* Recent Transactions Feed */}
-        {recentTransactions.length > 0 && (
-          <View className="px-5 py-3">
-            <View className="flex-row justify-between items-center mb-3">
-              <Text className="text-lg font-bold text-gray-900">
-                Recent Transactions
+        {/* Current Balances */}
+        <View className="px-5 py-3">
+          <View className="flex-row justify-between items-center mb-3">
+            <Text className="text-lg font-bold text-gray-900">
+              Current Balances
+            </Text>
+            <TouchableOpacity onPress={() => router.push("/balance" as any)}>
+              <Text className="text-indigo-600 font-semibold text-sm">
+                Add Float →
               </Text>
-              <TouchableOpacity
-                onPress={() => router.push("/transactions" as any)}
-              >
-                <Text className="text-indigo-600 font-semibold text-sm">
-                  View All →
-                </Text>
-              </TouchableOpacity>
-            </View>
-            <View className="bg-white rounded-2xl shadow-sm overflow-hidden">
-              {recentTransactions.map((txn, idx) => (
-                <View
-                  key={txn.id}
-                  className={`flex-row items-center px-4 py-3 ${
-                    idx < recentTransactions.length - 1
-                      ? "border-b border-gray-100"
-                      : ""
-                  }`}
-                >
-                  <View
-                    className={`p-1.5 rounded-full mr-3 ${
-                      txn.transactionType === "DEPOSIT"
-                        ? "bg-green-100"
-                        : txn.transactionType === "WITHDRAW"
-                          ? "bg-red-100"
-                          : "bg-indigo-100"
-                    }`}
-                  >
-                    {txn.transactionType === "DEPOSIT" ? (
-                      <ArrowDownCircle size={16} color="#16A34A" />
-                    ) : txn.transactionType === "WITHDRAW" ? (
-                      <ArrowUpCircle size={16} color="#DC2626" />
-                    ) : (
-                      <ArrowLeftRight size={16} color="#4F46E5" />
-                    )}
-                  </View>
-                  <View className="flex-1">
-                    <Text className="font-medium text-gray-800 text-sm">
-                      {txn.account?.name || `Account ${txn.accountId}`}
-                    </Text>
-                    <Text className="text-xs text-gray-400">
-                      {txn.transactionType === "FLOAT_PURCHASE"
-                        ? "Float Purchase"
-                        : txn.transactionType}{" "}
-                      · {txn.shift}
-                    </Text>
-                  </View>
-                  <Text
-                    className={`font-bold text-sm ${
-                      txn.transactionType === "DEPOSIT"
-                        ? "text-green-600"
-                        : txn.transactionType === "WITHDRAW"
-                          ? "text-red-600"
-                          : "text-indigo-600"
-                    }`}
-                  >
-                    {txn.transactionType === "WITHDRAW" ? "-" : "+"}
-                    {formatCurrency(txn.amount || 0)}
-                  </Text>
-                </View>
-              ))}
-            </View>
+            </TouchableOpacity>
           </View>
-        )}
+          <View className="bg-white rounded-2xl shadow-sm overflow-hidden">
+            {accounts.length === 0 ? (
+              <View className="py-8 items-center">
+                <Text className="text-gray-400 text-sm">No accounts found</Text>
+              </View>
+            ) : (
+              accounts.map((account, idx) => {
+                const commission =
+                  commissionByAccountId.get(account.accountId) ?? 0;
+                return (
+                  <View
+                    key={account.accountId}
+                    className={`flex-row items-center px-4 py-3 ${
+                      idx < accounts.length - 1
+                        ? "border-b border-gray-100"
+                        : ""
+                    }`}
+                  >
+                    <View className="flex-1">
+                      <Text className="font-medium text-gray-800 text-sm">
+                        {account.accountName}
+                      </Text>
+                      {commission > 0 && (
+                        <Text className="text-xs text-green-600 mt-0.5">
+                          +{formatCurrency(commission)} today
+                        </Text>
+                      )}
+                    </View>
+                    <Text className="font-bold text-gray-900 text-sm">
+                      {formatCurrency(account.balance ?? 0)}
+                    </Text>
+                  </View>
+                );
+              })
+            )}
+          </View>
+        </View>
       </ScrollView>
     </View>
   );

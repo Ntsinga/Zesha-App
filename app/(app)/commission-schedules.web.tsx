@@ -58,7 +58,11 @@ interface TierRowProps {
   tier: TierFormEntry;
   index: number;
   canRemove: boolean;
-  onChange: (id: string, field: keyof Omit<TierFormEntry, "id">, value: string) => void;
+  onChange: (
+    id: string,
+    field: keyof Omit<TierFormEntry, "id">,
+    value: string,
+  ) => void;
   onRemove: (id: string) => void;
 }
 
@@ -81,7 +85,13 @@ function TierRow({ tier, index, canRemove, onChange, onRemove }: TierRowProps) {
           marginBottom: 10,
         }}
       >
-        <span style={{ fontSize: 12, fontWeight: 600, color: "var(--color-text-secondary)" }}>
+        <span
+          style={{
+            fontSize: 12,
+            fontWeight: 600,
+            color: "var(--color-text-secondary)",
+          }}
+        >
           Tier {index + 1}
         </span>
         {canRemove && (
@@ -130,7 +140,12 @@ function TierRow({ tier, index, canRemove, onChange, onRemove }: TierRowProps) {
       </div>
       <div className="form-row" style={{ gap: 8 }}>
         <div className="form-group" style={{ marginBottom: 0 }}>
-          <label style={{ fontSize: 11 }}>Customer Charge <span style={{ fontWeight: 400, color: "var(--color-text-muted)" }}>(optional)</span></label>
+          <label style={{ fontSize: 11 }}>
+            Customer Charge{" "}
+            <span style={{ fontWeight: 400, color: "var(--color-text-muted)" }}>
+              (optional)
+            </span>
+          </label>
           <input
             className="form-input"
             type="number"
@@ -138,7 +153,9 @@ function TierRow({ tier, index, canRemove, onChange, onRemove }: TierRowProps) {
             min="0"
             step="0.01"
             value={tier.customerChargeAmount}
-            onChange={(e) => onChange(tier.id, "customerChargeAmount", e.target.value)}
+            onChange={(e) =>
+              onChange(tier.id, "customerChargeAmount", e.target.value)
+            }
           />
         </div>
         <div className="form-group" style={{ marginBottom: 0 }}>
@@ -150,7 +167,9 @@ function TierRow({ tier, index, canRemove, onChange, onRemove }: TierRowProps) {
             min="0"
             step="0.01"
             value={tier.agentCommissionAmount}
-            onChange={(e) => onChange(tier.id, "agentCommissionAmount", e.target.value)}
+            onChange={(e) =>
+              onChange(tier.id, "agentCommissionAmount", e.target.value)
+            }
           />
         </div>
       </div>
@@ -207,16 +226,28 @@ function RuleGroupRow({
           textAlign: "left",
         }}
       >
-        <Icon size={16} style={{ color: "var(--color-text-secondary)", flexShrink: 0 }} />
+        <Icon
+          size={16}
+          style={{ color: "var(--color-text-secondary)", flexShrink: 0 }}
+        />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <span style={{ fontSize: 14, fontWeight: 600, color: "var(--color-text)" }}>
+          <span
+            style={{
+              fontSize: 14,
+              fontWeight: 600,
+              color: "var(--color-text)",
+            }}
+          >
             {TX_TYPE_LABELS[txType]}
           </span>
         </div>
         <span
           style={{
             fontSize: 12,
-            color: activeCount > 0 ? "var(--color-success)" : "var(--color-text-muted)",
+            color:
+              activeCount > 0
+                ? "var(--color-success)"
+                : "var(--color-text-muted)",
             fontWeight: 500,
             flexShrink: 0,
           }}
@@ -280,18 +311,41 @@ function RuleGroupRow({
                 opacity: rule.isActive ? 1 : 0.65,
               }}
             >
-              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "flex-start",
+                  justifyContent: "space-between",
+                  gap: 12,
+                }}
+              >
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 4 }}>
-                    <span className={`status-badge ${rule.isActive ? "passed" : "failed"}`}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      flexWrap: "wrap",
+                      marginBottom: 4,
+                    }}
+                  >
+                    <span
+                      className={`status-badge ${rule.isActive ? "passed" : "failed"}`}
+                    >
                       {rule.isActive ? "Active" : "Inactive"}
                     </span>
                     <span
                       style={{
                         fontSize: 11,
                         fontWeight: 600,
-                        background: rule.ruleType === "PERCENTAGE" ? "#dbeafe" : "#ede9fe",
-                        color: rule.ruleType === "PERCENTAGE" ? "#1d4ed8" : "#7c3aed",
+                        background:
+                          rule.ruleType === "PERCENTAGE"
+                            ? "#dbeafe"
+                            : "#ede9fe",
+                        color:
+                          rule.ruleType === "PERCENTAGE"
+                            ? "#1d4ed8"
+                            : "#7c3aed",
                         padding: "2px 8px",
                         borderRadius: 20,
                       }}
@@ -299,21 +353,47 @@ function RuleGroupRow({
                       {RULE_TYPE_LABELS[rule.ruleType]}
                     </span>
                     {rule.transactionSubtype && (
-                      <span style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>
+                      <span
+                        style={{
+                          fontSize: 12,
+                          color: "var(--color-text-secondary)",
+                        }}
+                      >
                         {rule.transactionSubtype.replace(/_/g, " ")}
                       </span>
                     )}
                   </div>
                   {rule.ruleType === "PERCENTAGE" && rule.rate != null && (
-                    <div style={{ fontSize: 13, color: "var(--color-text-secondary)", marginTop: 4 }}>
+                    <div
+                      style={{
+                        fontSize: 13,
+                        color: "var(--color-text-secondary)",
+                        marginTop: 4,
+                      }}
+                    >
                       Rate: <strong>{rule.rate}%</strong>
-                      {rule.volumeCap != null && <span style={{ marginLeft: 10 }}>Volume cap: {formatAmount(rule.volumeCap)}</span>}
-                      {rule.commissionCap != null && <span style={{ marginLeft: 10 }}>Commission cap: {formatAmount(rule.commissionCap)}</span>}
+                      {rule.volumeCap != null && (
+                        <span style={{ marginLeft: 10 }}>
+                          Volume cap: {formatAmount(rule.volumeCap)}
+                        </span>
+                      )}
+                      {rule.commissionCap != null && (
+                        <span style={{ marginLeft: 10 }}>
+                          Commission cap: {formatAmount(rule.commissionCap)}
+                        </span>
+                      )}
                     </div>
                   )}
                   {rule.ruleType === "TIERED_FLAT" && (
-                    <div style={{ fontSize: 13, color: "var(--color-text-secondary)", marginTop: 4 }}>
-                      {rule.tiers.length} tier{rule.tiers.length !== 1 ? "s" : ""} defined
+                    <div
+                      style={{
+                        fontSize: 13,
+                        color: "var(--color-text-secondary)",
+                        marginTop: 4,
+                      }}
+                    >
+                      {rule.tiers.length} tier
+                      {rule.tiers.length !== 1 ? "s" : ""} defined
                     </div>
                   )}
                 </div>
@@ -335,7 +415,10 @@ function RuleGroupRow({
                       onClick={() => onDeactivate(rule.id)}
                       disabled={isSubmitting}
                       title="Deactivate rule"
-                      style={{ color: "var(--color-danger)", borderColor: "var(--color-danger)" }}
+                      style={{
+                        color: "var(--color-danger)",
+                        borderColor: "var(--color-danger)",
+                      }}
                     >
                       <Power size={13} />
                     </button>
@@ -361,8 +444,16 @@ function RuleGroupRow({
                         .map((tier) => (
                           <tr key={tier.id}>
                             <td>{formatAmount(tier.minAmount)}</td>
-                            <td>{tier.maxAmount != null ? formatAmount(tier.maxAmount) : "∞"}</td>
-                            <td>{tier.customerChargeAmount != null ? formatAmount(tier.customerChargeAmount) : "—"}</td>
+                            <td>
+                              {tier.maxAmount != null
+                                ? formatAmount(tier.maxAmount)
+                                : "∞"}
+                            </td>
+                            <td>
+                              {tier.customerChargeAmount != null
+                                ? formatAmount(tier.customerChargeAmount)
+                                : "—"}
+                            </td>
                             <td>{formatAmount(tier.agentCommissionAmount)}</td>
                           </tr>
                         ))}
@@ -389,12 +480,17 @@ export default function CommissionSchedulesPage() {
   const addRuleErrorRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (screen.addRuleError) {
-      addRuleErrorRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      addRuleErrorRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+      });
     }
   }, [screen.addRuleError]);
 
   // Track which transaction-type group is expanded in the rule list
-  const [expandedRuleGroup, setExpandedRuleGroup] = useState<string | null>(null);
+  const [expandedRuleGroup, setExpandedRuleGroup] = useState<string | null>(
+    null,
+  );
 
   const toggleRuleGroup = (key: string) =>
     setExpandedRuleGroup((prev) => (prev === key ? null : key));
@@ -492,7 +588,7 @@ export default function CommissionSchedulesPage() {
             </button>
           ) : null}
           <div>
-            <h1 className="header-title">Commission Schedules</h1>
+            <h1 className="header-title">Commission Structures</h1>
             <span className="header-date">
               {selectedSchedule
                 ? selectedSchedule.name
@@ -577,19 +673,39 @@ export default function CommissionSchedulesPage() {
               alignItems: "flex-start",
             }}
           >
-            <Info size={18} style={{ color: "#2563eb", flexShrink: 0, marginTop: 2 }} />
+            <Info
+              size={18}
+              style={{ color: "#2563eb", flexShrink: 0, marginTop: 2 }}
+            />
             <div style={{ flex: 1 }}>
-              <p style={{ fontSize: 14, color: "#1e40af", fontWeight: 600, margin: "0 0 4px" }}>
-                What are Commission Schedules?
+              <p
+                style={{
+                  fontSize: 14,
+                  color: "#1e40af",
+                  fontWeight: 600,
+                  margin: "0 0 4px",
+                }}
+              >
+                What are Commission Structures?
               </p>
-              <p style={{ fontSize: 13, color: "#1e40af", margin: 0, lineHeight: 1.6 }}>
-                A <strong>Commission Schedule</strong> is a named collection of rules that define
-                how commissions are calculated for transactions on your accounts. Each schedule
-                contains one or more <strong>Rules</strong> — one per transaction type (e.g.
-                Deposit, Withdraw). Rules can be <strong>Percentage-based</strong> (a flat % of the
-                transaction amount) or <strong>Tiered Flat</strong> (different fixed fees depending
-                on the transaction amount). Attach a schedule to an account to automatically
-                calculate commissions. <strong>Templates</strong> are pre-built schedules created by
+              <p
+                style={{
+                  fontSize: 13,
+                  color: "#1e40af",
+                  margin: 0,
+                  lineHeight: 1.6,
+                }}
+              >
+                A <strong>Commission Structure</strong> is a named collection of
+                rules that define how commissions are calculated for
+                transactions on your accounts. Each schedule contains one or
+                more <strong>Rules</strong> — one per transaction type (e.g.
+                Deposit, Withdraw). Rules can be{" "}
+                <strong>Percentage-based</strong> (a flat % of the transaction
+                amount) or <strong>Tiered Flat</strong> (different fixed fees
+                depending on the transaction amount). Attach a schedule to an
+                account to automatically calculate commissions.{" "}
+                <strong>Templates</strong> are pre-built schedules created by
                 system administrators that you can copy as a starting point.
               </p>
             </div>
@@ -615,7 +731,7 @@ export default function CommissionSchedulesPage() {
               className={`shift-btn ${activeTab === "my-schedules" ? "active" : ""}`}
               onClick={() => setActiveTab("my-schedules")}
             >
-              My Schedules
+              My Structures
             </button>
             <button
               className={`shift-btn ${activeTab === "templates" ? "active" : ""}`}
@@ -721,7 +837,10 @@ export default function CommissionSchedulesPage() {
                       color: "var(--color-text-muted)",
                     }}
                   >
-                    <div className="spinner" style={{ margin: "0 auto 12px" }} />
+                    <div
+                      className="spinner"
+                      style={{ margin: "0 auto 12px" }}
+                    />
                     Loading rules…
                   </div>
                 ) : (
@@ -791,12 +910,14 @@ export default function CommissionSchedulesPage() {
                         }}
                       >
                         {/* Group rules by transaction type, preserving display order */}
-                        {([
-                          "DEPOSIT",
-                          "WITHDRAW",
-                          "FLOAT_PURCHASE",
-                          "CAPITAL_INJECTION",
-                        ] as TransactionTypeEnum[]).map((txType) => {
+                        {(
+                          [
+                            "DEPOSIT",
+                            "WITHDRAW",
+                            "FLOAT_PURCHASE",
+                            "CAPITAL_INJECTION",
+                          ] as TransactionTypeEnum[]
+                        ).map((txType) => {
                           const group = selectedSchedule.rules.filter(
                             (r) => r.transactionType === txType,
                           );
@@ -831,7 +952,10 @@ export default function CommissionSchedulesPage() {
                       color: "var(--color-text-muted)",
                     }}
                   >
-                    <div className="spinner" style={{ margin: "0 auto 12px" }} />
+                    <div
+                      className="spinner"
+                      style={{ margin: "0 auto 12px" }}
+                    />
                     Loading schedules…
                   </div>
                 ) : schedules.length === 0 ? (
@@ -851,7 +975,7 @@ export default function CommissionSchedulesPage() {
                         color: "var(--color-text)",
                       }}
                     >
-                      No commission schedules yet
+                      No commission structures yet
                     </h3>
                     <p
                       style={{
@@ -990,8 +1114,8 @@ export default function CommissionSchedulesPage() {
               }}
             >
               <strong>System Templates</strong> are pre-built commission
-              structures created by administrators. They are read-only — you
-              can copy any template to your own schedules and customise it from
+              structures created by administrators. They are read-only — you can
+              copy any template to your own schedules and customise it from
               there.
             </div>
 
@@ -1060,8 +1184,7 @@ export default function CommissionSchedulesPage() {
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns:
-                    "repeat(auto-fill, minmax(320px, 1fr))",
+                  gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
                   gap: 16,
                 }}
               >
@@ -1194,12 +1317,9 @@ export default function CommissionSchedulesPage() {
           style={{ background: "rgba(0,0,0,0.4)" }}
           onClick={closeCreateSchedule}
         >
-          <div
-            className="modal-content"
-            onClick={(e) => e.stopPropagation()}
-          >
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>New Commission Schedule</h2>
+              <h2>New Commission Structure</h2>
               <button className="modal-close" onClick={closeCreateSchedule}>
                 <X size={18} />
               </button>
@@ -1268,10 +1388,7 @@ export default function CommissionSchedulesPage() {
           style={{ background: "rgba(0,0,0,0.4)" }}
           onClick={closeCreateTemplate}
         >
-          <div
-            className="modal-content"
-            onClick={(e) => e.stopPropagation()}
-          >
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h2>New System Template</h2>
               <button className="modal-close" onClick={closeCreateTemplate}>
@@ -1385,10 +1502,10 @@ export default function CommissionSchedulesPage() {
                   lineHeight: 1.6,
                 }}
               >
-                Each rule covers one <strong>transaction type</strong>.
-                Choose <strong>Percentage</strong> to charge a % of the
-                transaction amount, or <strong>Tiered Flat</strong> to define
-                fixed amounts per amount range.
+                Each rule covers one <strong>transaction type</strong>. Choose{" "}
+                <strong>Percentage</strong> to charge a % of the transaction
+                amount, or <strong>Tiered Flat</strong> to define fixed amounts
+                per amount range.
               </div>
 
               <div className="form-row">
@@ -1653,8 +1770,7 @@ export default function CommissionSchedulesPage() {
             </div>
             <div className="modal-body">
               <p style={{ marginBottom: 12 }}>
-                Copy <strong>"{templateToCopy.name}"</strong> to your
-                schedules?
+                Copy <strong>"{templateToCopy.name}"</strong> to your schedules?
               </p>
               <p
                 style={{
@@ -1709,8 +1825,8 @@ export default function CommissionSchedulesPage() {
             </div>
             <div className="modal-body">
               <p>
-                Are you sure you want to delete this schedule? All its rules
-                and tiers will also be removed.
+                Are you sure you want to delete this schedule? All its rules and
+                tiers will also be removed.
               </p>
               <p
                 style={{

@@ -20,7 +20,11 @@ import {
   ACCOUNT_TYPES,
 } from "../../hooks/screens/useAccountsScreen";
 import { useCurrencyFormatter } from "../../hooks/useCurrency";
-import type { Account, AccountTypeEnum, CommissionModelEnum } from "../../types";
+import type {
+  Account,
+  AccountTypeEnum,
+  CommissionModelEnum,
+} from "../../types";
 import "../../styles/web.css";
 
 export default function Accounts() {
@@ -81,7 +85,9 @@ export default function Accounts() {
 
   // Name used when inheriting a template (user can override)
   const [inheritName, setInheritName] = useState("");
-  const [inheritingTemplate, setInheritingTemplate] = useState<Account | null>(null);
+  const [inheritingTemplate, setInheritingTemplate] = useState<Account | null>(
+    null,
+  );
 
   const onSubmit = async () => {
     const result = await handleSubmit();
@@ -98,7 +104,10 @@ export default function Accounts() {
   const onInheritTemplate = async () => {
     if (!inheritingTemplate) return;
     const result = await handleInheritTemplate(inheritingTemplate, inheritName);
-    setMessage({ type: result.success ? "success" : "error", text: result.message });
+    setMessage({
+      type: result.success ? "success" : "error",
+      text: result.message,
+    });
     if (result.success) {
       setInheritingTemplate(null);
       setInheritName("");
@@ -165,12 +174,6 @@ export default function Accounts() {
             <div className="stat-content">
               <span className="stat-label">Active</span>
               <span className="stat-value">{stats.active}</span>
-            </div>
-          </div>
-          <div className="stat-card warning">
-            <div className="stat-content">
-              <span className="stat-label">Inactive</span>
-              <span className="stat-value">{stats.inactive}</span>
             </div>
           </div>
           <div className="stat-card">
@@ -253,7 +256,7 @@ export default function Accounts() {
                   <th>Name</th>
                   <th>Type</th>
                   <th>Current Balance</th>
-                  <th>Commission Schedule</th>
+                  <th>Commission Structure</th>
                   <th>Status</th>
                 </tr>
               </thead>
@@ -284,9 +287,9 @@ export default function Accounts() {
                     </td>
                     <td style={{ fontSize: 12, color: "#64748b" }}>
                       {account.commissionScheduleId != null ? (
-                        commissionSchedules.find(
+                        (commissionSchedules.find(
                           (s) => s.id === account.commissionScheduleId,
-                        )?.name ?? `Schedule #${account.commissionScheduleId}`
+                        )?.name ?? `Schedule #${account.commissionScheduleId}`)
                       ) : (
                         <span style={{ color: "#cbd5e1" }}>—</span>
                       )}
@@ -363,34 +366,58 @@ export default function Accounts() {
                 <p style={{ fontSize: 13, color: "#64748b", marginBottom: 16 }}>
                   How would you like to set up this account?
                 </p>
-                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                <div
+                  style={{ display: "flex", flexDirection: "column", gap: 10 }}
+                >
                   <button
                     onClick={() => chooseCreationMode("new")}
                     style={{
-                      display: "flex", alignItems: "center", gap: 12,
-                      padding: "14px 16px", border: "1px solid #e2e8f0",
-                      borderRadius: 8, background: "#fff", cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 12,
+                      padding: "14px 16px",
+                      border: "1px solid #e2e8f0",
+                      borderRadius: 8,
+                      background: "#fff",
+                      cursor: "pointer",
                       textAlign: "left",
                     }}
                   >
-                    <Plus size={20} style={{ color: "#3b82f6", flexShrink: 0 }} />
+                    <Plus
+                      size={20}
+                      style={{ color: "#3b82f6", flexShrink: 0 }}
+                    />
                     <div>
-                      <div style={{ fontWeight: 600, fontSize: 14 }}>Create from scratch</div>
-                      <div style={{ fontSize: 12, color: "#64748b" }}>New account, assign any schedule</div>
+                      <div style={{ fontWeight: 600, fontSize: 14 }}>
+                        Create from scratch
+                      </div>
+                      <div style={{ fontSize: 12, color: "#64748b" }}>
+                        New account, assign any schedule
+                      </div>
                     </div>
                   </button>
                   <button
                     onClick={() => chooseCreationMode("template")}
                     style={{
-                      display: "flex", alignItems: "center", gap: 12,
-                      padding: "14px 16px", border: "1px solid #e2e8f0",
-                      borderRadius: 8, background: "#fff", cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 12,
+                      padding: "14px 16px",
+                      border: "1px solid #e2e8f0",
+                      borderRadius: 8,
+                      background: "#fff",
+                      cursor: "pointer",
                       textAlign: "left",
                     }}
                   >
-                    <LayoutTemplate size={20} style={{ color: "#8b5cf6", flexShrink: 0 }} />
+                    <LayoutTemplate
+                      size={20}
+                      style={{ color: "#8b5cf6", flexShrink: 0 }}
+                    />
                     <div>
-                      <div style={{ fontWeight: 600, fontSize: 14 }}>Use system template</div>
+                      <div style={{ fontWeight: 600, fontSize: 14 }}>
+                        Use system template
+                      </div>
                       <div style={{ fontSize: 12, color: "#64748b" }}>
                         Inherit a pre-configured account from Super Admin
                       </div>
@@ -399,17 +426,27 @@ export default function Accounts() {
                   <button
                     onClick={() => chooseCreationMode("clone")}
                     style={{
-                      display: "flex", alignItems: "center", gap: 12,
-                      padding: "14px 16px", border: "1px solid #e2e8f0",
-                      borderRadius: 8, background: "#fff", cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 12,
+                      padding: "14px 16px",
+                      border: "1px solid #e2e8f0",
+                      borderRadius: 8,
+                      background: "#fff",
+                      cursor: "pointer",
                       textAlign: "left",
                     }}
                   >
-                    <Copy size={20} style={{ color: "#10b981", flexShrink: 0 }} />
+                    <Copy
+                      size={20}
+                      style={{ color: "#10b981", flexShrink: 0 }}
+                    />
                     <div>
-                      <div style={{ fontWeight: 600, fontSize: 14 }}>Clone an existing account</div>
+                      <div style={{ fontWeight: 600, fontSize: 14 }}>
+                        Clone an existing account
+                      </div>
                       <div style={{ fontSize: 12, color: "#64748b" }}>
-                        Reuse the commission schedule from another account
+                        Reuse the commission structure from another account
                       </div>
                     </div>
                   </button>
@@ -425,28 +462,65 @@ export default function Accounts() {
                     <RefreshCw size={20} className="spin" />
                   </div>
                 ) : templates.length === 0 ? (
-                  <div style={{ textAlign: "center", padding: 24, color: "#64748b", fontSize: 13 }}>
-                    No system templates available. Ask your Super Admin to create some.
+                  <div
+                    style={{
+                      textAlign: "center",
+                      padding: 24,
+                      color: "#64748b",
+                      fontSize: 13,
+                    }}
+                  >
+                    No system templates available. Ask your Super Admin to
+                    create some.
                   </div>
                 ) : (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  <div
+                    style={{ display: "flex", flexDirection: "column", gap: 8 }}
+                  >
                     {templates.map((tmpl) => (
                       <div
                         key={tmpl.id}
                         style={{
-                          border: inheritingTemplate?.id === tmpl.id ? "1px solid #8b5cf6" : "1px solid #e2e8f0",
-                          borderRadius: 8, padding: "12px 14px",
-                          background: inheritingTemplate?.id === tmpl.id ? "#f5f3ff" : "#fff",
+                          border:
+                            inheritingTemplate?.id === tmpl.id
+                              ? "1px solid #8b5cf6"
+                              : "1px solid #e2e8f0",
+                          borderRadius: 8,
+                          padding: "12px 14px",
+                          background:
+                            inheritingTemplate?.id === tmpl.id
+                              ? "#f5f3ff"
+                              : "#fff",
                         }}
                       >
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "flex-start",
+                          }}
+                        >
                           <div>
-                            <div style={{ fontWeight: 600, fontSize: 14 }}>{tmpl.name}</div>
-                            <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>
+                            <div style={{ fontWeight: 600, fontSize: 14 }}>
+                              {tmpl.name}
+                            </div>
+                            <div
+                              style={{
+                                fontSize: 12,
+                                color: "#64748b",
+                                marginTop: 2,
+                              }}
+                            >
                               {tmpl.accountType}
                               {tmpl.commissionSchedule && (
                                 <span style={{ marginLeft: 8 }}>
-                                  <Layers size={10} style={{ display: "inline", marginRight: 3 }} />
+                                  <Layers
+                                    size={10}
+                                    style={{
+                                      display: "inline",
+                                      marginRight: 3,
+                                    }}
+                                  />
                                   {tmpl.commissionSchedule.name}
                                 </span>
                               )}
@@ -484,7 +558,10 @@ export default function Accounts() {
                   <div className="modal-footer" style={{ marginTop: 16 }}>
                     <button
                       className="btn-secondary"
-                      onClick={() => { setInheritingTemplate(null); setInheritName(""); }}
+                      onClick={() => {
+                        setInheritingTemplate(null);
+                        setInheritName("");
+                      }}
                       style={{ flex: 1 }}
                     >
                       Cancel
@@ -495,7 +572,11 @@ export default function Accounts() {
                       disabled={isSubmitting || !inheritName.trim()}
                       style={{ flex: 2 }}
                     >
-                      {isSubmitting ? <RefreshCw size={16} className="spin" /> : <Check size={16} />}
+                      {isSubmitting ? (
+                        <RefreshCw size={16} className="spin" />
+                      ) : (
+                        <Check size={16} />
+                      )}
                       {isSubmitting ? "Creating..." : "Create Account"}
                     </button>
                   </div>
@@ -513,7 +594,9 @@ export default function Accounts() {
                     style={{ appearance: "none" }}
                     value={cloneSource?.id ?? ""}
                     onChange={(e) => {
-                      const src = allAccounts.find((a) => a.id === Number(e.target.value));
+                      const src = allAccounts.find(
+                        (a) => a.id === Number(e.target.value),
+                      );
                       if (src) selectCloneSource(src);
                     }}
                   >
@@ -521,7 +604,9 @@ export default function Accounts() {
                     {allAccounts
                       .filter((a) => a.commissionScheduleId != null)
                       .map((a) => (
-                        <option key={a.id} value={a.id}>{a.name}</option>
+                        <option key={a.id} value={a.id}>
+                          {a.name}
+                        </option>
                       ))}
                   </select>
                   {cloneSource?.commissionSchedule && (
@@ -553,7 +638,11 @@ export default function Accounts() {
                             className={`type-button ${accountType === type.value ? "selected" : ""}`}
                             onClick={() => setAccountType(type.value)}
                           >
-                            {type.value === "BANK" ? <Building2 size={16} /> : <Smartphone size={16} />}
+                            {type.value === "BANK" ? (
+                              <Building2 size={16} />
+                            ) : (
+                              <Smartphone size={16} />
+                            )}
                             {type.label}
                           </button>
                         ))}
@@ -574,7 +663,11 @@ export default function Accounts() {
                         disabled={isSubmitting || !name.trim()}
                         style={{ flex: 2 }}
                       >
-                        {isSubmitting ? <RefreshCw size={16} className="spin" /> : <Check size={16} />}
+                        {isSubmitting ? (
+                          <RefreshCw size={16} className="spin" />
+                        ) : (
+                          <Check size={16} />
+                        )}
                         {isSubmitting ? "Creating..." : "Create Account"}
                       </button>
                     </div>
@@ -587,196 +680,198 @@ export default function Accounts() {
             {(editingAccount || creationMode === "new") && (
               <>
                 <div className="modal-form">
-              <div className="form-group">
-                <label className="form-label">Account Name *</label>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Enter account name"
-                  className="form-input"
-                  autoFocus
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Account Type</label>
-                <div className="type-buttons">
-                  {ACCOUNT_TYPES.map((type) => (
-                    <button
-                      key={type.value}
-                      className={`type-button ${
-                        accountType === type.value ? "selected" : ""
-                      }`}
-                      onClick={() => setAccountType(type.value)}
-                    >
-                      {type.value === "BANK" ? (
-                        <Building2 size={16} />
-                      ) : (
-                        <Smartphone size={16} />
-                      )}
-                      {type.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {accountType === "TELECOM" && (
-                <div className="form-group">
-                  <label className="form-label">Commission Model</label>
-                  <div className="type-buttons">
-                    {[
-                      {
-                        value: "CUMULATIVE" as CommissionModelEnum,
-                        label: "Cumulative",
-                        hint: "Agent submits monthly running total; today = submitted − yesterday",
-                      },
-                      {
-                        value: "PARTIAL" as CommissionModelEnum,
-                        label: "Partial",
-                        hint: "Agent submits withdrawals only; deposits auto-added from expected rates",
-                      },
-                    ].map((opt) => (
-                      <button
-                        key={opt.value}
-                        className={`type-button ${commissionModel === opt.value ? "selected" : ""}`}
-                        onClick={() => setCommissionModel(opt.value)}
-                        title={opt.hint}
-                      >
-                        {opt.label}
-                      </button>
-                    ))}
-                  </div>
-                  <span className="form-hint">
-                    {commissionModel === "CUMULATIVE"
-                      ? "Agent submits a monthly running total; actual = submitted today − submitted yesterday"
-                      : commissionModel === "PARTIAL"
-                        ? "Agent submits withdrawal commissions only; deposit commissions are auto-added from expected rates"
-                        : "Select a commission model"}
-                  </span>
-                </div>
-              )}
-
-              {!editingAccount && (
-                <div className="form-group">
-                  <label className="form-label">Initial Balance</label>
-                  <input
-                    type="number"
-                    value={initialBalance}
-                    onChange={(e) => setInitialBalance(e.target.value)}
-                    placeholder="0.00"
-                    className="form-input"
-                    min="0"
-                    step="0.01"
-                  />
-                  <span className="form-hint">
-                    Starting balance for audit tracking (cannot be changed
-                    later)
-                  </span>
-                </div>
-              )}
-
-              {editingAccount && (
-                <div className="form-group">
-                  <label className="form-label">Current Balance</label>
-                  <input
-                    type="text"
-                    value={formatCurrency(editingAccount.currentBalance ?? 0)}
-                    className="form-input"
-                    disabled
-                    style={{ background: "#f8fafc", color: "#64748b" }}
-                  />
-                </div>
-              )}
-
-              <div className="form-group">
-                <label className="form-label">Status</label>
-                <div className="toggle-group">
-                  <label className="toggle">
+                  <div className="form-group">
+                    <label className="form-label">Account Name *</label>
                     <input
-                      type="checkbox"
-                      checked={isActive}
-                      onChange={(e) => setIsActive(e.target.checked)}
-                    />
-                    <span className="toggle-slider"></span>
-                    <span className="toggle-label">
-                      {isActive ? "Active" : "Inactive"}
-                    </span>
-                  </label>
-                </div>
-              </div>
-
-              <div style={{ display: "flex", gap: 12 }}>
-                <div className="form-group" style={{ flex: 1 }}>
-                  <label className="form-label">Commission Schedule</label>
-                  <div style={{ position: "relative" }}>
-                    <select
-                      value={commissionScheduleId ?? ""}
-                      onChange={(e) =>
-                        setCommissionScheduleId(
-                          e.target.value ? Number(e.target.value) : null,
-                        )
-                      }
+                      type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="Enter account name"
                       className="form-input"
-                      style={{ appearance: "none", paddingRight: 32 }}
-                    >
-                      <option value="">No schedule assigned</option>
-                      {commissionSchedules
-                        .filter((s) => s.isActive)
-                        .map((s) => (
-                          <option key={s.id} value={s.id}>
-                            {s.name}
-                          </option>
-                        ))}
-                    </select>
-                    <ChevronDown
-                      size={16}
-                      style={{
-                        position: "absolute",
-                        right: 10,
-                        top: "50%",
-                        transform: "translateY(-50%)",
-                        pointerEvents: "none",
-                        color: "#64748b",
-                      }}
+                      autoFocus
                     />
                   </div>
-                  <span className="form-hint">
-                    Defines how deposit and withdrawal commissions are
-                    calculated. Manage schedules in the Commission Schedules
-                    page.
-                  </span>
-                </div>
-              </div>
-            </div>
 
-            <div className="modal-footer">
-              <button
-                className="btn-secondary"
-                onClick={closeModal}
-                disabled={isSubmitting}
-                style={{ flex: 1 }}
-              >
-                Cancel
-              </button>
-              <button
-                className="btn-primary"
-                onClick={onSubmit}
-                disabled={isSubmitting}
-                style={{ flex: 2 }}
-              >
-                {isSubmitting ? (
-                  <RefreshCw size={16} className="spin" />
-                ) : (
-                  <Check size={16} />
-                )}
-                {isSubmitting
-                  ? "Saving..."
-                  : editingAccount
-                    ? "Update"
-                    : "Create"}
-              </button>
-            </div>
+                  <div className="form-group">
+                    <label className="form-label">Account Type</label>
+                    <div className="type-buttons">
+                      {ACCOUNT_TYPES.map((type) => (
+                        <button
+                          key={type.value}
+                          className={`type-button ${
+                            accountType === type.value ? "selected" : ""
+                          }`}
+                          onClick={() => setAccountType(type.value)}
+                        >
+                          {type.value === "BANK" ? (
+                            <Building2 size={16} />
+                          ) : (
+                            <Smartphone size={16} />
+                          )}
+                          {type.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {accountType === "TELECOM" && (
+                    <div className="form-group">
+                      <label className="form-label">Commission Model</label>
+                      <div className="type-buttons">
+                        {[
+                          {
+                            value: "CUMULATIVE" as CommissionModelEnum,
+                            label: "Cumulative",
+                            hint: "Agent submits monthly running total; today = submitted − yesterday",
+                          },
+                          {
+                            value: "PARTIAL" as CommissionModelEnum,
+                            label: "Partial",
+                            hint: "Agent submits withdrawals only; deposits auto-added from expected rates",
+                          },
+                        ].map((opt) => (
+                          <button
+                            key={opt.value}
+                            className={`type-button ${commissionModel === opt.value ? "selected" : ""}`}
+                            onClick={() => setCommissionModel(opt.value)}
+                            title={opt.hint}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                      <span className="form-hint">
+                        {commissionModel === "CUMULATIVE"
+                          ? "Agent submits a monthly running total; actual = submitted today − submitted yesterday"
+                          : commissionModel === "PARTIAL"
+                            ? "Agent submits withdrawal commissions only; deposit commissions are auto-added from expected rates"
+                            : "Select a commission model"}
+                      </span>
+                    </div>
+                  )}
+
+                  {!editingAccount && (
+                    <div className="form-group">
+                      <label className="form-label">Initial Balance</label>
+                      <input
+                        type="number"
+                        value={initialBalance}
+                        onChange={(e) => setInitialBalance(e.target.value)}
+                        placeholder="0.00"
+                        className="form-input"
+                        min="0"
+                        step="0.01"
+                      />
+                      <span className="form-hint">
+                        Starting balance for audit tracking (cannot be changed
+                        later)
+                      </span>
+                    </div>
+                  )}
+
+                  {editingAccount && (
+                    <div className="form-group">
+                      <label className="form-label">Current Balance</label>
+                      <input
+                        type="text"
+                        value={formatCurrency(
+                          editingAccount.currentBalance ?? 0,
+                        )}
+                        className="form-input"
+                        disabled
+                        style={{ background: "#f8fafc", color: "#64748b" }}
+                      />
+                    </div>
+                  )}
+
+                  <div className="form-group">
+                    <label className="form-label">Status</label>
+                    <div className="toggle-group">
+                      <label className="toggle">
+                        <input
+                          type="checkbox"
+                          checked={isActive}
+                          onChange={(e) => setIsActive(e.target.checked)}
+                        />
+                        <span className="toggle-slider"></span>
+                        <span className="toggle-label">
+                          {isActive ? "Active" : "Inactive"}
+                        </span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div style={{ display: "flex", gap: 12 }}>
+                    <div className="form-group" style={{ flex: 1 }}>
+                      <label className="form-label">Commission Structure</label>
+                      <div style={{ position: "relative" }}>
+                        <select
+                          value={commissionScheduleId ?? ""}
+                          onChange={(e) =>
+                            setCommissionScheduleId(
+                              e.target.value ? Number(e.target.value) : null,
+                            )
+                          }
+                          className="form-input"
+                          style={{ appearance: "none", paddingRight: 32 }}
+                        >
+                          <option value="">No schedule assigned</option>
+                          {commissionSchedules
+                            .filter((s) => s.isActive)
+                            .map((s) => (
+                              <option key={s.id} value={s.id}>
+                                {s.name}
+                              </option>
+                            ))}
+                        </select>
+                        <ChevronDown
+                          size={16}
+                          style={{
+                            position: "absolute",
+                            right: 10,
+                            top: "50%",
+                            transform: "translateY(-50%)",
+                            pointerEvents: "none",
+                            color: "#64748b",
+                          }}
+                        />
+                      </div>
+                      <span className="form-hint">
+                        Defines how deposit and withdrawal commissions are
+                        calculated. Manage structures in the Commission
+                        Structures page.
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="modal-footer">
+                  <button
+                    className="btn-secondary"
+                    onClick={closeModal}
+                    disabled={isSubmitting}
+                    style={{ flex: 1 }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className="btn-primary"
+                    onClick={onSubmit}
+                    disabled={isSubmitting}
+                    style={{ flex: 2 }}
+                  >
+                    {isSubmitting ? (
+                      <RefreshCw size={16} className="spin" />
+                    ) : (
+                      <Check size={16} />
+                    )}
+                    {isSubmitting
+                      ? "Saving..."
+                      : editingAccount
+                        ? "Update"
+                        : "Create"}
+                  </button>
+                </div>
               </>
             )}
           </div>

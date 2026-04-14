@@ -1,11 +1,17 @@
 {
-	"folders": [
-		{
-			"path": "."
-		},
-		{
-			"path": "../Audit-Service"
-		}
-	],
-	"settings": {}
+  "folders": [
+    {
+      "path": ".",
+    },
+    {
+      "path": "../Audit-Service",
+    },
+    {
+      "path": "../teleba",
+    },
+    {
+      "path": "../teleba_info/Teleba",
+    },
+  ],
+  "settings": {},
 }

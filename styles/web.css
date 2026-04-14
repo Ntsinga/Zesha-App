@@ -27,7 +27,7 @@
   --color-info-light: #dbeafe;
 
   /* Neutral Colors */
-  --color-bg: #f8fafc;
+  --color-bg: #f5f1ea;
   --color-bg-card: #ffffff;
   --color-border: #e5e7eb;
   --color-border-light: #f3f4f6;
@@ -38,7 +38,7 @@
   /* Sidebar */
   --sidebar-width: 260px;
   --sidebar-collapsed-width: 68px;
-  --sidebar-bg: linear-gradient(180deg, #c0152a 0%, #6b0714 100%);
+  --sidebar-bg: linear-gradient(170deg, #8e0c1a 0%, #6b0714 55%, #3a050c 100%);
 
   /* Spacing */
   --space-xs: 4px;
@@ -292,6 +292,28 @@ body {
   padding: var(--space-md) 6px;
 }
 
+.sidebar-ring {
+  position: absolute;
+  width: 380px;
+  height: 380px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  bottom: -160px;
+  right: -160px;
+  pointer-events: none;
+}
+
+.sidebar-ring-2 {
+  position: absolute;
+  width: 240px;
+  height: 240px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 215, 0, 0.06);
+  bottom: -100px;
+  right: -100px;
+  pointer-events: none;
+}
+
 .sidebar-collapse-btn {
   display: flex;
   align-items: center;
@@ -334,11 +356,12 @@ body {
 .sidebar-logo {
   width: 44px;
   height: 44px;
-  background-color: rgba(255, 255, 255, 0.2);
   border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
 }
 
 .sidebar-title {
@@ -636,7 +659,7 @@ body {
   color: var(--color-text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  background-color: var(--color-bg);
+  background-color: var(--color-bg-card);
   border-bottom: 1px solid var(--color-border);
 }
 
@@ -647,7 +670,7 @@ body {
 }
 
 .table tr:hover {
-  background-color: var(--color-bg);
+  background-color: #f9f9f9;
 }
 
 .table .text-right {
@@ -1298,7 +1321,7 @@ body {
   color: var(--color-text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  background-color: var(--color-bg);
+  background-color: var(--color-bg-card);
   border-bottom: 1px solid var(--color-border);
 }
 
@@ -1310,7 +1333,7 @@ body {
 }
 
 .table tbody tr:hover {
-  background-color: var(--color-bg);
+  background-color: #f9f9f9;
 }
 
 .table .text-right {
@@ -1897,6 +1920,12 @@ body {
   background: var(--color-primary-dark);
 }
 
+.data-table-container {
+  background-color: var(--color-bg-card);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
 .data-table {
   width: 100%;
   border-collapse: collapse;
@@ -1910,7 +1939,7 @@ body {
   color: var(--color-text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  background: var(--color-bg);
+  background: var(--color-bg-card);
 }
 
 .data-table td {
@@ -1918,10 +1947,11 @@ body {
   border-bottom: 1px solid var(--color-border-light);
   font-size: 14px;
   color: var(--color-text);
+  background-color: var(--color-bg-card);
 }
 
 .data-table tr:hover td {
-  background: var(--color-bg);
+  background: #f9f9f9;
 }
 
 .data-table .amount {
@@ -6769,7 +6799,7 @@ body {
 
 /* Agency viewing banner */
 .agency-viewing-banner {
-  background: linear-gradient(135deg, #c62828 0%, #b8860b 100%);
+  background: linear-gradient(135deg, #8e0c1a 0%, #6b0714 60%, #3a050c 100%);
   color: #fff;
   padding: 12px 20px;
   display: flex;

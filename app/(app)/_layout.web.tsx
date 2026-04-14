@@ -37,7 +37,7 @@ import {
 } from "../../store/slices/authSlice";
 import TopBarWeb from "../../components/TopBar.web";
 import { ToastProvider } from "../../components/Toast.web";
-import "../../styles/web.css";
+import TelebaIcon from "../../components/TelebaIcon";
 
 interface NavItem {
   href: string;
@@ -240,7 +240,7 @@ export default function AppLayoutWeb() {
     },
     {
       href: "/commission-schedules",
-      label: "Commission Schedules",
+      label: "Commission Structures",
       icon: <Layers size={20} />,
     },
   ];
@@ -307,7 +307,7 @@ export default function AppLayoutWeb() {
           <div className="mobile-menu-header">
             <div className="mobile-menu-brand">
               <div className="mobile-menu-logo">
-                <Building2 size={24} color="white" />
+                <TelebaIcon size={36} />
               </div>
               <div>
                 <div className="mobile-menu-title">Teleba</div>
@@ -354,10 +354,14 @@ export default function AppLayoutWeb() {
 
         {/* Desktop Sidebar */}
         <aside className={`sidebar${isSidebarCollapsed ? " collapsed" : ""}`}>
+          {/* Decorative rings */}
+          <div className="sidebar-ring" aria-hidden="true" />
+          <div className="sidebar-ring-2" aria-hidden="true" />
+
           <div className="sidebar-header">
             <div className="sidebar-brand">
               <div className="sidebar-logo">
-                <Building2 size={24} color="white" />
+                <TelebaIcon size={38} />
               </div>
               {!isSidebarCollapsed && (
                 <div>
@@ -445,7 +449,7 @@ export default function AppLayoutWeb() {
           <header className="mobile-header">
             <div className="mobile-header-brand">
               <div className="mobile-header-logo">
-                <Building2 size={20} color="white" />
+                <TelebaIcon size={32} />
               </div>
               <span className="mobile-header-title">Teleba</span>
             </div>

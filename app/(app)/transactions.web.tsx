@@ -480,7 +480,7 @@ export default function TransactionsWeb() {
                               <CheckCircle size={14} />
                             </button>
                           )}
-                        {!txn.reconciliationId && (
+                        {!txn.reconciliationId && !txn.floatSource && (
                           <button
                             onClick={() => handleReverse(txn)}
                             className="btn-icon-sm delete"
@@ -840,37 +840,70 @@ export default function TransactionsWeb() {
               }}
               className="modal-form"
             >
-              {/* Source Account */}
+              {/* Float Source */}
               <div className="form-group">
-                <label className="form-label">Source Account (debit)</label>
+                <label className="form-label">Float Source</label>
                 <select
-                  value={floatPurchaseForm.sourceAccountId ?? ""}
+                  value={floatPurchaseForm.floatSource ?? "INTERNAL"}
                   onChange={(e) =>
                     setFloatPurchaseForm((prev) => ({
                       ...prev,
-                      sourceAccountId: e.target.value
-                        ? Number(e.target.value)
-                        : null,
+                      floatSource:
+                        e.target.value === "INTERNAL"
+                          ? null
+                          : (e.target.value as "AGENT" | "BANK"),
+                      // Clear source account when switching to external
+                      sourceAccountId:
+                        e.target.value !== "INTERNAL"
+                          ? null
+                          : prev.sourceAccountId,
                     }))
                   }
                   className="form-input"
-                  required
                 >
-                  <option value="">Select source account...</option>
-                  {accounts.map((a) => (
-                    <option
-                      key={a.id}
-                      value={a.id}
-                      disabled={a.id === floatPurchaseForm.destinationAccountId}
-                    >
-                      {a.name} ({a.accountType})
-                      {a.currentBalance != null
-                        ? ` — Bal: ${formatCurrency(a.currentBalance)}`
-                        : ""}
-                    </option>
-                  ))}
+                  <option value="AGENT">Agent (external top-up)</option>
+                  <option value="BANK">Bank (external top-up)</option>
+                  <option value="INTERNAL">
+                    Internal transfer (between accounts)
+                  </option>
                 </select>
               </div>
+
+              {/* Source Account — only for internal transfers */}
+              {!floatPurchaseForm.floatSource && (
+                <div className="form-group">
+                  <label className="form-label">Source Account (debit)</label>
+                  <select
+                    value={floatPurchaseForm.sourceAccountId ?? ""}
+                    onChange={(e) =>
+                      setFloatPurchaseForm((prev) => ({
+                        ...prev,
+                        sourceAccountId: e.target.value
+                          ? Number(e.target.value)
+                          : null,
+                      }))
+                    }
+                    className="form-input"
+                    required
+                  >
+                    <option value="">Select source account...</option>
+                    {accounts.map((a) => (
+                      <option
+                        key={a.id}
+                        value={a.id}
+                        disabled={
+                          a.id === floatPurchaseForm.destinationAccountId
+                        }
+                      >
+                        {a.name} ({a.accountType})
+                        {a.currentBalance != null
+                          ? ` — Bal: ${formatCurrency(a.currentBalance)}`
+                          : ""}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               {/* Destination Account */}
               <div className="form-group">
@@ -895,7 +928,10 @@ export default function TransactionsWeb() {
                     <option
                       key={a.id}
                       value={a.id}
-                      disabled={a.id === floatPurchaseForm.sourceAccountId}
+                      disabled={
+                        !floatPurchaseForm.floatSource &&
+                        a.id === floatPurchaseForm.sourceAccountId
+                      }
                     >
                       {a.name} ({a.accountType})
                       {a.currentBalance != null
@@ -1033,9 +1069,10 @@ export default function TransactionsWeb() {
                   type="submit"
                   disabled={
                     isCreating ||
-                    !floatPurchaseForm.sourceAccountId ||
                     !floatPurchaseForm.destinationAccountId ||
-                    !floatPurchaseForm.amount
+                    !floatPurchaseForm.amount ||
+                    (!floatPurchaseForm.floatSource &&
+                      !floatPurchaseForm.sourceAccountId)
                   }
                   className="btn-submit"
                   style={{ background: "#3b82f6" }}
