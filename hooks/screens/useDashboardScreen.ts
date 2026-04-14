@@ -152,10 +152,6 @@ export function useDashboardScreen() {
   // Live-first variance: displayCapital (live/reconciled) minus what the books expect
   const displayVariance = displayCapital - expectedGrandTotal;
   const capitalLabel: string = (() => {
-    const sincePart =
-      transactionsSinceRecon > 0
-        ? ` · ${transactionsSinceRecon} txn${transactionsSinceRecon !== 1 ? "s" : ""}`
-        : "";
     if (lastReconBoundary) {
       const t = parseUtcDateString(lastReconBoundary).toLocaleTimeString(
         "en-ZA",
@@ -164,9 +160,9 @@ export function useDashboardScreen() {
           minute: "2-digit",
         },
       );
-      return `Live since ${t}${sincePart}`;
+      return `Live since ${t}`;
     }
-    if (lastReconDate) return `Based on recon ${lastReconDate}${sincePart}`;
+    if (lastReconDate) return `Based on recon ${lastReconDate}`;
     if (transactionsSinceRecon > 0)
       return `Based on ${transactionsSinceRecon} transaction${transactionsSinceRecon !== 1 ? "s" : ""}`;
     return "Live";
@@ -201,10 +197,8 @@ export function useDashboardScreen() {
     [dispatch, companyInfo?.id, totalWorkingCapital],
   );
 
-  // Today's transaction metrics
-  const todayTransactions = useMemo(() => {
-    return transactions.filter((t) => t.transactionTime?.startsWith(today));
-  }, [transactions, today]);
+  // Transactions fetched for the dashboard are already scoped to today.
+  const todayTransactions = useMemo(() => transactions, [transactions]);
 
   const transactionCountsByAccountToday = useMemo(() => {
     const counts = new Map<number, number>();
@@ -253,20 +247,28 @@ export function useDashboardScreen() {
     accountName: string;
     transactionCount: number;
   } | null>(() => {
-    const firstAccount = sortedAccounts[0];
-    if (!firstAccount) return null;
+    let topAccountId: number | null = null;
+    let topCount = 0;
 
-    const transactionCount =
-      transactionCountsByAccountToday.get(firstAccount.accountId) ?? 0;
+    transactionCountsByAccountToday.forEach((count, accountId) => {
+      if (count > topCount) {
+        topAccountId = accountId;
+        topCount = count;
+      }
+    });
 
-    if (transactionCount === 0) return null;
+    if (topAccountId === null) return null;
+
+    const matchingAccount = accounts.find(
+      (account) => account.accountId === topAccountId,
+    );
 
     return {
-      accountId: firstAccount.accountId,
-      accountName: firstAccount.accountName,
-      transactionCount,
+      accountId: topAccountId,
+      accountName: matchingAccount?.accountName ?? `Account ${topAccountId}`,
+      transactionCount: topCount,
     };
-  }, [sortedAccounts, transactionCountsByAccountToday]);
+  }, [accounts, transactionCountsByAccountToday]);
 
   const dailyCommissionTransactions = useMemo(
     () =>
@@ -340,7 +342,7 @@ export function useDashboardScreen() {
   const topTransactionAccounts = useMemo<
     { accountId: number; accountName: string; transactionCount: number }[]
   >(() => {
-    return sortedAccounts
+    return accounts
       .map((account) => ({
         accountId: account.accountId,
         accountName: account.accountName,
@@ -348,8 +350,13 @@ export function useDashboardScreen() {
           transactionCountsByAccountToday.get(account.accountId) ?? 0,
       }))
       .filter((entry) => entry.transactionCount > 0)
+      .sort((left, right) => {
+        const countDelta = right.transactionCount - left.transactionCount;
+        if (countDelta !== 0) return countDelta;
+        return left.accountName.localeCompare(right.accountName);
+      })
       .slice(0, 5);
-  }, [sortedAccounts, transactionCountsByAccountToday]);
+  }, [accounts, transactionCountsByAccountToday]);
 
   // Top 5 accounts by commission earned today
   const topCommissionAccounts = useMemo<
