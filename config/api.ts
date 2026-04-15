@@ -85,6 +85,8 @@ export const API_ENDPOINTS = {
   // Expected Commissions (auto-calculated from transactions)
   expectedCommissions: {
     list: "/expected-commissions/",
+    totals: "/expected-commissions/totals",
+    breakdown: "/expected-commissions/breakdown",
     dailySummary: "/expected-commissions/daily-summary",
     variance: "/expected-commissions/variance",
   },
@@ -161,7 +163,8 @@ export const API_ENDPOINTS = {
     bulk: "/transactions/bulk",
     get: (id: number) => `/transactions/${id}`,
     update: (id: number) => `/transactions/${id}`,
-    reverse: (id: number, companyId: number) => `/transactions/${id}/reverse?company_id=${companyId}`,
+    reverse: (id: number, companyId: number) =>
+      `/transactions/${id}/reverse?company_id=${companyId}`,
     confirm: (id: number) => `/transactions/${id}/confirm`,
     accountBalance: (accountId: number) =>
       `/transactions/account/${accountId}/balance`,

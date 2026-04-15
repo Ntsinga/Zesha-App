@@ -1,7 +1,11 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useRouter } from "expo-router";
-import { fetchExpectedCommissions } from "../../store/slices/expectedCommissionsSlice";
+import {
+  fetchExpectedCommissions,
+  fetchCommissionTotals,
+  fetchCommissionBreakdown,
+} from "../../store/slices/expectedCommissionsSlice";
 import { fetchAccounts } from "../../store/slices/accountsSlice";
 import { useCurrencyFormatter } from "../useCurrency";
 import { formatDateTime } from "../../utils/formatters";
@@ -13,9 +17,14 @@ export function useCommissionsScreen() {
   const dispatch = useDispatch<AppDispatch>();
   const { formatCurrency } = useCurrencyFormatter();
 
-  const { items: expectedCommissions, isLoading } = useSelector(
-    (state: RootState) => state.expectedCommissions,
-  );
+  const {
+    items: expectedCommissions,
+    totals,
+    breakdown,
+    isLoading,
+    isTotalsLoading,
+    isBreakdownLoading,
+  } = useSelector((state: RootState) => state.expectedCommissions);
   const { items: accounts } = useSelector((state: RootState) => state.accounts);
   const companyId = useSelector(
     (state: RootState) =>
@@ -51,10 +60,34 @@ export function useCommissionsScreen() {
         startDate: filterDateFrom,
         endDate: filterDateTo,
         accountId: filterAccountId ?? undefined,
+        shift: filterShift !== "ALL" ? filterShift : undefined,
         forceRefresh: true,
       }),
     );
-  }, [dispatch, companyId, filterDateFrom, filterDateTo, filterAccountId]);
+    dispatch(
+      fetchCommissionTotals({
+        startDate: filterDateFrom,
+        endDate: filterDateTo,
+        accountId: filterAccountId ?? undefined,
+        shift: filterShift !== "ALL" ? filterShift : undefined,
+      }),
+    );
+    dispatch(
+      fetchCommissionBreakdown({
+        startDate: filterDateFrom,
+        endDate: filterDateTo,
+        accountId: filterAccountId ?? undefined,
+        shift: filterShift !== "ALL" ? filterShift : undefined,
+      }),
+    );
+  }, [
+    dispatch,
+    companyId,
+    filterDateFrom,
+    filterDateTo,
+    filterAccountId,
+    filterShift,
+  ]);
 
   const onRefresh = useCallback(async () => {
     if (!companyId) return;
@@ -65,11 +98,35 @@ export function useCommissionsScreen() {
         startDate: filterDateFrom,
         endDate: filterDateTo,
         accountId: filterAccountId ?? undefined,
+        shift: filterShift !== "ALL" ? filterShift : undefined,
         forceRefresh: true,
       }),
     );
+    await dispatch(
+      fetchCommissionTotals({
+        startDate: filterDateFrom,
+        endDate: filterDateTo,
+        accountId: filterAccountId ?? undefined,
+        shift: filterShift !== "ALL" ? filterShift : undefined,
+      }),
+    );
+    await dispatch(
+      fetchCommissionBreakdown({
+        startDate: filterDateFrom,
+        endDate: filterDateTo,
+        accountId: filterAccountId ?? undefined,
+        shift: filterShift !== "ALL" ? filterShift : undefined,
+      }),
+    );
     setRefreshing(false);
-  }, [dispatch, companyId, filterDateFrom, filterDateTo, filterAccountId]);
+  }, [
+    dispatch,
+    companyId,
+    filterDateFrom,
+    filterDateTo,
+    filterAccountId,
+    filterShift,
+  ]);
 
   // Apply shift filter locally
   const filteredCommissions = useMemo(() => {
@@ -90,35 +147,49 @@ export function useCommissionsScreen() {
 
   // Metrics
   const metrics = useMemo(() => {
-    let totalCommission = 0;
-    let totalVolume = 0;
-    let depositCommission = 0;
-    let withdrawCommission = 0;
-
-    filteredCommissions.forEach((c) => {
-      totalCommission += c.commissionAmount;
-      totalVolume += c.transactionAmount;
-      if (c.transactionType === "DEPOSIT") {
-        depositCommission += c.commissionAmount;
-      } else {
-        withdrawCommission += c.commissionAmount;
-      }
-    });
-
     return {
-      totalCommission,
-      totalVolume,
-      depositCommission,
-      withdrawCommission,
-      recordCount: filteredCommissions.length,
+      totalCommission:
+        totals?.totalExpectedCommission ??
+        filteredCommissions.reduce(
+          (sum, commission) => sum + commission.commissionAmount,
+          0,
+        ),
+      totalVolume:
+        totals?.totalVolume ??
+        filteredCommissions.reduce(
+          (sum, commission) => sum + commission.transactionAmount,
+          0,
+        ),
+      depositCommission:
+        totals?.depositCommission ??
+        filteredCommissions
+          .filter((commission) => commission.transactionType === "DEPOSIT")
+          .reduce((sum, commission) => sum + commission.commissionAmount, 0),
+      withdrawCommission:
+        totals?.withdrawCommission ??
+        filteredCommissions
+          .filter((commission) => commission.transactionType === "WITHDRAW")
+          .reduce((sum, commission) => sum + commission.commissionAmount, 0),
+      recordCount: totals?.totalTransactions ?? filteredCommissions.length,
     };
-  }, [filteredCommissions]);
+  }, [filteredCommissions, totals]);
 
   const commissionByAccount = useMemo(() => {
     const totals = new Map<
       number,
       { accountName: string; commissionAmount: number; recordCount: number }
     >();
+
+    if (breakdown.length > 0) {
+      breakdown.forEach((item) => {
+        totals.set(item.accountId, {
+          accountName: item.accountName,
+          commissionAmount: item.totalExpectedCommission,
+          recordCount: item.totalTransactions,
+        });
+      });
+      return totals;
+    }
 
     filteredCommissions.forEach((commission) => {
       const existing = totals.get(commission.accountId);
@@ -139,7 +210,7 @@ export function useCommissionsScreen() {
     });
 
     return totals;
-  }, [filteredCommissions]);
+  }, [breakdown, filteredCommissions]);
 
   const topCommissionAccount = useMemo<{
     accountId: number;
@@ -199,7 +270,7 @@ export function useCommissionsScreen() {
 
   return {
     // State
-    isLoading,
+    isLoading: isLoading || isTotalsLoading || isBreakdownLoading,
     refreshing,
     filterShift,
     setFilterShift,
