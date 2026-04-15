@@ -33,6 +33,11 @@ import type {
   Transaction,
 } from "../../types/transaction";
 
+function getLocalDateString(): string {
+  const date = new Date();
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
 // ============= Form State Types =============
 
 export interface TransactionFormState {
@@ -100,12 +105,9 @@ export function useTransactionsScreen() {
   );
   const [filterShift, setFilterShift] = useState<ShiftEnum | "ALL">("ALL");
   const [filterAccountId, setFilterAccountId] = useState<number | null>(null);
-  const [filterDateFrom, setFilterDateFrom] = useState<string>(
-    new Date().toISOString().split("T")[0],
-  );
-  const [filterDateTo, setFilterDateTo] = useState<string>(
-    new Date().toISOString().split("T")[0],
-  );
+  const [filterDateFrom, setFilterDateFrom] =
+    useState<string>(getLocalDateString);
+  const [filterDateTo, setFilterDateTo] = useState<string>(getLocalDateString);
 
   // ---- Submit error (shown inline inside modals) ----
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -615,7 +617,7 @@ export function useTransactionsScreen() {
   }, [dispatch]);
 
   const handleResetFilters = useCallback(() => {
-    const today = new Date().toISOString().split("T")[0];
+    const today = getLocalDateString();
     setFilterType("ALL");
     setFilterShift("ALL");
     setFilterAccountId(null);

@@ -12,6 +12,11 @@ import { formatDateTime } from "../../utils/formatters";
 import type { AppDispatch, RootState } from "../../store";
 import type { ShiftEnum } from "../../types";
 
+function getLocalDateString(): string {
+  const date = new Date();
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
 export function useCommissionsScreen() {
   const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
@@ -34,12 +39,9 @@ export function useCommissionsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [filterShift, setFilterShift] = useState<ShiftEnum | "ALL">("ALL");
   const [filterAccountId, setFilterAccountId] = useState<number | null>(null);
-  const [filterDateFrom, setFilterDateFrom] = useState<string>(
-    new Date().toISOString().split("T")[0],
-  );
-  const [filterDateTo, setFilterDateTo] = useState<string>(
-    new Date().toISOString().split("T")[0],
-  );
+  const [filterDateFrom, setFilterDateFrom] =
+    useState<string>(getLocalDateString);
+  const [filterDateTo, setFilterDateTo] = useState<string>(getLocalDateString);
 
   const lastFetchedCompanyId = useRef<number | null>(null);
 
@@ -261,7 +263,7 @@ export function useCommissionsScreen() {
   }, [router]);
 
   const handleResetFilters = useCallback(() => {
-    const today = new Date().toISOString().split("T")[0];
+    const today = getLocalDateString();
     setFilterShift("ALL");
     setFilterAccountId(null);
     setFilterDateFrom(today);
