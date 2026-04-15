@@ -1559,11 +1559,162 @@ body {
   min-height: 0; /* Important for flexbox scrolling */
 }
 
-/* Top Section - Grand Total + Metrics */
-.dashboard-top {
-  display: grid;
-  grid-template-columns: minmax(300px, 1fr) minmax(400px, 1.5fr);
+/* Top Section - Grand Total Strip (full-width) */
+.gt-strip {
+  background: linear-gradient(135deg, #fef9c3 0%, #f5f5f5 100%);
+  border-radius: 12px;
+  padding: 14px 24px;
+  display: flex;
+  align-items: center;
   gap: 24px;
+  flex-wrap: wrap;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.gt-strip-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #92400e;
+  flex-shrink: 0;
+}
+
+.gt-strip-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.gt-strip-amount-row {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.gt-strip-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #92400e;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.gt-strip-amount {
+  font-size: 22px;
+  font-weight: 800;
+  color: #1f2937;
+  letter-spacing: -0.5px;
+}
+
+.gt-strip-breakdown {
+  font-size: 13px;
+  color: #6b7280;
+  white-space: nowrap;
+}
+
+.gt-strip-metrics {
+  display: flex;
+  gap: 32px;
+  margin-left: 32px;
+  flex-shrink: 0;
+  padding-left: 0;
+}
+
+.gt-strip-metric {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  min-width: 100px;
+}
+
+.gt-strip-metric-divider {
+  width: 1px;
+  background: #e5e7eb;
+  align-self: stretch;
+  margin: 0 8px;
+}
+
+.gt-strip-metric-label {
+  font-size: 13px;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.gt-strip-metric-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.gt-strip-metric-value.positive {
+  color: var(--color-success);
+}
+
+.gt-strip-metric-value.negative {
+  color: var(--color-danger);
+}
+
+.gt-strip-live {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.gt-live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: #4ade80;
+  animation: pulse 2s infinite;
+}
+
+.gt-strip-live-label {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.gt-strip-live-sep {
+  font-size: 12px;
+  color: #d1d5db;
+}
+
+/* Horizontal Scrollable Balance Pills */
+.balance-pills-container {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 2px 0;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) transparent;
+}
+
+.balance-pill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 16px;
+  background: white;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  min-width: fit-content;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.balance-pill-name {
+  font-size: 11px;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.balance-pill-amount {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1f2937;
 }
 
 /* Grand Total Card */
@@ -1767,6 +1918,71 @@ body {
 .dashboard-bottom-split {
   display: grid;
   grid-template-columns: 1fr 1.4fr;
+  gap: 24px;
+}
+
+/* Balances card in top section (Option B) */
+.balances-card {
+  background: white;
+  border-radius: 16px;
+  padding: 4px 24px 12px;
+  border: 1px solid var(--color-border);
+  min-width: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.balances-scroll-body {
+  flex: 1;
+  overflow-y: auto;
+  max-height: 180px;
+  margin-top: 4px;
+  /* thin scrollbar */
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) transparent;
+}
+
+/* Charts section: filter bar + 2-col grid */
+.dashboard-charts-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.chart-filter-bar {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.chart-filter-btn {
+  padding: 5px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--color-primary);
+  background: transparent;
+  color: var(--color-primary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.chart-filter-btn:hover {
+  background: rgba(192, 21, 42, 0.08);
+}
+
+.chart-filter-btn.active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: white;
+  font-weight: 600;
+}
+
+.dashboard-charts-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 24px;
 }
 
@@ -5900,6 +6116,14 @@ body {
 
   .dashboard-top {
     grid-template-columns: 1fr;
+  }
+
+  .dashboard-charts-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .balances-scroll-body {
+    max-height: 200px;
   }
 
   .metrics-content {

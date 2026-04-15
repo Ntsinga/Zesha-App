@@ -105,6 +105,7 @@ export {
   type CommissionBreakdownFilters,
   type CommissionTotals,
   type CommissionTotalsFilters,
+  type DailyCommissionTotals,
   type DraftCommissionEntry,
   type CommissionVarianceReport,
 } from "./commission";

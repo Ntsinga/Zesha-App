@@ -200,6 +200,17 @@ export interface ExpectedCommissionFilters {
 }
 
 /**
+ * Daily commission totals (all accounts combined) for a single date.
+ * Returned by GET /expected-commissions/daily-totals
+ */
+export interface DailyCommissionTotals {
+  date: string;
+  totalTransactions: number;
+  totalVolume: number;
+  totalExpectedCommission: number;
+}
+
+/**
  * Per-account daily commission variance report
  * Returned by /expected-commissions/variance
  */

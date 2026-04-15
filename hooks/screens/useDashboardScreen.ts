@@ -2,11 +2,16 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchDashboard, setShift } from "../../store/slices/dashboardSlice";
 import { updateCompanyInfo } from "../../store/slices/companyInfoSlice";
-import { fetchTransactions } from "../../store/slices/transactionsSlice";
+import {
+  fetchTransactions,
+  fetchTransactionAnalytics,
+  fetchDailyAnalytics,
+} from "../../store/slices/transactionsSlice";
 import { fetchExpenses } from "../../store/slices/expensesSlice";
 import {
   fetchCommissionTotals,
   fetchCommissionBreakdown,
+  fetchCommissionDailyTotals,
 } from "../../store/slices/expectedCommissionsSlice";
 import { useCurrencyFormatter } from "../useCurrency";
 import { useAutoRefreshOnReconnect } from "../useAutoRefreshOnReconnect";
@@ -19,6 +24,30 @@ function parseUtcDateString(value: string): Date {
   return new Date(hasExplicitTimezone ? value : `${value}Z`);
 }
 
+type ChartPeriod = "today" | "week" | "month" | "year";
+
+function getChartDateRange(period: ChartPeriod): {
+  startDate: string;
+  endDate: string;
+} {
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const end = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  if (period === "today") return { startDate: end, endDate: end };
+  const daysBack = period === "week" ? 6 : period === "month" ? 29 : 364;
+  const from = new Date(d);
+  from.setDate(d.getDate() - daysBack);
+  const start = `${from.getFullYear()}-${pad(from.getMonth() + 1)}-${pad(from.getDate())}`;
+  return { startDate: start, endDate: end };
+}
+
+function getChartDays(period: ChartPeriod): number {
+  if (period === "today") return 1;
+  if (period === "week") return 7;
+  if (period === "year") return 365;
+  return 30;
+}
+
 /**
  * Shared Dashboard screen hook - contains all business logic
  * Used by both web and native Dashboard components
@@ -26,6 +55,7 @@ function parseUtcDateString(value: string): Date {
 export function useDashboardScreen() {
   const dispatch = useDispatch<AppDispatch>();
   const [refreshing, setRefreshing] = useState(false);
+  const [chartPeriod, setChartPeriod] = useState<ChartPeriod>("today");
 
   // Redux state
   const {
@@ -39,12 +69,17 @@ export function useDashboardScreen() {
     error,
   } = useSelector((state: RootState) => state.dashboard);
 
-  const { items: transactions } = useSelector(
-    (state: RootState) => state.transactions,
-  );
+  const {
+    items: transactions,
+    analytics: transactionAnalytics,
+    dailyAnalytics: transactionDailyData,
+  } = useSelector((state: RootState) => state.transactions);
   const { items: expenses } = useSelector((state: RootState) => state.expenses);
-  const { totals: commissionTotals, breakdown: commissionBreakdown } =
-    useSelector((state: RootState) => state.expectedCommissions);
+  const {
+    totals: commissionTotals,
+    breakdown: commissionBreakdown,
+    dailyTotals: commissionDailyTotals,
+  } = useSelector((state: RootState) => state.expectedCommissions);
   const { user: backendUser } = useSelector((state: RootState) => state.auth);
   const effectiveCompanyId = useSelector(selectEffectiveCompanyId);
 
@@ -61,7 +96,7 @@ export function useDashboardScreen() {
     dispatch(fetchDashboard({}));
   }, [dispatch]);
 
-  // Fetch today's transactions when user is available
+  // Fetch today's transactions (always today — powers balances table)
   useEffect(() => {
     if (effectiveCompanyId) {
       dispatch(
@@ -72,22 +107,35 @@ export function useDashboardScreen() {
           limit: 500,
         }),
       );
-      dispatch(
-        fetchCommissionTotals({
-          startDate: today,
-          endDate: today,
-          shift: currentShift,
-        }),
-      );
-      dispatch(
-        fetchCommissionBreakdown({
-          startDate: today,
-          endDate: today,
-          shift: currentShift,
-        }),
-      );
     }
-  }, [dispatch, effectiveCompanyId, today, currentShift]);
+  }, [dispatch, effectiveCompanyId, today]);
+
+  // Fetch chart data based on selected period (commission pies + transaction bar + daily charts)
+  useEffect(() => {
+    if (!effectiveCompanyId) return;
+    const { startDate, endDate } = getChartDateRange(chartPeriod);
+    dispatch(
+      fetchCommissionTotals({ startDate, endDate, shift: currentShift }),
+    );
+    dispatch(
+      fetchCommissionBreakdown({ startDate, endDate, shift: currentShift }),
+    );
+    dispatch(
+      fetchTransactionAnalytics({
+        companyId: effectiveCompanyId,
+        startDate,
+        endDate,
+      }),
+    );
+    // Daily data for line / area charts
+    dispatch(fetchCommissionDailyTotals({ startDate, endDate }));
+    dispatch(
+      fetchDailyAnalytics({
+        companyId: effectiveCompanyId,
+        days: getChartDays(chartPeriod),
+      }),
+    );
+  }, [dispatch, effectiveCompanyId, chartPeriod, currentShift, today]);
 
   // Fetch all expenses (not just today) so totalPendingExpenses reflects cumulative pending
   useEffect(() => {
@@ -110,6 +158,7 @@ export function useDashboardScreen() {
     setRefreshing(true);
     await dispatch(fetchDashboard({ forceRefresh: true }));
     if (effectiveCompanyId) {
+      const { startDate, endDate } = getChartDateRange(chartPeriod);
       dispatch(
         fetchTransactions({
           companyId: effectiveCompanyId,
@@ -119,17 +168,23 @@ export function useDashboardScreen() {
         }),
       );
       dispatch(
-        fetchCommissionTotals({
-          startDate: today,
-          endDate: today,
-          shift: currentShift,
-        }),
+        fetchCommissionTotals({ startDate, endDate, shift: currentShift }),
       );
       dispatch(
-        fetchCommissionBreakdown({
-          startDate: today,
-          endDate: today,
-          shift: currentShift,
+        fetchCommissionBreakdown({ startDate, endDate, shift: currentShift }),
+      );
+      dispatch(
+        fetchTransactionAnalytics({
+          companyId: effectiveCompanyId,
+          startDate,
+          endDate,
+        }),
+      );
+      dispatch(fetchCommissionDailyTotals({ startDate, endDate }));
+      dispatch(
+        fetchDailyAnalytics({
+          companyId: effectiveCompanyId,
+          days: getChartDays(chartPeriod),
         }),
       );
       dispatch(
@@ -140,7 +195,7 @@ export function useDashboardScreen() {
       );
     }
     setRefreshing(false);
-  }, [dispatch, effectiveCompanyId, today, currentShift]);
+  }, [dispatch, effectiveCompanyId, today, chartPeriod, currentShift]);
 
   // Shift change handler
   const handleShiftChange = useCallback(
@@ -245,17 +300,9 @@ export function useDashboardScreen() {
     return counts;
   }, [todayTransactions]);
 
-  // Commission earned per account today (all accounts, used for sorting + table)
+  // Commission earned per account today (always from today's transactions — powers the balances table)
   const commissionByAccountId = useMemo(() => {
     const map = new Map<number, number>();
-
-    if (commissionBreakdown.length > 0) {
-      commissionBreakdown.forEach((entry) => {
-        map.set(entry.accountId, entry.totalExpectedCommission);
-      });
-      return map;
-    }
-
     todayTransactions.forEach((t) => {
       if (
         (t.transactionType === "DEPOSIT" || t.transactionType === "WITHDRAW") &&
@@ -269,7 +316,7 @@ export function useDashboardScreen() {
       }
     });
     return map;
-  }, [commissionBreakdown, todayTransactions]);
+  }, [todayTransactions]);
 
   const sortedAccounts = useMemo(() => {
     return [...accounts].sort((left, right) => {
@@ -457,6 +504,19 @@ export function useDashboardScreen() {
 
   const transactionCount = todayTransactions.length;
 
+  // Transaction bar chart data: period-aware via analytics endpoint
+  const chartTransactionAccounts = useMemo<
+    { accountId: number; accountName: string; transactionCount: number }[]
+  >(() => {
+    if (transactionAnalytics?.byAccount?.length) {
+      return [...transactionAnalytics.byAccount]
+        .filter((a) => a.transactionCount > 0)
+        .sort((a, b) => b.transactionCount - a.transactionCount)
+        .slice(0, 8);
+    }
+    return topTransactionAccounts;
+  }, [transactionAnalytics, topTransactionAccounts]);
+
   const dailyDeposits = useMemo(
     () =>
       todayTransactions
@@ -534,6 +594,19 @@ export function useDashboardScreen() {
     [commissionBreakdown, dailyCommissionTransactions],
   );
 
+  // Expense breakdown by category (for pie chart)
+  const expensesByCategory = useMemo<{ name: string; value: number }[]>(() => {
+    const map = new Map<string, number>();
+    expenses.forEach((e) => {
+      const cat = e.category || "Uncategorized";
+      map.set(cat, (map.get(cat) ?? 0) + (e.amount || 0));
+    });
+    return Array.from(map.entries())
+      .map(([name, value]) => ({ name, value }))
+      .filter((d) => d.value > 0)
+      .sort((a, b) => b.value - a.value);
+  }, [expenses]);
+
   return {
     // State
     isLoading,
@@ -560,6 +633,9 @@ export function useDashboardScreen() {
     topCommissionAccounts,
     commissionByAccountId,
     transactionCountsByAccountToday,
+    chartPeriod,
+    setChartPeriod,
+    chartTransactionAccounts,
 
     // Role
     canInjectCapital,
@@ -587,6 +663,12 @@ export function useDashboardScreen() {
 
     totalBankCommission,
     totalTelecomCommission,
+
+    // Chart data for new charts
+    commissionDailyTotals,
+    transactionDailyData,
+    expensesByCategory,
+
     // Formatters
     formatCurrency,
     formatCompactCurrency,

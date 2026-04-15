@@ -476,23 +476,23 @@ export const fetchTransactionAnalytics = createAsyncThunk<
 });
 
 /**
- * Fetch daily analytics for charts
+ * Fetch daily analytics for charts.
+ * Backend accepts `company_id` + `days` (lookback count, max 90).
  */
 export const fetchDailyAnalytics = createAsyncThunk<
   TransactionDailyAnalytics[],
   {
     companyId: number;
-    startDate?: string;
-    endDate?: string;
-    shift?: ShiftEnum;
+    days?: number;
   },
   { rejectValue: string }
 >("transactions/fetchDailyAnalytics", async (params, { rejectWithValue }) => {
   try {
     const query = buildTypedQueryString(params);
-    return await apiRequest<TransactionDailyAnalytics[]>(
+    const res = await apiRequest<{ daily: TransactionDailyAnalytics[] }>(
       `${API_ENDPOINTS.transactions.analyticsDaily}${query}`,
     );
+    return res.daily;
   } catch (error) {
     return rejectWithValue(
       error instanceof Error

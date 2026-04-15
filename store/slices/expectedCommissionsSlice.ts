@@ -6,6 +6,7 @@ import type {
   CommissionTotalsFilters,
   CommissionAccountBreakdown,
   CommissionBreakdownFilters,
+  DailyCommissionTotals,
 } from "@/types";
 import { mapApiResponse, buildTypedQueryString } from "@/types";
 import { API_ENDPOINTS } from "@/config/api";
@@ -17,6 +18,7 @@ export interface ExpectedCommissionsState {
   items: ExpectedCommission[];
   totals: CommissionTotals | null;
   breakdown: CommissionAccountBreakdown[];
+  dailyTotals: DailyCommissionTotals[];
   isTotalsLoading: boolean;
   isBreakdownLoading: boolean;
   isLoading: boolean;
@@ -28,6 +30,7 @@ const initialState: ExpectedCommissionsState = {
   items: [],
   totals: null,
   breakdown: [],
+  dailyTotals: [],
   isTotalsLoading: false,
   isBreakdownLoading: false,
   isLoading: false,
@@ -176,6 +179,41 @@ export const fetchExpectedCommissions = createAsyncThunk<
   },
 );
 
+export const fetchCommissionDailyTotals = createAsyncThunk<
+  DailyCommissionTotals[],
+  { startDate: string; endDate: string },
+  { state: RootState; rejectValue: string }
+>(
+  "expectedCommissions/fetchDailyTotals",
+  async (filters, { getState, rejectWithValue }) => {
+    try {
+      const state = getState();
+      const companyId =
+        state.auth.viewingAgencyId || state.auth.user?.companyId;
+
+      if (!companyId) {
+        return rejectWithValue("No companyId found. Please log in again.");
+      }
+
+      const query = buildTypedQueryString({
+        companyId,
+        startDate: filters.startDate,
+        endDate: filters.endDate,
+      });
+
+      return await apiRequest<DailyCommissionTotals[]>(
+        `${API_ENDPOINTS.expectedCommissions.dailyTotals}${query}`,
+      );
+    } catch (error) {
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : "Failed to fetch daily commission totals",
+      );
+    }
+  },
+);
+
 const expectedCommissionsSlice = createSlice({
   name: "expectedCommissions",
   initialState,
@@ -218,6 +256,15 @@ const expectedCommissionsSlice = createSlice({
       })
       .addCase(fetchCommissionBreakdown.rejected, (state) => {
         state.isBreakdownLoading = false;
+      })
+      .addCase(fetchCommissionDailyTotals.pending, (state) => {
+        state.dailyTotals = [];
+      })
+      .addCase(fetchCommissionDailyTotals.fulfilled, (state, action) => {
+        state.dailyTotals = action.payload;
+      })
+      .addCase(fetchCommissionDailyTotals.rejected, (state) => {
+        state.dailyTotals = [];
       });
   },
 });
