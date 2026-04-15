@@ -271,12 +271,9 @@ export default function DashboardWeb() {
                         ))}
                       </Pie>
                       <Tooltip
-                        formatter={(value, _name, props) => {
+                        formatter={(value) => {
                           const amt = typeof value === "number" ? value : 0;
-                          const pct = (
-                            (props.payload.percent ?? 0) * 100
-                          ).toFixed(2);
-                          return `${formatCurrency(amt)} (${pct}%)`;
+                          return formatCurrency(amt);
                         }}
                       />
                       <Legend
@@ -295,7 +292,7 @@ export default function DashboardWeb() {
                 )}
               </div>
 
-              {/* Divider */}
+              {/* Divider */
               <div className="commission-chart-divider" />
 
               {/* By Category */}
@@ -328,12 +325,9 @@ export default function DashboardWeb() {
                         ))}
                       </Pie>
                       <Tooltip
-                        formatter={(value, _name, props) => {
+                        formatter={(value) => {
                           const amt = typeof value === "number" ? value : 0;
-                          const pct = (
-                            (props.payload.percent ?? 0) * 100
-                          ).toFixed(2);
-                          return `${formatCurrency(amt)} (${pct}%)`;
+                          return formatCurrency(amt);
                         }}
                       />
                       <Legend
