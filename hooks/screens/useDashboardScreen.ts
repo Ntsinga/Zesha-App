@@ -63,6 +63,7 @@ export function useDashboardScreen() {
           companyId: effectiveCompanyId,
           startDate: today,
           endDate: today + "T23:59:59",
+          limit: 500,
         }),
       );
     }
@@ -94,6 +95,7 @@ export function useDashboardScreen() {
           companyId: effectiveCompanyId,
           startDate: today,
           endDate: today + "T23:59:59",
+          limit: 500,
         }),
       );
       dispatch(

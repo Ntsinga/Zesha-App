@@ -172,6 +172,8 @@ export function useTransactionsScreen() {
       filters.accountId = filterAccountId;
     }
 
+    filters.limit = 500;
+
     dispatch(fetchTransactions(filters as any));
   }, [
     dispatch,

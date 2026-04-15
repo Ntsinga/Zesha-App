@@ -72,6 +72,9 @@ export default function DashboardWeb() {
     value: entry.commissionAmount,
   }));
 
+  // Total from the actual pie data to ensure the displayed total matches the slices
+  const commissionPieTotal = commissionPieData.reduce((s, d) => s + d.value, 0);
+
   // Pie chart data: commission by category
   const commissionCategoryData = [
     ...(totalBankCommission > 0
@@ -236,7 +239,7 @@ export default function DashboardWeb() {
                 Commission
               </h3>
               <span className="commission-total">
-                {formatCurrency(dailyCommission)}
+                {formatCurrency(commissionPieTotal)}
               </span>
             </div>
             <div className="commission-charts-row">
@@ -254,6 +257,11 @@ export default function DashboardWeb() {
                         outerRadius={75}
                         paddingAngle={3}
                         dataKey="value"
+                        minAngle={5}
+                        label={({ name, percent }) =>
+                          `${name} ${((percent ?? 0) * 100).toFixed(2)}%`
+                        }
+                        labelLine={false}
                       >
                         {commissionPieData.map((_entry, index) => (
                           <Cell
@@ -263,9 +271,13 @@ export default function DashboardWeb() {
                         ))}
                       </Pie>
                       <Tooltip
-                        formatter={(value) =>
-                          formatCurrency(typeof value === "number" ? value : 0)
-                        }
+                        formatter={(value, _name, props) => {
+                          const amt = typeof value === "number" ? value : 0;
+                          const pct = (
+                            (props.payload.percent ?? 0) * 100
+                          ).toFixed(2);
+                          return `${formatCurrency(amt)} (${pct}%)`;
+                        }}
                       />
                       <Legend
                         verticalAlign="bottom"
@@ -300,6 +312,7 @@ export default function DashboardWeb() {
                         outerRadius={75}
                         paddingAngle={3}
                         dataKey="value"
+                        minAngle={5}
                         label={({ name, percent }) =>
                           `${name} ${((percent ?? 0) * 100).toFixed(2)}%`
                         }
@@ -315,9 +328,13 @@ export default function DashboardWeb() {
                         ))}
                       </Pie>
                       <Tooltip
-                        formatter={(value) =>
-                          formatCurrency(typeof value === "number" ? value : 0)
-                        }
+                        formatter={(value, _name, props) => {
+                          const amt = typeof value === "number" ? value : 0;
+                          const pct = (
+                            (props.payload.percent ?? 0) * 100
+                          ).toFixed(2);
+                          return `${formatCurrency(amt)} (${pct}%)`;
+                        }}
                       />
                       <Legend
                         verticalAlign="bottom"
