@@ -292,7 +292,7 @@ export default function DashboardWeb() {
                 )}
               </div>
 
-              {/* Divider */
+              /* Divider */
               <div className="commission-chart-divider" />
 
               {/* By Category */}
