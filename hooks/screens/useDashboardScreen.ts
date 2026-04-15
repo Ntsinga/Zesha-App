@@ -68,18 +68,16 @@ export function useDashboardScreen() {
     }
   }, [dispatch, effectiveCompanyId, today]);
 
-  // Fetch today's expenses so the dashboard can show the current day's spend
+  // Fetch all expenses (not just today) so totalPendingExpenses reflects cumulative pending
   useEffect(() => {
     if (effectiveCompanyId) {
       dispatch(
         fetchExpenses({
           companyId: effectiveCompanyId,
-          dateFrom: today,
-          dateTo: today + "T23:59:59",
         }),
       );
     }
-  }, [dispatch, effectiveCompanyId, today]);
+  }, [dispatch, effectiveCompanyId]);
 
   // Auto-refresh after offline → online transition + sync complete
   useAutoRefreshOnReconnect(
@@ -101,8 +99,6 @@ export function useDashboardScreen() {
       dispatch(
         fetchExpenses({
           companyId: effectiveCompanyId,
-          dateFrom: today,
-          dateTo: today + "T23:59:59",
           forceRefresh: true,
         }),
       );
@@ -419,7 +415,18 @@ export function useDashboardScreen() {
   }, [todayTransactions]);
 
   const todayExpenses = useMemo(
-    () => expenses.reduce((sum, expense) => sum + (expense.amount || 0), 0),
+    () =>
+      expenses
+        .filter((expense) => expense.expenseDate?.startsWith(today))
+        .reduce((sum, expense) => sum + (expense.amount || 0), 0),
+    [expenses, today],
+  );
+
+  const totalPendingExpenses = useMemo(
+    () =>
+      expenses
+        .filter((expense) => expense.status === "PENDING")
+        .reduce((sum, expense) => sum + (expense.amount || 0), 0),
     [expenses],
   );
 
@@ -494,6 +501,7 @@ export function useDashboardScreen() {
     dailyDeposits,
     dailyWithdrawals,
     todayExpenses,
+    totalPendingExpenses,
     recentTransactions,
 
     totalBankCommission,

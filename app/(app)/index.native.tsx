@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -8,7 +8,6 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { ArrowLeftRight } from "lucide-react-native";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { useDashboardScreen } from "../../hooks/screens/useDashboardScreen";
 
@@ -16,8 +15,6 @@ import { useDashboardScreen } from "../../hooks/screens/useDashboardScreen";
  * Native Dashboard - redesigned to match modern UI
  */
 export default function DashboardNative() {
-  const router = useRouter();
-
   const {
     isLoading,
     refreshing,
@@ -28,10 +25,10 @@ export default function DashboardNative() {
     displayVariance,
     totalExpenses,
     todayExpenses,
+    totalPendingExpenses,
     dailyCommission,
     totalBankCommission,
     totalTelecomCommission,
-    transactionCount,
     accounts,
     commissionByAccountId,
     displayCapital,
@@ -42,6 +39,13 @@ export default function DashboardNative() {
     formatCurrency,
     onRefresh,
   } = useDashboardScreen();
+
+  const router = useRouter();
+  const [balancesExpanded, setBalancesExpanded] = useState(false);
+  const PREVIEW_COUNT = 3;
+  const sortedByBalance = [...accounts].sort(
+    (a, b) => (b.balance ?? 0) - (a.balance ?? 0),
+  );
 
   if (isLoading && !refreshing) {
     return <LoadingSpinner message="Loading dashboard..." />;
@@ -58,22 +62,25 @@ export default function DashboardNative() {
       >
         {/* Header Section */}
         <View className="px-5 pt-6 pb-4 bg-white">
-          <Text className="text-3xl font-bold text-gray-900">Teleba</Text>
-          <Text className="text-base text-gray-500 mt-1">
+          <Text className="text-xl font-bold text-gray-900" numberOfLines={1}>
             Hi, {companyName}
           </Text>
+          <View className="flex-row items-center mt-1" style={{ gap: 4 }}>
+            <Ionicons name="calendar-outline" size={12} color="#9CA3AF" />
+            <Text className="text-xs text-gray-400">{snapshotDate}</Text>
+          </View>
         </View>
 
         {/* Total Operating Capital Card */}
-        <View className="px-5 py-4">
-          <View className="bg-yellow-400 rounded-3xl p-6 shadow-md">
+        <View className="px-5 pt-3 pb-2">
+          <View className="bg-yellow-400 rounded-3xl p-4 shadow-md">
             {/* Title */}
-            <Text className="text-yellow-800 font-semibold text-sm uppercase tracking-wide mb-2">
+            <Text className="text-yellow-800 font-semibold text-xs uppercase tracking-wide mb-1">
               Total Operating Capital
             </Text>
 
             {/* Grand Total */}
-            <Text className="text-4xl font-bold text-yellow-900 mb-6">
+            <Text className="text-3xl font-bold text-yellow-900 mb-4">
               {formatCurrency(displayCapital)}
             </Text>
 
@@ -126,21 +133,8 @@ export default function DashboardNative() {
         </View>
 
         {/* Comparison Section */}
-        <View className="px-5 py-4">
-          <View className="bg-white rounded-3xl p-6 shadow-sm">
-            {/* Header */}
-            <View className="flex-row justify-between items-center mb-6">
-              <Text className="text-xl font-bold text-gray-900">
-                Comparison
-              </Text>
-              <View className="flex-row items-center bg-gray-50 px-3 py-2 rounded-lg">
-                <Ionicons name="calendar-outline" size={16} color="#6B7280" />
-                <Text className="text-sm text-gray-600 ml-2">
-                  {snapshotDate}
-                </Text>
-              </View>
-            </View>
-
+        <View className="px-5 pt-2 pb-4">
+          <View className="bg-white rounded-3xl p-4 shadow-sm">
             {/* Comparison Items */}
             <View className="space-y-4">
               {/* Variance */}
@@ -148,15 +142,15 @@ export default function DashboardNative() {
                 <View
                   className={`${
                     displayVariance >= 0 ? "bg-green-50" : "bg-red-50"
-                  } rounded-2xl p-4 flex-row justify-between items-center`}
+                  } rounded-2xl p-3 flex-row justify-between items-center`}
                 >
                   <View>
                     <Text
                       className={`${
                         displayVariance >= 0 ? "text-green-600" : "text-red-600"
-                      } font-bold text-lg`}
+                      } font-bold text-base`}
                     >
-                      Variance
+                      {displayVariance >= 0 ? "Excess" : "Loss"}
                     </Text>
                   </View>
                   <View className="flex-row items-center">
@@ -170,7 +164,7 @@ export default function DashboardNative() {
                     <Text
                       className={`font-bold ${
                         displayVariance >= 0 ? "text-green-600" : "text-red-600"
-                      } text-lg ml-2`}
+                      } text-base ml-2`}
                     >
                       {displayVariance >= 0 ? "+" : "-"}
                       {formatCurrency(Math.abs(displayVariance))}
@@ -180,90 +174,135 @@ export default function DashboardNative() {
               </View>
 
               {/* Expected Total */}
-              <View className="flex-row justify-between items-center py-3">
-                <Text className="text-gray-600 text-base">Expected Total</Text>
-                <Text className="font-bold text-gray-900 text-base">
+              <View className="flex-row justify-between items-center py-1.5">
+                <Text className="text-gray-600 text-sm">Expected Total</Text>
+                <Text className="font-bold text-gray-900 text-sm">
                   {formatCurrency(expectedGrandTotal)}
                 </Text>
               </View>
 
               {/* Working Capital baseline */}
-              <View className="flex-row justify-between items-center py-3 border-t border-gray-100">
+              <View className="flex-row justify-between items-center py-1.5 border-t border-gray-100">
                 <View>
-                  <Text className="text-gray-600 text-base">
-                    Working Capital
-                  </Text>
+                  <Text className="text-gray-600 text-sm">Working Capital</Text>
                   <Text className="text-xs text-gray-400">
                     Business baseline
                   </Text>
                 </View>
-                <Text className="font-bold text-gray-900 text-base">
+                <Text className="font-bold text-gray-900 text-sm">
                   {formatCurrency(totalWorkingCapital)}
                 </Text>
               </View>
 
               {/* Total Expenses */}
-              <View className="flex-row justify-between items-center py-3 border-t border-gray-100">
-                <Text className="text-gray-600 text-base">
-                  Today's Expenses
-                </Text>
-                <Text className="font-bold text-red-600 text-base">
+              {/* <View className="flex-row justify-between items-center py-1.5 border-t border-gray-100">
+                <Text className="text-gray-600 text-sm">Today's Expenses</Text>
+                <Text className="font-bold text-red-600 text-sm">
                   {formatCurrency(todayExpenses)}
                 </Text>
-              </View>
+              </View> */}
 
-              <View className="flex-row justify-between items-center py-3">
-                <Text className="text-gray-600 text-base">Total Expenses</Text>
-                <Text
-                  className={`font-bold text-base ${totalExpenses > 0 ? "text-red-600" : "text-green-600"}`}
-                >
-                  {totalExpenses > 0 ? "-" : totalExpenses < 0 ? "+" : ""}
-                  {formatCurrency(Math.abs(totalExpenses))}
+              <View className="flex-row justify-between items-center py-1.5 border-t border-gray-100">
+                <Text className="text-gray-600 text-sm">Total Expenses</Text>
+                <Text className="font-bold text-sm text-red-600">
+                  -{formatCurrency(totalPendingExpenses)}
                 </Text>
               </View>
 
               {/* Commission — bank (expected) + telecom (reconciled) */}
-              <View className="border-t border-gray-100 pt-3">
+              <View className="border-t border-gray-100 pt-2">
                 <View className="flex-row justify-between items-center py-1">
-                  <View className="flex-row items-center" style={{ gap: 6 }}>
-                    <Text className="text-gray-600 text-base">
+                  <View>
+                    <Text className="text-gray-600 text-sm">
                       Daily Commission
                     </Text>
+                    <Text className="text-xs text-gray-400">
+                      Bank {formatCurrency(totalBankCommission)} · Telecom{" "}
+                      {formatCurrency(totalTelecomCommission)}
+                    </Text>
                   </View>
-                  <Text className="font-bold text-base text-green-600">
+                  <Text className="font-bold text-sm text-green-600">
                     +{formatCurrency(dailyCommission)}
-                  </Text>
-                </View>
-                {/* Bank sub-row */}
-                <View className="flex-row justify-between items-center px-2 py-0.5">
-                  <View className="flex-row items-center" style={{ gap: 4 }}>
-                    <Ionicons
-                      name="checkmark-circle"
-                      size={12}
-                      color="#16A34A"
-                    />
-                    <Text className="text-xs text-gray-400">Bank</Text>
-                  </View>
-                  <Text className="text-xs text-gray-500">
-                    {formatCurrency(totalBankCommission)}
-                  </Text>
-                </View>
-                {/* Telecom sub-row */}
-                <View className="flex-row justify-between items-center px-2 py-0.5">
-                  <View className="flex-row items-center" style={{ gap: 4 }}>
-                    <Ionicons
-                      name="checkmark-circle"
-                      size={12}
-                      color="#16A34A"
-                    />
-                    <Text className="text-xs text-gray-400">Telecom</Text>
-                  </View>
-                  <Text className="text-xs text-gray-500">
-                    {formatCurrency(totalTelecomCommission)}
                   </Text>
                 </View>
               </View>
             </View>
+          </View>
+        </View>
+
+        {/* Current Balances */}
+        <View className="px-5 pt-3 pb-2">
+          <TouchableOpacity
+            className="flex-row justify-between items-center mb-2"
+            onPress={() => setBalancesExpanded((v) => !v)}
+            activeOpacity={0.7}
+          >
+            <View className="flex-row items-center" style={{ gap: 6 }}>
+              <Text className="text-base font-bold text-gray-900">
+                Current Balances
+              </Text>
+              <Ionicons
+                name={balancesExpanded ? "chevron-up" : "chevron-down"}
+                size={16}
+                color="#6B7280"
+              />
+            </View>
+            <TouchableOpacity onPress={() => router.push("/balance" as any)}>
+              <Text className="text-indigo-600 font-semibold text-xs">
+                Add Float
+              </Text>
+            </TouchableOpacity>
+          </TouchableOpacity>
+          <View className="bg-white rounded-2xl shadow-sm overflow-hidden">
+            {accounts.length === 0 ? (
+              <View className="py-6 items-center">
+                <Text className="text-gray-400 text-sm">No accounts found</Text>
+              </View>
+            ) : (
+              <>
+                {(balancesExpanded
+                  ? sortedByBalance
+                  : sortedByBalance.slice(0, PREVIEW_COUNT)
+                ).map((account, idx, arr) => {
+                  const commission =
+                    commissionByAccountId.get(account.accountId) ?? 0;
+                  return (
+                    <View
+                      key={account.accountId}
+                      className={`flex-row items-center px-4 py-2.5 ${
+                        idx < arr.length - 1 ? "border-b border-gray-100" : ""
+                      }`}
+                    >
+                      <View className="flex-1">
+                        <Text className="font-medium text-gray-800 text-sm">
+                          {account.accountName}
+                        </Text>
+                        {commission > 0 && (
+                          <Text className="text-xs text-green-600 mt-0.5">
+                            +{formatCurrency(commission)} today
+                          </Text>
+                        )}
+                      </View>
+                      <Text className="font-bold text-gray-900 text-sm">
+                        {formatCurrency(account.balance ?? 0)}
+                      </Text>
+                    </View>
+                  );
+                })}
+                {accounts.length > PREVIEW_COUNT && (
+                  <TouchableOpacity
+                    className="py-2 items-center border-t border-gray-100"
+                    onPress={() => setBalancesExpanded((v) => !v)}
+                  >
+                    <Text className="text-indigo-600 text-xs font-semibold">
+                      {balancesExpanded
+                        ? "Show less"
+                        : `+${accounts.length - PREVIEW_COUNT} more`}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </>
+            )}
           </View>
         </View>
 
@@ -275,8 +314,7 @@ export default function DashboardNative() {
           <View className="flex-row gap-2.5 mb-4">
             <TouchableOpacity
               onPress={() => router.push("/history" as any)}
-              className="flex-1 bg-white rounded-xl p-3 mr-0 shadow-sm flex-row items-center"
-              style={{ paddingRight: 2 }}
+              className="flex-1 bg-white rounded-xl p-3 shadow-sm flex-row items-center"
             >
               <View className="bg-blue-100 p-2 rounded-xl mr-2">
                 <Ionicons name="time" size={18} color="#3B82F6" />
@@ -287,26 +325,8 @@ export default function DashboardNative() {
               </View>
             </TouchableOpacity>
             <TouchableOpacity
-              onPress={() => router.push("/transactions" as any)}
-              className="flex-1 bg-white ml-0 rounded-xl p-3 shadow-sm flex-row items-center"
-            >
-              <View className="bg-indigo-100 p-2 rounded-xl mr-2">
-                <ArrowLeftRight size={18} color="#4F46E5" />
-              </View>
-              <View className="flex-shrink">
-                <Text className="font-bold text-gray-900 text-sm">
-                  Transactions
-                </Text>
-                <Text className="text-xs text-gray-500">
-                  {transactionCount} today
-                </Text>
-              </View>
-            </TouchableOpacity>
-          </View>
-          <View className="flex-row gap-2.5 mb-4">
-            <TouchableOpacity
               onPress={() => router.push("/commissions" as any)}
-              className="flex-1 bg-white rounded-xl p-3 mr-0 shadow-sm flex-row items-center"
+              className="flex-1 bg-white rounded-xl p-3 shadow-sm flex-row items-center"
             >
               <View className="bg-green-100 p-2 rounded-xl mr-2">
                 <Ionicons name="cash" size={16} color="#22C55E" />
@@ -318,72 +338,10 @@ export default function DashboardNative() {
                 <Text className="text-xs text-gray-500">Payments</Text>
               </View>
             </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => router.push("/expenses" as any)}
-              className="flex-1 bg-white ml-0 rounded-xl p-3 shadow-sm flex-row items-center"
-            >
-              <View className="bg-red-100 p-2 rounded-xl mr-2">
-                <Ionicons name="receipt" size={18} color="#DC2626" />
-              </View>
-              <View className="flex-shrink">
-                <Text className="font-bold text-gray-900 text-sm">
-                  Expenses
-                </Text>
-                <Text className="text-xs text-gray-500">Records</Text>
-              </View>
-            </TouchableOpacity>
           </View>
         </View>
 
-        {/* Current Balances */}
-        <View className="px-5 py-3">
-          <View className="flex-row justify-between items-center mb-3">
-            <Text className="text-lg font-bold text-gray-900">
-              Current Balances
-            </Text>
-            <TouchableOpacity onPress={() => router.push("/balance" as any)}>
-              <Text className="text-indigo-600 font-semibold text-sm">
-                Add Float →
-              </Text>
-            </TouchableOpacity>
-          </View>
-          <View className="bg-white rounded-2xl shadow-sm overflow-hidden">
-            {accounts.length === 0 ? (
-              <View className="py-8 items-center">
-                <Text className="text-gray-400 text-sm">No accounts found</Text>
-              </View>
-            ) : (
-              accounts.map((account, idx) => {
-                const commission =
-                  commissionByAccountId.get(account.accountId) ?? 0;
-                return (
-                  <View
-                    key={account.accountId}
-                    className={`flex-row items-center px-4 py-3 ${
-                      idx < accounts.length - 1
-                        ? "border-b border-gray-100"
-                        : ""
-                    }`}
-                  >
-                    <View className="flex-1">
-                      <Text className="font-medium text-gray-800 text-sm">
-                        {account.accountName}
-                      </Text>
-                      {commission > 0 && (
-                        <Text className="text-xs text-green-600 mt-0.5">
-                          +{formatCurrency(commission)} today
-                        </Text>
-                      )}
-                    </View>
-                    <Text className="font-bold text-gray-900 text-sm">
-                      {formatCurrency(account.balance ?? 0)}
-                    </Text>
-                  </View>
-                );
-              })
-            )}
-          </View>
-        </View>
+        {/* removed — Current Balances moved above Quick Actions */}
       </ScrollView>
     </View>
   );

@@ -6,6 +6,7 @@ import {
   Platform,
   TouchableOpacity,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAppSelector } from "../store/hooks";
@@ -41,6 +42,7 @@ export default function TopBar() {
       user.firstName && user.lastName
         ? `${user.firstName} ${user.lastName}`
         : user.email || "User";
+    // Note: email is intentionally used as fallback when either name is missing
 
     // Proper text transformation for roles
     const roleLabel = role
@@ -66,20 +68,35 @@ export default function TopBar() {
       accessibilityLabel="User information bar"
     >
       <View style={styles.content}>
-        {/* Left side - User info */}
-        <View style={styles.userSection}>
+        {/* Left side - User info (tappable → settings) */}
+        <TouchableOpacity
+          style={styles.userSection}
+          onPress={() => router.push("/settings")}
+          accessible={true}
+          accessibilityRole="button"
+          accessibilityLabel="Open profile and settings"
+          activeOpacity={0.7}
+        >
           {/* Avatar */}
-          <View
+          <LinearGradient
+            colors={["#c0152a", "#9a0e1f"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
             style={styles.avatar}
-            accessible={true}
-            accessibilityRole="image"
-            accessibilityLabel={`${displayName}'s avatar`}
           >
             <Text style={styles.avatarText}>{initials}</Text>
-          </View>
+          </LinearGradient>
 
           {/* User Details */}
           <View style={styles.userDetails}>
+            <Text
+              style={styles.userName}
+              numberOfLines={1}
+              accessible={true}
+              accessibilityLabel={`User: ${displayName}`}
+            >
+              {displayName}
+            </Text>
             {roleLabel && (
               <Text
                 style={styles.roleText}
@@ -90,16 +107,8 @@ export default function TopBar() {
                 {roleLabel}
               </Text>
             )}
-            <Text
-              style={styles.userName}
-              numberOfLines={1}
-              accessible={true}
-              accessibilityLabel={`User: ${displayName}`}
-            >
-              {displayName}
-            </Text>
           </View>
-        </View>
+        </TouchableOpacity>
 
         {/* Right side - Actions */}
         <View style={styles.actionsSection}>
@@ -131,18 +140,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 12,
     zIndex: 1000,
-    // Elevation for Android, shadow for iOS
-    ...Platform.select({
-      ios: {
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.08,
-        shadowRadius: 3,
-      },
-      android: {
-        elevation: 4,
-      },
-    }),
   },
   content: {
     flexDirection: "row",
@@ -170,18 +167,17 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "#DC2626",
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
     ...Platform.select({
       ios: {
-        shadowColor: "#DC2626",
+        shadowColor: "#c0152a",
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.2,
-        shadowRadius: 4,
+        shadowRadius: 8,
       },
       android: {
         elevation: 4,

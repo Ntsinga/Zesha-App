@@ -16,7 +16,6 @@ import {
   LogOut,
   Users,
   ChevronRight,
-  Receipt,
   Building2,
   Shield,
 } from "lucide-react-native";
@@ -95,7 +94,7 @@ export default function Settings() {
 
   // Get the first company - fall back to dashboard companyInfo if slice is empty
   const company: CompanyInfo | undefined = showCompanyScopedOptions
-    ? companies[0] ?? dashboardCompanyInfo
+    ? (companies[0] ?? dashboardCompanyInfo)
     : undefined;
 
   useEffect(() => {
@@ -127,12 +126,20 @@ export default function Settings() {
     // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(trimmedEmail)) {
-      Toast.show({ type: "error", text1: "Invalid Email", text2: "Please enter a valid email address." });
+      Toast.show({
+        type: "error",
+        text1: "Invalid Email",
+        text2: "Please enter a valid email address.",
+      });
       return;
     }
 
     if (emails.includes(trimmedEmail)) {
-      Toast.show({ type: "error", text1: "Duplicate", text2: "This email is already added." });
+      Toast.show({
+        type: "error",
+        text1: "Duplicate",
+        text2: "This email is already added.",
+      });
       return;
     }
 
@@ -160,7 +167,11 @@ export default function Settings() {
             router.replace("/(auth)/sign-in");
           } catch (error) {
             console.error("Sign out error:", error);
-            Toast.show({ type: "error", text1: "Error", text2: "Failed to sign out. Please try again." });
+            Toast.show({
+              type: "error",
+              text1: "Error",
+              text2: "Failed to sign out. Please try again.",
+            });
           }
         },
       },
@@ -169,7 +180,11 @@ export default function Settings() {
 
   const handleSave = async () => {
     if (!name.trim()) {
-      Toast.show({ type: "error", text1: "Error", text2: "Company name is required." });
+      Toast.show({
+        type: "error",
+        text1: "Error",
+        text2: "Company name is required.",
+      });
       return;
     }
 
@@ -177,7 +192,11 @@ export default function Settings() {
     const outstanding = parseFloat(outstandingBalance) || 0;
 
     if (workingCapital < 0 || outstanding < 0) {
-      Toast.show({ type: "error", text1: "Error", text2: "Amounts cannot be negative." });
+      Toast.show({
+        type: "error",
+        text1: "Error",
+        text2: "Amounts cannot be negative.",
+      });
       return;
     }
 
@@ -196,11 +215,19 @@ export default function Settings() {
       if (company) {
         // Update existing company
         await dispatch(updateCompanyInfo({ id: company.id, data })).unwrap();
-        Toast.show({ type: "success", text1: "Success", text2: "Company settings updated successfully!" });
+        Toast.show({
+          type: "success",
+          text1: "Success",
+          text2: "Company settings updated successfully!",
+        });
       } else {
         // Create new company
         await dispatch(createCompanyInfo(data)).unwrap();
-        Toast.show({ type: "success", text1: "Success", text2: "Company created successfully!" });
+        Toast.show({
+          type: "success",
+          text1: "Success",
+          text2: "Company created successfully!",
+        });
       }
 
       // Refresh the list
@@ -209,7 +236,12 @@ export default function Settings() {
       Toast.show({
         type: "error",
         text1: "Error",
-        text2: typeof err === "string" ? err : err instanceof Error ? err.message : "Failed to save settings",
+        text2:
+          typeof err === "string"
+            ? err
+            : err instanceof Error
+              ? err.message
+              : "Failed to save settings",
       });
     } finally {
       setIsSaving(false);
@@ -253,7 +285,8 @@ export default function Settings() {
                     Super Admin View
                   </Text>
                   <Text className="text-xs text-gray-500">
-                    Enter an agency to access company settings and agency-specific actions.
+                    Enter an agency to access company settings and
+                    agency-specific actions.
                   </Text>
                 </View>
               </View>
@@ -298,27 +331,6 @@ export default function Settings() {
                   </Text>
                   <Text className="text-xs text-gray-500">
                     Add or edit float accounts
-                  </Text>
-                </View>
-              </View>
-              <ChevronRight color="#9CA3AF" size={20} />
-            </TouchableOpacity>
-          )}
-
-          {/* Expenses */}
-          {showCompanyScopedOptions && (
-            <TouchableOpacity
-              onPress={() => router.push("/expenses" as any)}
-              className="bg-white rounded-xl p-4 flex-row items-center justify-between mb-3 shadow-sm"
-            >
-              <View className="flex-row items-center">
-                <View className="bg-red-100 p-2 rounded-lg mr-3">
-                  <Receipt color="#DC2626" size={20} />
-                </View>
-                <View>
-                  <Text className="font-semibold text-gray-900">Expenses</Text>
-                  <Text className="text-xs text-gray-500">
-                    View and record expenses
                   </Text>
                 </View>
               </View>

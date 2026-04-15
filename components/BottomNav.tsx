@@ -53,10 +53,10 @@ export default function BottomNav() {
       route: "/transactions",
     },
     {
-      name: "Profile",
-      icon: "person-outline",
-      activeIcon: "person",
-      route: "/settings",
+      name: "Expenses",
+      icon: "receipt-outline",
+      activeIcon: "receipt",
+      route: "/expenses",
     },
   ];
 

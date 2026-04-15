@@ -58,44 +58,6 @@ export default function UserManagement() {
           handleSubmit();
         }}
       >
-        <div className="form-row">
-          <div className="form-group flex-1">
-            <label className="form-label">
-              First Name <span className="text-red-500">*</span>
-            </label>
-            <div className="input-with-icon">
-              <User size={18} className="input-icon" />
-              <input
-                type="text"
-                value={formData.firstName}
-                onChange={(e) =>
-                  handleInputChange("firstName", e.target.value)
-                }
-                placeholder="John"
-                className="form-input"
-                required
-              />
-            </div>
-          </div>
-
-          <div className="form-group flex-1">
-            <label className="form-label">
-              Last Name <span className="text-red-500">*</span>
-            </label>
-            <div className="input-with-icon">
-              <User size={18} className="input-icon" />
-              <input
-                type="text"
-                value={formData.lastName}
-                onChange={(e) => handleInputChange("lastName", e.target.value)}
-                placeholder="Doe"
-                className="form-input"
-                required
-              />
-            </div>
-          </div>
-        </div>
-
         <div className="form-group">
           <label className="form-label">
             Email Address <span className="text-red-500">*</span>

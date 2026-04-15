@@ -28,7 +28,8 @@ export default function SetPasswordPage() {
   const router = useRouter();
   const params = useLocalSearchParams();
 
-  const [username, setUsername] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -156,9 +157,8 @@ export default function SetPasswordPage() {
 
     if (!hasInviteData && (!isUserLoaded || !user)) return;
 
-    // Username validation for invite flow
-    if (requiresUsername && !username.trim()) {
-      Alert.alert("Error", "Please enter a username");
+    if (!firstName.trim() || !lastName.trim()) {
+      Alert.alert("Error", "Please enter your first and last name");
       return;
     }
 
@@ -181,11 +181,22 @@ export default function SetPasswordPage() {
     try {
       if (hasInviteData && signUp) {
         // Invite flow: Update signUp with password (and username if required) and complete registration
-        const updatePayload: { password: string; username?: string } = {
+        const updatePayload: {
+          password: string;
+          firstName: string;
+          lastName: string;
+          username?: string;
+        } = {
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
           password,
         };
-        if (requiresUsername && username.trim()) {
-          updatePayload.username = username.trim();
+        if (requiresUsername) {
+          updatePayload.username =
+            `${firstName.trim().toLowerCase()}_${lastName.trim().toLowerCase()}`.replace(
+              /[^a-z0-9_-]/g,
+              "",
+            ) + Math.floor(Math.random() * 1000);
         }
         const result = await signUp.update(updatePayload);
 
@@ -325,9 +336,9 @@ export default function SetPasswordPage() {
 
           {/* Form */}
           <View style={{ marginBottom: 24 }}>
-            {/* Username - only shown for invite flow when required */}
-            {requiresUsername && (
-              <View style={{ marginBottom: 16 }}>
+            {/* First Name + Last Name */}
+            <View style={{ flexDirection: "row", gap: 12, marginBottom: 16 }}>
+              <View style={{ flex: 1 }}>
                 <Text
                   style={{
                     fontSize: 14,
@@ -336,7 +347,7 @@ export default function SetPasswordPage() {
                     marginBottom: 8,
                   }}
                 >
-                  Username
+                  First name
                 </Text>
                 <View
                   style={{
@@ -347,22 +358,47 @@ export default function SetPasswordPage() {
                   }}
                 >
                   <TextInput
-                    value={username}
-                    onChangeText={setUsername}
-                    placeholder="Choose a username"
+                    value={firstName}
+                    onChangeText={setFirstName}
+                    placeholder="First name"
                     placeholderTextColor="#64748B"
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    style={{
-                      padding: 16,
-                      fontSize: 16,
-                      color: "#fff",
-                    }}
+                    autoCapitalize="words"
+                    style={{ padding: 16, fontSize: 16, color: "#fff" }}
                     editable={!isLoading}
                   />
                 </View>
               </View>
-            )}
+              <View style={{ flex: 1 }}>
+                <Text
+                  style={{
+                    fontSize: 14,
+                    fontWeight: "600",
+                    color: "#F1F5F9",
+                    marginBottom: 8,
+                  }}
+                >
+                  Last name
+                </Text>
+                <View
+                  style={{
+                    backgroundColor: "#1E293B",
+                    borderRadius: 12,
+                    borderWidth: 1,
+                    borderColor: "#334155",
+                  }}
+                >
+                  <TextInput
+                    value={lastName}
+                    onChangeText={setLastName}
+                    placeholder="Last name"
+                    placeholderTextColor="#64748B"
+                    autoCapitalize="words"
+                    style={{ padding: 16, fontSize: 16, color: "#fff" }}
+                    editable={!isLoading}
+                  />
+                </View>
+              </View>
+            </View>
 
             {/* Password */}
             <View style={{ marginBottom: 16 }}>
@@ -470,10 +506,20 @@ export default function SetPasswordPage() {
           {/* Set Password Button */}
           <TouchableOpacity
             onPress={handleSetPassword}
-            disabled={isLoading || !password || !confirmPassword}
+            disabled={
+              isLoading ||
+              !firstName ||
+              !lastName ||
+              !password ||
+              !confirmPassword
+            }
             style={{
               backgroundColor:
-                isLoading || !password || !confirmPassword
+                isLoading ||
+                !firstName ||
+                !lastName ||
+                !password ||
+                !confirmPassword
                   ? "#64748B"
                   : "#FDB022",
               borderRadius: 12,
