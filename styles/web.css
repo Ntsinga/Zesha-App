@@ -1570,7 +1570,7 @@ body {
 .grand-total-card {
   background: linear-gradient(135deg, #fef9c3 0%, #f5f5f5 100%);
   border-radius: 16px;
-  padding: 24px;
+  padding: 24px 24px 4px 24px;
   position: relative;
   overflow: hidden;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.07);
@@ -1602,33 +1602,40 @@ body {
   font-size: 36px;
   font-weight: 800;
   color: #1f2937;
-  margin: 0 0 16px;
+  margin: 0;
   letter-spacing: -1px;
   white-space: nowrap;
 }
 
+.gt-amount-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
 .gt-breakdown {
   display: flex;
-  gap: 20px;
-  padding-top: 16px;
-  border-top: 1px solid rgba(0, 0, 0, 0.08);
-  flex-wrap: wrap;
+  gap: 32px;
+  flex-shrink: 0;
 }
 
 .gt-item {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  min-width: 60px;
+  gap: 6px;
+  min-width: 80px;
 }
 
 .gt-label {
-  font-size: 11px;
+  font-size: 13px;
   color: #6b7280;
 }
 
 .gt-value {
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 700;
   color: #1f2937;
 }
@@ -1753,6 +1760,143 @@ body {
 
 /* Bottom Section - Table + Actions */
 .dashboard-bottom {
+  flex-shrink: 0;
+}
+
+/* Bottom Split: Bar Chart left + Balances Table right */
+.dashboard-bottom-split {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  gap: 24px;
+}
+
+/* Chart Card */
+.chart-card {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  border: 1px solid var(--color-border);
+  min-width: 0;
+  overflow: hidden;
+}
+
+.chart-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0 0 16px;
+}
+
+.chart-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  color: var(--color-text-muted);
+  font-size: 14px;
+}
+
+/* Commission dual-chart layout */
+.commission-chart-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.commission-total {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--color-success);
+}
+
+.commission-charts-row {
+  display: flex;
+  gap: 0;
+  align-items: flex-start;
+}
+
+.commission-chart-col {
+  flex: 1;
+  min-width: 0;
+}
+
+.commission-chart-subtitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  margin: 0 0 4px;
+  text-align: center;
+}
+
+.commission-chart-divider {
+  width: 1px;
+  align-self: stretch;
+  background: var(--color-border);
+  margin: 0 12px;
+  flex-shrink: 0;
+}
+
+/* Grand Total - inline metrics (variance + expenses) */
+.gt-metrics-row {
+  display: flex;
+  gap: 0;
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.gt-metrics-row .gt-metric + .gt-metric {
+  padding-left: 28px;
+  margin-left: 28px;
+  border-left: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.gt-metric {
+  flex: 1;
+  min-width: 0;
+}
+
+.gt-metric-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.gt-metric-label {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  font-weight: 500;
+  flex: 1;
+}
+
+.gt-metric-value {
+  font-size: 18px;
+  font-weight: 700;
+  display: block;
+}
+
+.gt-metric-value.positive {
+  color: var(--color-success);
+}
+
+.gt-metric-value.negative {
+  color: var(--color-danger);
+}
+
+.gt-metric-sub {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  margin-top: 3px;
+  display: block;
+}
+
+/* Smaller badges inside the grand total card metrics row */
+.gt-metric .metric-badge {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
   flex-shrink: 0;
 }
 
