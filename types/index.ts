@@ -101,6 +101,10 @@ export {
   type BulkCommissionUpdateResponse,
   type ExpectedCommission,
   type ExpectedCommissionFilters,
+  type CommissionAccountBreakdown,
+  type CommissionBreakdownFilters,
+  type CommissionTotals,
+  type CommissionTotalsFilters,
   type DraftCommissionEntry,
   type CommissionVarianceReport,
 } from "./commission";

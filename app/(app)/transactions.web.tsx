@@ -277,6 +277,54 @@ export default function TransactionsWeb() {
           >
             <Filter size={16} />
 
+            {/* Range preset badges */}
+            {(() => {
+              const d = new Date();
+              const pad = (n: number) => String(n).padStart(2, "0");
+              const todayStr = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+              const monthStart = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-01`;
+              const yearStart = `${d.getFullYear()}-01-01`;
+              const activeBadge =
+                filterDateFrom === todayStr && filterDateTo === todayStr
+                  ? "today"
+                  : filterDateFrom === monthStart && filterDateTo === todayStr
+                    ? "month"
+                    : filterDateFrom === yearStart && filterDateTo === todayStr
+                      ? "year"
+                      : "custom";
+              return (
+                <div className="range-badges">
+                  <button
+                    className={`range-badge${activeBadge === "today" ? " active" : ""}`}
+                    onClick={() => {
+                      setFilterDateFrom(todayStr);
+                      setFilterDateTo(todayStr);
+                    }}
+                  >
+                    Today
+                  </button>
+                  <button
+                    className={`range-badge${activeBadge === "month" ? " active" : ""}`}
+                    onClick={() => {
+                      setFilterDateFrom(monthStart);
+                      setFilterDateTo(todayStr);
+                    }}
+                  >
+                    This Month
+                  </button>
+                  <button
+                    className={`range-badge${activeBadge === "year" ? " active" : ""}`}
+                    onClick={() => {
+                      setFilterDateFrom(yearStart);
+                      setFilterDateTo(todayStr);
+                    }}
+                  >
+                    This Year
+                  </button>
+                </div>
+              );
+            })()}
+
             {/* Type filter */}
             <select
               value={filterType}

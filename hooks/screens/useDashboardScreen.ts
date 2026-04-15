@@ -4,6 +4,10 @@ import { fetchDashboard, setShift } from "../../store/slices/dashboardSlice";
 import { updateCompanyInfo } from "../../store/slices/companyInfoSlice";
 import { fetchTransactions } from "../../store/slices/transactionsSlice";
 import { fetchExpenses } from "../../store/slices/expensesSlice";
+import {
+  fetchCommissionTotals,
+  fetchCommissionBreakdown,
+} from "../../store/slices/expectedCommissionsSlice";
 import { useCurrencyFormatter } from "../useCurrency";
 import { useAutoRefreshOnReconnect } from "../useAutoRefreshOnReconnect";
 import { selectEffectiveCompanyId } from "../../store/slices/authSlice";
@@ -39,6 +43,8 @@ export function useDashboardScreen() {
     (state: RootState) => state.transactions,
   );
   const { items: expenses } = useSelector((state: RootState) => state.expenses);
+  const { totals: commissionTotals, breakdown: commissionBreakdown } =
+    useSelector((state: RootState) => state.expectedCommissions);
   const { user: backendUser } = useSelector((state: RootState) => state.auth);
   const effectiveCompanyId = useSelector(selectEffectiveCompanyId);
 
@@ -66,8 +72,22 @@ export function useDashboardScreen() {
           limit: 500,
         }),
       );
+      dispatch(
+        fetchCommissionTotals({
+          startDate: today,
+          endDate: today,
+          shift: currentShift,
+        }),
+      );
+      dispatch(
+        fetchCommissionBreakdown({
+          startDate: today,
+          endDate: today,
+          shift: currentShift,
+        }),
+      );
     }
-  }, [dispatch, effectiveCompanyId, today]);
+  }, [dispatch, effectiveCompanyId, today, currentShift]);
 
   // Fetch all expenses (not just today) so totalPendingExpenses reflects cumulative pending
   useEffect(() => {
@@ -99,6 +119,20 @@ export function useDashboardScreen() {
         }),
       );
       dispatch(
+        fetchCommissionTotals({
+          startDate: today,
+          endDate: today,
+          shift: currentShift,
+        }),
+      );
+      dispatch(
+        fetchCommissionBreakdown({
+          startDate: today,
+          endDate: today,
+          shift: currentShift,
+        }),
+      );
+      dispatch(
         fetchExpenses({
           companyId: effectiveCompanyId,
           forceRefresh: true,
@@ -106,7 +140,7 @@ export function useDashboardScreen() {
       );
     }
     setRefreshing(false);
-  }, [dispatch, effectiveCompanyId, today]);
+  }, [dispatch, effectiveCompanyId, today, currentShift]);
 
   // Shift change handler
   const handleShiftChange = useCallback(
@@ -214,6 +248,14 @@ export function useDashboardScreen() {
   // Commission earned per account today (all accounts, used for sorting + table)
   const commissionByAccountId = useMemo(() => {
     const map = new Map<number, number>();
+
+    if (commissionBreakdown.length > 0) {
+      commissionBreakdown.forEach((entry) => {
+        map.set(entry.accountId, entry.totalExpectedCommission);
+      });
+      return map;
+    }
+
     todayTransactions.forEach((t) => {
       if (
         (t.transactionType === "DEPOSIT" || t.transactionType === "WITHDRAW") &&
@@ -227,7 +269,7 @@ export function useDashboardScreen() {
       }
     });
     return map;
-  }, [todayTransactions]);
+  }, [commissionBreakdown, todayTransactions]);
 
   const sortedAccounts = useMemo(() => {
     return [...accounts].sort((left, right) => {
@@ -279,21 +321,35 @@ export function useDashboardScreen() {
     [todayTransactions],
   );
 
-  const dailyCommission = useMemo(
-    () =>
-      dailyCommissionTransactions.reduce(
-        (sum, transaction) =>
-          sum + (transaction.expectedCommission?.commissionAmount ?? 0),
-        0,
-      ),
-    [dailyCommissionTransactions],
-  );
+  const dailyCommission =
+    commissionTotals?.totalExpectedCommission ??
+    // Fallback: compute from loaded transactions if totals not yet fetched
+    dailyCommissionTransactions.reduce(
+      (sum, transaction) =>
+        sum + (transaction.expectedCommission?.commissionAmount ?? 0),
+      0,
+    );
 
   const topCommissionAccount = useMemo<{
     accountId: number;
     accountName: string;
     commissionAmount: number;
   } | null>(() => {
+    if (commissionBreakdown.length > 0) {
+      const topEntry = [...commissionBreakdown].sort(
+        (left, right) =>
+          right.totalExpectedCommission - left.totalExpectedCommission,
+      )[0];
+
+      return topEntry
+        ? {
+            accountId: topEntry.accountId,
+            accountName: topEntry.accountName,
+            commissionAmount: topEntry.totalExpectedCommission,
+          }
+        : null;
+    }
+
     const commissionsByAccount = new Map<
       number,
       { accountName: string; commissionAmount: number }
@@ -334,7 +390,7 @@ export function useDashboardScreen() {
     });
 
     return topEntry;
-  }, [dailyCommissionTransactions]);
+  }, [commissionBreakdown, dailyCommissionTransactions]);
 
   // Top 5 accounts by transaction count today
   const topTransactionAccounts = useMemo<
@@ -360,6 +416,17 @@ export function useDashboardScreen() {
   const topCommissionAccounts = useMemo<
     { accountId: number; accountName: string; commissionAmount: number }[]
   >(() => {
+    if (commissionBreakdown.length > 0) {
+      return [...commissionBreakdown]
+        .map((entry) => ({
+          accountId: entry.accountId,
+          accountName: entry.accountName,
+          commissionAmount: entry.totalExpectedCommission,
+        }))
+        .sort((left, right) => right.commissionAmount - left.commissionAmount)
+        .slice(0, 5);
+    }
+
     const commissionsByAccount = new Map<
       number,
       { accountName: string; commissionAmount: number }
@@ -386,7 +453,7 @@ export function useDashboardScreen() {
       .map(([accountId, value]) => ({ accountId, ...value }))
       .sort((a, b) => b.commissionAmount - a.commissionAmount)
       .slice(0, 5);
-  }, [dailyCommissionTransactions]);
+  }, [commissionBreakdown, dailyCommissionTransactions]);
 
   const transactionCount = todayTransactions.length;
 
@@ -434,25 +501,37 @@ export function useDashboardScreen() {
 
   const totalBankCommission = useMemo(
     () =>
-      dailyCommissionTransactions
-        .filter((transaction) => transaction.account?.accountType === "BANK")
-        .reduce(
-          (sum, transaction) =>
-            sum + (transaction.expectedCommission?.commissionAmount ?? 0),
-          0,
-        ),
-    [dailyCommissionTransactions],
+      commissionBreakdown.length > 0
+        ? commissionBreakdown
+            .filter((entry) => entry.accountType === "BANK")
+            .reduce((sum, entry) => sum + entry.totalExpectedCommission, 0)
+        : dailyCommissionTransactions
+            .filter(
+              (transaction) => transaction.account?.accountType === "BANK",
+            )
+            .reduce(
+              (sum, transaction) =>
+                sum + (transaction.expectedCommission?.commissionAmount ?? 0),
+              0,
+            ),
+    [commissionBreakdown, dailyCommissionTransactions],
   );
   const totalTelecomCommission = useMemo(
     () =>
-      dailyCommissionTransactions
-        .filter((transaction) => transaction.account?.accountType === "TELECOM")
-        .reduce(
-          (sum, transaction) =>
-            sum + (transaction.expectedCommission?.commissionAmount ?? 0),
-          0,
-        ),
-    [dailyCommissionTransactions],
+      commissionBreakdown.length > 0
+        ? commissionBreakdown
+            .filter((entry) => entry.accountType === "TELECOM")
+            .reduce((sum, entry) => sum + entry.totalExpectedCommission, 0)
+        : dailyCommissionTransactions
+            .filter(
+              (transaction) => transaction.account?.accountType === "TELECOM",
+            )
+            .reduce(
+              (sum, transaction) =>
+                sum + (transaction.expectedCommission?.commissionAmount ?? 0),
+              0,
+            ),
+    [commissionBreakdown, dailyCommissionTransactions],
   );
 
   return {

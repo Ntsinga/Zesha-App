@@ -2,7 +2,13 @@
  * Commission types matching backend models/commissions.py
  */
 import type { BaseModel, BulkUpdateOperationResponse } from "./base";
-import type { ShiftEnum, SourceEnum, AccountTypeEnum, CommissionVarianceStatus, ReconciliationSubtypeEnum } from "./enums";
+import type {
+  ShiftEnum,
+  SourceEnum,
+  AccountTypeEnum,
+  CommissionVarianceStatus,
+  ReconciliationSubtypeEnum,
+} from "./enums";
 import type { Account } from "./account";
 
 /**
@@ -118,6 +124,50 @@ export interface BulkCommissionUpdateResponse {
 }
 
 /**
+ * Aggregate totals for expected commissions over a date range.
+ * Returned by GET /expected-commissions/totals
+ */
+export interface CommissionTotals {
+  totalTransactions: number;
+  totalVolume: number;
+  totalExpectedCommission: number;
+  depositCommission: number;
+  withdrawCommission: number;
+}
+
+/**
+ * Filters for fetching commission totals
+ */
+export interface CommissionTotalsFilters {
+  startDate: string;
+  endDate: string;
+  accountId?: number;
+  shift?: ShiftEnum;
+}
+
+/**
+ * Aggregate expected commissions by account over a date range.
+ */
+export interface CommissionAccountBreakdown {
+  accountId: number;
+  accountName: string;
+  accountType: AccountTypeEnum;
+  totalTransactions: number;
+  totalVolume: number;
+  totalExpectedCommission: number;
+}
+
+/**
+ * Filters for fetching commission account breakdowns.
+ */
+export interface CommissionBreakdownFilters {
+  startDate: string;
+  endDate: string;
+  accountId?: number;
+  shift?: ShiftEnum;
+}
+
+/**
  * Expected commission - auto-calculated from transactions
  * Matches backend ExpectedCommissionOut schema
  */
@@ -142,6 +192,7 @@ export interface ExpectedCommission {
 export interface ExpectedCommissionFilters {
   companyId: number;
   accountId?: number;
+  shift?: ShiftEnum;
   startDate?: string;
   endDate?: string;
   skip?: number;

@@ -3,6 +3,7 @@ import { useRouter } from "expo-router";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import {
   fetchTransactions,
+  fetchTransactionAnalytics,
   createTransaction,
   createFloatPurchase,
   createCapitalInjection,
@@ -16,6 +17,7 @@ import {
 } from "../../store/slices/transactionsSlice";
 import { fetchAccounts } from "../../store/slices/accountsSlice";
 import { fetchDashboard } from "../../store/slices/dashboardSlice";
+import { fetchCommissionTotals } from "../../store/slices/expectedCommissionsSlice";
 import { useCurrencyFormatter } from "../useCurrency";
 import { formatDateTime } from "../../utils/formatters";
 import type {
@@ -98,11 +100,9 @@ export function useTransactionsScreen() {
   );
   const [filterShift, setFilterShift] = useState<ShiftEnum | "ALL">("ALL");
   const [filterAccountId, setFilterAccountId] = useState<number | null>(null);
-  const [filterDateFrom, setFilterDateFrom] = useState<string>(() => {
-    const d = new Date();
-    d.setDate(d.getDate() - 30);
-    return d.toISOString().split("T")[0];
-  });
+  const [filterDateFrom, setFilterDateFrom] = useState<string>(
+    new Date().toISOString().split("T")[0],
+  );
   const [filterDateTo, setFilterDateTo] = useState<string>(
     new Date().toISOString().split("T")[0],
   );
@@ -131,10 +131,14 @@ export function useTransactionsScreen() {
   // ---- Redux state ----
   const {
     items: transactions,
+    analytics,
     isLoading,
     isCreating,
     error,
   } = useAppSelector((state) => state.transactions);
+  const { totals: commissionTotals } = useAppSelector(
+    (state) => state.expectedCommissions,
+  );
   const { items: accounts } = useAppSelector((state) => state.accounts);
   const { user: backendUser } = useAppSelector((state) => state.auth);
   const companyId = useAppSelector(
@@ -175,6 +179,24 @@ export function useTransactionsScreen() {
     filters.limit = 500;
 
     dispatch(fetchTransactions(filters as any));
+    dispatch(
+      fetchTransactionAnalytics({
+        companyId,
+        startDate: filterDateFrom,
+        endDate: `${filterDateTo}T23:59:59`,
+        shift: filterShift !== "ALL" ? filterShift : undefined,
+        accountId: filterAccountId ?? undefined,
+        transactionType: filterType !== "ALL" ? filterType : undefined,
+      }),
+    );
+    dispatch(
+      fetchCommissionTotals({
+        startDate: filterDateFrom,
+        endDate: filterDateTo,
+        accountId: filterAccountId ?? undefined,
+        shift: filterShift !== "ALL" ? filterShift : undefined,
+      }),
+    );
   }, [
     dispatch,
     companyId,
@@ -212,6 +234,20 @@ export function useTransactionsScreen() {
     accountName: string;
     transactionCount: number;
   } | null>(() => {
+    if (analytics?.byAccount?.length) {
+      const topAccount = [...analytics.byAccount].sort(
+        (left, right) => right.transactionCount - left.transactionCount,
+      )[0];
+
+      return topAccount
+        ? {
+            accountId: topAccount.accountId,
+            accountName: topAccount.accountName,
+            transactionCount: topAccount.transactionCount,
+          }
+        : null;
+    }
+
     let topAccountId: number | null = null;
     let topCount = 0;
 
@@ -233,10 +269,23 @@ export function useTransactionsScreen() {
       accountName: matchingAccount?.name ?? `Account ${topAccountId}`,
       transactionCount: topCount,
     };
-  }, [accounts, transactionCountsByAccount]);
+  }, [accounts, analytics, transactionCountsByAccount]);
 
   // ---- Summary metrics ----
   const metrics = useMemo(() => {
+    if (analytics) {
+      return {
+        totalDeposits: analytics.totals.deposits,
+        totalWithdrawals: analytics.totals.withdrawals,
+        netMovement: analytics.totals.netFlow,
+        transactionCount: analytics.counts.total,
+        depositCount: analytics.counts.deposits,
+        withdrawCount: analytics.counts.withdrawals,
+        floatCount: analytics.counts.floatPurchases,
+        totalExpectedCommission: commissionTotals?.totalExpectedCommission ?? 0,
+      };
+    }
+
     let totalDeposits = 0;
     let totalWithdrawals = 0;
     let depositCount = 0;
@@ -273,9 +322,10 @@ export function useTransactionsScreen() {
       depositCount,
       withdrawCount,
       floatCount,
-      totalExpectedCommission,
+      totalExpectedCommission:
+        commissionTotals?.totalExpectedCommission ?? totalExpectedCommission,
     };
-  }, [transactions]);
+  }, [analytics, commissionTotals, transactions]);
 
   // ---- Active accounts for selects ----
   const activeAccounts = useMemo(() => {
@@ -320,6 +370,44 @@ export function useTransactionsScreen() {
     activeAccounts,
   ]);
 
+  const refreshCurrentRange = useCallback(() => {
+    if (!companyId) return;
+
+    dispatch(
+      fetchTransactions({
+        companyId,
+        startDate: filterDateFrom,
+        endDate: filterDateTo + "T23:59:59",
+      }),
+    );
+    dispatch(
+      fetchTransactionAnalytics({
+        companyId,
+        startDate: filterDateFrom,
+        endDate: `${filterDateTo}T23:59:59`,
+        shift: filterShift !== "ALL" ? filterShift : undefined,
+        accountId: filterAccountId ?? undefined,
+        transactionType: filterType !== "ALL" ? filterType : undefined,
+      }),
+    );
+    dispatch(
+      fetchCommissionTotals({
+        startDate: filterDateFrom,
+        endDate: filterDateTo,
+        accountId: filterAccountId ?? undefined,
+        shift: filterShift !== "ALL" ? filterShift : undefined,
+      }),
+    );
+  }, [
+    dispatch,
+    companyId,
+    filterDateFrom,
+    filterDateTo,
+    filterShift,
+    filterAccountId,
+    filterType,
+  ]);
+
   // ---- Handlers ----
 
   const handleCreateTransaction = useCallback(async () => {
@@ -342,13 +430,7 @@ export function useTransactionsScreen() {
       await dispatch(createTransaction(data)).unwrap();
       setShowAddTransaction(false);
       setTransactionForm(initialTransactionForm);
-      dispatch(
-        fetchTransactions({
-          companyId,
-          startDate: filterDateFrom,
-          endDate: filterDateTo + "T23:59:59",
-        }),
-      );
+      refreshCurrentRange();
     } catch (err) {
       setSubmitError(
         typeof err === "string"
@@ -359,7 +441,7 @@ export function useTransactionsScreen() {
       );
       dispatch(clearError());
     }
-  }, [dispatch, companyId, transactionForm, filterDateFrom, filterDateTo]);
+  }, [dispatch, companyId, transactionForm, refreshCurrentRange]);
 
   const handleCreateFloatPurchase = useCallback(async () => {
     if (
@@ -393,13 +475,7 @@ export function useTransactionsScreen() {
       await dispatch(createFloatPurchase(data)).unwrap();
       setShowFloatPurchase(false);
       setFloatPurchaseForm(initialFloatPurchaseForm);
-      dispatch(
-        fetchTransactions({
-          companyId,
-          startDate: filterDateFrom,
-          endDate: filterDateTo + "T23:59:59",
-        }),
-      );
+      refreshCurrentRange();
     } catch (err) {
       setSubmitError(
         typeof err === "string"
@@ -410,7 +486,7 @@ export function useTransactionsScreen() {
       );
       dispatch(clearError());
     }
-  }, [dispatch, companyId, floatPurchaseForm, filterDateFrom, filterDateTo]);
+  }, [dispatch, companyId, floatPurchaseForm, refreshCurrentRange]);
 
   const handleCreateCapitalInjection = useCallback(async () => {
     if (!capitalInjectionForm.amount || !companyId) return;
@@ -446,13 +522,7 @@ export function useTransactionsScreen() {
 
       setShowCapitalInjection(false);
       setCapitalInjectionForm(initialCapitalInjectionForm);
-      dispatch(
-        fetchTransactions({
-          companyId,
-          startDate: filterDateFrom,
-          endDate: filterDateTo + "T23:59:59",
-        }),
-      );
+      refreshCurrentRange();
       dispatch(fetchDashboard({ forceRefresh: true }));
     } catch (err) {
       setSubmitError(
@@ -464,7 +534,7 @@ export function useTransactionsScreen() {
       );
       dispatch(clearError());
     }
-  }, [dispatch, companyId, capitalInjectionForm, filterDateFrom, filterDateTo]);
+  }, [dispatch, companyId, capitalInjectionForm, refreshCurrentRange]);
 
   const handleReverse = useCallback(async (transaction: Transaction) => {
     setTransactionToReverse(transaction);
@@ -475,11 +545,12 @@ export function useTransactionsScreen() {
     async (transactionId: number) => {
       try {
         await dispatch(confirmTransaction(transactionId)).unwrap();
+        refreshCurrentRange();
       } catch {
         // Error handled by Redux state
       }
     },
-    [dispatch],
+    [dispatch, refreshCurrentRange],
   );
 
   const confirmReverse = useCallback(async () => {
@@ -491,13 +562,7 @@ export function useTransactionsScreen() {
       ).unwrap();
       setShowReverseConfirm(false);
       setTransactionToReverse(null);
-      dispatch(
-        fetchTransactions({
-          companyId,
-          startDate: filterDateFrom,
-          endDate: filterDateTo + "T23:59:59",
-        }),
-      );
+      refreshCurrentRange();
     } catch (err) {
       setSubmitError(
         typeof err === "string"
@@ -507,18 +572,11 @@ export function useTransactionsScreen() {
             : "Failed to reverse transaction.",
       );
     }
-  }, [dispatch, companyId, transactionToReverse, filterDateFrom, filterDateTo]);
+  }, [dispatch, companyId, transactionToReverse, refreshCurrentRange]);
 
   const handleRefresh = useCallback(() => {
-    if (!companyId) return;
-    dispatch(
-      fetchTransactions({
-        companyId,
-        startDate: filterDateFrom,
-        endDate: filterDateTo + "T23:59:59",
-      }),
-    );
-  }, [dispatch, companyId, filterDateFrom, filterDateTo]);
+    refreshCurrentRange();
+  }, [refreshCurrentRange]);
 
   const handleClearError = useCallback(() => {
     dispatch(clearError());

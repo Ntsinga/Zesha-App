@@ -456,6 +456,8 @@ export const fetchTransactionAnalytics = createAsyncThunk<
     startDate?: string;
     endDate?: string;
     shift?: ShiftEnum;
+    accountId?: number;
+    transactionType?: TransactionTypeEnum;
   },
   { rejectValue: string }
 >("transactions/fetchAnalytics", async (params, { rejectWithValue }) => {

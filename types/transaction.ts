@@ -196,19 +196,31 @@ export interface CompanyStatement {
  * Transaction analytics summary
  */
 export interface TransactionAnalyticsSummary {
-  totalDeposits: number;
-  totalWithdrawals: number;
-  totalFloatPurchases: number;
-  netCashFlow: number;
-  transactionCount: number;
-  depositCount: number;
-  withdrawCount: number;
-  floatPurchaseCount: number;
-  perAccountFlows: Array<{
+  period: {
+    startDate?: string | null;
+    endDate?: string | null;
+    shift?: ShiftEnum | null;
+  };
+  totals: {
+    deposits: number;
+    withdrawals: number;
+    floatPurchases: number;
+    netFlow: number;
+  };
+  counts: {
+    deposits: number;
+    withdrawals: number;
+    floatPurchases: number;
+    total: number;
+  };
+  byAccount: Array<{
     accountId: number;
     accountName: string;
-    totalDeposits: number;
-    totalWithdrawals: number;
+    accountType: string;
+    deposits: number;
+    withdrawals: number;
+    floatIn: number;
+    floatOut: number;
     netFlow: number;
     transactionCount: number;
   }>;
