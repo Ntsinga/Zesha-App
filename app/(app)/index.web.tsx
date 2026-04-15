@@ -301,7 +301,7 @@ export default function DashboardWeb() {
                         paddingAngle={3}
                         dataKey="value"
                         label={({ name, percent }) =>
-                          `${name} ${((percent ?? 0) * 100).toFixed(0)}%`
+                          `${name} ${((percent ?? 0) * 100).toFixed(2)}%`
                         }
                         labelLine={false}
                       >
