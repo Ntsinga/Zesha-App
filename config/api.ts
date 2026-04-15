@@ -88,6 +88,7 @@ export const API_ENDPOINTS = {
     totals: "/expected-commissions/totals",
     breakdown: "/expected-commissions/breakdown",
     dailySummary: "/expected-commissions/daily-summary",
+    dailyTotals: "/expected-commissions/daily-totals",
     variance: "/expected-commissions/variance",
   },
 
