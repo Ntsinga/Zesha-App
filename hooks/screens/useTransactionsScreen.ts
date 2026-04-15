@@ -158,53 +158,20 @@ export function useTransactionsScreen() {
 
   // ---- Fetch transactions when filters change ----
   useEffect(() => {
-    if (!companyId) return;
+    const transactionFilters = buildTransactionFilters();
+    const analyticsFilters = buildAnalyticsFilters();
+    const commissionFilters = buildCommissionTotalsFilters();
 
-    const filters: Record<string, unknown> = {
-      companyId,
-      startDate: filterDateFrom,
-      endDate: filterDateTo + "T23:59:59",
-    };
+    if (!transactionFilters || !analyticsFilters || !commissionFilters) return;
 
-    if (filterType !== "ALL") {
-      filters.transactionType = filterType;
-    }
-    if (filterShift !== "ALL") {
-      filters.shift = filterShift;
-    }
-    if (filterAccountId) {
-      filters.accountId = filterAccountId;
-    }
-
-    filters.limit = 500;
-
-    dispatch(fetchTransactions(filters as any));
-    dispatch(
-      fetchTransactionAnalytics({
-        companyId,
-        startDate: filterDateFrom,
-        endDate: `${filterDateTo}T23:59:59`,
-        shift: filterShift !== "ALL" ? filterShift : undefined,
-        accountId: filterAccountId ?? undefined,
-        transactionType: filterType !== "ALL" ? filterType : undefined,
-      }),
-    );
-    dispatch(
-      fetchCommissionTotals({
-        startDate: filterDateFrom,
-        endDate: filterDateTo,
-        accountId: filterAccountId ?? undefined,
-        shift: filterShift !== "ALL" ? filterShift : undefined,
-      }),
-    );
+    dispatch(fetchTransactions(transactionFilters));
+    dispatch(fetchTransactionAnalytics(analyticsFilters));
+    dispatch(fetchCommissionTotals(commissionFilters));
   }, [
     dispatch,
-    companyId,
-    filterType,
-    filterShift,
-    filterAccountId,
-    filterDateFrom,
-    filterDateTo,
+    buildTransactionFilters,
+    buildAnalyticsFilters,
+    buildCommissionTotalsFilters,
   ]);
 
   // ---- Filtered & sorted transactions ----
@@ -273,6 +240,47 @@ export function useTransactionsScreen() {
 
   // ---- Summary metrics ----
   const metrics = useMemo(() => {
+    const fallbackCommissionTotals = transactions.reduce(
+      (accumulator, transaction) => {
+        const amount = transaction.expectedCommission?.commissionAmount ?? 0;
+
+        if (transaction.transactionType === "DEPOSIT") {
+          accumulator.deposit += amount;
+        } else if (transaction.transactionType === "WITHDRAW") {
+          accumulator.withdraw += amount;
+        }
+
+        accumulator.total += amount;
+        return accumulator;
+      },
+      { total: 0, deposit: 0, withdraw: 0 },
+    );
+
+    const selectedExpectedCommissionTotal = (() => {
+      if (filterType === "DEPOSIT") {
+        return (
+          commissionTotals?.depositCommission ??
+          fallbackCommissionTotals.deposit
+        );
+      }
+      if (filterType === "WITHDRAW") {
+        return (
+          commissionTotals?.withdrawCommission ??
+          fallbackCommissionTotals.withdraw
+        );
+      }
+      if (
+        filterType === "FLOAT_PURCHASE" ||
+        filterType === "CAPITAL_INJECTION"
+      ) {
+        return 0;
+      }
+      return (
+        commissionTotals?.totalExpectedCommission ??
+        fallbackCommissionTotals.total
+      );
+    })();
+
     if (analytics) {
       return {
         totalDeposits: analytics.totals.deposits,
@@ -282,7 +290,7 @@ export function useTransactionsScreen() {
         depositCount: analytics.counts.deposits,
         withdrawCount: analytics.counts.withdrawals,
         floatCount: analytics.counts.floatPurchases,
-        totalExpectedCommission: commissionTotals?.totalExpectedCommission ?? 0,
+        totalExpectedCommission: selectedExpectedCommissionTotal,
       };
     }
 
@@ -291,14 +299,8 @@ export function useTransactionsScreen() {
     let depositCount = 0;
     let withdrawCount = 0;
     let floatCount = 0;
-    let totalExpectedCommission = 0;
 
     transactions.forEach((t) => {
-      // Accumulate commission from loaded expected_commission
-      if (t.expectedCommission) {
-        totalExpectedCommission += t.expectedCommission.commissionAmount;
-      }
-
       switch (t.transactionType) {
         case "DEPOSIT":
           totalDeposits += t.amount;
@@ -322,10 +324,9 @@ export function useTransactionsScreen() {
       depositCount,
       withdrawCount,
       floatCount,
-      totalExpectedCommission:
-        commissionTotals?.totalExpectedCommission ?? totalExpectedCommission,
+      totalExpectedCommission: selectedExpectedCommissionTotal,
     };
-  }, [analytics, commissionTotals, transactions]);
+  }, [analytics, commissionTotals, transactions, filterType]);
 
   // ---- Active accounts for selects ----
   const activeAccounts = useMemo(() => {
@@ -370,42 +371,73 @@ export function useTransactionsScreen() {
     activeAccounts,
   ]);
 
-  const refreshCurrentRange = useCallback(() => {
-    if (!companyId) return;
+  const buildTransactionFilters = useCallback(() => {
+    if (!companyId) return null;
 
-    dispatch(
-      fetchTransactions({
-        companyId,
-        startDate: filterDateFrom,
-        endDate: filterDateTo + "T23:59:59",
-      }),
-    );
-    dispatch(
-      fetchTransactionAnalytics({
-        companyId,
-        startDate: filterDateFrom,
-        endDate: `${filterDateTo}T23:59:59`,
-        shift: filterShift !== "ALL" ? filterShift : undefined,
-        accountId: filterAccountId ?? undefined,
-        transactionType: filterType !== "ALL" ? filterType : undefined,
-      }),
-    );
-    dispatch(
-      fetchCommissionTotals({
-        startDate: filterDateFrom,
-        endDate: filterDateTo,
-        accountId: filterAccountId ?? undefined,
-        shift: filterShift !== "ALL" ? filterShift : undefined,
-      }),
-    );
+    return {
+      companyId,
+      startDate: filterDateFrom,
+      endDate: filterDateTo + "T23:59:59",
+      limit: 500,
+      ...(filterType !== "ALL" ? { transactionType: filterType } : {}),
+      ...(filterShift !== "ALL" ? { shift: filterShift } : {}),
+      ...(filterAccountId ? { accountId: filterAccountId } : {}),
+    };
   }, [
-    dispatch,
+    companyId,
+    filterDateFrom,
+    filterDateTo,
+    filterType,
+    filterShift,
+    filterAccountId,
+  ]);
+
+  const buildAnalyticsFilters = useCallback(() => {
+    if (!companyId) return null;
+
+    return {
+      companyId,
+      startDate: filterDateFrom,
+      endDate: `${filterDateTo}T23:59:59`,
+      ...(filterShift !== "ALL" ? { shift: filterShift } : {}),
+      ...(filterAccountId ? { accountId: filterAccountId } : {}),
+      ...(filterType !== "ALL" ? { transactionType: filterType } : {}),
+    };
+  }, [
     companyId,
     filterDateFrom,
     filterDateTo,
     filterShift,
     filterAccountId,
     filterType,
+  ]);
+
+  const buildCommissionTotalsFilters = useCallback(() => {
+    if (!companyId) return null;
+
+    return {
+      startDate: filterDateFrom,
+      endDate: filterDateTo,
+      ...(filterAccountId ? { accountId: filterAccountId } : {}),
+      ...(filterShift !== "ALL" ? { shift: filterShift } : {}),
+    };
+  }, [companyId, filterDateFrom, filterDateTo, filterAccountId, filterShift]);
+
+  const refreshCurrentRange = useCallback(() => {
+    const transactionFilters = buildTransactionFilters();
+    const analyticsFilters = buildAnalyticsFilters();
+    const commissionFilters = buildCommissionTotalsFilters();
+
+    if (!transactionFilters || !analyticsFilters || !commissionFilters) return;
+
+    dispatch(fetchTransactions(transactionFilters));
+    dispatch(fetchTransactionAnalytics(analyticsFilters));
+    dispatch(fetchCommissionTotals(commissionFilters));
+  }, [
+    dispatch,
+    buildTransactionFilters,
+    buildAnalyticsFilters,
+    buildCommissionTotalsFilters,
   ]);
 
   // ---- Handlers ----
