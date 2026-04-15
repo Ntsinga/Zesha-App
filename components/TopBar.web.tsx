@@ -1,5 +1,8 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState, useRef, useEffect } from "react";
+import ReactDOM from "react-dom";
 import { useUser } from "@clerk/clerk-react";
+import { useAuth } from "@clerk/clerk-react";
+import { useRouter } from "expo-router";
 import { useAppSelector } from "../store/hooks";
 import {
   selectUser,
@@ -26,6 +29,48 @@ export default function TopBarWeb() {
   const viewingAgencyId = useAppSelector(selectViewingAgencyId);
   const viewingAgencyName = useAppSelector(selectViewingAgencyName);
   const { user: clerkUser, isLoaded: isClerkLoaded } = useUser();
+  const { signOut } = useAuth();
+  const router = useRouter();
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const avatarRef = useRef<HTMLButtonElement>(null);
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, right: 0 });
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target as Node) &&
+        avatarRef.current &&
+        !avatarRef.current.contains(e.target as Node)
+      ) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleAvatarClick = () => {
+    if (avatarRef.current) {
+      const rect = avatarRef.current.getBoundingClientRect();
+      setDropdownPos({
+        top: rect.bottom + 8,
+        right: window.innerWidth - rect.right,
+      });
+    }
+    setDropdownOpen((o) => !o);
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      router.replace("/sign-in");
+    } catch (error) {
+      console.error("Sign out error:", error);
+    }
+  };
 
   const isSuperAdmin = role === "Super Administrator";
   const isViewingAgency = viewingAgencyId !== null;
@@ -120,15 +165,87 @@ export default function TopBarWeb() {
               )}
             </div>
 
-            {/* Avatar with semantic meaning */}
+            {/* Avatar with dropdown */}
             <div
-              className="topbar-avatar"
-              role="img"
-              aria-label={`${displayName}'s avatar with initials ${initials}`}
-              title={displayName}
+              className="topbar-avatar-wrapper"
+              style={{ position: "relative" }}
             >
-              <span aria-hidden="true">{initials}</span>
+              <button
+                ref={avatarRef}
+                className="topbar-avatar"
+                onClick={handleAvatarClick}
+                aria-label={`${displayName}'s avatar — click to open menu`}
+                title={displayName}
+                style={{ cursor: "pointer" }}
+              >
+                <span aria-hidden="true">{initials}</span>
+              </button>
             </div>
+
+            {/* Dropdown rendered via portal to escape overflow:hidden ancestors */}
+            {dropdownOpen &&
+              typeof document !== "undefined" &&
+              ReactDOM.createPortal(
+                <div
+                  ref={dropdownRef}
+                  style={{
+                    position: "fixed",
+                    top: dropdownPos.top,
+                    right: dropdownPos.right,
+                    background: "#ffffff",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: 8,
+                    boxShadow: "0 8px 24px rgba(0,0,0,0.15)",
+                    minWidth: 160,
+                    zIndex: 99999,
+                    overflow: "hidden",
+                  }}
+                >
+                  <button
+                    onClick={() => {
+                      setDropdownOpen(false);
+                      handleSignOut();
+                    }}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      width: "100%",
+                      padding: "12px 16px",
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      fontSize: 14,
+                      color: "#1e293b",
+                      textAlign: "left",
+                    }}
+                    onMouseEnter={(e) =>
+                      (e.currentTarget.style.background = "none")
+                    }
+                    onMouseLeave={(e) =>
+                      (e.currentTarget.style.background = "none")
+                    }
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="#dc2626"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                      <polyline points="16 17 21 12 16 7" />
+                      <line x1="21" y1="12" x2="9" y2="12" />
+                    </svg>
+                    <span style={{ color: "#dc2626" }}>Logout</span>
+                  </button>
+                </div>,
+                document.body,
+              )}
           </div>
         </div>
       </div>

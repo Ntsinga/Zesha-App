@@ -1296,7 +1296,7 @@ export default function CommissionSchedulesPage() {
                       style={{ marginTop: 4 }}
                     >
                       <Copy size={13} />
-                      Copy to My Schedules
+                      Copy to My Structures
                     </button>
                   </div>
                 ))}
@@ -1770,7 +1770,8 @@ export default function CommissionSchedulesPage() {
             </div>
             <div className="modal-body">
               <p style={{ marginBottom: 12 }}>
-                Copy <strong>"{templateToCopy.name}"</strong> to your schedules?
+                Copy <strong>"{templateToCopy.name}"</strong> to your
+                structures?
               </p>
               <p
                 style={{
@@ -1796,7 +1797,7 @@ export default function CommissionSchedulesPage() {
                 disabled={isSubmitting}
               >
                 <Copy size={14} />
-                {isSubmitting ? "Copying…" : "Copy to My Schedules"}
+                {isSubmitting ? "Copying…" : "Copy to My Structures"}
               </button>
             </div>
           </div>

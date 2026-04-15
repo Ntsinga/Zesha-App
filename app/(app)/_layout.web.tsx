@@ -412,14 +412,6 @@ export default function AppLayoutWeb() {
               <Settings size={20} />
               {!isSidebarCollapsed && <span>Settings</span>}
             </button>
-            <button
-              onClick={handleSignOut}
-              className="nav-link"
-              title={isSidebarCollapsed ? "Logout" : undefined}
-            >
-              <LogOut size={20} />
-              {!isSidebarCollapsed && <span>Logout</span>}
-            </button>
           </div>
         </aside>
 

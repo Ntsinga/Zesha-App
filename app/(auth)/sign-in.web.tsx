@@ -32,8 +32,6 @@ export default function SignInWeb() {
   const [secondFactorPrepared, setSecondFactorPrepared] = useState(false);
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-
-
   const handleOtpChange = (index: number, value: string) => {
     const digit = value.replace(/\D/g, "").slice(-1);
     const next = [...otp];
@@ -59,17 +57,17 @@ export default function SignInWeb() {
     }
   };
 
-  const handleContinueEmail = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (email.trim()) {
-      setError("");
-      setStep("password");
-    }
-  };
-
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isLoaded || !signIn) return;
+    if (!email.trim()) {
+      setError("Please enter your email address.");
+      return;
+    }
+    if (!password.trim()) {
+      setError("Please enter your password.");
+      return;
+    }
     if (secondFactorPrepared) {
       setStep("otp");
       return;
@@ -155,20 +153,11 @@ export default function SignInWeb() {
               </p>
             </div>
 
-            {/* ── Email Step ── */}
-            {step === "email" && (
-              <form onSubmit={handleContinueEmail}>
+            {/* ── Combined Email + Password Step ── */}
+            {(step === "email" || step === "password") && (
+              <form onSubmit={handleSignIn}>
                 <div style={{ marginBottom: "16px" }}>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      marginBottom: "6px",
-                    }}
-                  >
-                    <label className="clerk-label-split">Email address</label>
-                  </div>
+                  <label className="clerk-label-split">Email address</label>
                   <input
                     className="clerk-input-split"
                     type="email"
@@ -179,45 +168,6 @@ export default function SignInWeb() {
                     autoFocus
                   />
                 </div>
-                {error && <p style={errorStyle}>{error}</p>}
-                <button
-                  type="submit"
-                  className="clerk-primary-button-split"
-                  disabled={!email.trim()}
-                >
-                  Continue <span style={{ marginLeft: "6px" }}>›</span>
-                </button>
-                <p style={footerStyle}>
-                  Don't have an account?{" "}
-                  <a href="/sign-up" className="clerk-link">
-                    Sign up
-                  </a>
-                </p>
-              </form>
-            )}
-
-            {/* ── Password Step ── */}
-            {step === "password" && (
-              <form onSubmit={handleSignIn}>
-                {/* Email display with edit */}
-                <div style={emailRowStyle}>
-                  <span style={{ fontSize: "14px", color: "#374151" }}>
-                    {email}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setStep("email");
-                      setSecondFactorPrepared(false);
-                      setError("");
-                    }}
-                    style={editBtnStyle}
-                    title="Edit email"
-                  >
-                    ✎
-                  </button>
-                </div>
-
                 <div style={{ marginBottom: "16px" }}>
                   <div
                     style={{
@@ -244,7 +194,6 @@ export default function SignInWeb() {
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="Enter your password"
                       required
-                      autoFocus
                       style={{ paddingRight: "48px" }}
                     />
                     <button
@@ -257,42 +206,20 @@ export default function SignInWeb() {
                     </button>
                   </div>
                 </div>
-
                 {error && <p style={errorStyle}>{error}</p>}
-
                 <button
                   type="submit"
                   className="clerk-primary-button-split"
-                  disabled={loading || !password}
+                  disabled={loading || !email.trim() || !password}
                 >
                   {loading ? (
                     "Signing in…"
                   ) : (
                     <>
-                      {" "}
-                      Continue <span style={{ marginLeft: "6px" }}>›</span>
+                      Sign In <span style={{ marginLeft: "6px" }}>›</span>
                     </>
                   )}
                 </button>
-                <p style={{ ...footerStyle, marginTop: "12px" }}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setStep("email");
-                      setSecondFactorPrepared(false);
-                      setError("");
-                    }}
-                    className="clerk-link"
-                    style={{
-                      background: "none",
-                      border: "none",
-                      cursor: "pointer",
-                      padding: 0,
-                    }}
-                  >
-                    Use another method
-                  </button>
-                </p>
               </form>
             )}
 
@@ -302,9 +229,15 @@ export default function SignInWeb() {
                 {/* Email display */}
                 <div
                   style={{
-                    ...emailRowStyle,
+                    display: "flex",
+                    alignItems: "center",
                     justifyContent: "center",
+                    gap: "8px",
                     marginBottom: "20px",
+                    padding: "8px 12px",
+                    background: "#f9fafb",
+                    borderRadius: "8px",
+                    border: "1px solid #e5e7eb",
                   }}
                 >
                   <span style={{ fontSize: "14px", color: "#374151" }}>
@@ -446,27 +379,6 @@ const footerStyle: React.CSSProperties = {
   color: "#6b7280",
   marginTop: "16px",
   marginBottom: 0,
-};
-
-const emailRowStyle: React.CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  gap: "8px",
-  marginBottom: "16px",
-  padding: "8px 12px",
-  background: "#f9fafb",
-  borderRadius: "8px",
-  border: "1px solid #e5e7eb",
-};
-
-const editBtnStyle: React.CSSProperties = {
-  background: "none",
-  border: "none",
-  cursor: "pointer",
-  color: "#dc2626",
-  fontSize: "16px",
-  padding: "0",
-  lineHeight: 1,
 };
 
 const eyeBtnStyle: React.CSSProperties = {

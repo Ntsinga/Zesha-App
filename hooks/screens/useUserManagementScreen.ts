@@ -6,8 +6,6 @@ import type { UserInviteRequest } from "@/types";
 
 interface FormData {
   email: string;
-  firstName: string;
-  lastName: string;
   phoneNumber: string;
   role: string;
 }
@@ -20,8 +18,6 @@ export const useUserManagementScreen = () => {
 
   const [formData, setFormData] = useState<FormData>({
     email: "",
-    firstName: "",
-    lastName: "",
     phoneNumber: "",
     role: "Agent",
   });
@@ -50,10 +46,8 @@ export const useUserManagementScreen = () => {
   };
 
   const validateForm = (): boolean => {
-    if (!formData.email || !formData.firstName || !formData.lastName) {
-      setValidationError(
-        "Please fill in all required fields (email, first name, last name)",
-      );
+    if (!formData.email) {
+      setValidationError("Please enter an email address");
       return false;
     }
 
@@ -85,8 +79,6 @@ export const useUserManagementScreen = () => {
 
     const inviteData: UserInviteRequest = {
       email: formData.email,
-      firstName: formData.firstName,
-      lastName: formData.lastName,
       phoneNumber: formData.phoneNumber || undefined,
       role: formData.role as any,
       companyId: companyId,
@@ -104,8 +96,6 @@ export const useUserManagementScreen = () => {
   const handleReset = () => {
     setFormData({
       email: "",
-      firstName: "",
-      lastName: "",
       phoneNumber: "",
       role: "Agent",
     });

@@ -815,7 +815,7 @@ export default function Accounts() {
                           className="form-input"
                           style={{ appearance: "none", paddingRight: 32 }}
                         >
-                          <option value="">No schedule assigned</option>
+                          <option value="">No structure assigned</option>
                           {commissionSchedules
                             .filter((s) => s.isActive)
                             .map((s) => (

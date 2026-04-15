@@ -50,6 +50,8 @@ export default function SignUpPage() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const [emailOrPhone, setEmailOrPhone] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [password, setPassword] = useState("");
   const [pendingVerification, setPendingVerification] = useState(false);
   const [code, setCode] = useState("");
@@ -96,8 +98,10 @@ export default function SignUpPage() {
         signUp?.emailAddress && emailOrPhone === signUp.emailAddress;
 
       if (isInviteFlow) {
-        // For invites, just update with password - Clerk handles the ticket automatically
+        // For invites, update with firstName, lastName and password
         const result = await signUp.update({
+          firstName,
+          lastName,
           password,
         });
 
@@ -130,6 +134,8 @@ export default function SignUpPage() {
       } else {
         // Email signup
         await signUp.create({
+          firstName,
+          lastName,
           emailAddress: emailOrPhone,
           password,
         });
@@ -343,11 +349,45 @@ export default function SignUpPage() {
                   <View className="flex-1 h-px bg-gray-200" />
                 </View>
 
+                {/* First Name + Last Name */}
+                <View className="flex-row gap-3 mb-4">
+                  <View className="flex-1">
+                    <Text className="text-sm font-semibold text-gray-800 mb-2">
+                      First name
+                    </Text>
+                    <View className="bg-gray-50 border border-gray-200 rounded-2xl px-4 py-1 flex-row items-center">
+                      <TextInput
+                        value={firstName}
+                        onChangeText={setFirstName}
+                        placeholder="First name"
+                        placeholderTextColor="#9CA3AF"
+                        autoCapitalize="words"
+                        className="flex-1 py-3 text-base text-gray-800"
+                      />
+                    </View>
+                  </View>
+                  <View className="flex-1">
+                    <Text className="text-sm font-semibold text-gray-800 mb-2">
+                      Last name
+                    </Text>
+                    <View className="bg-gray-50 border border-gray-200 rounded-2xl px-4 py-1 flex-row items-center">
+                      <TextInput
+                        value={lastName}
+                        onChangeText={setLastName}
+                        placeholder="Last name"
+                        placeholderTextColor="#9CA3AF"
+                        autoCapitalize="words"
+                        className="flex-1 py-3 text-base text-gray-800"
+                      />
+                    </View>
+                  </View>
+                </View>
+
                 {/* Email/Phone Label Row */}
                 <View className="flex-row justify-between items-center mb-3">
                   <Text className="text-sm font-semibold text-gray-800">
                     {usePhone ? "Phone number" : "Email address"}
-                  </Text>
+                  </Text>{" "}
                   <TouchableOpacity onPress={() => setUsePhone(!usePhone)}>
                     <Text className="text-sm font-semibold text-red-500">
                       {usePhone ? "Use email" : "Use phone"}

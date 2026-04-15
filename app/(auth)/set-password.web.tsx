@@ -17,7 +17,8 @@ export default function SetPasswordWeb() {
   const { setActive: clerkSetActive } = useClerk();
   const router = useRouter();
 
-  const [username, setUsername] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -136,8 +137,8 @@ export default function SetPasswordWeb() {
     if (!hasInviteData && (!isUserLoaded || !user)) return;
 
     // Validate username if required
-    if (requiresUsername && !username.trim()) {
-      setError("Please enter a username");
+    if (!firstName.trim() || !lastName.trim()) {
+      setError("Please enter your first and last name");
       return;
     }
 
@@ -159,13 +160,24 @@ export default function SetPasswordWeb() {
     setIsLoading(true);
     try {
       if (hasInviteData && signUp) {
-        // Invite flow: Update signUp with password (and username if required) and complete registration
-        // Build update payload
-        const updatePayload: { password: string; username?: string } = {
+        // Invite flow: Update signUp with firstName, lastName and password
+        const updatePayload: {
+          password: string;
+          firstName: string;
+          lastName: string;
+          username?: string;
+        } = {
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
           password,
         };
-        if (requiresUsername && username.trim()) {
-          updatePayload.username = username.trim();
+        // Auto-generate username if Clerk requires it (not shown to user)
+        if (requiresUsername) {
+          updatePayload.username =
+            `${firstName.trim().toLowerCase()}_${lastName.trim().toLowerCase()}`.replace(
+              /[^a-z0-9_-]/g,
+              "",
+            ) + Math.floor(Math.random() * 1000);
         }
 
         const result = await signUp.update(updatePayload);
@@ -234,8 +246,6 @@ export default function SetPasswordWeb() {
   const passwordStrength = getPasswordStrength(password);
   const passwordsMatch =
     password && confirmPassword && password === confirmPassword;
-
-
 
   // Determine if we're ready to show the form
   // Check signUp object for email as well (it may have it before inviteEmail state is set)
@@ -478,9 +488,11 @@ export default function SetPasswordWeb() {
                   </div>
                 )}
 
-                {/* Username field - only shown if required */}
-                {requiresUsername && (
-                  <div style={{ marginBottom: "20px" }}>
+                {/* First name + Last name */}
+                <div
+                  style={{ display: "flex", gap: "16px", marginBottom: "20px" }}
+                >
+                  <div style={{ flex: 1 }}>
                     <label
                       style={{
                         display: "block",
@@ -490,37 +502,44 @@ export default function SetPasswordWeb() {
                         marginBottom: "8px",
                       }}
                     >
-                      Username
+                      First name
                     </label>
                     <input
                       type="text"
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                      placeholder="Choose a username"
-                      autoComplete="username"
-                      style={{
-                        width: "100%",
-                        padding: "12px 16px",
-                        fontSize: "16px",
-                        border: "1px solid #D1D5DB",
-                        borderRadius: "12px",
-                        backgroundColor: "#F9FAFB",
-                        outline: "none",
-                      }}
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      placeholder="First name"
+                      required
+                      autoFocus
+                      className="clerk-input-split"
                       onFocus={(e) => (e.target.style.borderColor = "#DC2626")}
                       onBlur={(e) => (e.target.style.borderColor = "#D1D5DB")}
                     />
-                    <p
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label
                       style={{
-                        fontSize: "12px",
-                        color: "#6B7280",
-                        marginTop: "8px",
+                        display: "block",
+                        fontSize: "14px",
+                        fontWeight: "600",
+                        color: "#374151",
+                        marginBottom: "8px",
                       }}
                     >
-                      This will be your unique identifier
-                    </p>
+                      Last name
+                    </label>
+                    <input
+                      type="text"
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                      placeholder="Last name"
+                      required
+                      className="clerk-input-split"
+                      onFocus={(e) => (e.target.style.borderColor = "#DC2626")}
+                      onBlur={(e) => (e.target.style.borderColor = "#D1D5DB")}
+                    />
                   </div>
-                )}
+                </div>
 
                 <div style={{ marginBottom: "20px" }}>
                   <label

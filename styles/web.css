@@ -122,6 +122,7 @@ body {
   background-color: #f5f1ea;
   border-bottom: 1px solid #e5e7eb;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  overflow: visible;
 }
 
 .topbar-container {
@@ -4412,14 +4413,14 @@ body {
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  padding: 60px 40px;
+  padding: 60px 24px;
   min-height: 100vh;
   overflow-y: auto;
 }
 
 .auth-form-container {
   width: 100%;
-  max-width: 400px;
+  max-width: 620px;
   padding: 0;
   margin: auto; /* safe vertical + horizontal centering in flex parent */
 }
@@ -4467,23 +4468,72 @@ body {
 .auth-form-card {
   background: white;
   border-radius: 16px;
-  padding: 32px;
+  padding: 48px 56px;
   box-shadow:
     0 4px 16px rgba(0, 0, 0, 0.06),
     0 1px 3px rgba(0, 0, 0, 0.04);
   border: 1px solid #e5e7eb;
+  overflow: visible;
+  box-sizing: border-box;
 }
 
 /* Clerk Split Screen Overrides - Only style, no layout interference */
 .clerk-root-box-split {
   width: 100% !important;
+  max-width: 100% !important;
   min-height: auto !important;
+  padding: 0 !important;
+  margin: 0 !important;
 }
 
 .clerk-card-split {
   background: transparent !important;
   box-shadow: none !important;
   border: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+/* Target Clerk's own internal classes that may still carry background/shadow */
+.auth-form-card .cl-card,
+.auth-form-card .cl-cardBox {
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  overflow: visible !important;
+}
+
+.auth-form-card .cl-rootBox {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  overflow: visible !important;
+}
+
+/* Prevent Clerk field wrappers from clipping input borders/shadows */
+.auth-form-card .cl-formFieldRow,
+.auth-form-card .cl-formField,
+.auth-form-card .cl-formFieldInputGroup,
+.auth-form-card .cl-form,
+.auth-form-card .cl-main {
+  overflow: visible !important;
+  box-sizing: border-box !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+/* Hide Optional badges and username field */
+.auth-form-card .cl-badge,
+.auth-form-card .cl-formField-username,
+.auth-form-card .cl-formField__username {
+  display: none !important;
 }
 
 .clerk-social-button-split {

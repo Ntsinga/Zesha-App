@@ -33,7 +33,9 @@ export default function SignInPage() {
   // re-presses Sign In — Clerk already auto-sent the code on the first attempt.
   const [secondFactorPrepared, setSecondFactorPrepared] = useState(false);
 
-  const onContinuePress = async () => {
+  const onSignInPress = async () => {
+    if (!isLoaded) return;
+
     if (!emailOrPhone.trim()) {
       Alert.alert(
         "Error",
@@ -44,7 +46,6 @@ export default function SignInPage() {
       return;
     }
 
-    // Validate email format if using email
     if (!usePhone) {
       const validation = validateEmail(emailOrPhone.trim());
       if (!validation.isValid) {
@@ -53,11 +54,10 @@ export default function SignInPage() {
       }
     }
 
-    setStep("password");
-  };
-
-  const onSignInPress = async () => {
-    if (!isLoaded) return;
+    if (!password.trim()) {
+      Alert.alert("Error", "Please enter your password");
+      return;
+    }
 
     // If Clerk already sent the code (user went back then re-pressed Sign In),
     // go straight to the 2FA screen — don't issue a second code.
@@ -130,13 +130,68 @@ export default function SignInPage() {
     <View className="flex-1">
       <StatusBar barStyle="light-content" />
 
-      {/* Red Gradient Header */}
+      {/* Red Gradient Header — matches sidebar */}
       <LinearGradient
-        colors={["#DC2626", "#B91C1C", "#991B1B"]}
+        colors={["#8e0c1a", "#6b0714", "#3a050c"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         className="pt-16 pb-32 px-6"
+        style={{ overflow: "hidden" }}
       >
+        {/* Decorative rings — outlined, gold */}
+        <View
+          style={{
+            position: "absolute",
+            top: -60,
+            right: -60,
+            width: 200,
+            height: 200,
+            borderRadius: 100,
+            borderWidth: 1.5,
+            borderColor: "rgba(255,215,0,0.25)",
+            backgroundColor: "transparent",
+          }}
+        />
+        <View
+          style={{
+            position: "absolute",
+            top: -20,
+            right: -20,
+            width: 120,
+            height: 120,
+            borderRadius: 60,
+            borderWidth: 1,
+            borderColor: "rgba(255,215,0,0.18)",
+            backgroundColor: "transparent",
+          }}
+        />
+        <View
+          style={{
+            position: "absolute",
+            bottom: -50,
+            left: -50,
+            width: 200,
+            height: 200,
+            borderRadius: 100,
+            borderWidth: 1.5,
+            borderColor: "rgba(255,215,0,0.20)",
+            backgroundColor: "transparent",
+          }}
+        />
+        <View
+          style={{
+            position: "absolute",
+            bottom: 10,
+            left: 60,
+            width: 80,
+            height: 80,
+            borderRadius: 40,
+            borderWidth: 1,
+            borderColor: "rgba(255,215,0,0.15)",
+            backgroundColor: "transparent",
+          }}
+        />
+
         <View className="items-center pt-12">
           <Text className="text-4xl font-bold text-white mb-2">Teleba</Text>
           <Text className="text-white/90 text-lg">
@@ -156,7 +211,7 @@ export default function SignInPage() {
           keyboardShouldPersistTaps="handled"
         >
           <View className="flex-1 bg-white rounded-t-3xl px-6 pt-8 pb-6 shadow-lg">
-            {step === "identifier" ? (
+            {step === "identifier" || step === "password" ? (
               <>
                 {/* Email/Phone Label Row */}
                 <View className="flex-row justify-between items-center mb-3">
@@ -171,7 +226,7 @@ export default function SignInPage() {
                 </View>
 
                 {/* Email/Phone Input */}
-                <View className="bg-gray-50 border border-gray-200 rounded-2xl px-4 py-1 mb-6 flex-row items-center">
+                <View className="bg-gray-50 border border-gray-200 rounded-2xl px-4 py-1 mb-4 flex-row items-center">
                   <Ionicons
                     name={usePhone ? "call-outline" : "mail-outline"}
                     size={20}
@@ -190,47 +245,9 @@ export default function SignInPage() {
                     autoCapitalize="none"
                     keyboardType={usePhone ? "phone-pad" : "email-address"}
                     className="flex-1 py-3 text-base text-gray-800"
+                    returnKeyType="next"
                   />
                 </View>
-
-                {/* Continue Button */}
-                <TouchableOpacity
-                  onPress={onContinuePress}
-                  className="bg-red-600 rounded-2xl py-4 mb-6 flex-row items-center justify-center"
-                  activeOpacity={0.8}
-                >
-                  <Text className="text-white font-bold text-lg mr-2">
-                    Continue
-                  </Text>
-                  <Ionicons name="chevron-forward" size={20} color="white" />
-                </TouchableOpacity>
-
-                {/* Terms Text */}
-                <Text className="text-center text-gray-500 text-sm leading-5">
-                  By continuing, you agree to our{" "}
-                  <Text className="text-red-500 font-medium">
-                    Terms of Service
-                  </Text>{" "}
-                  and{" "}
-                  <Text className="text-red-500 font-medium">
-                    Privacy Policy
-                  </Text>
-                  .
-                </Text>
-              </>
-            ) : step === "password" ? (
-              <>
-                {/* Back Button */}
-                <TouchableOpacity
-                  onPress={() => {
-                    setStep("identifier");
-                    setSecondFactorPrepared(false);
-                  }}
-                  className="flex-row items-center mb-6"
-                >
-                  <Ionicons name="chevron-back" size={24} color="#DC2626" />
-                  <Text className="text-red-600 font-semibold ml-1">Back</Text>
-                </TouchableOpacity>
 
                 {/* Password Label */}
                 <Text className="text-sm font-semibold text-gray-800 mb-3">
@@ -252,6 +269,8 @@ export default function SignInPage() {
                     placeholderTextColor="#9CA3AF"
                     secureTextEntry
                     className="flex-1 py-3 text-base text-gray-800"
+                    returnKeyType="done"
+                    onSubmitEditing={onSignInPress}
                   />
                 </View>
 
@@ -259,9 +278,10 @@ export default function SignInPage() {
                 <TouchableOpacity
                   onPress={onSignInPress}
                   disabled={loading}
-                  className={`bg-red-600 rounded-2xl py-4 mb-6 flex-row items-center justify-center ${
+                  className={`rounded-2xl py-4 mb-4 flex-row items-center justify-center ${
                     loading ? "opacity-50" : ""
                   }`}
+                  style={{ backgroundColor: "#8e0c1a" }}
                   activeOpacity={0.8}
                 >
                   {loading ? (
@@ -281,17 +301,30 @@ export default function SignInPage() {
                 </TouchableOpacity>
 
                 {/* Forgot Password */}
-                <TouchableOpacity className="items-center">
+                <TouchableOpacity className="items-center mb-6">
                   <Text className="text-red-500 font-medium text-sm">
                     Forgot password?
                   </Text>
                 </TouchableOpacity>
+
+                {/* Terms Text */}
+                <Text className="text-center text-gray-500 text-sm leading-5">
+                  By continuing, you agree to our{" "}
+                  <Text className="text-red-500 font-medium">
+                    Terms of Service
+                  </Text>{" "}
+                  and{" "}
+                  <Text className="text-red-500 font-medium">
+                    Privacy Policy
+                  </Text>
+                  .
+                </Text>
               </>
             ) : step === "2fa" ? (
               <>
                 {/* Back Button */}
                 <TouchableOpacity
-                  onPress={() => setStep("password")}
+                  onPress={() => setStep("identifier")}
                   className="flex-row items-center mb-6"
                 >
                   <Ionicons name="chevron-back" size={24} color="#DC2626" />
@@ -337,9 +370,10 @@ export default function SignInPage() {
                 <TouchableOpacity
                   onPress={onVerify2FAPress}
                   disabled={loading}
-                  className={`bg-red-600 rounded-2xl py-4 mb-6 flex-row items-center justify-center ${
+                  className={`rounded-2xl py-4 mb-6 flex-row items-center justify-center ${
                     loading ? "opacity-50" : ""
                   }`}
+                  style={{ backgroundColor: "#8e0c1a" }}
                   activeOpacity={0.8}
                 >
                   {loading ? (
