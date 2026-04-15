@@ -6,14 +6,34 @@ import {
   Banknote,
   PiggyBank,
   Receipt,
-  DollarSign,
   ArrowUpRight,
   ArrowDownRight,
-  ArrowLeftRight,
-  CheckCircle,
 } from "lucide-react";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+} from "recharts";
 import { useDashboardScreen } from "../../hooks/screens/useDashboardScreen";
 import "../../styles/web.css";
+
+const CHART_COLORS = [
+  "#c0152a",
+  "#f59e0b",
+  "#16a34a",
+  "#4f46e5",
+  "#0ea5e9",
+  "#8b5cf6",
+  "#ec4899",
+  "#14b8a6",
+];
 
 /**
  * Web Dashboard - optimized for desktop with CSS classes for maintainability
@@ -26,16 +46,16 @@ export default function DashboardWeb() {
     snapshotDate,
     accounts,
     displayVariance,
+    expectedGrandTotal,
     totalExpenses,
     todayExpenses,
+    commissionByAccountId,
+    transactionCountsByAccountToday,
+    topCommissionAccounts,
+    topTransactionAccounts,
     dailyCommission,
     totalBankCommission,
     totalTelecomCommission,
-    transactionCount,
-    topTransactionAccount,
-    topCommissionAccount,
-    commissionByAccountId,
-    transactionCountsByAccountToday,
     displayCapital,
     displayFloat,
     displayCash,
@@ -45,6 +65,29 @@ export default function DashboardWeb() {
     formatCompactCurrency,
     onRefresh,
   } = useDashboardScreen();
+
+  // Pie chart data: commission by account
+  const commissionPieData = topCommissionAccounts.map((entry) => ({
+    name: entry.accountName,
+    value: entry.commissionAmount,
+  }));
+
+  // Pie chart data: commission by category
+  const commissionCategoryData = [
+    ...(totalBankCommission > 0
+      ? [{ name: "Bank", value: totalBankCommission }]
+      : []),
+    ...(totalTelecomCommission > 0
+      ? [{ name: "Telecom", value: totalTelecomCommission }]
+      : []),
+  ];
+  const CATEGORY_COLORS = ["#4f46e5", "#16a34a"];
+
+  // Bar chart data: transactions by account
+  const transactionBarData = topTransactionAccounts.map((entry) => ({
+    name: entry.accountName,
+    count: entry.transactionCount,
+  }));
 
   if (isLoading && !refreshing) {
     return (
@@ -78,9 +121,9 @@ export default function DashboardWeb() {
 
       {/* Dashboard Content */}
       <div className="dashboard-content">
-        {/* Top Section: Grand Total + Key Metrics side by side */}
+        {/* Top Section: Grand Total + Commission Pie Chart */}
         <div className="dashboard-top">
-          {/* Grand Total Card */}
+          {/* Grand Total Card — now includes Variance & Expenses */}
           <div className="grand-total-card">
             <div className="gt-decor-1" />
             <div className="gt-decor-2" />
@@ -89,27 +132,81 @@ export default function DashboardWeb() {
                 <Banknote size={22} />
                 <span>Total Operating Capital</span>
               </div>
-              <p className="gt-amount">{formatCurrency(displayCapital)}</p>
-              <div className="gt-breakdown">
-                <div className="gt-item">
-                  <span className="gt-label">Float</span>
-                  <span className="gt-value">
-                    {formatCurrency(displayFloat)}
+              <div className="gt-amount-row">
+                <p className="gt-amount">{formatCurrency(displayCapital)}</p>
+                <div className="gt-breakdown">
+                  <div className="gt-item">
+                    <span className="gt-label">Float</span>
+                    <span className="gt-value">
+                      {formatCurrency(displayFloat)}
+                    </span>
+                  </div>
+                  <div className="gt-item">
+                    <span className="gt-label">Cash</span>
+                    <span className="gt-value">
+                      {formatCurrency(displayCash)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Loss, Expected & Expenses inline */}
+              <div className="gt-metrics-row">
+                <div className="gt-metric">
+                  <div className="gt-metric-top">
+                    <span className="gt-metric-label">Loss</span>
+                    <div
+                      className={`metric-badge ${displayVariance >= 0 ? "positive" : "negative"}`}
+                    >
+                      {displayVariance >= 0 ? (
+                        <ArrowUpRight size={14} />
+                      ) : (
+                        <ArrowDownRight size={14} />
+                      )}
+                    </div>
+                  </div>
+                  <span
+                    className={`gt-metric-value ${displayVariance >= 0 ? "positive" : "negative"}`}
+                  >
+                    {displayVariance >= 0 ? "+" : ""}
+                    {formatCurrency(displayVariance)}
                   </span>
                 </div>
-                <div className="gt-item">
-                  <span className="gt-label">Cash</span>
-                  <span className="gt-value">
-                    {formatCurrency(displayCash)}
+                <div className="gt-metric">
+                  <div className="gt-metric-top">
+                    <span className="gt-metric-label">Expected</span>
+                  </div>
+                  <span className="gt-metric-value">
+                    {formatCurrency(expectedGrandTotal)}
+                  </span>
+                </div>
+                <div className="gt-metric">
+                  <div className="gt-metric-top">
+                    <span className="gt-metric-label">Expenses</span>
+                    <div
+                      className={`metric-badge ${totalExpenses > 0 ? "negative" : "positive"}`}
+                    >
+                      <Receipt size={14} />
+                    </div>
+                  </div>
+                  <span
+                    className={`gt-metric-value ${totalExpenses > 0 ? "negative" : "positive"}`}
+                  >
+                    {totalExpenses > 0 ? "-" : ""}
+                    {formatCurrency(Math.abs(totalExpenses))}
+                  </span>
+                  <span className="gt-metric-sub">
+                    Today {formatCompactCurrency(todayExpenses)}
                   </span>
                 </div>
               </div>
+
               <div
                 style={{
                   display: "flex",
                   alignItems: "center",
                   gap: 6,
-                  marginTop: 8,
+                  marginTop: 4,
                 }}
               >
                 {liveGrandTotal !== null && (
@@ -125,241 +222,175 @@ export default function DashboardWeb() {
                     }}
                   />
                 )}
-                <span style={{ fontSize: 11, color: "#6b7280" }}>
+                <span style={{ fontSize: 13, color: "#6b7280" }}>
                   {capitalLabel}
                 </span>
               </div>
             </div>
           </div>
 
-          {/* Key Metrics Card - Combined */}
-          <div className="metrics-card">
-            <h3 className="metrics-title">Key Metrics</h3>
-            <div className="metrics-content">
-              <div className="metric">
-                <div className="metric-top">
-                  <span className="metric-name">Variance</span>
-                  <div
-                    className={`metric-badge ${
-                      displayVariance >= 0 ? "positive" : "negative"
-                    }`}
-                  >
-                    {displayVariance >= 0 ? (
-                      <ArrowUpRight size={16} />
-                    ) : (
-                      <ArrowDownRight size={16} />
-                    )}
+          {/* Commission Charts Card */}
+          <div className="chart-card">
+            <div className="commission-chart-header">
+              <h3 className="chart-title" style={{ margin: 0 }}>
+                Commission
+              </h3>
+              <span className="commission-total">
+                {formatCurrency(dailyCommission)}
+              </span>
+            </div>
+            <div className="commission-charts-row">
+              {/* By Account */}
+              <div className="commission-chart-col">
+                <p className="commission-chart-subtitle">By Account</p>
+                {commissionPieData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={220}>
+                    <PieChart>
+                      <Pie
+                        data={commissionPieData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={45}
+                        outerRadius={75}
+                        paddingAngle={3}
+                        dataKey="value"
+                      >
+                        {commissionPieData.map((_entry, index) => (
+                          <Cell
+                            key={`cell-acc-${index}`}
+                            fill={CHART_COLORS[index % CHART_COLORS.length]}
+                          />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        formatter={(value) =>
+                          formatCurrency(typeof value === "number" ? value : 0)
+                        }
+                      />
+                      <Legend
+                        verticalAlign="bottom"
+                        height={32}
+                        iconType="circle"
+                        iconSize={8}
+                        wrapperStyle={{ fontSize: 11 }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="chart-empty">
+                    <p>No data today</p>
                   </div>
-                </div>
-                <p
-                  className={`metric-amount ${
-                    displayVariance >= 0 ? "positive" : "negative"
-                  }`}
-                >
-                  {displayVariance >= 0 ? "+" : ""}
-                  {formatCurrency(displayVariance)}
-                </p>
+                )}
               </div>
-              <div className="metric-divider" />
-              <div className="metric">
-                <div className="metric-top">
-                  <span className="metric-name">Expenses</span>
-                  <div
-                    className={`metric-badge ${totalExpenses > 0 ? "negative" : "positive"}`}
-                  >
-                    <Receipt size={16} />
+
+              {/* Divider */}
+              <div className="commission-chart-divider" />
+
+              {/* By Category */}
+              <div className="commission-chart-col">
+                <p className="commission-chart-subtitle">By Category</p>
+                {commissionCategoryData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={220}>
+                    <PieChart>
+                      <Pie
+                        data={commissionCategoryData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={45}
+                        outerRadius={75}
+                        paddingAngle={3}
+                        dataKey="value"
+                        label={({ name, percent }) =>
+                          `${name} ${((percent ?? 0) * 100).toFixed(0)}%`
+                        }
+                        labelLine={false}
+                      >
+                        {commissionCategoryData.map((_entry, index) => (
+                          <Cell
+                            key={`cell-cat-${index}`}
+                            fill={
+                              CATEGORY_COLORS[index % CATEGORY_COLORS.length]
+                            }
+                          />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        formatter={(value) =>
+                          formatCurrency(typeof value === "number" ? value : 0)
+                        }
+                      />
+                      <Legend
+                        verticalAlign="bottom"
+                        height={32}
+                        iconType="circle"
+                        iconSize={8}
+                        wrapperStyle={{ fontSize: 11 }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="chart-empty">
+                    <p>No data today</p>
                   </div>
-                </div>
-                <p
-                  className={`metric-amount ${totalExpenses > 0 ? "negative" : "positive"}`}
-                >
-                  {totalExpenses > 0 ? "-" : totalExpenses < 0 ? "+" : ""}
-                  {formatCurrency(Math.abs(totalExpenses))}
-                </p>
-                <div className="metric-footer">
-                  <span className="metric-sub">
-                    Today{" "}
-                    <span
-                      className={
-                        todayExpenses > 0
-                          ? "metric-sub-value-neg"
-                          : "metric-sub-value"
-                      }
-                    >
-                      {formatCompactCurrency(todayExpenses)}
-                    </span>
-                  </span>
-                  <button
-                    onClick={() => router.push("/expenses")}
-                    className="metric-link"
-                  >
-                    View Details →
-                  </button>
-                </div>
-              </div>
-              <div className="metric-divider" />
-              <div className="metric">
-                <div className="metric-top">
-                  <span className="metric-name">Daily Commission</span>
-                  <div className="metric-badge positive">
-                    <DollarSign size={16} />
-                  </div>
-                </div>
-                <p className="metric-amount positive">
-                  +{formatCurrency(dailyCommission)}
-                </p>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 4,
-                    marginTop: 4,
-                    fontSize: 11,
-                    color: "#64748b",
-                  }}
-                >
-                  <CheckCircle size={11} color="#16a34a" />
-                  <span>
-                    Bank: {formatCompactCurrency(totalBankCommission)}
-                  </span>
-                </div>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 4,
-                    marginTop: 2,
-                    fontSize: 11,
-                    color: "#64748b",
-                  }}
-                >
-                  <CheckCircle size={11} color="#16a34a" />
-                  <span>
-                    Telecom: {formatCompactCurrency(totalTelecomCommission)}
-                  </span>
-                </div>
-                <div className="metric-footer">
-                  {topCommissionAccount ? (
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        background: "rgba(22,163,74,0.08)",
-                        borderRadius: "6px",
-                        padding: "5px 8px",
-                        gap: 8,
-                        flex: 1,
-                        minWidth: 0,
-                      }}
-                    >
-                      <span
-                        style={{
-                          fontSize: 12,
-                          fontWeight: 600,
-                          color: "#15803d",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {topCommissionAccount.accountName}
-                      </span>
-                      <span
-                        style={{
-                          fontSize: 12,
-                          fontWeight: 700,
-                          color: "#16a34a",
-                          flexShrink: 0,
-                        }}
-                      >
-                        +
-                        {formatCompactCurrency(
-                          topCommissionAccount.commissionAmount,
-                        )}
-                      </span>
-                    </div>
-                  ) : (
-                    <span className="metric-sub">No commission yet</span>
-                  )}
-                  <button
-                    onClick={() => router.push("/commissions")}
-                    className="metric-link"
-                  >
-                    View Details →
-                  </button>
-                </div>
-              </div>
-              <div className="metric-divider" />
-              <div className="metric">
-                <div className="metric-top">
-                  <span className="metric-name">Transactions</span>
-                  <div
-                    className="metric-badge"
-                    style={{ backgroundColor: "#e0e7ff", color: "#4f46e5" }}
-                  >
-                    <ArrowLeftRight size={16} />
-                  </div>
-                </div>
-                <p className="metric-amount" style={{ color: "#4f46e5" }}>
-                  {transactionCount}
-                </p>
-                <div className="metric-footer">
-                  {topTransactionAccount ? (
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        background: "rgba(79,70,229,0.08)",
-                        borderRadius: "6px",
-                        padding: "5px 8px",
-                        gap: 8,
-                        flex: 1,
-                        minWidth: 0,
-                      }}
-                    >
-                      <span
-                        style={{
-                          fontSize: 12,
-                          fontWeight: 600,
-                          color: "#4338ca",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {topTransactionAccount.accountName}
-                      </span>
-                      <span
-                        style={{
-                          fontSize: 12,
-                          fontWeight: 700,
-                          color: "#4f46e5",
-                          flexShrink: 0,
-                        }}
-                      >
-                        {topTransactionAccount.transactionCount} txns
-                      </span>
-                    </div>
-                  ) : (
-                    <span className="metric-sub">today</span>
-                  )}
-                  <button
-                    onClick={() => router.push("/transactions")}
-                    className="metric-link"
-                  >
-                    View All →
-                  </button>
-                </div>
+                )}
               </div>
             </div>
           </div>
         </div>
 
-        {/* Bottom Section: Current Balances */}
-        <div className="dashboard-bottom">
-          {/* Accounts Table */}
+        {/* Bottom Section: Bar Chart (left) + Current Balances (right) */}
+        <div className="dashboard-bottom-split">
+          {/* Transactions Bar Chart */}
+          <div className="chart-card">
+            <h3 className="chart-title">Transactions by Account</h3>
+            {transactionBarData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={320}>
+                <BarChart
+                  data={transactionBarData}
+                  margin={{ top: 8, right: 16, left: 0, bottom: 0 }}
+                >
+                  <XAxis
+                    dataKey="name"
+                    tick={{ fontSize: 12, fill: "#6b7280" }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    allowDecimals={false}
+                    tick={{ fontSize: 12, fill: "#6b7280" }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <Tooltip
+                    cursor={{ fill: "rgba(0,0,0,0.04)" }}
+                    contentStyle={{
+                      borderRadius: 8,
+                      border: "1px solid #e5e7eb",
+                      fontSize: 13,
+                    }}
+                  />
+                  <Bar
+                    dataKey="count"
+                    name="Transactions"
+                    radius={[6, 6, 0, 0]}
+                  >
+                    {transactionBarData.map((_entry, index) => (
+                      <Cell
+                        key={`bar-${index}`}
+                        fill={CHART_COLORS[index % CHART_COLORS.length]}
+                      />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="chart-empty">
+                <p>No transactions today</p>
+              </div>
+            )}
+          </div>
+
+          {/* Current Balances Table */}
           <div className="table-card">
             <div className="table-header">
               <h3>Current Balances</h3>
