@@ -12,7 +12,6 @@ import {
   fetchBalanceValidation,
   clearBalanceValidation,
 } from "../../store/slices/reconciliationsSlice";
-import { fetchTransactions } from "../../store/slices/transactionsSlice";
 import { fetchDashboard } from "../../store/slices/dashboardSlice";
 import { selectEffectiveCompanyId } from "../../store/slices/authSlice";
 
@@ -24,7 +23,6 @@ import type {
   CashCount,
   BalanceValidationEnum,
 } from "../../types";
-import type { Transaction } from "../../types/transaction";
 
 interface UseReconciliationScreenProps {
   date: string;
@@ -52,18 +50,15 @@ export function useReconciliationScreen({
   // Redux state
   const {
     reconciliationDetails,
-    isLoading,
     isLoadingDetails,
     isFinalizing,
     isCalculating,
     error,
     balanceValidation,
-    shiftStatus,
   } = useAppSelector((state) => state.reconciliations);
   const { user: backendUser } = useAppSelector((state) => state.auth);
   const effectiveCompanyId = useAppSelector(selectEffectiveCompanyId);
   const resolvedCompanyId = companyIdOverride ?? effectiveCompanyId;
-  const { items: transactions } = useAppSelector((state) => state.transactions);
 
   // Check if user can review reconciliations (supervisor or admin)
   const canReview =
@@ -95,14 +90,6 @@ export function useReconciliationScreen({
           date,
           shift,
           subtype,
-        }),
-      );
-      dispatch(
-        fetchTransactions({
-          companyId: resolvedCompanyId,
-          startDate: date,
-          endDate: `${date}T23:59:59`,
-          shift,
         }),
       );
     }
@@ -195,17 +182,6 @@ export function useReconciliationScreen({
     return map;
   }, [balanceValidation]);
 
-  // --- Linked transactions for this shift ---
-  const shiftTransactions: Transaction[] = useMemo(() => {
-    return transactions
-      .filter((t) => t.transactionTime?.startsWith(date) && t.shift === shift)
-      .sort(
-        (a, b) =>
-          new Date(b.transactionTime || "").getTime() -
-          new Date(a.transactionTime || "").getTime(),
-      );
-  }, [transactions, date, shift]);
-
   const onRefresh = async () => {
     if (!date || !shift || !resolvedCompanyId) return;
     setRefreshing(true);
@@ -224,14 +200,6 @@ export function useReconciliationScreen({
           date,
           shift,
           subtype,
-        }),
-      ),
-      dispatch(
-        fetchTransactions({
-          companyId: resolvedCompanyId,
-          startDate: date,
-          endDate: `${date}T23:59:59`,
-          shift,
         }),
       ),
     ]);
@@ -277,14 +245,6 @@ export function useReconciliationScreen({
             date,
             shift,
             subtype,
-          }),
-        ),
-        dispatch(
-          fetchTransactions({
-            companyId: resolvedCompanyId,
-            startDate: date,
-            endDate: `${date}T23:59:59`,
-            shift,
           }),
         ),
         dispatch(
@@ -481,10 +441,6 @@ export function useReconciliationScreen({
     discrepancyCount,
     totalDiscrepancyAmount,
     validationByAccountId,
-
-    // Linked transactions
-    shiftTransactions,
-
     // Actions
     onRefresh,
     handleBack,

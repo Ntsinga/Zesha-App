@@ -16,7 +16,6 @@ import {
   Lock,
   Check,
   XCircle,
-  ArrowLeftRight,
   ArrowUpCircle,
   ArrowDownCircle,
   ShieldAlert,
@@ -80,8 +79,6 @@ export default function BalanceDetailWeb() {
     discrepancyCount,
     totalDiscrepancyAmount,
     validationByAccountId,
-    // Linked transactions
-    shiftTransactions,
   } = useReconciliationScreen({
     date,
     shift,
@@ -362,7 +359,7 @@ export default function BalanceDetailWeb() {
                     <tr
                       style={{
                         borderTop: "2px solid var(--color-border)",
-                        background: "var(--color-bg)",
+                        background: "#fff",
                       }}
                     >
                       <td
@@ -711,7 +708,7 @@ export default function BalanceDetailWeb() {
                 <button
                   onClick={handleCalculate}
                   disabled={isCalculating}
-                  className="btn-primary"
+                  className="btn-secondary"
                   style={{
                     flex: 1,
                     display: "flex",
@@ -737,7 +734,7 @@ export default function BalanceDetailWeb() {
                     }
                   }}
                   disabled={isFinalizing}
-                  className={`${hasDiscrepancies ? "btn-danger" : "btn-warning"}`}
+                  className={`${hasDiscrepancies ? "btn-danger" : "btn-success"}`}
                   style={{
                     flex: 1,
                     display: "flex",
