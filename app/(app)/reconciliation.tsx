@@ -26,7 +26,6 @@ import {
   RefreshCw,
   Check,
   XCircle,
-  ArrowLeftRight,
   ArrowUpCircle,
   ArrowDownCircle,
   ShieldAlert,
@@ -97,8 +96,6 @@ export default function BalanceDetailPage() {
     discrepancyCount,
     totalDiscrepancyAmount,
     validationByAccountId,
-    // Linked transactions
-    shiftTransactions,
   } = useReconciliationScreen({
     date,
     shift,
@@ -431,7 +428,9 @@ export default function BalanceDetailPage() {
                 className="flex-row items-center px-3 py-1 rounded-full bg-yellow-50 border border-yellow-200"
               >
                 <Pencil size={12} color="#B8860B" />
-                <Text className="text-yellow-700 text-xs font-semibold ml-1">Edit</Text>
+                <Text className="text-yellow-700 text-xs font-semibold ml-1">
+                  Edit
+                </Text>
               </TouchableOpacity>
             )}
           </View>
@@ -558,7 +557,9 @@ export default function BalanceDetailPage() {
                 className="flex-row items-center px-3 py-1 rounded-full bg-green-50 border border-green-200"
               >
                 <Pencil size={12} color="#16A34A" />
-                <Text className="text-green-700 text-xs font-semibold ml-1">Edit</Text>
+                <Text className="text-green-700 text-xs font-semibold ml-1">
+                  Edit
+                </Text>
               </TouchableOpacity>
             )}
           </View>
@@ -588,7 +589,8 @@ export default function BalanceDetailPage() {
                   }`}
                 >
                   <Text className="flex-1 text-gray-700">
-                    {formatCurrency(cc.denomination)}{cc.isCoin ? " (Coin)" : ""}
+                    {formatCurrency(cc.denomination)}
+                    {cc.isCoin ? " (Coin)" : ""}
                   </Text>
                   <Text className="w-16 text-center text-gray-600">
                     ×{cc.quantity}
@@ -605,76 +607,6 @@ export default function BalanceDetailPage() {
             </Text>
           )}
         </View>
-
-        {/* Linked Transactions Card — only shown on CLOSING */}
-        {!isOpening && (
-          <View className="bg-white rounded-2xl p-4 mb-4 shadow-sm border border-gray-100">
-            <View className="flex-row items-center mb-3">
-              <ArrowLeftRight color="#4F46E5" size={20} />
-              <Text className="text-gray-700 font-semibold ml-2">
-                Transactions ({shiftTransactions.length})
-              </Text>
-            </View>
-
-            {shiftTransactions.length > 0 ? (
-              shiftTransactions.map((txn, idx) => (
-                <View
-                  key={txn.id}
-                  className={`flex-row items-center py-3 ${
-                    idx < shiftTransactions.length - 1
-                      ? "border-b border-gray-100"
-                      : ""
-                  }`}
-                >
-                  <View
-                    className={`p-1.5 rounded-full mr-3 ${
-                      txn.transactionType === "DEPOSIT"
-                        ? "bg-green-100"
-                        : txn.transactionType === "WITHDRAW"
-                          ? "bg-red-100"
-                          : "bg-indigo-100"
-                    }`}
-                  >
-                    {txn.transactionType === "DEPOSIT" ? (
-                      <ArrowDownCircle size={16} color="#16A34A" />
-                    ) : txn.transactionType === "WITHDRAW" ? (
-                      <ArrowUpCircle size={16} color="#DC2626" />
-                    ) : (
-                      <ArrowLeftRight size={16} color="#4F46E5" />
-                    )}
-                  </View>
-                  <View className="flex-1">
-                    <Text className="font-medium text-gray-800 text-sm">
-                      {txn.account?.name || `Account ${txn.accountId}`}
-                    </Text>
-                    <Text className="text-xs text-gray-400">
-                      {txn.transactionType === "FLOAT_PURCHASE"
-                        ? "Float Purchase"
-                        : txn.transactionType}{" "}
-                      · {txn.reference || "No ref"}
-                    </Text>
-                  </View>
-                  <Text
-                    className={`font-bold text-sm ${
-                      txn.transactionType === "DEPOSIT"
-                        ? "text-green-600"
-                        : txn.transactionType === "WITHDRAW"
-                          ? "text-red-600"
-                          : "text-indigo-600"
-                    }`}
-                  >
-                    {txn.transactionType === "WITHDRAW" ? "-" : "+"}
-                    {formatCurrency(txn.amount || 0)}
-                  </Text>
-                </View>
-              ))
-            ) : (
-              <Text className="text-gray-400 text-center py-2">
-                No transactions for this shift
-              </Text>
-            )}
-          </View>
-        )}
 
         {/* Notes Section */}
         <View className="bg-white rounded-2xl p-4 mb-4 shadow-sm border border-gray-100">
@@ -766,14 +698,22 @@ export default function BalanceDetailPage() {
                               return;
                             }
                             if (!r?.success && r?.error) {
-                              Toast.show({ type: "error", text1: "Error", text2: r.error });
+                              Toast.show({
+                                type: "error",
+                                text1: "Error",
+                                text2: r.error,
+                              });
                             }
                           },
                         },
                       ],
                     );
                   } else if (!result?.success && result?.error) {
-                    Toast.show({ type: "error", text1: "Error", text2: result.error });
+                    Toast.show({
+                      type: "error",
+                      text1: "Error",
+                      text2: result.error,
+                    });
                   }
                 }}
                 disabled={isFinalizing}
