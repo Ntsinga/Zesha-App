@@ -1,6 +1,6 @@
 ﻿import React, { useMemo } from "react";
 import { useRouter } from "expo-router";
-import { Wallet, RefreshCw, Banknote } from "lucide-react";
+import { Wallet, RefreshCw } from "lucide-react";
 import {
   PieChart,
   Pie,
@@ -13,8 +13,8 @@ import {
   YAxis,
   Tooltip,
   ResponsiveContainer,
-  Legend,
   CartesianGrid,
+  ReferenceLine,
 } from "recharts";
 import { useDashboardScreen } from "../../hooks/screens/useDashboardScreen";
 import "../../styles/web.css";
@@ -29,6 +29,16 @@ const CHART_COLORS = [
   "#ec4899",
   "#14b8a6",
 ];
+
+const CATEGORY_COLORS = {
+  BANK: "#4f46e5",
+  TELECOM: "#16a34a",
+} as const;
+
+const CATEGORY_ACCOUNT_COLORS = {
+  BANK: ["#4f46e5", "#0ea5e9", "#8b5cf6", "#f59e0b"],
+  TELECOM: ["#16a34a", "#c0152a", "#14b8a6", "#f59e0b"],
+} as const;
 
 /**
  * Web Dashboard - optimized for desktop with CSS classes for maintainability
@@ -49,6 +59,7 @@ export default function DashboardWeb() {
     topCommissionAccounts,
     chartTransactionAccounts,
     dailyCommission,
+    commissionBreakdown,
     totalBankCommission,
     totalTelecomCommission,
     displayCapital,
@@ -57,8 +68,7 @@ export default function DashboardWeb() {
     capitalLabel,
     liveGrandTotal,
     commissionDailyTotals,
-    transactionDailyData,
-    expensesByCategory,
+    netEarningsTrendData,
     formatCurrency,
     formatCompactCurrency,
     onRefresh,
@@ -66,30 +76,87 @@ export default function DashboardWeb() {
     setChartPeriod,
   } = useDashboardScreen();
 
-  // Pie chart data: commission by account
-  const commissionPieData = topCommissionAccounts.map((entry) => ({
-    name: entry.accountName,
-    value: entry.commissionAmount,
-  }));
+  const commissionCategoryData = useMemo(() => {
+    const items: {
+      name: string;
+      category: "BANK" | "TELECOM";
+      value: number;
+      fill: string;
+    }[] = [];
 
-  const commissionPieTotal = commissionPieData.reduce((s, d) => s + d.value, 0);
+    if (totalTelecomCommission > 0) {
+      items.push({
+        name: "Telecom",
+        category: "TELECOM",
+        value: totalTelecomCommission,
+        fill: CATEGORY_COLORS.TELECOM,
+      });
+    }
 
-  // Pie chart data: commission by category (Bank / Telecom)
-  const commissionCategoryData = [
-    ...(totalBankCommission > 0
-      ? [{ name: "Bank", value: totalBankCommission }]
-      : []),
-    ...(totalTelecomCommission > 0
-      ? [{ name: "Telecom", value: totalTelecomCommission }]
-      : []),
-  ];
-  const CATEGORY_COLORS = ["#4f46e5", "#16a34a"];
+    if (totalBankCommission > 0) {
+      items.push({
+        name: "Bank",
+        category: "BANK",
+        value: totalBankCommission,
+        fill: CATEGORY_COLORS.BANK,
+      });
+    }
+
+    return items;
+  }, [totalBankCommission, totalTelecomCommission]);
+
+  const commissionChartTotal = commissionCategoryData.reduce(
+    (sum, entry) => sum + entry.value,
+    0,
+  );
+
+  const commissionAccountData = useMemo(() => {
+    let bankIndex = 0;
+    let telecomIndex = 0;
+
+    const sourceAccounts =
+      commissionBreakdown.length > 0
+        ? [...commissionBreakdown]
+            .filter((entry) => entry.totalExpectedCommission > 0)
+            .sort(
+              (left, right) =>
+                right.totalExpectedCommission - left.totalExpectedCommission,
+            )
+            .slice(0, 6)
+            .map((entry) => ({
+              name: entry.accountName,
+              category: entry.accountType,
+              value: entry.totalExpectedCommission,
+            }))
+        : topCommissionAccounts.map((entry) => ({
+            name: entry.accountName,
+            category: entry.accountType,
+            value: entry.commissionAmount,
+          }));
+
+    return sourceAccounts.map((entry) => {
+      const palette = CATEGORY_ACCOUNT_COLORS[entry.category];
+      const colorIndex =
+        entry.category === "BANK" ? bankIndex++ : telecomIndex++;
+      return {
+        name: entry.name,
+        category: entry.category,
+        value: entry.value,
+        fill: palette[colorIndex % palette.length],
+      };
+    });
+  }, [commissionBreakdown, topCommissionAccounts]);
 
   // Bar chart data: period-aware from analytics
   const transactionBarData = chartTransactionAccounts.map((entry) => ({
     name: entry.accountName,
     count: entry.transactionCount,
   }));
+
+  const netEarningsTotal = netEarningsTrendData.reduce(
+    (sum, entry) => sum + entry.netEarnings,
+    0,
+  );
 
   // Commission over time line chart data
   const commissionLineData = useMemo(() => {
@@ -120,42 +187,6 @@ export default function DashboardWeb() {
       commission: d.totalExpectedCommission,
     }));
   }, [commissionDailyTotals, chartPeriod]);
-
-  // Transaction daily area chart data
-  const transactionDailyChartData = useMemo(() => {
-    if (chartPeriod === "year") {
-      const now = new Date();
-      const slots: string[] = [];
-      for (let i = 11; i >= 0; i--) {
-        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-        slots.push(key);
-      }
-      const monthMap: Record<
-        string,
-        { deposits: number; withdrawals: number }
-      > = {};
-      transactionDailyData.forEach((d) => {
-        const key = d.date.slice(0, 7);
-        if (!monthMap[key]) monthMap[key] = { deposits: 0, withdrawals: 0 };
-        monthMap[key].deposits += d.totalDeposits;
-        monthMap[key].withdrawals += d.totalWithdrawals;
-      });
-      return slots.map((key) => ({
-        date: new Date(key + "-01").toLocaleString("default", {
-          month: "short",
-          year: "2-digit",
-        }),
-        deposits: monthMap[key]?.deposits ?? 0,
-        withdrawals: monthMap[key]?.withdrawals ?? 0,
-      }));
-    }
-    return transactionDailyData.map((d) => ({
-      date: d.date.slice(5),
-      deposits: d.totalDeposits,
-      withdrawals: d.totalWithdrawals,
-    }));
-  }, [transactionDailyData, chartPeriod]);
 
   const PERIOD_LABELS: Record<string, string> = {
     today: "Today",
@@ -199,7 +230,6 @@ export default function DashboardWeb() {
         {/* === Full-width Grand Total Strip === */}
         <div className="gt-strip">
           <div className="gt-strip-main">
-            <Banknote size={20} />
             <div className="gt-strip-title-group">
               <span className="gt-strip-label">Total Operating Capital</span>
               <span className="gt-strip-amount">
@@ -255,16 +285,6 @@ export default function DashboardWeb() {
                 </span>
               </div>
             )}
-            <div className="gt-strip-metric-divider" />
-            <div className="gt-strip-metric">
-              <span className="gt-strip-metric-label">Net Profit</span>
-              <span
-                className={`gt-strip-metric-value ${expectedGrandTotal - totalPendingExpenses >= 0 ? "positive" : "negative"}`}
-              >
-                {expectedGrandTotal - totalPendingExpenses >= 0 ? "+" : ""}
-                {formatCurrency(expectedGrandTotal - totalPendingExpenses)}
-              </span>
-            </div>
           </div>
           <div className="gt-strip-live">
             {liveGrandTotal !== null && <span className="gt-live-dot" />}
@@ -306,110 +326,116 @@ export default function DashboardWeb() {
 
           {/* 2×2 Chart Grid */}
           <div className="dashboard-charts-grid">
-            {/* Top-left: Commission Pie Charts */}
+            {/* Top-left: Combined Commission Donut */}
             <div className="chart-card">
               <div className="commission-chart-header">
                 <h3 className="chart-title" style={{ margin: 0 }}>
                   Commission
                 </h3>
                 <span className="commission-total">
-                  {formatCurrency(commissionPieTotal)}
+                  {formatCurrency(commissionChartTotal)}
                   <span className="commission-total-label">total</span>
                 </span>
               </div>
-              <div className="commission-charts-row">
-                {/* By Account */}
-                <div className="commission-chart-col">
-                  <p className="commission-chart-subtitle">By Account</p>
-                  {commissionPieData.length > 0 ? (
-                    <ResponsiveContainer width="100%" height={200}>
-                      <PieChart>
-                        <Pie
-                          data={commissionPieData}
-                          cx="50%"
-                          cy="50%"
-                          innerRadius={40}
-                          outerRadius={68}
-                          paddingAngle={3}
-                          dataKey="value"
-                          minAngle={5}
-                          label={({ name, percent }) =>
-                            `${name} ${((percent ?? 0) * 100).toFixed(1)}%`
-                          }
-                          labelLine={false}
-                        >
-                          {commissionPieData.map((_entry, index) => (
-                            <Cell
-                              key={`cell-acc-${index}`}
-                              fill={CHART_COLORS[index % CHART_COLORS.length]}
-                            />
-                          ))}
-                        </Pie>
-                        <Tooltip
-                          formatter={(value) => {
-                            const amt = typeof value === "number" ? value : 0;
-                            return formatCurrency(amt);
-                          }}
+              <p className="commission-mix-note">
+                Inner ring shows category. Outer ring shows the top earning
+                accounts.
+              </p>
+              {commissionAccountData.length > 0 ? (
+                <>
+                  <ResponsiveContainer width="100%" height={260}>
+                    <PieChart>
+                      <Pie
+                        data={commissionCategoryData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={42}
+                        outerRadius={70}
+                        dataKey="value"
+                        stroke="none"
+                      >
+                        {commissionCategoryData.map((entry) => (
+                          <Cell
+                            key={`category-${entry.category}`}
+                            fill={entry.fill}
+                          />
+                        ))}
+                      </Pie>
+                      <Pie
+                        data={commissionAccountData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={82}
+                        outerRadius={112}
+                        paddingAngle={2}
+                        dataKey="value"
+                        stroke="none"
+                        labelLine={false}
+                      >
+                        {commissionAccountData.map((entry, index) => (
+                          <Cell
+                            key={`account-${entry.name}-${index}`}
+                            fill={entry.fill}
+                          />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        formatter={(value, _name, item) => {
+                          const amount = typeof value === "number" ? value : 0;
+                          const payload = item.payload as {
+                            name: string;
+                            category?: "BANK" | "TELECOM";
+                          };
+                          const label = payload.category
+                            ? `${payload.name} (${payload.category === "BANK" ? "Bank" : "Telecom"})`
+                            : payload.name;
+                          return [formatCurrency(amount), label];
+                        }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="commission-mix-legend">
+                    {commissionCategoryData.map((entry) => (
+                      <div
+                        key={entry.category}
+                        className="commission-mix-chip is-category"
+                      >
+                        <span
+                          className="commission-mix-swatch"
+                          style={{ background: entry.fill }}
                         />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  ) : (
-                    <div className="chart-empty">
-                      <p>No data for this period</p>
-                    </div>
-                  )}
-                </div>
-
-                {/* By Category */}
-                <div className="commission-chart-col">
-                  <p className="commission-chart-subtitle">By Category</p>
-                  {commissionCategoryData.length > 0 ? (
-                    <ResponsiveContainer width="100%" height={200}>
-                      <PieChart>
-                        <Pie
-                          data={commissionCategoryData}
-                          cx="50%"
-                          cy="50%"
-                          innerRadius={40}
-                          outerRadius={68}
-                          paddingAngle={3}
-                          dataKey="value"
-                          minAngle={5}
-                          label={({ name, percent }) =>
-                            `${name} ${((percent ?? 0) * 100).toFixed(1)}%`
-                          }
-                          labelLine={false}
-                        >
-                          {commissionCategoryData.map((_entry, index) => (
-                            <Cell
-                              key={`cell-cat-${index}`}
-                              fill={
-                                CATEGORY_COLORS[index % CATEGORY_COLORS.length]
-                              }
-                            />
-                          ))}
-                        </Pie>
-                        <Tooltip
-                          formatter={(value) => {
-                            const amt = typeof value === "number" ? value : 0;
-                            return formatCurrency(amt);
-                          }}
+                        <span>{entry.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="commission-mix-legend is-accounts">
+                    {commissionAccountData.map((entry) => (
+                      <div
+                        key={`${entry.category}-${entry.name}`}
+                        className="commission-mix-chip"
+                      >
+                        <span
+                          className="commission-mix-swatch"
+                          style={{ background: entry.fill }}
                         />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  ) : (
-                    <div className="chart-empty">
-                      <p>No data for this period</p>
-                    </div>
-                  )}
+                        <span>{entry.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <div className="chart-empty">
+                  <p>No data for this period</p>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Top-right: Transactions Bar Chart */}
             <div className="chart-card">
               <div className="commission-chart-header">
-                <h3 className="chart-title" style={{ margin: 0 }}>Transactions by Account</h3>
+                <h3 className="chart-title" style={{ margin: 0 }}>
+                  Transactions by Account
+                </h3>
                 {transactionBarData.length > 0 && (
                   <span className="commission-total">
                     {transactionBarData.reduce((s, d) => s + d.count, 0)}
@@ -516,51 +542,93 @@ export default function DashboardWeb() {
               )}
             </div>
 
-            {/* Bottom-right: Expenses by Category (Pie Chart) */}
+            {/* Bottom-right: Net Earnings Over Time */}
             <div className="chart-card">
-              <h3 className="chart-title">Expenses by Category</h3>
-              {expensesByCategory.length > 0 ? (
+              <div className="commission-chart-header">
+                <h3 className="chart-title" style={{ margin: 0 }}>
+                  Net Earnings Over Time
+                </h3>
+                <span
+                  className={`commission-total ${netEarningsTotal < 0 ? "negative" : ""}`}
+                >
+                  {formatCurrency(netEarningsTotal)}
+                  <span className="commission-total-label">period total</span>
+                </span>
+              </div>
+              {netEarningsTrendData.length > 0 ? (
                 <ResponsiveContainer width="100%" height={280}>
-                  <PieChart>
-                    <Pie
-                      data={expensesByCategory}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={50}
-                      outerRadius={85}
-                      paddingAngle={3}
-                      dataKey="value"
-                      minAngle={5}
-                      label={({ name, percent }) =>
-                        `${name} ${((percent ?? 0) * 100).toFixed(1)}%`
+                  <LineChart
+                    data={netEarningsTrendData}
+                    margin={{ top: 8, right: 16, left: 0, bottom: 0 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis
+                      dataKey="date"
+                      tick={{ fontSize: 11, fill: "#6b7280" }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <YAxis
+                      tick={{ fontSize: 11, fill: "#6b7280" }}
+                      axisLine={false}
+                      tickLine={false}
+                      tickFormatter={(value) =>
+                        value >= 1000 || value <= -1000
+                          ? `${(value / 1000).toFixed(0)}k`
+                          : String(value)
                       }
-                      labelLine={false}
-                    >
-                      {expensesByCategory.map((_entry, index) => (
-                        <Cell
-                          key={`exp-${index}`}
-                          fill={CHART_COLORS[index % CHART_COLORS.length]}
-                        />
-                      ))}
-                    </Pie>
+                    />
+                    <ReferenceLine
+                      y={0}
+                      stroke="#cbd5e1"
+                      strokeDasharray="4 4"
+                    />
                     <Tooltip
-                      formatter={(value) => {
-                        const amt = typeof value === "number" ? value : 0;
-                        return formatCurrency(amt);
+                      contentStyle={{
+                        borderRadius: 8,
+                        border: "1px solid #e5e7eb",
+                        fontSize: 13,
+                      }}
+                      formatter={(value, name) => {
+                        const amount = typeof value === "number" ? value : 0;
+                        if (name === "commission") {
+                          return [formatCurrency(amount), "Commission"];
+                        }
+                        if (name === "expenses") {
+                          return [formatCurrency(amount), "Expenses"];
+                        }
+                        return [formatCurrency(amount), "Net Earnings"];
                       }}
                     />
-                    <Legend
-                      verticalAlign="bottom"
-                      height={32}
-                      iconType="circle"
-                      iconSize={8}
-                      wrapperStyle={{ fontSize: 11 }}
+                    <Line
+                      type="monotone"
+                      dataKey="commission"
+                      stroke="#94a3b8"
+                      strokeDasharray="4 4"
+                      strokeWidth={2}
+                      dot={false}
                     />
-                  </PieChart>
+                    <Line
+                      type="monotone"
+                      dataKey="expenses"
+                      stroke="#f59e0b"
+                      strokeDasharray="4 4"
+                      strokeWidth={2}
+                      dot={false}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="netEarnings"
+                      stroke="#0f766e"
+                      strokeWidth={3}
+                      dot={{ r: 3, fill: "#0f766e" }}
+                      activeDot={{ r: 5 }}
+                    />
+                  </LineChart>
                 </ResponsiveContainer>
               ) : (
                 <div className="chart-empty">
-                  <p>No expense data</p>
+                  <p>No net earnings data for this period</p>
                 </div>
               )}
             </div>

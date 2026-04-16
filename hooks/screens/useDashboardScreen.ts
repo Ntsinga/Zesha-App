@@ -16,7 +16,7 @@ import {
 import { useCurrencyFormatter } from "../useCurrency";
 import { useAutoRefreshOnReconnect } from "../useAutoRefreshOnReconnect";
 import { selectEffectiveCompanyId } from "../../store/slices/authSlice";
-import type { ShiftEnum } from "../../types";
+import type { AccountTypeEnum, ShiftEnum } from "../../types";
 import type { AppDispatch, RootState } from "../../store";
 
 function parseUtcDateString(value: string): Date {
@@ -46,6 +46,22 @@ function getChartDays(period: ChartPeriod): number {
   if (period === "week") return 7;
   if (period === "year") return 365;
   return 30;
+}
+
+function buildDailySlots(startDate: string, endDate: string): string[] {
+  const slots: string[] = [];
+  const cursor = new Date(`${startDate}T00:00:00`);
+  const end = new Date(`${endDate}T00:00:00`);
+
+  while (cursor <= end) {
+    const year = cursor.getFullYear();
+    const month = String(cursor.getMonth() + 1).padStart(2, "0");
+    const day = String(cursor.getDate()).padStart(2, "0");
+    slots.push(`${year}-${month}-${day}`);
+    cursor.setDate(cursor.getDate() + 1);
+  }
+
+  return slots;
 }
 
 /**
@@ -90,6 +106,10 @@ export function useDashboardScreen() {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   })();
+  const chartRange = useMemo(
+    () => getChartDateRange(chartPeriod),
+    [chartPeriod],
+  );
 
   // Fetch dashboard data on mount and whenever effectiveCompanyId becomes available
   useEffect(() => {
@@ -114,7 +134,7 @@ export function useDashboardScreen() {
   // Fetch chart data based on selected period (commission pies + transaction bar + daily charts)
   useEffect(() => {
     if (!effectiveCompanyId) return;
-    const { startDate, endDate } = getChartDateRange(chartPeriod);
+    const { startDate, endDate } = chartRange;
     dispatch(
       fetchCommissionTotals({ startDate, endDate, shift: currentShift }),
     );
@@ -136,7 +156,7 @@ export function useDashboardScreen() {
         days: getChartDays(chartPeriod),
       }),
     );
-  }, [dispatch, effectiveCompanyId, chartPeriod, currentShift, today]);
+  }, [dispatch, effectiveCompanyId, chartPeriod, currentShift, chartRange]);
 
   // Fetch all expenses (not just today) so totalPendingExpenses reflects cumulative pending
   useEffect(() => {
@@ -159,7 +179,7 @@ export function useDashboardScreen() {
     setRefreshing(true);
     await dispatch(fetchDashboard({ forceRefresh: true }));
     if (effectiveCompanyId) {
-      const { startDate, endDate } = getChartDateRange(chartPeriod);
+      const { startDate, endDate } = chartRange;
       dispatch(
         fetchTransactions({
           companyId: effectiveCompanyId,
@@ -196,7 +216,14 @@ export function useDashboardScreen() {
       );
     }
     setRefreshing(false);
-  }, [dispatch, effectiveCompanyId, today, chartPeriod, currentShift]);
+  }, [
+    dispatch,
+    effectiveCompanyId,
+    today,
+    chartPeriod,
+    currentShift,
+    chartRange,
+  ]);
 
   // Shift change handler
   const handleShiftChange = useCallback(
@@ -462,7 +489,12 @@ export function useDashboardScreen() {
 
   // Top 5 accounts by commission earned today
   const topCommissionAccounts = useMemo<
-    { accountId: number; accountName: string; commissionAmount: number }[]
+    {
+      accountId: number;
+      accountName: string;
+      commissionAmount: number;
+      accountType: AccountTypeEnum;
+    }[]
   >(() => {
     if (commissionBreakdown.length > 0) {
       return [...commissionBreakdown]
@@ -470,6 +502,7 @@ export function useDashboardScreen() {
           accountId: entry.accountId,
           accountName: entry.accountName,
           commissionAmount: entry.totalExpectedCommission,
+          accountType: entry.accountType,
         }))
         .sort((left, right) => right.commissionAmount - left.commissionAmount)
         .slice(0, 5);
@@ -477,7 +510,11 @@ export function useDashboardScreen() {
 
     const commissionsByAccount = new Map<
       number,
-      { accountName: string; commissionAmount: number }
+      {
+        accountName: string;
+        commissionAmount: number;
+        accountType: AccountTypeEnum;
+      }
     >();
 
     dailyCommissionTransactions.forEach((transaction) => {
@@ -486,6 +523,7 @@ export function useDashboardScreen() {
         transaction.account?.name || `Account ${transaction.accountId}`;
       const commissionAmount =
         transaction.expectedCommission?.commissionAmount ?? 0;
+      const accountType = transaction.account?.accountType ?? "TELECOM";
 
       if (existing) {
         existing.commissionAmount += commissionAmount;
@@ -493,6 +531,7 @@ export function useDashboardScreen() {
         commissionsByAccount.set(transaction.accountId, {
           accountName,
           commissionAmount,
+          accountType,
         });
       }
     });
@@ -608,6 +647,82 @@ export function useDashboardScreen() {
       .sort((a, b) => b.value - a.value);
   }, [expenses]);
 
+  const netEarningsTrendData = useMemo<
+    {
+      date: string;
+      commission: number;
+      expenses: number;
+      netEarnings: number;
+    }[]
+  >(() => {
+    const { startDate, endDate } = chartRange;
+
+    if (chartPeriod === "year") {
+      const now = new Date();
+      const slots: string[] = [];
+      for (let index = 11; index >= 0; index--) {
+        const slot = new Date(now.getFullYear(), now.getMonth() - index, 1);
+        const key = `${slot.getFullYear()}-${String(slot.getMonth() + 1).padStart(2, "0")}`;
+        slots.push(key);
+      }
+
+      const commissionByMonth: Record<string, number> = {};
+      commissionDailyTotals.forEach((entry) => {
+        const key = entry.date.slice(0, 7);
+        commissionByMonth[key] =
+          (commissionByMonth[key] ?? 0) + entry.totalExpectedCommission;
+      });
+
+      const expensesByMonth: Record<string, number> = {};
+      expenses.forEach((expense) => {
+        const expenseDate = expense.expenseDate.slice(0, 10);
+        if (expenseDate < startDate || expenseDate > endDate) return;
+        const key = expenseDate.slice(0, 7);
+        expensesByMonth[key] =
+          (expensesByMonth[key] ?? 0) + (expense.amount || 0);
+      });
+
+      return slots.map((key) => {
+        const commission = commissionByMonth[key] ?? 0;
+        const expenseTotal = expensesByMonth[key] ?? 0;
+        return {
+          date: new Date(`${key}-01`).toLocaleString("default", {
+            month: "short",
+            year: "2-digit",
+          }),
+          commission,
+          expenses: expenseTotal,
+          netEarnings: commission - expenseTotal,
+        };
+      });
+    }
+
+    const commissionByDay: Record<string, number> = {};
+    commissionDailyTotals.forEach((entry) => {
+      commissionByDay[entry.date] =
+        (commissionByDay[entry.date] ?? 0) + entry.totalExpectedCommission;
+    });
+
+    const expensesByDay: Record<string, number> = {};
+    expenses.forEach((expense) => {
+      const expenseDate = expense.expenseDate.slice(0, 10);
+      if (expenseDate < startDate || expenseDate > endDate) return;
+      expensesByDay[expenseDate] =
+        (expensesByDay[expenseDate] ?? 0) + (expense.amount || 0);
+    });
+
+    return buildDailySlots(startDate, endDate).map((date) => {
+      const commission = commissionByDay[date] ?? 0;
+      const expenseTotal = expensesByDay[date] ?? 0;
+      return {
+        date: date.slice(5),
+        commission,
+        expenses: expenseTotal,
+        netEarnings: commission - expenseTotal,
+      };
+    });
+  }, [chartPeriod, chartRange, commissionDailyTotals, expenses]);
+
   return {
     // State
     isLoading,
@@ -634,6 +749,7 @@ export function useDashboardScreen() {
     topCommissionAccount,
     topTransactionAccounts,
     topCommissionAccounts,
+    commissionBreakdown,
     commissionByAccountId,
     transactionCountsByAccountToday,
     chartPeriod,
@@ -671,6 +787,7 @@ export function useDashboardScreen() {
     commissionDailyTotals,
     transactionDailyData,
     expensesByCategory,
+    netEarningsTrendData,
 
     // Formatters
     formatCurrency,
