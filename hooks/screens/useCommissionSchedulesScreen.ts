@@ -159,7 +159,7 @@ export function useCommissionSchedulesScreen() {
   const handleCreateSchedule = async () => {
     if (isSubmittingRef.current) return;
     if (!scheduleName.trim()) {
-      showMsg("error", "Schedule name is required.");
+      showMsg("error", "Structure name is required.");
       return;
     }
     if (!companyId) {
@@ -179,10 +179,10 @@ export function useCommissionSchedulesScreen() {
     setIsSubmitting(false);
     if (createCommissionSchedule.fulfilled.match(result)) {
       setIsCreateScheduleOpen(false);
-      showMsg("success", "Schedule created successfully.");
+      showMsg("success", "Structure created successfully.");
       await selectSchedule(result.payload.id);
     } else {
-      showMsg("error", (result.payload as string) ?? "Failed to create schedule.");
+      showMsg("error", (result.payload as string) ?? "Failed to create structure.");
     }
   };
 
@@ -380,9 +380,9 @@ export function useCommissionSchedulesScreen() {
     setIsSubmitting(false);
     if (deleteCommissionSchedule.fulfilled.match(result)) {
       dispatch(clearSelectedSchedule());
-      showMsg("success", "Schedule deleted.");
+      showMsg("success", "Structure deleted.");
     } else {
-      showMsg("error", (result.payload as string) ?? "Failed to delete schedule.");
+      showMsg("error", (result.payload as string) ?? "Failed to delete structure.");
     }
   };
 
@@ -404,7 +404,7 @@ export function useCommissionSchedulesScreen() {
     if (copyTemplateToCompany.fulfilled.match(result)) {
       showMsg(
         "success",
-        `Template copied as "${result.payload.name}". Find it in My Schedules.`,
+        `Template copied as "${result.payload.name}". Find it in My Structures.`,
       );
       setActiveTab("my-schedules");
     } else {

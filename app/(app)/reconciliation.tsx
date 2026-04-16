@@ -105,6 +105,9 @@ export default function BalanceDetailPage() {
 
   // Extra fields from hook
   const isOpening = subtype === "OPENING";
+  const varianceLabel = variance > 0 ? "Excess" : "Loss";
+  const shiftVariance = reconciliation?.shiftVariance ?? 0;
+  const shiftVarianceLabel = shiftVariance > 0 ? "Excess" : "Loss";
 
   const getValidationDescription = (validation?: {
     calculatedBalance: number;
@@ -302,22 +305,20 @@ export default function BalanceDetailPage() {
                 </Text>
               </View>
               <View className="flex-row justify-between mb-2">
-                <Text className="text-gray-600">Shift Variance</Text>
+                <Text className="text-gray-600">{shiftVarianceLabel}</Text>
                 <View className="flex-row items-center">
-                  {(reconciliation.shiftVariance ?? 0) >= 0 ? (
+                  {shiftVariance > 0 ? (
                     <TrendingUp color="#16A34A" size={14} />
                   ) : (
                     <TrendingDown color="#DC2626" size={14} />
                   )}
                   <Text
                     className={`font-bold ml-1 ${
-                      (reconciliation.shiftVariance ?? 0) >= 0
-                        ? "text-green-600"
-                        : "text-red-600"
+                      shiftVariance > 0 ? "text-green-600" : "text-red-600"
                     }`}
                   >
-                    {(reconciliation.shiftVariance ?? 0) >= 0 ? "+" : ""}
-                    {formatCurrency(reconciliation.shiftVariance ?? 0)}
+                    {shiftVariance > 0 ? "+" : ""}
+                    {formatCurrency(shiftVariance)}
                   </Text>
                 </View>
               </View>
@@ -349,19 +350,19 @@ export default function BalanceDetailPage() {
           )}
 
           <View className="border-t border-gray-100 pt-2 mt-2 flex-row justify-between items-center">
-            <Text className="text-gray-700 font-semibold">Variance</Text>
+            <Text className="text-gray-700 font-semibold">{varianceLabel}</Text>
             <View className="flex-row items-center">
-              {variance >= 0 ? (
+              {variance > 0 ? (
                 <TrendingUp color="#16A34A" size={16} />
               ) : (
                 <TrendingDown color="#DC2626" size={16} />
               )}
               <Text
                 className={`font-bold ml-1 ${
-                  variance >= 0 ? "text-green-600" : "text-red-600"
+                  variance > 0 ? "text-green-600" : "text-red-600"
                 }`}
               >
-                {variance >= 0 ? "+" : ""}
+                {variance > 0 ? "+" : ""}
                 {formatCurrency(variance)}
               </Text>
             </View>

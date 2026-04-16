@@ -89,6 +89,7 @@ export default function BalanceDetailWeb() {
 
   const { showToast } = useToast();
   const isOpening = subtype === "OPENING";
+  const varianceLabel = variance > 0 ? "Excess" : "Loss";
 
   const getValidationDescription = (validation?: {
     calculatedBalance: number;
@@ -195,7 +196,6 @@ export default function BalanceDetailWeb() {
         <div className="gt-strip">
           {/* Left: Actual Closing */}
           <div className="gt-strip-main">
-            <Banknote size={20} />
             <div className="gt-strip-title-group">
               <span className="gt-strip-label">
                 {isOpening ? "Actual Opening" : "Actual Closing"}
@@ -257,11 +257,11 @@ export default function BalanceDetailWeb() {
             </div>
             <div className="gt-strip-metric-divider" />
             <div className="gt-strip-metric">
-              <span className="gt-strip-metric-label">Variance</span>
+              <span className="gt-strip-metric-label">{varianceLabel}</span>
               <span
-                className={`gt-strip-metric-value ${variance >= 0 ? "positive" : "negative"}`}
+                className={`gt-strip-metric-value ${variance > 0 ? "positive" : "negative"}`}
               >
-                {variance >= 0 ? "+" : ""}
+                {variance > 0 ? "+" : ""}
                 {formatCurrency(variance)}
               </span>
             </div>
@@ -283,6 +283,40 @@ export default function BalanceDetailWeb() {
                     +{formatCurrency(totalCommission)}
                   </span>
                 </div>
+              </>
+            )}
+
+            {/* Supervisor actions — after metrics */}
+            {isFinalized && canReview && !isApproved && (
+              <>
+                <div className="gt-strip-metric-divider" />
+                <button
+                  onClick={handleApprove}
+                  disabled={isFinalizing}
+                  className="gt-strip-action-btn approve"
+                >
+                  <Check size={14} />
+                  {isFinalizing ? "Approving..." : "Approve"}
+                </button>
+                <button
+                  onClick={handleReject}
+                  disabled={isFinalizing}
+                  className="gt-strip-action-btn reject"
+                >
+                  <XCircle size={14} />
+                  {isFinalizing ? "Processing..." : "Reject"}
+                </button>
+              </>
+            )}
+
+            {/* Approved badge in strip */}
+            {isApproved && (
+              <>
+                <div className="gt-strip-metric-divider" />
+                <span className="gt-strip-action-btn approve" style={{ cursor: "default", pointerEvents: "none" }}>
+                  <Check size={14} />
+                  Approved
+                </span>
               </>
             )}
           </div>
@@ -506,7 +540,8 @@ export default function BalanceDetailWeb() {
                                 color:
                                   validation?.validationStatus === "MATCHED"
                                     ? "#15803d"
-                                    : validation?.validationStatus === "SHORTAGE"
+                                    : validation?.validationStatus ===
+                                        "SHORTAGE"
                                       ? "#b91c1c"
                                       : "#a16207",
                               }}
@@ -532,7 +567,7 @@ export default function BalanceDetailWeb() {
                                   ? "text-red-600"
                                   : validation.validationStatus === "MATCHED"
                                     ? "text-green-600"
-                                  : ""
+                                    : ""
                               : ""
                           }`}
                         >
@@ -625,75 +660,31 @@ export default function BalanceDetailWeb() {
           {/* Notes Section */}
           <div className="table-card full-width">
             <div className="card-header">
-              <AlertTriangle size={18} color="#D97706" />
               <h3>Notes & Comments</h3>
             </div>
-            <div style={{ padding: "1rem" }}>
-              <textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Add notes about this reconciliation..."
-                disabled={isFinalized && !canReview}
-                style={{
-                  width: "100%",
-                  minHeight: "100px",
-                  padding: "12px",
-                  borderRadius: "8px",
-                  border: "1px solid #e5e7eb",
-                  backgroundColor:
-                    isFinalized && !canReview ? "#f3f4f6" : "#fff",
-                  resize: "vertical",
-                  fontFamily: "inherit",
-                  fontSize: "14px",
-                }}
-              />
-            </div>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Add notes about this reconciliation..."
+              disabled={isFinalized && !canReview}
+              style={{
+                width: "100%",
+                minHeight: "100px",
+                padding: "16px",
+                border: "none",
+                borderRadius: "0 0 16px 16px",
+                backgroundColor:
+                  isFinalized && !canReview ? "#f9fafb" : "white",
+                resize: "vertical",
+                fontFamily: "inherit",
+                fontSize: "14px",
+                boxSizing: "border-box",
+              }}
+            />
           </div>
 
           {/* Action Buttons */}
           <div className="table-card full-width">
-            {/* Status Badge */}
-            {isFinalized && (
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  padding: "12px 24px",
-                  borderRadius: "24px",
-                  backgroundColor: isApproved ? "#dcfce7" : "#fef3c7",
-                  margin: "1rem",
-                }}
-              >
-                {isApproved ? (
-                  <>
-                    <Check size={18} color="#16A34A" />
-                    <span
-                      style={{
-                        color: "#16A34A",
-                        fontWeight: 600,
-                        marginLeft: 8,
-                      }}
-                    >
-                      Approved
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <Lock size={18} color="#D97706" />
-                    <span
-                      style={{
-                        color: "#D97706",
-                        fontWeight: 600,
-                        marginLeft: 8,
-                      }}
-                    >
-                      Finalized - Awaiting Review
-                    </span>
-                  </>
-                )}
-              </div>
-            )}
 
             {/* Clerk Actions - Calculate and Finalize */}
             {!isFinalized && (
@@ -746,45 +737,7 @@ export default function BalanceDetailWeb() {
               </div>
             )}
 
-            {/* Supervisor/Admin Actions - Approve and Reject */}
-            {isFinalized && canReview && !isApproved && (
-              <div style={{ display: "flex", gap: "12px", padding: "1rem" }}>
-                <button
-                  onClick={handleApprove}
-                  disabled={isFinalizing}
-                  className="btn-success"
-                  style={{
-                    flex: 1,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 8,
-                    opacity: isFinalizing ? 0.6 : 1,
-                    cursor: isFinalizing ? "not-allowed" : "pointer",
-                  }}
-                >
-                  <Check size={18} />
-                  {isFinalizing ? "Approving..." : "Approve"}
-                </button>
-                <button
-                  onClick={handleReject}
-                  disabled={isFinalizing}
-                  className="btn-danger"
-                  style={{
-                    flex: 1,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 8,
-                    opacity: isFinalizing ? 0.6 : 1,
-                    cursor: isFinalizing ? "not-allowed" : "pointer",
-                  }}
-                >
-                  <XCircle size={18} />
-                  {isFinalizing ? "Processing..." : "Reject"}
-                </button>
-              </div>
-            )}
+            {/* Supervisor actions moved to top strip */}
           </div>
         </div>
       </div>

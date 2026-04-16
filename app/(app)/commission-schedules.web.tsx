@@ -607,7 +607,7 @@ export default function CommissionSchedulesPage() {
           {activeTab === "my-schedules" && !selectedSchedule && (
             <button className="btn-primary" onClick={openCreateSchedule}>
               <Plus size={16} />
-              New Schedule
+              New Structure
             </button>
           )}
           {activeTab === "my-schedules" && selectedSchedule && (
@@ -698,14 +698,14 @@ export default function CommissionSchedulesPage() {
               >
                 A <strong>Commission Structure</strong> is a named collection of
                 rules that define how commissions are calculated for
-                transactions on your accounts. Each schedule contains one or
+                transactions on your accounts. Each structure contains one or
                 more <strong>Rules</strong> — one per transaction type (e.g.
                 Deposit, Withdraw). Rules can be{" "}
                 <strong>Percentage-based</strong> (a flat % of the transaction
                 amount) or <strong>Tiered Flat</strong> (different fixed fees
-                depending on the transaction amount). Attach a schedule to an
+                depending on the transaction amount). Attach a structure to an
                 account to automatically calculate commissions.{" "}
-                <strong>Templates</strong> are pre-built schedules created by
+                <strong>Templates</strong> are pre-built structures created by
                 system administrators that you can copy as a starting point.
               </p>
             </div>
@@ -956,7 +956,7 @@ export default function CommissionSchedulesPage() {
                       className="spinner"
                       style={{ margin: "0 auto 12px" }}
                     />
-                    Loading schedules…
+                    Loading structures…
                   </div>
                 ) : schedules.length === 0 ? (
                   <div className="empty-state">
@@ -986,7 +986,7 @@ export default function CommissionSchedulesPage() {
                         margin: "0 auto 20px",
                       }}
                     >
-                      Create a schedule to define commission rules for your
+                      Create a structure to define commission rules for your
                       accounts, or copy one from the System Templates tab.
                     </p>
                     <div
@@ -1001,7 +1001,7 @@ export default function CommissionSchedulesPage() {
                         onClick={openCreateSchedule}
                       >
                         <Plus size={16} />
-                        Create Schedule
+                        Create Structure
                       </button>
                       <button
                         className="btn-secondary"
@@ -1115,7 +1115,7 @@ export default function CommissionSchedulesPage() {
             >
               <strong>System Templates</strong> are pre-built commission
               structures created by administrators. They are read-only — you can
-              copy any template to your own schedules and customise it from
+              copy any template to your own structures and customise it from
               there.
             </div>
 
@@ -1335,12 +1335,12 @@ export default function CommissionSchedulesPage() {
                   color: "var(--color-text-secondary)",
                 }}
               >
-                Give your schedule a descriptive name (e.g. "Standard Mobile
+                Give your structure a descriptive name (e.g. "Standard Mobile
                 Money Rates"). You can add commission rules to it after
                 creation.
               </div>
               <div className="form-group">
-                <label>Schedule Name *</label>
+                <label>Structure Name *</label>
                 <input
                   className="form-input"
                   type="text"
@@ -1354,7 +1354,7 @@ export default function CommissionSchedulesPage() {
                 <label>Description (optional)</label>
                 <textarea
                   className="form-textarea"
-                  placeholder="Brief description of when to use this schedule…"
+                  placeholder="Brief description of when to use this structure…"
                   value={scheduleDesc}
                   onChange={(e) => setScheduleDesc(e.target.value)}
                   rows={3}
@@ -1374,7 +1374,7 @@ export default function CommissionSchedulesPage() {
                 onClick={handleCreateSchedule}
                 disabled={isSubmitting || !scheduleName.trim()}
               >
-                {isSubmitting ? "Creating…" : "Create Schedule"}
+                {isSubmitting ? "Creating…" : "Create Structure"}
               </button>
             </div>
           </div>
@@ -1407,7 +1407,7 @@ export default function CommissionSchedulesPage() {
                 }}
               >
                 Templates are system-wide and visible to all companies.
-                Companies can copy a template to create their own schedule.
+                Companies can copy a template to create their own structure.
               </div>
               <div className="form-group">
                 <label>Template Name *</label>
@@ -1816,7 +1816,7 @@ export default function CommissionSchedulesPage() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="modal-header">
-              <h2>Delete Schedule</h2>
+              <h2>Delete Structure</h2>
               <button
                 className="modal-close"
                 onClick={() => setDeleteConfirmId(null)}
@@ -1826,7 +1826,7 @@ export default function CommissionSchedulesPage() {
             </div>
             <div className="modal-body">
               <p>
-                Are you sure you want to delete this schedule? All its rules and
+                Are you sure you want to delete this structure? All its rules and
                 tiers will also be removed.
               </p>
               <p
@@ -1853,7 +1853,7 @@ export default function CommissionSchedulesPage() {
                 disabled={isSubmitting}
               >
                 <Trash2 size={14} />
-                {isSubmitting ? "Deleting…" : "Delete Schedule"}
+                {isSubmitting ? "Deleting…" : "Delete Structure"}
               </button>
             </div>
           </div>
