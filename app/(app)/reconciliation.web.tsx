@@ -90,6 +90,25 @@ export default function BalanceDetailWeb() {
   const { showToast } = useToast();
   const isOpening = subtype === "OPENING";
 
+  const getValidationDescription = (validation?: {
+    calculatedBalance: number;
+    variance: number;
+    validationStatus: string;
+  }) => {
+    if (!validation) return null;
+
+    if (validation.validationStatus === "MATCHED") return null;
+
+    const difference = formatCurrency(Math.abs(validation.variance ?? 0));
+    if (validation.validationStatus === "SHORTAGE") {
+      return `Captured amount is ${difference} less than system records`;
+    }
+    if (validation.validationStatus === "EXCESS") {
+      return `Captured amount is ${difference} more than system records`;
+    }
+    return null;
+  };
+
   // Local state for discrepancy confirmation dialog
   const [showDiscrepancyConfirm, setShowDiscrepancyConfirm] =
     useLocalState(false);
@@ -291,13 +310,12 @@ export default function BalanceDetailWeb() {
                   marginBottom: 2,
                 }}
               >
-                Balance Discrepancies Detected
+                {discrepancyCount} account{discrepancyCount !== 1 ? "s" : ""}{" "}
+                {discrepancyCount === 1 ? "needs" : "need"} review
               </div>
               <div style={{ fontSize: 13, color: "#b91c1c" }}>
-                {discrepancyCount} account{discrepancyCount !== 1 ? "s" : ""}{" "}
-                with a total variance of{" "}
-                {formatCurrency(totalDiscrepancyAmount)}. Review the balances
-                table below for details.
+                Captured amounts do not match system records for some accounts.
+                Review the differences below.
               </div>
             </div>
           </div>
@@ -425,24 +443,23 @@ export default function BalanceDetailWeb() {
               <thead>
                 <tr>
                   <th>Account</th>
-                  <th className="text-right">Balance</th>
-                  <th className="text-right">Expected</th>
-                  <th className="text-right">Variance</th>
-                  <th className="text-center">Status</th>
+                  <th className="text-right">Captured</th>
+                  <th className="text-right">System</th>
+                  <th className="text-right">Difference</th>
                   <th className="text-center">Image</th>
                 </tr>
               </thead>
               <tbody>
                 {balances.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="empty">
+                    <td colSpan={5} className="empty">
                       No balances recorded
                     </td>
                   </tr>
                 ) : (
                   balances.map((balance) => {
                     const validation = validationByAccountId[balance.accountId];
-                    const vStatus = validation?.validationStatus;
+                    const description = getValidationDescription(validation);
                     return (
                       <tr
                         key={balance.id}
@@ -481,6 +498,22 @@ export default function BalanceDetailWeb() {
                               </span>
                             )}
                           </div>
+                          {description && (
+                            <div
+                              style={{
+                                marginTop: 4,
+                                fontSize: 12,
+                                color:
+                                  validation?.validationStatus === "MATCHED"
+                                    ? "#15803d"
+                                    : validation?.validationStatus === "SHORTAGE"
+                                      ? "#b91c1c"
+                                      : "#a16207",
+                              }}
+                            >
+                              {description}
+                            </div>
+                          )}
                         </td>
                         <td className="text-right font-semibold">
                           {formatCurrency(balance.amount)}
@@ -493,10 +526,12 @@ export default function BalanceDetailWeb() {
                         <td
                           className={`text-right font-semibold ${
                             validation
-                              ? validation.variance > 0
-                                ? "text-green-600"
-                                : validation.variance < 0
+                              ? validation.validationStatus === "EXCESS"
+                                ? "text-yellow-700"
+                                : validation.validationStatus === "SHORTAGE"
                                   ? "text-red-600"
+                                  : validation.validationStatus === "MATCHED"
+                                    ? "text-green-600"
                                   : ""
                               : ""
                           }`}
@@ -504,48 +539,6 @@ export default function BalanceDetailWeb() {
                           {validation
                             ? `${validation.variance >= 0 ? "+" : ""}${formatCurrency(validation.variance)}`
                             : "—"}
-                        </td>
-                        <td className="text-center">
-                          {vStatus && (
-                            <span
-                              style={{
-                                display: "inline-flex",
-                                alignItems: "center",
-                                gap: 4,
-                                padding: "2px 10px",
-                                borderRadius: 12,
-                                fontSize: 11,
-                                fontWeight: 600,
-                                backgroundColor:
-                                  vStatus === "MATCHED"
-                                    ? "#dcfce7"
-                                    : vStatus === "SHORTAGE"
-                                      ? "#fef2f2"
-                                      : vStatus === "EXCESS"
-                                        ? "#fefce8"
-                                        : "#f3f4f6",
-                                color:
-                                  vStatus === "MATCHED"
-                                    ? "#16a34a"
-                                    : vStatus === "SHORTAGE"
-                                      ? "#dc2626"
-                                      : vStatus === "EXCESS"
-                                        ? "#ca8a04"
-                                        : "#6b7280",
-                              }}
-                            >
-                              {vStatus === "MATCHED" && (
-                                <ShieldCheck size={12} />
-                              )}
-                              {vStatus === "SHORTAGE" && (
-                                <ArrowDownCircle size={12} />
-                              )}
-                              {vStatus === "EXCESS" && (
-                                <ArrowUpCircle size={12} />
-                              )}
-                              {vStatus}
-                            </span>
-                          )}
                         </td>
                         <td className="text-center">
                           {(balance.imageData || balance.imageUrl) && (
@@ -747,7 +740,7 @@ export default function BalanceDetailWeb() {
                   {isFinalizing
                     ? "Finalizing..."
                     : hasDiscrepancies
-                      ? "Finalize with Discrepancies"
+                      ? "Finalize with Review Items"
                       : "Finalize & Lock"}
                 </button>
               </div>
@@ -843,14 +836,14 @@ export default function BalanceDetailWeb() {
             >
               <ShieldAlert size={28} color="#DC2626" />
               <h2 style={{ margin: 0, fontSize: 20 }}>
-                Finalize with Discrepancies?
+                Finalize with Review Items?
               </h2>
             </div>
             <p style={{ color: "#6b7280", lineHeight: 1.6, marginBottom: 8 }}>
               There {discrepancyCount === 1 ? "is" : "are"}{" "}
               <strong>{discrepancyCount}</strong> account
-              {discrepancyCount !== 1 ? "s" : ""} with balance discrepancies
-              totalling{" "}
+              {discrepancyCount !== 1 ? "s" : ""} where captured amounts do not
+              match system records, totalling{" "}
               <strong>{formatCurrency(totalDiscrepancyAmount)}</strong>.
             </p>
             <p
@@ -860,9 +853,8 @@ export default function BalanceDetailWeb() {
                 marginBottom: 20,
               }}
             >
-              By proceeding, you acknowledge these variances and they will be
-              recorded in the reconciliation report. This action cannot be
-              undone.
+              If you proceed, these differences will be recorded in the
+              reconciliation report. This action cannot be undone.
             </p>
             <div
               style={{ display: "flex", gap: 12, justifyContent: "flex-end" }}
@@ -871,7 +863,7 @@ export default function BalanceDetailWeb() {
                 className="btn-cancel"
                 onClick={() => setShowDiscrepancyConfirm(false)}
               >
-                Go Back & Review
+                Review Accounts
               </button>
               <button
                 className="btn-danger"
