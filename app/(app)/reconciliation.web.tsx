@@ -313,7 +313,10 @@ export default function BalanceDetailWeb() {
             {isApproved && (
               <>
                 <div className="gt-strip-metric-divider" />
-                <span className="gt-strip-action-btn approve" style={{ cursor: "default", pointerEvents: "none" }}>
+                <span
+                  className="gt-strip-action-btn approve"
+                  style={{ cursor: "default", pointerEvents: "none" }}
+                >
                   <Check size={14} />
                   Approved
                 </span>
@@ -685,7 +688,6 @@ export default function BalanceDetailWeb() {
 
           {/* Action Buttons */}
           <div className="table-card full-width">
-
             {/* Clerk Actions - Calculate and Finalize */}
             {!isFinalized && (
               <div style={{ display: "flex", gap: "12px", padding: "1rem" }}>
