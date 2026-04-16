@@ -1,6 +1,6 @@
 import "../global.css";
 import "../styles/web.css";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { View, StyleSheet } from "react-native";
 import { Stack } from "expo-router";
 import { Provider } from "react-redux";
@@ -21,6 +21,10 @@ function AppContent() {
   const { user } = useUser();
   const router = useRouter();
   const [isSecureApiReady, setIsSecureApiReady] = useState(false);
+  // Track whether the user has been signed in this session using a ref so it
+  // updates synchronously during render — no effect delay, no race condition.
+  const wasSignedInRef = useRef(false);
+  if (isSignedIn === true) wasSignedInRef.current = true;
   // If mounting while already on an auth page (e.g. after sign-out hard redirect),
   // mark splash as done so it doesn't replay when navigating into the app.
   // On a true first visit (landing at "/"), animatedSplashDone starts false and splash plays normally.
@@ -70,10 +74,9 @@ function AppContent() {
     }
   }, [isLoaded, router]);
 
-  // Handle sign-out immediately — dedicated effect, no splash dependency.
-  // Uses hard redirect so all in-memory state is cleared cleanly.
+  // Handle sign-out immediately — no isLoaded dependency so the redirect fires
+  // even if Clerk transiently sets isLoaded=false during sign-out processing.
   useEffect(() => {
-    if (!isLoaded) return;
     if (isSignedIn !== false) return;
     const path = window.location.pathname + window.location.search;
     const onAuthPage =
@@ -84,7 +87,7 @@ function AppContent() {
     if (!onAuthPage) {
       window.location.replace("/sign-in");
     }
-  }, [isLoaded, isSignedIn]);
+  }, [isSignedIn]);
 
   useEffect(() => {
     if (!isLoaded || !animatedSplashDone) return;
@@ -153,9 +156,10 @@ function AppContent() {
   const shouldBlockRendering =
     !isSecureApiReady || (!hasUserData && !isAuthInitialized);
 
-  // Show a "signing out" overlay when Clerk flips isSignedIn to false while
-  // we're still on an app page — prevents the app from briefly rendering.
-  const isSigningOut = isLoaded && !isSignedIn && !isOnAuthPage;
+  // Show a "signing out" overlay as soon as the sign-out transition begins.
+  // wasSignedInRef updates synchronously on render so there's no effect-delay race.
+  const isSigningOut =
+    wasSignedInRef.current && isSignedIn !== true && !isOnAuthPage;
 
   // Splash only ever shows on app pages — never on auth pages and never during sign-out.
   // This prevents it flashing when the hard redirect lands on /sign-in.

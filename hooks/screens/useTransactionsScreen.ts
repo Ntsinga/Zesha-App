@@ -158,24 +158,6 @@ export function useTransactionsScreen() {
     dispatch(fetchAccounts({ companyId, isActive: true }));
   }, [dispatch, companyId]);
 
-  // ---- Fetch transactions when filters change ----
-  useEffect(() => {
-    const transactionFilters = buildTransactionFilters();
-    const analyticsFilters = buildAnalyticsFilters();
-    const commissionFilters = buildCommissionTotalsFilters();
-
-    if (!transactionFilters || !analyticsFilters || !commissionFilters) return;
-
-    dispatch(fetchTransactions(transactionFilters));
-    dispatch(fetchTransactionAnalytics(analyticsFilters));
-    dispatch(fetchCommissionTotals(commissionFilters));
-  }, [
-    dispatch,
-    buildTransactionFilters,
-    buildAnalyticsFilters,
-    buildCommissionTotalsFilters,
-  ]);
-
   // ---- Filtered & sorted transactions ----
   const sortedTransactions = useMemo(() => {
     return [...transactions].sort(
@@ -426,6 +408,24 @@ export function useTransactionsScreen() {
   }, [companyId, filterDateFrom, filterDateTo, filterAccountId, filterShift]);
 
   const refreshCurrentRange = useCallback(() => {
+    const transactionFilters = buildTransactionFilters();
+    const analyticsFilters = buildAnalyticsFilters();
+    const commissionFilters = buildCommissionTotalsFilters();
+
+    if (!transactionFilters || !analyticsFilters || !commissionFilters) return;
+
+    dispatch(fetchTransactions(transactionFilters));
+    dispatch(fetchTransactionAnalytics(analyticsFilters));
+    dispatch(fetchCommissionTotals(commissionFilters));
+  }, [
+    dispatch,
+    buildTransactionFilters,
+    buildAnalyticsFilters,
+    buildCommissionTotalsFilters,
+  ]);
+
+  // ---- Fetch transactions when filters change ----
+  useEffect(() => {
     const transactionFilters = buildTransactionFilters();
     const analyticsFilters = buildAnalyticsFilters();
     const commissionFilters = buildCommissionTotalsFilters();
