@@ -233,47 +233,62 @@ export default function BalanceDetailWeb() {
             </div>
           </div>
 
-          {/* Right: metric columns */}
+          {/* Right: metric groups — mirrors dashboard GT strip */}
           <div className="gt-strip-metrics">
-            <div className="gt-strip-metric">
-              <span className="gt-strip-metric-label">Float</span>
-              <span className="gt-strip-metric-value">
-                {formatCurrency(totalFloat)}
-              </span>
-            </div>
-            <div className="gt-strip-metric">
-              <span className="gt-strip-metric-label">Cash</span>
-              <span className="gt-strip-metric-value">
-                {formatCurrency(totalCash)}
-              </span>
+            {/* Group: Available */}
+            <div className="gt-strip-group">
+              <span className="gt-strip-group-label">Available</span>
+              <div className="gt-strip-group-items">
+                <div className="gt-strip-metric">
+                  <span className="gt-strip-metric-label">Float</span>
+                  <span className="gt-strip-metric-value">
+                    {formatCurrency(totalFloat)}
+                  </span>
+                </div>
+                <div className="gt-strip-metric">
+                  <span className="gt-strip-metric-label">Cash</span>
+                  <span className="gt-strip-metric-value">
+                    {formatCurrency(totalCash)}
+                  </span>
+                </div>
+              </div>
             </div>
             <div className="gt-strip-metric-divider" />
-            <div className="gt-strip-metric">
-              <span className="gt-strip-metric-label">{varianceLabel}</span>
-              <span
-                className={`gt-strip-metric-value ${variance > 0 ? "positive" : "negative"}`}
-              >
-                {variance > 0 ? "+" : ""}
-                {formatCurrency(variance)}
-              </span>
-            </div>
-            <div className="gt-strip-metric">
-              <span className="gt-strip-metric-label">Expected Closing</span>
-              <span className="gt-strip-metric-value">
-                {formatCurrency(expectedClosing)}
-              </span>
+            {/* Group: Performance */}
+            <div className="gt-strip-group">
+              <span className="gt-strip-group-label">Performance</span>
+              <div className="gt-strip-group-items">
+                <div className="gt-strip-metric">
+                  <span className="gt-strip-metric-label">{isOpening ? "Expected Opening" : "Expected Closing"}</span>
+                  <span className="gt-strip-metric-value">
+                    {formatCurrency(expectedClosing)}
+                  </span>
+                </div>
+                <div className="gt-strip-metric">
+                  <span className="gt-strip-metric-label">{varianceLabel}</span>
+                  <span
+                    className={`gt-strip-metric-value ${variance > 0 ? "positive" : "negative"}`}
+                  >
+                    {variance > 0 ? "+" : ""}
+                    {formatCurrency(variance)}
+                  </span>
+                </div>
+              </div>
             </div>
             {!isOpening && (
               <>
                 <div className="gt-strip-metric-divider" />
-                <div className="gt-strip-metric">
-                  <span className="gt-strip-metric-label">Commissions</span>
-                  <span
-                    className="gt-strip-metric-value"
-                    style={{ color: "#7c3aed" }}
-                  >
-                    +{formatCurrency(totalCommission)}
-                  </span>
+                {/* Group: Commission */}
+                <div className="gt-strip-group">
+                  <span className="gt-strip-group-label">Commission</span>
+                  <div className="gt-strip-group-items">
+                    <div className="gt-strip-metric">
+                      <span className="gt-strip-metric-label">Total</span>
+                      <span className="gt-strip-metric-value positive">
+                        +{formatCurrency(totalCommission)}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </>
             )}
