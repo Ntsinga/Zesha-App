@@ -106,6 +106,25 @@ export default function BalanceDetailPage() {
   // Extra fields from hook
   const isOpening = subtype === "OPENING";
 
+  const getValidationDescription = (validation?: {
+    calculatedBalance: number;
+    variance: number;
+    validationStatus: string;
+  }) => {
+    if (!validation) return null;
+
+    if (validation.validationStatus === "MATCHED") return null;
+
+    const difference = formatCurrency(Math.abs(validation.variance ?? 0));
+    if (validation.validationStatus === "SHORTAGE") {
+      return `Captured amount is ${difference} less than system records`;
+    }
+    if (validation.validationStatus === "EXCESS") {
+      return `Captured amount is ${difference} more than system records`;
+    }
+    return null;
+  };
+
   const [showDiscrepancyModal, setShowDiscrepancyModal] = useLocalState(false);
   const [hasTriggeredAutoRecalculate, setHasTriggeredAutoRecalculate] =
     useLocalState(false);
@@ -405,11 +424,12 @@ export default function BalanceDetailPage() {
             <ShieldAlert color="#DC2626" size={22} />
             <View className="flex-1 ml-3">
               <Text className="text-red-800 font-bold text-sm">
-                Balance Discrepancies Detected
+                {discrepancyCount} account{discrepancyCount !== 1 ? "s" : ""}{" "}
+                {discrepancyCount === 1 ? "needs" : "need"} review
               </Text>
               <Text className="text-red-600 text-xs mt-1">
-                {discrepancyCount} account{discrepancyCount !== 1 ? "s" : ""}{" "}
-                with {formatCurrency(totalDiscrepancyAmount)} total variance
+                Captured amounts do not match system records for some accounts.
+                Review the differences below.
               </Text>
             </View>
           </View>
@@ -442,7 +462,7 @@ export default function BalanceDetailPage() {
           {balances.length > 0 ? (
             balances.map((balance, idx) => {
               const validation = validationByAccountId[balance.accountId];
-              const vStatus = validation?.validationStatus;
+              const description = getValidationDescription(validation);
               return (
                 <TouchableOpacity
                   key={balance.id}
@@ -483,53 +503,36 @@ export default function BalanceDetailPage() {
                       <ImageIcon size={16} color="#9CA3AF" />
                     )}
                   </View>
-                  {/* Validation row */}
                   {validation && (
-                    <View className="flex-row items-center mt-2 ml-0">
-                      <View
-                        className={`flex-row items-center px-2 py-0.5 rounded-full mr-2 ${
-                          vStatus === "MATCHED"
-                            ? "bg-green-100"
-                            : vStatus === "SHORTAGE"
-                              ? "bg-red-100"
-                              : vStatus === "EXCESS"
-                                ? "bg-yellow-100"
-                                : "bg-gray-100"
-                        }`}
-                      >
-                        {vStatus === "MATCHED" && (
-                          <ShieldCheck size={12} color="#16A34A" />
-                        )}
-                        {vStatus === "SHORTAGE" && (
-                          <ArrowDownCircle size={12} color="#DC2626" />
-                        )}
-                        {vStatus === "EXCESS" && (
-                          <ArrowUpCircle size={12} color="#CA8A04" />
-                        )}
-                        <Text
-                          className={`text-xs font-semibold ml-1 ${
-                            vStatus === "MATCHED"
-                              ? "text-green-700"
-                              : vStatus === "SHORTAGE"
-                                ? "text-red-700"
-                                : vStatus === "EXCESS"
-                                  ? "text-yellow-700"
-                                  : "text-gray-500"
-                          }`}
-                        >
-                          {vStatus}
+                    <View className="mt-2">
+                      <View className="flex-row items-center justify-between">
+                        <Text className="text-xs text-gray-500">
+                          System: {formatCurrency(validation.calculatedBalance)}
                         </Text>
-                      </View>
-                      {validation.variance !== 0 && (
                         <Text
                           className={`text-xs font-semibold ${
-                            validation.variance < 0
+                            validation.validationStatus === "SHORTAGE"
                               ? "text-red-600"
-                              : "text-yellow-700"
+                              : validation.validationStatus === "EXCESS"
+                                ? "text-yellow-700"
+                                : "text-green-700"
                           }`}
                         >
-                          {validation.variance >= 0 ? "+" : ""}
+                          Difference: {validation.variance >= 0 ? "+" : ""}
                           {formatCurrency(validation.variance)}
+                        </Text>
+                      </View>
+                      {description && (
+                        <Text
+                          className={`text-xs mt-1 ${
+                            validation.validationStatus === "SHORTAGE"
+                              ? "text-red-700"
+                              : validation.validationStatus === "EXCESS"
+                                ? "text-yellow-700"
+                                : "text-green-700"
+                          }`}
+                        >
+                          {description}
                         </Text>
                       )}
                     </View>
@@ -684,10 +687,10 @@ export default function BalanceDetailPage() {
                   }
                   if (result?.error === "HAS_DISCREPANCIES") {
                     Alert.alert(
-                      "Finalize with Discrepancies?",
-                      `There ${discrepancyCount === 1 ? "is" : "are"} ${discrepancyCount} account${discrepancyCount !== 1 ? "s" : ""} with balance discrepancies totalling ${formatCurrency(totalDiscrepancyAmount)}. Proceed anyway?`,
+                      "Finalize with Review Items?",
+                      `There ${discrepancyCount === 1 ? "is" : "are"} ${discrepancyCount} account${discrepancyCount !== 1 ? "s" : ""} where captured amounts do not match system records, totalling ${formatCurrency(totalDiscrepancyAmount)}. Proceed anyway?`,
                       [
-                        { text: "Review", style: "cancel" },
+                        { text: "Review Accounts", style: "cancel" },
                         {
                           text: "Finalize",
                           style: "destructive",
@@ -724,7 +727,7 @@ export default function BalanceDetailPage() {
                   {isFinalizing
                     ? "Finalizing..."
                     : hasDiscrepancies
-                      ? "Finalize*"
+                      ? "Finalize Review Items"
                       : "Finalize"}
                 </Text>
               </TouchableOpacity>

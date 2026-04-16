@@ -314,6 +314,7 @@ export default function DashboardWeb() {
                 </h3>
                 <span className="commission-total">
                   {formatCurrency(commissionPieTotal)}
+                  <span className="commission-total-label">total</span>
                 </span>
               </div>
               <div className="commission-charts-row">
@@ -358,8 +359,6 @@ export default function DashboardWeb() {
                     </div>
                   )}
                 </div>
-
-                <div className="commission-chart-divider" />
 
                 {/* By Category */}
                 <div className="commission-chart-col">
@@ -409,7 +408,15 @@ export default function DashboardWeb() {
 
             {/* Top-right: Transactions Bar Chart */}
             <div className="chart-card">
-              <h3 className="chart-title">Transactions by Account</h3>
+              <div className="commission-chart-header">
+                <h3 className="chart-title" style={{ margin: 0 }}>Transactions by Account</h3>
+                {transactionBarData.length > 0 && (
+                  <span className="commission-total">
+                    {transactionBarData.reduce((s, d) => s + d.count, 0)}
+                    <span className="commission-total-label">total</span>
+                  </span>
+                )}
+              </div>
               {transactionBarData.length > 0 ? (
                 <ResponsiveContainer width="100%" height={280}>
                   <BarChart
