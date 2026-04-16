@@ -1561,22 +1561,23 @@ body {
 
 /* Top Section - Grand Total Strip (full-width) */
 .gt-strip {
-  background: linear-gradient(135deg, #fef9c3 0%, #f5f5f5 100%);
+  background: #ffffff;
   border-radius: 12px;
-  padding: 14px 24px;
+  padding: 18px 24px;
   display: flex;
   align-items: center;
   gap: 24px;
   flex-wrap: wrap;
   border: 1px solid #e5e7eb;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  position: relative;
 }
 
 .gt-strip-main {
   display: flex;
   align-items: center;
   gap: 12px;
-  color: #92400e;
+  color: #6b7280;
   flex-shrink: 0;
 }
 
@@ -1595,7 +1596,7 @@ body {
 .gt-strip-label {
   font-size: 11px;
   font-weight: 600;
-  color: #92400e;
+  color: #6b7280;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -1722,6 +1723,61 @@ body {
 .gt-strip-live-sep {
   font-size: 12px;
   color: #d1d5db;
+}
+
+/* Metric Groups */
+.gt-strip-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.gt-strip-group-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #9ca3af;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.gt-strip-expense-badge {
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: #dc2626;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+
+.gt-strip-group-items {
+  display: flex;
+  gap: 24px;
+}
+
+/* Expense ratio warning */
+.gt-strip-warning {
+  width: 100%;
+  margin-top: 4px;
+  padding: 6px 12px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #991b1b;
+}
+
+/* Chart period hint */
+.chart-period-hint {
+  font-size: 12px;
+  color: #9ca3af;
+  font-weight: 400;
 }
 
 /* Horizontal Scrollable Balance Pills */

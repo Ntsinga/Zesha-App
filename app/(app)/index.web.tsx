@@ -16,6 +16,7 @@ import {
   CartesianGrid,
   ReferenceLine,
 } from "recharts";
+import type { PieLabelRenderProps } from "recharts";
 import { useDashboardScreen } from "../../hooks/screens/useDashboardScreen";
 import "../../styles/web.css";
 
@@ -230,58 +231,85 @@ export default function DashboardWeb() {
             </div>
           </div>
           <div className="gt-strip-metrics">
-            <div className="gt-strip-metric">
-              <span className="gt-strip-metric-label">Float</span>
-              <span className="gt-strip-metric-value">
-                {formatCurrency(displayFloat)}
-              </span>
-            </div>
-            <div className="gt-strip-metric">
-              <span className="gt-strip-metric-label">Cash</span>
-              <span className="gt-strip-metric-value">
-                {formatCurrency(displayCash)}
-              </span>
+            {/* Group: Available */}
+            <div className="gt-strip-group">
+              <span className="gt-strip-group-label">Available</span>
+              <div className="gt-strip-group-items">
+                <div className="gt-strip-metric">
+                  <span className="gt-strip-metric-label">Float</span>
+                  <span className="gt-strip-metric-value">
+                    {formatCurrency(displayFloat)}
+                  </span>
+                </div>
+                <div className="gt-strip-metric">
+                  <span className="gt-strip-metric-label">Cash</span>
+                  <span className="gt-strip-metric-value">
+                    {formatCurrency(displayCash)}
+                  </span>
+                </div>
+              </div>
             </div>
             <div className="gt-strip-metric-divider" />
-            <div className="gt-strip-metric">
-              <span className="gt-strip-metric-label">
-                {displayVariance > 0 ? "Excess" : "Loss"}
-              </span>
-              <span
-                className={`gt-strip-metric-value ${displayVariance >= 0 ? "positive" : "negative"}`}
-              >
-                {displayVariance >= 0 ? "+" : ""}
-                {formatCurrency(displayVariance)}
-              </span>
-            </div>
-            <div className="gt-strip-metric">
-              <span className="gt-strip-metric-label">Expected</span>
-              <span className="gt-strip-metric-value">
-                {formatCurrency(expectedGrandTotal)}
-              </span>
-            </div>
-            <div className="gt-strip-metric">
-              <span className="gt-strip-metric-label">Total Expenses</span>
-              <span
-                className={`gt-strip-metric-value ${totalPendingExpenses > 0 ? "negative" : ""}`}
-              >
-                {totalPendingExpenses > 0 ? "-" : ""}
-                {formatCurrency(Math.abs(totalPendingExpenses))}
-              </span>
-            </div>
-            {todayExpenses > 0 && (
-              <div className="gt-strip-metric">
-                <span className="gt-strip-metric-label">Today's Expenses</span>
-                <span className="gt-strip-metric-value negative">
-                  -{formatCurrency(todayExpenses)}
-                </span>
+            {/* Group: Projection */}
+            <div className="gt-strip-group">
+              <span className="gt-strip-group-label">Performance</span>
+              <div className="gt-strip-group-items">
+                <div className="gt-strip-metric">
+                  <span className="gt-strip-metric-label">Expected</span>
+                  <span className="gt-strip-metric-value">
+                    {formatCurrency(expectedGrandTotal)}
+                  </span>
+                </div>
+                <div className="gt-strip-metric">
+                  <span className="gt-strip-metric-label">
+                    {displayVariance > 0 ? "Excess" : "Loss"}
+                  </span>
+                  <span
+                    className={`gt-strip-metric-value ${displayVariance >= 0 ? "positive" : "negative"}`}
+                  >
+                    {displayVariance >= 0 ? "+" : ""}
+                    {formatCurrency(displayVariance)}
+                  </span>
+                </div>
               </div>
-            )}
+            </div>
+            <div className="gt-strip-metric-divider" />
+            {/* Group: Outflow */}
+            <div className="gt-strip-group">
+              <span className="gt-strip-group-label">
+                Outflow
+                {totalPendingExpenses > 0 && displayCapital > 0 && (totalPendingExpenses / displayCapital) > 0.3 && (
+                  <span className="gt-strip-expense-badge">
+                    {Math.round((totalPendingExpenses / displayCapital) * 100)}% of capital
+                  </span>
+                )}
+              </span>
+              <div className="gt-strip-group-items">
+                <div className="gt-strip-metric">
+                  <span className="gt-strip-metric-label">Total Expenses</span>
+                  <span
+                    className={`gt-strip-metric-value ${totalPendingExpenses > 0 ? "negative" : ""}`}
+                  >
+                    {totalPendingExpenses > 0 ? "-" : ""}
+                    {formatCurrency(Math.abs(totalPendingExpenses))}
+                  </span>
+                </div>
+                {todayExpenses > 0 && (
+                  <div className="gt-strip-metric">
+                    <span className="gt-strip-metric-label">Today</span>
+                    <span className="gt-strip-metric-value negative">
+                      -{formatCurrency(todayExpenses)}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
           <div className="gt-strip-live">
             {liveGrandTotal !== null && <span className="gt-live-dot" />}
             <span className="gt-strip-live-label">{capitalLabel}</span>
           </div>
+
         </div>
 
         {/* === Horizontal Scrollable Balance Pills === */}
@@ -363,6 +391,21 @@ export default function DashboardWeb() {
                         dataKey="value"
                         stroke="none"
                         labelLine={false}
+                        label={(props: PieLabelRenderProps) => {
+                          const { value = 0, cx = 0, cy = 0, midAngle = 0, outerRadius = 112 } = props;
+                          const numValue = Number(value) || 0;
+                          const pct = commissionChartTotal > 0 ? Math.round((numValue / commissionChartTotal) * 100) : 0;
+                          if (pct < 5) return null;
+                          const RADIAN = Math.PI / 180;
+                          const radius = (Number(outerRadius) || 112) + 18;
+                          const x = Number(cx) + radius * Math.cos(-(Number(midAngle)) * RADIAN);
+                          const y = Number(cy) + radius * Math.sin(-(Number(midAngle)) * RADIAN);
+                          return (
+                            <text x={x} y={y} textAnchor={x > cx ? "start" : "end"} dominantBaseline="central" fontSize={11} fill="#6b7280" fontWeight={600}>
+                              {pct}%
+                            </text>
+                          );
+                        }}
                       >
                         {commissionAccountData.map((entry, index) => (
                           <Cell
@@ -425,9 +468,12 @@ export default function DashboardWeb() {
             {/* Top-right: Transactions Bar Chart */}
             <div className="chart-card">
               <div className="commission-chart-header">
-                <h3 className="chart-title" style={{ margin: 0 }}>
-                  Transactions by Account
-                </h3>
+                <div>
+                  <h3 className="chart-title" style={{ margin: 0 }}>
+                    Transactions by Account
+                  </h3>
+                  <span className="chart-period-hint">{PERIOD_LABELS[chartPeriod]}</span>
+                </div>
                 {transactionBarData.length > 0 && (
                   <span className="commission-total">
                     {transactionBarData.reduce((s, d) => s + d.count, 0)}
