@@ -214,15 +214,7 @@ export default function DashboardWeb() {
           <h1 className="header-title">Dashboard</h1>
           <span className="header-date">{snapshotDate}</span>
         </div>
-        <div className="header-right">
-          <button
-            onClick={onRefresh}
-            disabled={refreshing}
-            className="btn-refresh"
-          >
-            <RefreshCw className={refreshing ? "spin" : ""} size={18} />
-          </button>
-        </div>
+
       </header>
 
       {/* Dashboard Content */}

@@ -132,13 +132,6 @@ export default function AgenciesScreen() {
           </span>
         </div>
         <div className="header-right">
-          <button
-            className="btn-refresh"
-            onClick={handleRefresh}
-            disabled={isLoading}
-          >
-            <RefreshCw size={18} className={isLoading ? "spin" : ""} />
-          </button>
           <button className="btn btn-primary" onClick={handleCreate}>
             <Plus size={18} />
             <span>New Agency</span>

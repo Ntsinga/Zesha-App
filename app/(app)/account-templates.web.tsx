@@ -70,13 +70,6 @@ export default function AccountTemplatesPage() {
           </div>
         </div>
         <div className="header-right">
-          <button
-            className="btn-refresh"
-            onClick={refresh}
-            disabled={isTemplatesLoading}
-          >
-            <RefreshCw size={18} className={isTemplatesLoading ? "spin" : ""} />
-          </button>
           {!viewingAgencyId && (
             <button className="btn-primary" onClick={openModal}>
               <Plus size={16} />

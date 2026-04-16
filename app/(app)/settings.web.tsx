@@ -64,15 +64,7 @@ export default function Settings() {
         <div className="header-left">
           <h1 className="header-title">Settings</h1>
         </div>
-        <div className="header-right">
-          <button
-            className="btn-refresh"
-            onClick={onRefresh}
-            disabled={refreshing}
-          >
-            <RefreshCw size={18} className={refreshing ? "spin" : ""} />
-          </button>
-        </div>
+
       </header>
 
       {/* Content */}

@@ -597,13 +597,6 @@ export default function CommissionSchedulesPage() {
           </div>
         </div>
         <div className="header-right">
-          <button
-            className="btn-refresh"
-            onClick={onRefresh}
-            disabled={isLoading}
-          >
-            <RefreshCw size={18} className={isLoading ? "spin" : ""} />
-          </button>
           {activeTab === "my-schedules" && !selectedSchedule && (
             <button className="btn-primary" onClick={openCreateSchedule}>
               <Plus size={16} />

@@ -136,13 +136,6 @@ export default function Accounts() {
           <span className="header-date">Manage bank and telecom accounts</span>
         </div>
         <div className="header-right">
-          <button
-            className="btn-refresh"
-            onClick={onRefresh}
-            disabled={isLoading || refreshing}
-          >
-            <RefreshCw size={18} className={refreshing ? "spin" : ""} />
-          </button>
           <button className="btn-primary" onClick={openAddModal}>
             <Plus size={16} />
             Add Account

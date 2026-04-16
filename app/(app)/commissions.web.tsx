@@ -61,15 +61,7 @@ export default function CommissionsPage() {
           <h1 className="header-title">Expected Commissions</h1>
           <span className="header-date">Auto-calculated from transactions</span>
         </div>
-        <div className="header-right">
-          <button
-            className="btn-refresh"
-            onClick={onRefresh}
-            disabled={isLoading || refreshing}
-          >
-            <RefreshCw size={18} className={refreshing ? "spin" : ""} />
-          </button>
-        </div>
+
       </header>
 
       {/* Content */}

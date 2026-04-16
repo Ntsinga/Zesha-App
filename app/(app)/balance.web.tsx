@@ -195,13 +195,6 @@ export default function BalancePage() {
               PM Shift
             </button>
           </div>
-          <button
-            className="btn-refresh"
-            onClick={handleRefresh}
-            disabled={isLoading}
-          >
-            <RefreshCw size={18} className={isLoading ? "spin" : ""} />
-          </button>
         </div>
       </header>
 
