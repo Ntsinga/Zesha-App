@@ -82,15 +82,7 @@ export default function BalanceHistoryWeb() {
           <h1 className="header-title">Reconciliation History</h1>
           <span className="header-date">{totalRecords} records</span>
         </div>
-        <div className="header-right">
-          <button
-            onClick={onRefresh}
-            disabled={refreshing}
-            className="btn-refresh"
-          >
-            <RefreshCw className={refreshing ? "spin" : ""} size={18} />
-          </button>
-        </div>
+
       </header>
 
       <div className="dashboard-content">

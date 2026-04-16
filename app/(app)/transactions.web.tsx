@@ -171,13 +171,6 @@ export default function TransactionsWeb() {
             <Plus size={16} />
             Add Transaction
           </button>
-          <button
-            onClick={handleRefresh}
-            disabled={isLoading}
-            className="btn-refresh"
-          >
-            <RefreshCw className={isLoading ? "spin" : ""} size={18} />
-          </button>
         </div>
       </header>
 

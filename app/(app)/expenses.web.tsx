@@ -106,15 +106,7 @@ export default function ExpensesWeb() {
         <div className="header-left">
           <h1 className="header-title">Expenses</h1>
         </div>
-        <div className="header-right">
-          <button
-            onClick={onRefresh}
-            disabled={refreshing}
-            className="btn-refresh"
-          >
-            <RefreshCw className={refreshing ? "spin" : ""} size={18} />
-          </button>
-        </div>
+
       </header>
 
       <div className="dashboard-content">

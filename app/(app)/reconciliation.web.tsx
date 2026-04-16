@@ -180,15 +180,7 @@ export default function BalanceDetailWeb() {
             </span>
           </div>
         </div>
-        <div className="header-right">
-          <button
-            onClick={onRefresh}
-            disabled={refreshing}
-            className="btn-refresh"
-          >
-            <RefreshCw className={refreshing ? "spin" : ""} size={18} />
-          </button>
-        </div>
+
       </header>
 
       <div className="dashboard-content">
