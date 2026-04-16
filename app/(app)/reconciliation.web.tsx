@@ -203,13 +203,13 @@ export default function BalanceDetailWeb() {
                         ? "#dcfce7"
                         : status === "FAILED"
                           ? "#fee2e2"
-                          : "#fef3c7",
+                          : "#f59e0b",
                     color:
                       status === "PASSED"
                         ? "#15803d"
                         : status === "FAILED"
                           ? "#991b1b"
-                          : "#92400e",
+                          : "#fff",
                   }}
                 >
                   {status === "PASSED" && <CheckCircle size={11} />}
@@ -222,16 +222,24 @@ export default function BalanceDetailWeb() {
                       : "Flagged"}
                 </span>
               </div>
-              {/* Float / Cash breakdown — single line */}
-              <span className="gt-strip-breakdown">
-                Float: {formatCurrency(totalFloat)}&nbsp;&nbsp;Cash:{" "}
-                {formatCurrency(totalCash)}
-              </span>
             </div>
           </div>
 
           {/* Right: metric columns */}
           <div className="gt-strip-metrics">
+            <div className="gt-strip-metric">
+              <span className="gt-strip-metric-label">Float</span>
+              <span className="gt-strip-metric-value">
+                {formatCurrency(totalFloat)}
+              </span>
+            </div>
+            <div className="gt-strip-metric">
+              <span className="gt-strip-metric-label">Cash</span>
+              <span className="gt-strip-metric-value">
+                {formatCurrency(totalCash)}
+              </span>
+            </div>
+            <div className="gt-strip-metric-divider" />
             <div className="gt-strip-metric">
               <span className="gt-strip-metric-label">Variance</span>
               <span
