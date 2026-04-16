@@ -51,11 +51,28 @@ function AppContent() {
     if (!isLoaded) return;
     const urlParams = new URLSearchParams(window.location.search);
     const ticket = urlParams.has("__clerk_ticket");
-    const alreadyOnSetPassword = window.location.pathname.includes("/set-password");
+    const alreadyOnSetPassword =
+      window.location.pathname.includes("/set-password");
     if (ticket && !alreadyOnSetPassword) {
       router.replace(`/set-password${window.location.search}`);
     }
   }, [isLoaded, router]);
+
+  // Handle sign-out immediately — dedicated effect, no splash dependency.
+  // Uses hard redirect so all in-memory state is cleared cleanly.
+  useEffect(() => {
+    if (!isLoaded) return;
+    if (isSignedIn !== false) return;
+    const path = window.location.pathname + window.location.search;
+    const onAuthPage =
+      path.includes("/sign-in") ||
+      path.includes("/sign-up") ||
+      path.includes("/welcome") ||
+      path.includes("/set-password");
+    if (!onAuthPage) {
+      window.location.replace("/sign-in");
+    }
+  }, [isLoaded, isSignedIn]);
 
   useEffect(() => {
     if (!isLoaded || !animatedSplashDone) return;
@@ -96,7 +113,14 @@ function AppContent() {
     if (isAuthPage && !isOnSetPassword) {
       router.replace("/");
     }
-  }, [isSignedIn, isLoaded, animatedSplashDone, user?.id, user?.passwordEnabled, router]);
+  }, [
+    isSignedIn,
+    isLoaded,
+    animatedSplashDone,
+    user?.id,
+    user?.passwordEnabled,
+    router,
+  ]);
 
   // Determine if we're on an auth page (also treats invite ticket URLs as auth
   // pages so shouldBlockRendering never stalls the invite flow)
@@ -117,15 +141,19 @@ function AppContent() {
   const shouldBlockRendering =
     !isSecureApiReady || (!hasUserData && !isAuthInitialized);
 
-  const showSplash =
-    !isLoaded ||
-    (!isOnAuthPage && shouldBlockRendering) ||
-    !animatedSplashDone;
+  // Show a "signing out" overlay when Clerk flips isSignedIn to false while
+  // we're still on an app page — prevents the app from briefly rendering.
+  const isSigningOut = isLoaded && !isSignedIn && !isOnAuthPage;
 
-  // Only mount app screens once the secure API is ready. Auth screens mount
-  // immediately so sign-in/sign-up always work. Without this guard, child
-  // screens fire their data-fetch effects before initializeSecureApi() is
-  // called (Clerk's isLoaded is still false), producing 401s on refresh.
+  // Splash only ever shows on app pages — never on auth pages and never during sign-out.
+  // This prevents it flashing when the hard redirect lands on /sign-in.
+  const showSplash =
+    !isOnAuthPage &&
+    !isSigningOut &&
+    (!isLoaded || shouldBlockRendering || !animatedSplashDone);
+
+  // Stack must always be mounted so router.replace() works during sign-out.
+  // The isSigningOut overlay covers it visually until navigation completes.
   const canMountAppScreens = isOnAuthPage || isSecureApiReady;
 
   return (
@@ -135,6 +163,26 @@ function AppContent() {
           <Stack.Screen name="(auth)" />
           <Stack.Screen name="(app)" />
         </Stack>
+      )}
+      {isSigningOut && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "#fff",
+            zIndex: 9999,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 16,
+          }}
+        >
+          <div className="spinner" style={{ width: 36, height: 36 }} />
+          <p style={{ fontSize: 15, color: "#6b7280", margin: 0 }}>
+            Signing out…
+          </p>
+        </div>
       )}
       {showSplash && (
         <View style={StyleSheet.absoluteFill}>
