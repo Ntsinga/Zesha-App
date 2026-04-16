@@ -4637,16 +4637,80 @@ body {
 }
 
 /* ============================================
-   SPLIT SCREEN AUTH LAYOUT
+   CENTERED AUTH LAYOUT
    ============================================ */
 
+.auth-centered-page {
+  min-height: 100vh;
+  width: 100%;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: linear-gradient(145deg, #c0152a 0%, #9a0e1f 50%, #6b0714 100%);
+}
+
+.auth-centered-content {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  padding: 40px 24px;
+  width: 100%;
+  max-width: 480px;
+}
+
+.auth-centered-card {
+  background: white;
+  border-radius: 16px;
+  padding: 40px 48px;
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.3),
+    0 4px 16px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.auth-centered-content .auth-icon-wrap {
+  width: 72px;
+  height: 72px;
+}
+
+.auth-centered-content .auth-icon-wrap img {
+  width: 72px;
+  height: 72px;
+}
+
+.auth-centered-content .auth-icon-halo {
+  width: 100px;
+  height: 100px;
+}
+
+.auth-centered-content .auth-brand-title {
+  font-size: 36px;
+}
+
+.auth-centered-content .auth-form-title {
+  color: #1f2937;
+}
+
+.auth-centered-copyright {
+  text-align: center;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.45);
+  margin-top: 4px;
+}
+
+/* Legacy split layout (kept for backward compatibility) */
 .auth-split-page {
   min-height: 100vh;
   display: flex;
   width: 100%;
 }
 
-/* Left Side - Branding */
 .auth-brand-side {
   width: 45%;
   min-width: 380px;
@@ -4902,7 +4966,7 @@ body {
 /* Right Side - Form */
 .auth-form-side {
   flex: 1;
-  background: #f4f4f5;
+  background: linear-gradient(180deg, #f9fafb 0%, #f0f0f2 100%);
   display: flex;
   align-items: flex-start;
   justify-content: center;
@@ -5130,6 +5194,30 @@ body {
 
 /* Responsive - Stack on mobile */
 @media (max-width: 900px) {
+  .auth-centered-content {
+    padding: 24px 16px;
+    max-width: 100%;
+  }
+
+  .auth-centered-card {
+    padding: 24px 20px;
+    border-radius: 12px;
+  }
+
+  .auth-centered-content .auth-brand-title {
+    font-size: 28px;
+  }
+
+  .auth-centered-content .auth-icon-wrap {
+    width: 56px;
+    height: 56px;
+  }
+
+  .auth-centered-content .auth-icon-wrap img {
+    width: 56px;
+    height: 56px;
+  }
+
   .auth-split-page {
     flex-direction: column;
   }

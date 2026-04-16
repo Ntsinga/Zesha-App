@@ -13,55 +13,24 @@ const getImageUrl = (img: unknown): string => {
 };
 
 /**
- * Shared left-side branding panel for all web auth screens.
- * Based on the Teleba splash screen design.
+ * Full-page branded background wrapper for web auth screens.
+ * Renders the red gradient + decorative elements with children centered on top.
  */
-export default function AuthBrandPanel() {
+export default function AuthBrandPanel({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const iconUrl = getImageUrl(iconSource);
 
   return (
-    <div className="auth-brand-side">
+    <div className="auth-centered-page">
       {/* Decorative background elements */}
       <div className="auth-ring-outer" />
       <div className="auth-cc-tl" />
       <div className="auth-cc-br" />
       <div className="auth-top-leak" />
       <div className="auth-center-glow" />
-
-      {/* Main brand content */}
-      <div className="auth-brand-content">
-        {/* Icon + title link back to landing page */}
-        <a
-          href="https://teleba.io"
-          style={{ textDecoration: "none", display: "contents" }}
-        >
-          <div className="auth-brand-logo">
-            <div className="auth-icon-wrap">
-              <div className="auth-icon-halo" />
-              <img
-                src={iconUrl}
-                alt="Teleba"
-                width={110}
-                height={110}
-                style={{ borderRadius: 26 }}
-              />
-            </div>
-          </div>
-
-          {/* Brand name */}
-          <h1 className="auth-brand-title">TELEBA</h1>
-        </a>
-
-        {/* Divider */}
-        <div className="auth-divider">
-          <div className="auth-divider-line" />
-          <div className="auth-divider-diamond" />
-          <div className="auth-divider-line" />
-        </div>
-
-        {/* Tagline */}
-        <p className="auth-brand-tagline">Telecom &middot; Agency Banking</p>
-      </div>
 
       {/* Signal arcs — bottom right */}
       <div className="auth-signal-arcs">
@@ -74,11 +43,7 @@ export default function AuthBrandPanel() {
         >
           <defs>
             <filter id="ag">
-              <feGaussianBlur
-                in="SourceGraphic"
-                stdDeviation="3"
-                result="b"
-              />
+              <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="b" />
               <feMerge>
                 <feMergeNode in="b" />
                 <feMergeNode in="SourceGraphic" />
@@ -113,6 +78,30 @@ export default function AuthBrandPanel() {
 
       {/* Vignette overlay */}
       <div className="auth-vignette" />
+
+      {/* Centered content: logo + children */}
+      <div className="auth-centered-content">
+        <a
+          href="https://teleba.io"
+          style={{ textDecoration: "none", display: "contents" }}
+        >
+          <div className="auth-brand-logo">
+            <div className="auth-icon-wrap">
+              <div className="auth-icon-halo" />
+              <img
+                src={iconUrl}
+                alt="Teleba"
+                width={72}
+                height={72}
+                style={{ borderRadius: 20 }}
+              />
+            </div>
+          </div>
+          <h1 className="auth-brand-title">TELEBA</h1>
+        </a>
+
+        {children}
+      </div>
     </div>
   );
 }

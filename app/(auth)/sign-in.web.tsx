@@ -145,236 +145,229 @@ export default function SignInWeb() {
   };
 
   return (
-    <div className="auth-split-page">
-      {/* Left Side - Branding */}
-      <AuthBrandPanel />
+    <AuthBrandPanel>
+      <div className="auth-centered-card">
+        <div className="auth-form-header">
+          <h2 className="auth-form-title">Welcome back</h2>
+          <p className="auth-form-subtitle">Sign in to your Teleba account</p>
+        </div>
 
-      {/* Right Side */}
-      <div className="auth-form-side">
-        <div className="auth-form-container">
-          <div className="auth-form-card">
-            <div className="auth-form-header">
-              <h2 className="auth-form-title">Welcome</h2>
-              <p className="auth-form-subtitle">
-                Login to your account to continue
-              </p>
+        {/* ── Combined Email + Password Step ── */}
+        {(step === "email" || step === "password") && (
+          <form onSubmit={handleSignIn}>
+            <div style={{ marginBottom: "16px" }}>
+              <label
+                className="clerk-label-split"
+                style={{ display: "block", marginBottom: "10px" }}
+              >
+                Email address
+              </label>
+              <input
+                ref={emailRef}
+                className="clerk-input-split"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Enter your email address"
+                required
+              />
+            </div>
+            <div style={{ marginBottom: "16px" }}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: "6px",
+                }}
+              >
+                <label className="clerk-label-split">Password</label>
+                <a
+                  href="/forgot-password"
+                  className="clerk-link"
+                  style={{ fontSize: "13px" }}
+                >
+                  Forgot password?
+                </a>
+              </div>
+              <div style={{ position: "relative" }}>
+                <input
+                  className="clerk-input-split"
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter your password"
+                  required
+                  style={{ paddingRight: "48px" }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="clerk-password-button"
+                  style={eyeBtnStyle}
+                >
+                  {showPassword ? "🙈" : "👁"}
+                </button>
+              </div>
+            </div>
+            {error && <p style={errorStyle}>{error}</p>}
+            <button
+              type="submit"
+              className="clerk-primary-button-split"
+              disabled={loading || !email.trim() || !password}
+            >
+              {loading ? (
+                "Signing in…"
+              ) : (
+                <>
+                  Sign In <span style={{ marginLeft: "6px" }}>›</span>
+                </>
+              )}
+            </button>
+          </form>
+        )}
+
+        {/* ── OTP Step ── */}
+        {step === "otp" && (
+          <form onSubmit={handleVerify}>
+            {/* Email display */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "8px",
+                marginBottom: "20px",
+                padding: "8px 12px",
+                background: "#f9fafb",
+                borderRadius: "8px",
+                border: "1px solid #e5e7eb",
+              }}
+            >
+              <span style={{ fontSize: "14px", color: "#374151" }}>
+                {email}
+              </span>
             </div>
 
-            {/* ── Combined Email + Password Step ── */}
-            {(step === "email" || step === "password") && (
-              <form onSubmit={handleSignIn}>
-                <div style={{ marginBottom: "16px" }}>
-                  <label
-                    className="clerk-label-split"
-                    style={{ display: "block", marginBottom: "10px" }}
-                  >
-                    Email address
-                  </label>
-                  <input
-                    ref={emailRef}
-                    className="clerk-input-split"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Enter your email address"
-                    required
-                  />
-                </div>
-                <div style={{ marginBottom: "16px" }}>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      marginBottom: "6px",
-                    }}
-                  >
-                    <label className="clerk-label-split">Password</label>
-                    <a
-                      href="/forgot-password"
-                      className="clerk-link"
-                      style={{ fontSize: "13px" }}
-                    >
-                      Forgot password?
-                    </a>
-                  </div>
-                  <div style={{ position: "relative" }}>
-                    <input
-                      className="clerk-input-split"
-                      type={showPassword ? "text" : "password"}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="Enter your password"
-                      required
-                      style={{ paddingRight: "48px" }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword((v) => !v)}
-                      className="clerk-password-button"
-                      style={eyeBtnStyle}
-                    >
-                      {showPassword ? "🙈" : "👁"}
-                    </button>
-                  </div>
-                </div>
-                {error && <p style={errorStyle}>{error}</p>}
-                <button
-                  type="submit"
-                  className="clerk-primary-button-split"
-                  disabled={loading || !email.trim() || !password}
-                >
-                  {loading ? (
-                    "Signing in…"
-                  ) : (
-                    <>
-                      Sign In <span style={{ marginLeft: "6px" }}>›</span>
-                    </>
-                  )}
-                </button>
-              </form>
-            )}
-
-            {/* ── OTP Step ── */}
-            {step === "otp" && (
-              <form onSubmit={handleVerify}>
-                {/* Email display */}
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: "8px",
-                    marginBottom: "20px",
-                    padding: "8px 12px",
-                    background: "#f9fafb",
-                    borderRadius: "8px",
-                    border: "1px solid #e5e7eb",
+            {/* 6 individual digit boxes */}
+            <div
+              style={{
+                display: "flex",
+                gap: "8px",
+                justifyContent: "center",
+                marginBottom: "8px",
+              }}
+            >
+              {otp.map((digit, i) => (
+                <input
+                  key={i}
+                  ref={(el) => {
+                    otpRefs.current[i] = el;
                   }}
-                >
-                  <span style={{ fontSize: "14px", color: "#374151" }}>
-                    {email}
-                  </span>
-                </div>
-
-                {/* 6 individual digit boxes */}
-                <div
+                  className="clerk-input-split"
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={1}
+                  value={digit}
+                  onChange={(e) => handleOtpChange(i, e.target.value)}
+                  onKeyDown={(e) => handleOtpKeyDown(i, e)}
+                  onPaste={i === 0 ? handleOtpPaste : undefined}
+                  autoFocus={i === 0}
                   style={{
-                    display: "flex",
-                    gap: "8px",
-                    justifyContent: "center",
-                    marginBottom: "8px",
-                  }}
-                >
-                  {otp.map((digit, i) => (
-                    <input
-                      key={i}
-                      ref={(el) => {
-                        otpRefs.current[i] = el;
-                      }}
-                      className="clerk-input-split"
-                      type="text"
-                      inputMode="numeric"
-                      maxLength={1}
-                      value={digit}
-                      onChange={(e) => handleOtpChange(i, e.target.value)}
-                      onKeyDown={(e) => handleOtpKeyDown(i, e)}
-                      onPaste={i === 0 ? handleOtpPaste : undefined}
-                      autoFocus={i === 0}
-                      style={{
-                        width: "44px",
-                        height: "44px",
-                        textAlign: "center",
-                        fontSize: "18px",
-                        fontWeight: "600",
-                        padding: "0",
-                      }}
-                    />
-                  ))}
-                </div>
-
-                <p
-                  style={{
+                    width: "44px",
+                    height: "44px",
                     textAlign: "center",
-                    fontSize: "13px",
-                    color: "#6b7280",
-                    marginBottom: "16px",
+                    fontSize: "18px",
+                    fontWeight: "600",
+                    padding: "0",
                   }}
-                >
-                  Didn't receive a code?{" "}
-                  <button
-                    type="button"
-                    onClick={handleResend}
-                    className="clerk-link"
-                    style={{
-                      background: "none",
-                      border: "none",
-                      cursor: "pointer",
-                      padding: 0,
-                    }}
-                  >
-                    Resend
-                  </button>
-                </p>
+                />
+              ))}
+            </div>
 
-                <div
-                  style={{
-                    background: "#fef3c7",
-                    border: "1px solid #f59e0b",
-                    borderRadius: "8px",
-                    padding: "10px 14px",
-                    marginBottom: "16px",
-                    fontSize: "13px",
-                    color: "#92400e",
-                    textAlign: "center",
-                  }}
-                >
-                  You're signing in from a new device. We're asking for
-                  verification to keep your account secure.
-                </div>
+            <p
+              style={{
+                textAlign: "center",
+                fontSize: "13px",
+                color: "#6b7280",
+                marginBottom: "16px",
+              }}
+            >
+              Didn't receive a code?{" "}
+              <button
+                type="button"
+                onClick={handleResend}
+                className="clerk-link"
+                style={{
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  padding: 0,
+                }}
+              >
+                Resend
+              </button>
+            </p>
 
-                {error && <p style={errorStyle}>{error}</p>}
+            <div
+              style={{
+                background: "#fef3c7",
+                border: "1px solid #f59e0b",
+                borderRadius: "8px",
+                padding: "10px 14px",
+                marginBottom: "16px",
+                fontSize: "13px",
+                color: "#92400e",
+                textAlign: "center",
+              }}
+            >
+              You're signing in from a new device. We're asking for verification
+              to keep your account secure.
+            </div>
 
-                <button
-                  type="submit"
-                  className="clerk-primary-button-split"
-                  disabled={loading || otp.join("").length < 6}
-                >
-                  {loading ? (
-                    "Verifying…"
-                  ) : (
-                    <>
-                      {" "}
-                      Continue <span style={{ marginLeft: "6px" }}>›</span>
-                    </>
-                  )}
-                </button>
+            {error && <p style={errorStyle}>{error}</p>}
 
-                <p style={{ ...footerStyle, marginTop: "12px" }}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setStep("password");
-                      setOtp(["", "", "", "", "", ""]);
-                      setError("");
-                    }}
-                    className="clerk-link"
-                    style={{
-                      background: "none",
-                      border: "none",
-                      cursor: "pointer",
-                      padding: 0,
-                    }}
-                  >
-                    Use another method
-                  </button>
-                </p>
-              </form>
-            )}
-          </div>
-        </div>
+            <button
+              type="submit"
+              className="clerk-primary-button-split"
+              disabled={loading || otp.join("").length < 6}
+            >
+              {loading ? (
+                "Verifying…"
+              ) : (
+                <>
+                  {" "}
+                  Continue <span style={{ marginLeft: "6px" }}>›</span>
+                </>
+              )}
+            </button>
+
+            <p style={{ ...footerStyle, marginTop: "12px" }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setStep("password");
+                  setOtp(["", "", "", "", "", ""]);
+                  setError("");
+                }}
+                className="clerk-link"
+                style={{
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  padding: 0,
+                }}
+              >
+                Use another method
+              </button>
+            </p>
+          </form>
+        )}
       </div>
-    </div>
+      <p className="auth-centered-copyright">
+        &copy; {new Date().getFullYear()} Teleba. All rights reserved.
+      </p>
+    </AuthBrandPanel>
   );
 }
 
