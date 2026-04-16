@@ -21,7 +21,19 @@ function AppContent() {
   const { user } = useUser();
   const router = useRouter();
   const [isSecureApiReady, setIsSecureApiReady] = useState(false);
-  const [animatedSplashDone, setAnimatedSplashDone] = useState(false);
+  // If mounting while already on an auth page (e.g. after sign-out hard redirect),
+  // mark splash as done so it doesn't replay when navigating into the app.
+  // On a true first visit (landing at "/"), animatedSplashDone starts false and splash plays normally.
+  const [animatedSplashDone, setAnimatedSplashDone] = useState(() => {
+    if (typeof window === "undefined") return false;
+    const p = window.location.pathname;
+    return (
+      p.includes("/sign-in") ||
+      p.includes("/sign-up") ||
+      p.includes("/welcome") ||
+      p.includes("/set-password")
+    );
+  });
 
   // Initialize secure API with Clerk token getter FIRST
   useEffect(() => {
