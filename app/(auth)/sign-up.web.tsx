@@ -242,7 +242,7 @@ export default function SignUpWeb() {
               style={{
                 textAlign: "center",
                 fontSize: "14px",
-                color: "#374151",
+                color: "rgba(255, 255, 255, 0.85)",
                 marginBottom: "20px",
               }}
             >
@@ -288,7 +288,7 @@ export default function SignUpWeb() {
               style={{
                 textAlign: "center",
                 fontSize: "13px",
-                color: "#6b7280",
+                color: "rgba(255, 255, 255, 0.5)",
                 marginBottom: "16px",
               }}
             >
@@ -350,7 +350,7 @@ export default function SignUpWeb() {
 }
 
 const errorStyle: React.CSSProperties = {
-  color: "#dc2626",
+  color: "#fca5a5",
   fontSize: "13px",
   marginBottom: "12px",
   textAlign: "center",
@@ -359,7 +359,7 @@ const errorStyle: React.CSSProperties = {
 const footerStyle: React.CSSProperties = {
   textAlign: "center",
   fontSize: "13px",
-  color: "#6b7280",
+  color: "rgba(255, 255, 255, 0.5)",
   marginTop: "16px",
   marginBottom: 0,
 };
