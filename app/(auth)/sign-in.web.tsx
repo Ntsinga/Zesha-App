@@ -239,7 +239,7 @@ export default function SignInWeb() {
                 gap: "8px",
                 marginBottom: "20px",
                 padding: "8px 12px",
-                background: "#f9fafb",
+                background: "rgba(255, 255, 255, 0.7)",
                 borderRadius: "8px",
                 border: "1px solid #e5e7eb",
               }}

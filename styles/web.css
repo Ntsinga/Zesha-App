@@ -4664,12 +4664,15 @@ body {
 }
 
 .auth-centered-card {
-  background: white;
-  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 20px;
   padding: 40px 48px;
   box-shadow:
-    0 20px 60px rgba(0, 0, 0, 0.3),
-    0 4px 16px rgba(0, 0, 0, 0.1);
+    0 20px 60px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.35);
   width: 100%;
   box-sizing: border-box;
 }
@@ -4694,7 +4697,12 @@ body {
 }
 
 .auth-centered-content .auth-form-title {
-  color: #1f2937;
+  color: #2d0a0a;
+  font-weight: 700;
+}
+
+.auth-centered-content .auth-form-subtitle {
+  color: #6b4040;
 }
 
 .auth-centered-copyright {
@@ -5112,31 +5120,37 @@ body {
 }
 
 .clerk-input-split {
-  border: 1px solid #e5e7eb !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
   border-radius: 12px !important;
   padding: 16px 20px !important;
   font-size: 15px !important;
-  background: #f9fafb !important;
+  background: rgba(255, 255, 255, 0.7) !important;
+  color: #1f2937 !important;
   height: auto !important;
   width: 100% !important;
   box-sizing: border-box !important;
+  transition: all 0.2s !important;
+}
+
+.clerk-input-split::placeholder {
+  color: #9ca3af !important;
 }
 
 .clerk-input-split:focus {
   border-color: #c0152a !important;
-  box-shadow: 0 0 0 3px rgba(192, 21, 42, 0.1) !important;
+  box-shadow: 0 0 0 3px rgba(192, 21, 42, 0.12) !important;
   outline: none !important;
-  background: white !important;
+  background: rgba(255, 255, 255, 0.9) !important;
 }
 
 .clerk-primary-button-split {
-  background: linear-gradient(135deg, #c0152a 0%, #8e0c1a 100%) !important;
-  color: white !important;
+  background: linear-gradient(135deg, #ffd700 0%, #b8860b 100%) !important;
+  color: #3b0a0a !important;
   border-radius: 50px !important;
   padding: 16px 28px !important;
-  font-weight: 600 !important;
+  font-weight: 700 !important;
   font-size: 15px !important;
-  box-shadow: 0 4px 14px rgba(192, 21, 42, 0.35) !important;
+  box-shadow: 0 4px 14px rgba(255, 215, 0, 0.3) !important;
   transition: all 0.2s !important;
   height: auto !important;
   width: 100% !important;
@@ -5146,31 +5160,23 @@ body {
 }
 
 .clerk-primary-button-split:hover {
-  background: linear-gradient(135deg, #9a0e1f 0%, #6b0714 100%) !important;
-  box-shadow: 0 6px 20px rgba(192, 21, 42, 0.45) !important;
+  background: linear-gradient(135deg, #ffe566 0%, #ffd700 100%) !important;
+  box-shadow: 0 6px 20px rgba(255, 215, 0, 0.4) !important;
   transform: translateY(-1px);
 }
 
 .clerk-label-split {
   font-size: 14px !important;
   font-weight: 500 !important;
-  color: #374151 !important;
+  color: #3b1515 !important;
   margin-bottom: 8px !important;
   padding-left: 8px !important;
 }
 
 .clerk-primary-button-split:hover {
-  background: linear-gradient(135deg, #9a0e1f 0%, #6b0714 100%) !important;
-  box-shadow: 0 6px 20px rgba(192, 21, 42, 0.45) !important;
+  background: linear-gradient(135deg, #ffe566 0%, #ffd700 100%) !important;
+  box-shadow: 0 6px 20px rgba(255, 215, 0, 0.4) !important;
   transform: translateY(-1px);
-}
-
-.clerk-label-split {
-  font-size: 14px !important;
-  font-weight: 500 !important;
-  color: #374151 !important;
-  margin-bottom: 8px !important;
-  padding-left: 8px !important;
 }
 
 .clerk-footer-split {
@@ -5201,7 +5207,8 @@ body {
 
   .auth-centered-card {
     padding: 24px 20px;
-    border-radius: 12px;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.9);
   }
 
   .auth-centered-content .auth-brand-title {
@@ -5375,13 +5382,14 @@ body {
 }
 
 .clerk-link {
-  color: var(--color-primary) !important;
+  color: #8e0c1a !important;
   font-weight: 500 !important;
   text-decoration: none !important;
 }
 
 .clerk-link:hover {
   text-decoration: underline !important;
+  color: #c0152a !important;
 }
 
 .clerk-divider {

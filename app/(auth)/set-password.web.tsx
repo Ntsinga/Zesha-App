@@ -398,410 +398,325 @@ export default function SetPasswordWeb() {
   }
 
   return (
-    <div className="auth-split-page">
-      {/* Left Side - Branding */}
-      <AuthBrandPanel />
-
-      {/* Right Side - Password Reset Instructions */}
-      <div className="auth-form-side">
-        <div className="auth-form-container">
-          <div className="auth-form-header">
-            <h2 className="auth-form-title">Set Your Password</h2>
-            <p className="auth-form-subtitle">
-              {displayName ? `Hi ${displayName}!` : "Hi there!"} Create a secure
-              password for your account.
+    <AuthBrandPanel>
+      <div className="auth-centered-card">
+        <div className="auth-form-header">
+          <h2 className="auth-form-title">Set Your Password</h2>
+          <p className="auth-form-subtitle">
+            {displayName ? `Hi ${displayName}!` : "Hi there!"} Create a secure
+            password for your account.
+          </p>
+          {displayEmail && (
+            <p style={{ fontSize: "14px", color: "#6B7280", marginTop: "8px" }}>
+              {displayEmail}
             </p>
-            {displayEmail && (
-              <p
-                style={{ fontSize: "14px", color: "#6B7280", marginTop: "8px" }}
-              >
-                {displayEmail}
-              </p>
-            )}
+          )}
+        </div>
+
+        {success ? (
+          <div style={{ padding: "40px 20px", textAlign: "center" }}>
+            <div
+              style={{
+                width: "64px",
+                height: "64px",
+                borderRadius: "50%",
+                backgroundColor: "#D1FAE5",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                margin: "0 auto 16px",
+              }}
+            >
+              <Check size={32} color="#059669" />
+            </div>
+            <h3
+              style={{
+                fontSize: "20px",
+                fontWeight: "600",
+                color: "#111827",
+                marginBottom: "8px",
+              }}
+            >
+              Password Set Successfully!
+            </h3>
+            <p style={{ color: "#6B7280", fontSize: "14px" }}>
+              Redirecting you to the app...
+            </p>
           </div>
-
-          <div className="auth-form-card">
-            {success ? (
-              <div style={{ padding: "40px 20px", textAlign: "center" }}>
+        ) : (
+          <form onSubmit={handleSetPassword} style={{ padding: "20px 0" }}>
+            {error && (
+              <div
+                style={{
+                  padding: "12px 16px",
+                  backgroundColor: "#FEE2E2",
+                  borderRadius: "8px",
+                  marginBottom: "20px",
+                  border: "1px solid #FECACA",
+                }}
+              >
                 <div
                   style={{
-                    width: "64px",
-                    height: "64px",
-                    borderRadius: "50%",
-                    backgroundColor: "#D1FAE5",
                     display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    margin: "0 auto 16px",
-                  }}
-                >
-                  <Check size={32} color="#059669" />
-                </div>
-                <h3
-                  style={{
-                    fontSize: "20px",
-                    fontWeight: "600",
-                    color: "#111827",
-                    marginBottom: "8px",
-                  }}
-                >
-                  Password Set Successfully!
-                </h3>
-                <p style={{ color: "#6B7280", fontSize: "14px" }}>
-                  Redirecting you to the app...
-                </p>
-              </div>
-            ) : (
-              <form onSubmit={handleSetPassword} style={{ padding: "20px 0" }}>
-                {error && (
-                  <div
-                    style={{
-                      padding: "12px 16px",
-                      backgroundColor: "#FEE2E2",
-                      borderRadius: "8px",
-                      marginBottom: "20px",
-                      border: "1px solid #FECACA",
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "start",
-                        gap: "8px",
-                      }}
-                    >
-                      <AlertCircle
-                        size={18}
-                        color="#DC2626"
-                        style={{ flexShrink: 0, marginTop: "2px" }}
-                      />
-                      <p
-                        style={{
-                          color: "#991B1B",
-                          fontSize: "14px",
-                          margin: 0,
-                        }}
-                      >
-                        {error}
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {/* First name + Last name */}
-                <div
-                  style={{ display: "flex", gap: "16px", marginBottom: "20px" }}
-                >
-                  <div style={{ flex: 1 }}>
-                    <label
-                      style={{
-                        display: "block",
-                        fontSize: "14px",
-                        fontWeight: "600",
-                        color: "#374151",
-                        marginBottom: "8px",
-                      }}
-                    >
-                      First name
-                    </label>
-                    <input
-                      type="text"
-                      value={firstName}
-                      onChange={(e) => setFirstName(e.target.value)}
-                      placeholder="First name"
-                      required
-                      autoFocus
-                      className="clerk-input-split"
-                      onFocus={(e) => (e.target.style.borderColor = "#DC2626")}
-                      onBlur={(e) => (e.target.style.borderColor = "#D1D5DB")}
-                    />
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <label
-                      style={{
-                        display: "block",
-                        fontSize: "14px",
-                        fontWeight: "600",
-                        color: "#374151",
-                        marginBottom: "8px",
-                      }}
-                    >
-                      Last name
-                    </label>
-                    <input
-                      type="text"
-                      value={lastName}
-                      onChange={(e) => setLastName(e.target.value)}
-                      placeholder="Last name"
-                      required
-                      className="clerk-input-split"
-                      onFocus={(e) => (e.target.style.borderColor = "#DC2626")}
-                      onBlur={(e) => (e.target.style.borderColor = "#D1D5DB")}
-                    />
-                  </div>
-                </div>
-
-                <div style={{ marginBottom: "20px" }}>
-                  <label
-                    style={{
-                      display: "block",
-                      fontSize: "14px",
-                      fontWeight: "600",
-                      color: "#374151",
-                      marginBottom: "8px",
-                    }}
-                  >
-                    Password
-                  </label>
-                  <div style={{ position: "relative" }}>
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="Enter your password"
-                      style={{
-                        width: "100%",
-                        padding: "12px 40px 12px 16px",
-                        fontSize: "16px",
-                        border: "1px solid #D1D5DB",
-                        borderRadius: "12px",
-                        backgroundColor: "#F9FAFB",
-                        outline: "none",
-                      }}
-                      onFocus={(e) => (e.target.style.borderColor = "#DC2626")}
-                      onBlur={(e) => (e.target.style.borderColor = "#D1D5DB")}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      style={{
-                        position: "absolute",
-                        right: "12px",
-                        top: "50%",
-                        transform: "translateY(-50%)",
-                        background: "none",
-                        border: "none",
-                        cursor: "pointer",
-                        color: "#6B7280",
-                        padding: "4px",
-                      }}
-                    >
-                      {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                    </button>
-                  </div>
-
-                  {password && (
-                    <div style={{ marginTop: "8px" }}>
-                      <div
-                        style={{
-                          display: "flex",
-                          gap: "4px",
-                          marginBottom: "4px",
-                        }}
-                      >
-                        {[1, 2, 3, 4, 5].map((level) => (
-                          <div
-                            key={level}
-                            style={{
-                              flex: 1,
-                              height: "4px",
-                              borderRadius: "2px",
-                              backgroundColor:
-                                level <= passwordStrength.strength
-                                  ? passwordStrength.color
-                                  : "#E5E7EB",
-                            }}
-                          />
-                        ))}
-                      </div>
-                      <p
-                        style={{
-                          fontSize: "12px",
-                          color: passwordStrength.color,
-                          margin: 0,
-                        }}
-                      >
-                        {passwordStrength.label}
-                      </p>
-                    </div>
-                  )}
-
-                  <p
-                    style={{
-                      fontSize: "12px",
-                      color: "#6B7280",
-                      marginTop: "8px",
-                    }}
-                  >
-                    Must be at least 8 characters
-                  </p>
-                </div>
-
-                <div style={{ marginBottom: "24px" }}>
-                  <label
-                    style={{
-                      display: "block",
-                      fontSize: "14px",
-                      fontWeight: "600",
-                      color: "#374151",
-                      marginBottom: "8px",
-                    }}
-                  >
-                    Confirm Password
-                  </label>
-                  <div style={{ position: "relative" }}>
-                    <input
-                      type={showConfirmPassword ? "text" : "password"}
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      placeholder="Confirm your password"
-                      style={{
-                        width: "100%",
-                        padding: "12px 40px 12px 16px",
-                        fontSize: "16px",
-                        border: "1px solid #D1D5DB",
-                        borderRadius: "12px",
-                        backgroundColor: "#F9FAFB",
-                        outline: "none",
-                      }}
-                      onFocus={(e) => (e.target.style.borderColor = "#DC2626")}
-                      onBlur={(e) => (e.target.style.borderColor = "#D1D5DB")}
-                    />
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setShowConfirmPassword(!showConfirmPassword)
-                      }
-                      style={{
-                        position: "absolute",
-                        right: "12px",
-                        top: "50%",
-                        transform: "translateY(-50%)",
-                        background: "none",
-                        border: "none",
-                        cursor: "pointer",
-                        color: "#6B7280",
-                        padding: "4px",
-                      }}
-                    >
-                      {showConfirmPassword ? (
-                        <EyeOff size={20} />
-                      ) : (
-                        <Eye size={20} />
-                      )}
-                    </button>
-                  </div>
-
-                  {confirmPassword && (
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "6px",
-                        marginTop: "8px",
-                      }}
-                    >
-                      {passwordsMatch ? (
-                        <>
-                          <Check size={16} color="#059669" />
-                          <p
-                            style={{
-                              fontSize: "12px",
-                              color: "#059669",
-                              margin: 0,
-                            }}
-                          >
-                            Passwords match
-                          </p>
-                        </>
-                      ) : (
-                        <>
-                          <AlertCircle size={16} color="#DC2626" />
-                          <p
-                            style={{
-                              fontSize: "12px",
-                              color: "#DC2626",
-                              margin: 0,
-                            }}
-                          >
-                            Passwords don't match
-                          </p>
-                        </>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={
-                    isLoading ||
-                    !password ||
-                    !confirmPassword ||
-                    password !== confirmPassword
-                  }
-                  style={{
-                    width: "100%",
-                    padding: "14px",
-                    backgroundColor:
-                      isLoading ||
-                      !password ||
-                      !confirmPassword ||
-                      password !== confirmPassword
-                        ? "#F87171"
-                        : "#DC2626",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "12px",
-                    fontSize: "16px",
-                    fontWeight: "600",
-                    cursor:
-                      isLoading ||
-                      !password ||
-                      !confirmPassword ||
-                      password !== confirmPassword
-                        ? "not-allowed"
-                        : "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
+                    alignItems: "start",
                     gap: "8px",
                   }}
                 >
-                  {isLoading ? (
-                    <>
-                      <div
-                        style={{
-                          width: "20px",
-                          height: "20px",
-                          border: "2px solid rgba(255,255,255,0.3)",
-                          borderTopColor: "white",
-                          borderRadius: "50%",
-                          animation: "spin 1s linear infinite",
-                        }}
-                      />
-                      Setting Password...
-                    </>
-                  ) : (
-                    "Set Password"
-                  )}
-                </button>
+                  <AlertCircle
+                    size={18}
+                    color="#DC2626"
+                    style={{ flexShrink: 0, marginTop: "2px" }}
+                  />
+                  <p
+                    style={{
+                      color: "#991B1B",
+                      fontSize: "14px",
+                      margin: 0,
+                    }}
+                  >
+                    {error}
+                  </p>
+                </div>
+              </div>
+            )}
 
-                <p
+            {/* First name + Last name */}
+            <div style={{ display: "flex", gap: "16px", marginBottom: "20px" }}>
+              <div style={{ flex: 1 }}>
+                <label
+                  className="clerk-label-split"
+                  style={{ display: "block" }}
+                >
+                  First name
+                </label>
+                <input
+                  type="text"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  placeholder="First name"
+                  required
+                  autoFocus
+                  className="clerk-input-split"
+                />
+              </div>
+              <div style={{ flex: 1 }}>
+                <label
+                  className="clerk-label-split"
+                  style={{ display: "block" }}
+                >
+                  Last name
+                </label>
+                <input
+                  type="text"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  placeholder="Last name"
+                  required
+                  className="clerk-input-split"
+                />
+              </div>
+            </div>
+
+            <div style={{ marginBottom: "20px" }}>
+              <label className="clerk-label-split" style={{ display: "block" }}>
+                Password
+              </label>
+              <div style={{ position: "relative" }}>
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter your password"
+                  className="clerk-input-split"
+                  style={{ paddingRight: "48px" }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
                   style={{
-                    marginTop: "16px",
-                    fontSize: "12px",
+                    position: "absolute",
+                    right: "12px",
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
                     color: "#6B7280",
-                    textAlign: "center",
+                    padding: "4px",
                   }}
                 >
-                  Your password will be used to sign in to your account
-                </p>
-              </form>
-            )}
-          </div>
-        </div>
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
+              </div>
+
+              {password && (
+                <div style={{ marginTop: "8px" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: "4px",
+                      marginBottom: "4px",
+                    }}
+                  >
+                    {[1, 2, 3, 4, 5].map((level) => (
+                      <div
+                        key={level}
+                        style={{
+                          flex: 1,
+                          height: "4px",
+                          borderRadius: "2px",
+                          backgroundColor:
+                            level <= passwordStrength.strength
+                              ? passwordStrength.color
+                              : "#E5E7EB",
+                        }}
+                      />
+                    ))}
+                  </div>
+                  <p
+                    style={{
+                      fontSize: "12px",
+                      color: passwordStrength.color,
+                      margin: 0,
+                    }}
+                  >
+                    {passwordStrength.label}
+                  </p>
+                </div>
+              )}
+
+              <p
+                style={{
+                  fontSize: "12px",
+                  color: "#6B7280",
+                  marginTop: "8px",
+                }}
+              >
+                Must be at least 8 characters
+              </p>
+            </div>
+
+            <div style={{ marginBottom: "24px" }}>
+              <label className="clerk-label-split" style={{ display: "block" }}>
+                Confirm Password
+              </label>
+              <div style={{ position: "relative" }}>
+                <input
+                  type={showConfirmPassword ? "text" : "password"}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Confirm your password"
+                  className="clerk-input-split"
+                  style={{ paddingRight: "48px" }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  style={{
+                    position: "absolute",
+                    right: "12px",
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    color: "#6B7280",
+                    padding: "4px",
+                  }}
+                >
+                  {showConfirmPassword ? (
+                    <EyeOff size={20} />
+                  ) : (
+                    <Eye size={20} />
+                  )}
+                </button>
+              </div>
+
+              {confirmPassword && (
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    marginTop: "8px",
+                  }}
+                >
+                  {passwordsMatch ? (
+                    <>
+                      <Check size={16} color="#059669" />
+                      <p
+                        style={{
+                          fontSize: "12px",
+                          color: "#059669",
+                          margin: 0,
+                        }}
+                      >
+                        Passwords match
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <AlertCircle size={16} color="#DC2626" />
+                      <p
+                        style={{
+                          fontSize: "12px",
+                          color: "#DC2626",
+                          margin: 0,
+                        }}
+                      >
+                        Passwords don't match
+                      </p>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <button
+              type="submit"
+              disabled={
+                isLoading ||
+                !password ||
+                !confirmPassword ||
+                password !== confirmPassword
+              }
+              className="clerk-primary-button-split"
+            >
+              {isLoading ? (
+                <>
+                  <div
+                    style={{
+                      width: "20px",
+                      height: "20px",
+                      border: "2px solid rgba(255,255,255,0.3)",
+                      borderTopColor: "white",
+                      borderRadius: "50%",
+                      animation: "spin 1s linear infinite",
+                    }}
+                  />
+                  Setting Password...
+                </>
+              ) : (
+                "Set Password"
+              )}
+            </button>
+
+            <p
+              style={{
+                marginTop: "16px",
+                fontSize: "12px",
+                color: "#6B7280",
+                textAlign: "center",
+              }}
+            >
+              Your password will be used to sign in to your account
+            </p>
+          </form>
+        )}
       </div>
-    </div>
+      <p className="auth-centered-copyright">
+        &copy; {new Date().getFullYear()} Teleba. All rights reserved.
+      </p>
+    </AuthBrandPanel>
   );
 }
