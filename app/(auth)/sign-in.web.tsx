@@ -32,6 +32,13 @@ export default function SignInWeb() {
   const [secondFactorPrepared, setSecondFactorPrepared] = useState(false);
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
 
+  const emailRef = useRef<HTMLInputElement>(null);
+
+  // Auto-focus email on mount only — not on every re-render
+  useEffect(() => {
+    emailRef.current?.focus();
+  }, []);
+
   const handleOtpChange = (index: number, value: string) => {
     const digit = value.replace(/\D/g, "").slice(-1);
     const next = [...otp];
@@ -157,15 +164,20 @@ export default function SignInWeb() {
             {(step === "email" || step === "password") && (
               <form onSubmit={handleSignIn}>
                 <div style={{ marginBottom: "16px" }}>
-                  <label className="clerk-label-split">Email address</label>
+                  <label
+                    className="clerk-label-split"
+                    style={{ display: "block", marginBottom: "10px" }}
+                  >
+                    Email address
+                  </label>
                   <input
+                    ref={emailRef}
                     className="clerk-input-split"
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="Enter your email address"
                     required
-                    autoFocus
                   />
                 </div>
                 <div style={{ marginBottom: "16px" }}>

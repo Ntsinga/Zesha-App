@@ -37,6 +37,7 @@ export default function DashboardWeb() {
   const router = useRouter();
   const {
     isLoading,
+    isInitializing,
     refreshing,
     snapshotDate,
     accounts,
@@ -163,7 +164,7 @@ export default function DashboardWeb() {
     year: "Past Year",
   };
 
-  if (isLoading && !refreshing) {
+  if (isInitializing || (isLoading && !refreshing)) {
     return (
       <div className="loading-container">
         <div className="loading-content">
@@ -221,7 +222,9 @@ export default function DashboardWeb() {
             </div>
             <div className="gt-strip-metric-divider" />
             <div className="gt-strip-metric">
-              <span className="gt-strip-metric-label">Loss</span>
+              <span className="gt-strip-metric-label">
+                {displayVariance > 0 ? "Excess" : "Loss"}
+              </span>
               <span
                 className={`gt-strip-metric-value ${displayVariance >= 0 ? "positive" : "negative"}`}
               >

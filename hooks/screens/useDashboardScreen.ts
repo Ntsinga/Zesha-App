@@ -91,10 +91,11 @@ export function useDashboardScreen() {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   })();
 
-  // Fetch dashboard data on mount
+  // Fetch dashboard data on mount and whenever effectiveCompanyId becomes available
   useEffect(() => {
+    if (!effectiveCompanyId) return;
     dispatch(fetchDashboard({}));
-  }, [dispatch]);
+  }, [dispatch, effectiveCompanyId]);
 
   // Fetch today's transactions (always today — powers balances table)
   useEffect(() => {
@@ -610,6 +611,8 @@ export function useDashboardScreen() {
   return {
     // State
     isLoading,
+    // True while waiting for companyId to resolve or the very first data fetch
+    isInitializing: !effectiveCompanyId || (!summary && isLoading),
     error,
     refreshing,
     snapshotDate,
