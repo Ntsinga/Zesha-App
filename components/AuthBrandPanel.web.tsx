@@ -30,22 +30,27 @@ export default function AuthBrandPanel() {
 
       {/* Main brand content */}
       <div className="auth-brand-content">
-        {/* Icon with halo */}
-        <div className="auth-brand-logo">
-          <div className="auth-icon-wrap">
-            <div className="auth-icon-halo" />
-            <img
-              src={iconUrl}
-              alt="Teleba"
-              width={110}
-              height={110}
-              style={{ borderRadius: 26 }}
-            />
+        {/* Icon + title link back to landing page */}
+        <a
+          href="https://teleba.io"
+          style={{ textDecoration: "none", display: "contents" }}
+        >
+          <div className="auth-brand-logo">
+            <div className="auth-icon-wrap">
+              <div className="auth-icon-halo" />
+              <img
+                src={iconUrl}
+                alt="Teleba"
+                width={110}
+                height={110}
+                style={{ borderRadius: 26 }}
+              />
+            </div>
           </div>
-        </div>
 
-        {/* Brand name */}
-        <h1 className="auth-brand-title">TELEBA</h1>
+          {/* Brand name */}
+          <h1 className="auth-brand-title">TELEBA</h1>
+        </a>
 
         {/* Divider */}
         <div className="auth-divider">
