@@ -71,6 +71,8 @@ export const fetchExpenses = createAsyncThunk<
     }
 
     const { forceRefresh, ...filterParams } = filters;
+    const hasExplicitPagination =
+      filterParams.limit !== undefined || filterParams.skip !== undefined;
 
     // Check cache - skip fetch if data is fresh
     const { lastFetched, items, filters: cachedFilters } = state.expenses;
@@ -83,16 +85,35 @@ export const fetchExpenses = createAsyncThunk<
       return items;
     }
 
-    // Build query with camelCase filters, convert to snake_case for API
-    const query = buildTypedQueryString({
-      ...filterParams,
-      companyId,
-    });
+    const pageSize = filterParams.limit ?? 500;
+    let currentSkip = filterParams.skip ?? 0;
 
-    const expenses = await apiRequest<Expense[]>(
-      `${API_ENDPOINTS.expenses.list}${query}`,
-    );
-    return expenses;
+    // When callers don't request pagination explicitly, fetch every page so
+    // expense-based totals aren't capped by the API's default limit.
+    const allExpenses: Expense[] = [];
+
+    while (true) {
+      const query = buildTypedQueryString({
+        ...filterParams,
+        companyId,
+        skip: currentSkip,
+        limit: pageSize,
+      });
+
+      const page = await apiRequest<Expense[]>(
+        `${API_ENDPOINTS.expenses.list}${query}`,
+      );
+
+      allExpenses.push(...page);
+
+      if (hasExplicitPagination || page.length < pageSize) {
+        break;
+      }
+
+      currentSkip += page.length;
+    }
+
+    return allExpenses;
   } catch (error) {
     return rejectWithValue(
       error instanceof Error ? error.message : "Failed to fetch expenses",

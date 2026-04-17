@@ -106,7 +106,6 @@ export default function ExpensesWeb() {
         <div className="header-left">
           <h1 className="header-title">Expenses</h1>
         </div>
-
       </header>
 
       <div className="dashboard-content">
