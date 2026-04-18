@@ -301,7 +301,10 @@ export default function SignInPage() {
                 </TouchableOpacity>
 
                 {/* Forgot Password */}
-                <TouchableOpacity className="items-center mb-6">
+                <TouchableOpacity
+                  className="items-center mb-6"
+                  onPress={() => router.push("/(auth)/forgot-password")}
+                >
                   <Text className="text-red-500 font-medium text-sm">
                     Forgot password?
                   </Text>

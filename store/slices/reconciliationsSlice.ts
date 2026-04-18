@@ -247,7 +247,9 @@ export const calculateReconciliation = createAsyncThunk<
       // Get companyId from auth state
       const state = getState();
       const companyId =
-        state.auth.viewingAgencyId || state.auth.user?.companyId;
+        params.companyId ||
+        state.auth.viewingAgencyId ||
+        state.auth.user?.companyId;
 
       if (!companyId) {
         return rejectWithValue("No companyId found. Please log in again.");
@@ -290,7 +292,10 @@ export const finalizeReconciliation = createAsyncThunk<
   try {
     // Get companyId from auth state
     const state = getState();
-    const companyId = state.auth.viewingAgencyId || state.auth.user?.companyId;
+    const companyId =
+      params.companyId ||
+      state.auth.viewingAgencyId ||
+      state.auth.user?.companyId;
 
     if (!companyId) {
       return rejectWithValue("No companyId found. Please log in again.");
@@ -326,6 +331,7 @@ export interface ApproveReconciliationParams {
   date: string;
   shift: ShiftEnum;
   subtype: ReconciliationSubtypeEnum;
+  companyId: number;
   action: "APPROVED" | "REJECTED";
   approvedBy: number;
   rejectionReason?: string;
@@ -343,7 +349,10 @@ export const approveReconciliation = createAsyncThunk<
   try {
     // Get companyId from auth state
     const state = getState();
-    const companyId = state.auth.viewingAgencyId || state.auth.user?.companyId;
+    const companyId =
+      params.companyId ||
+      state.auth.viewingAgencyId ||
+      state.auth.user?.companyId;
 
     if (!companyId) {
       return rejectWithValue("No companyId found. Please log in again.");
@@ -389,7 +398,9 @@ export const fetchBalanceValidation = createAsyncThunk<
     try {
       const state = getState();
       const companyId =
-        state.auth.viewingAgencyId || state.auth.user?.companyId;
+        params.companyId ||
+        state.auth.viewingAgencyId ||
+        state.auth.user?.companyId;
 
       if (!companyId) {
         return rejectWithValue("No companyId found. Please log in again.");
@@ -434,7 +445,9 @@ export const fetchReconciliationDetails = createAsyncThunk<
       // Get companyId from auth state
       const state = getState();
       const companyId =
-        state.auth.viewingAgencyId || state.auth.user?.companyId;
+        params.companyId ||
+        state.auth.viewingAgencyId ||
+        state.auth.user?.companyId;
 
       if (!companyId) {
         return rejectWithValue("No companyId found. Please log in again.");
