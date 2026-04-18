@@ -315,7 +315,7 @@ export function useReconciliationScreen({
 
   // Approve reconciliation (supervisor/admin only)
   const handleApprove = async () => {
-    if (!date || !shift || !backendUser?.id || !canReview) {
+    if (!date || !shift || !backendUser?.id || !canReview || !resolvedCompanyId) {
       return { success: false, error: "Not authorized" };
     }
 
@@ -325,6 +325,7 @@ export function useReconciliationScreen({
           date,
           shift,
           subtype,
+          companyId: resolvedCompanyId,
           action: "APPROVED",
           approvedBy: backendUser.id,
         }),
@@ -343,7 +344,7 @@ export function useReconciliationScreen({
 
   // Reject reconciliation (supervisor/admin only)
   const handleReject = async () => {
-    if (!date || !shift || !backendUser?.id || !canReview) {
+    if (!date || !shift || !backendUser?.id || !canReview || !resolvedCompanyId) {
       return { success: false, error: "Not authorized" };
     }
 
@@ -357,6 +358,7 @@ export function useReconciliationScreen({
           date,
           shift,
           subtype,
+          companyId: resolvedCompanyId,
           action: "REJECTED",
           approvedBy: backendUser.id,
           rejectionReason: notes.trim(),

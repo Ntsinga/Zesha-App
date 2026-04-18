@@ -35,7 +35,8 @@ function AppContent() {
       p.includes("/sign-in") ||
       p.includes("/sign-up") ||
       p.includes("/welcome") ||
-      p.includes("/set-password")
+      p.includes("/set-password") ||
+      p.includes("/forgot-password")
     );
   });
 
@@ -83,7 +84,8 @@ function AppContent() {
       path.includes("/sign-in") ||
       path.includes("/sign-up") ||
       path.includes("/welcome") ||
-      path.includes("/set-password");
+      path.includes("/set-password") ||
+      path.includes("/forgot-password");
     if (!onAuthPage) {
       window.location.replace("/sign-in");
     }
@@ -97,8 +99,13 @@ function AppContent() {
     const isOnSignIn = currentPath.includes("/sign-in");
     const isOnSignUp = currentPath.includes("/sign-up");
     const isOnWelcome = currentPath.includes("/welcome");
+    const isOnForgotPassword = currentPath.includes("/forgot-password");
     const isAuthPage =
-      isOnSignIn || isOnSignUp || isOnWelcome || isOnSetPassword;
+      isOnSignIn ||
+      isOnSignUp ||
+      isOnWelcome ||
+      isOnSetPassword ||
+      isOnForgotPassword;
 
     // Invite ticket is handled by the early effect above — skip here.
     const urlParams = new URLSearchParams(window.location.search);
@@ -148,6 +155,7 @@ function AppContent() {
     currentPath.includes("/sign-up") ||
     currentPath.includes("/welcome") ||
     currentPath.includes("/set-password") ||
+    currentPath.includes("/forgot-password") ||
     new URLSearchParams(currentSearch).has("__clerk_ticket");
 
   // For auth pages: only block on Clerk loading (not secure API or syncing)
