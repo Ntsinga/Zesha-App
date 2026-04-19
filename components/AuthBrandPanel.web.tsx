@@ -15,11 +15,14 @@ const getImageUrl = (img: unknown): string => {
 /**
  * Full-page branded background wrapper for web auth screens.
  * Renders the red gradient + decorative elements with children centered on top.
+ * Pass `wide` for forms that need more horizontal space (e.g. multi-field forms).
  */
 export default function AuthBrandPanel({
   children,
+  wide,
 }: {
   children: React.ReactNode;
+  wide?: boolean;
 }) {
   const iconUrl = getImageUrl(iconSource);
 
@@ -80,7 +83,10 @@ export default function AuthBrandPanel({
       <div className="auth-vignette" />
 
       {/* Centered content: logo + children */}
-      <div className="auth-centered-content">
+      <div
+        className="auth-centered-content"
+        style={wide ? { maxWidth: 560 } : undefined}
+      >
         <a
           href="https://teleba.io"
           style={{ textDecoration: "none", display: "contents" }}

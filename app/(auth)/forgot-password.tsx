@@ -32,6 +32,13 @@ interface SecondFactorState {
   safeIdentifier?: string | null;
 }
 
+interface SecondFactorCandidate {
+  strategy: string;
+  emailAddressId?: string;
+  phoneNumberId?: string;
+  safeIdentifier?: string | null;
+}
+
 export default function ForgotPasswordPage() {
   const { signIn, setActive, isLoaded } = useSignIn();
   const { isSignedIn } = useAuth();
@@ -68,7 +75,7 @@ export default function ForgotPasswordPage() {
   }, [isSignedIn, router]);
 
   const getPreferredSecondFactor = (signInAttempt: {
-    supportedSecondFactors?: Array<SecondFactorState>;
+    supportedSecondFactors?: Array<SecondFactorCandidate> | null;
   }): SecondFactorState | null => {
     const secondFactors = signInAttempt.supportedSecondFactors ?? [];
     const priority: SecondFactorStrategy[] = [
@@ -82,7 +89,7 @@ export default function ForgotPasswordPage() {
       const factor = secondFactors.find((entry) => entry.strategy === strategy);
       if (factor) {
         return {
-          strategy: factor.strategy,
+          strategy,
           emailAddressId: factor.emailAddressId,
           phoneNumberId: factor.phoneNumberId,
           safeIdentifier: factor.safeIdentifier ?? null,
@@ -117,7 +124,7 @@ export default function ForgotPasswordPage() {
   };
 
   const startSecondFactorStep = async (signInAttempt: {
-    supportedSecondFactors?: Array<SecondFactorState>;
+    supportedSecondFactors?: Array<SecondFactorCandidate> | null;
   }) => {
     const factor = getPreferredSecondFactor(signInAttempt);
 

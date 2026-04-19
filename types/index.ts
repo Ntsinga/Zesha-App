@@ -38,11 +38,13 @@ export {
 
 // ============= User Types =============
 export {
+  type AgencyOnboardingStatus,
   type User,
   type UserCreate,
   type UserUpdate,
   type UserSyncRequest,
   type UserInviteRequest,
+  type AgencySetupInviteRequest,
   type UserInviteResponse,
   type UserFilters,
 } from "./user";

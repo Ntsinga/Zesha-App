@@ -1,5 +1,4 @@
 ﻿import React, { useMemo } from "react";
-import { useRouter } from "expo-router";
 import { Wallet, RefreshCw } from "lucide-react";
 import {
   PieChart,
@@ -45,7 +44,6 @@ const CATEGORY_ACCOUNT_COLORS = {
  * Web Dashboard - optimized for desktop with CSS classes for maintainability
  */
 export default function DashboardWeb() {
-  const router = useRouter();
   const {
     isLoading,
     isInitializing,
@@ -215,7 +213,6 @@ export default function DashboardWeb() {
           <h1 className="header-title">Dashboard</h1>
           <span className="header-date">{snapshotDate}</span>
         </div>
-
       </header>
 
       {/* Dashboard Content */}
@@ -278,11 +275,16 @@ export default function DashboardWeb() {
             <div className="gt-strip-group">
               <span className="gt-strip-group-label">
                 Outflow
-                {totalPendingExpenses > 0 && displayCapital > 0 && (totalPendingExpenses / displayCapital) > 0.3 && (
-                  <span className="gt-strip-expense-badge">
-                    {Math.round((totalPendingExpenses / displayCapital) * 100)}% of capital
-                  </span>
-                )}
+                {totalPendingExpenses > 0 &&
+                  displayCapital > 0 &&
+                  totalPendingExpenses / displayCapital > 0.3 && (
+                    <span className="gt-strip-expense-badge">
+                      {Math.round(
+                        (totalPendingExpenses / displayCapital) * 100,
+                      )}
+                      % of capital
+                    </span>
+                  )}
               </span>
               <div className="gt-strip-group-items">
                 <div className="gt-strip-metric">
@@ -309,7 +311,6 @@ export default function DashboardWeb() {
             {liveGrandTotal !== null && <span className="gt-live-dot" />}
             <span className="gt-strip-live-label">{capitalLabel}</span>
           </div>
-
         </div>
 
         {/* === Horizontal Scrollable Balance Pills === */}
@@ -392,16 +393,39 @@ export default function DashboardWeb() {
                         stroke="none"
                         labelLine={false}
                         label={(props: PieLabelRenderProps) => {
-                          const { value = 0, cx = 0, cy = 0, midAngle = 0, outerRadius = 112 } = props;
+                          const {
+                            value = 0,
+                            cx = 0,
+                            cy = 0,
+                            midAngle = 0,
+                            outerRadius = 112,
+                          } = props;
                           const numValue = Number(value) || 0;
-                          const pct = commissionChartTotal > 0 ? Math.round((numValue / commissionChartTotal) * 100) : 0;
+                          const pct =
+                            commissionChartTotal > 0
+                              ? Math.round(
+                                  (numValue / commissionChartTotal) * 100,
+                                )
+                              : 0;
                           if (pct < 5) return null;
                           const RADIAN = Math.PI / 180;
                           const radius = (Number(outerRadius) || 112) + 18;
-                          const x = Number(cx) + radius * Math.cos(-(Number(midAngle)) * RADIAN);
-                          const y = Number(cy) + radius * Math.sin(-(Number(midAngle)) * RADIAN);
+                          const x =
+                            Number(cx) +
+                            radius * Math.cos(-Number(midAngle) * RADIAN);
+                          const y =
+                            Number(cy) +
+                            radius * Math.sin(-Number(midAngle) * RADIAN);
                           return (
-                            <text x={x} y={y} textAnchor={x > cx ? "start" : "end"} dominantBaseline="central" fontSize={11} fill="#6b7280" fontWeight={600}>
+                            <text
+                              x={x}
+                              y={y}
+                              textAnchor={x > cx ? "start" : "end"}
+                              dominantBaseline="central"
+                              fontSize={11}
+                              fill="#6b7280"
+                              fontWeight={600}
+                            >
                               {pct}%
                             </text>
                           );
@@ -472,7 +496,9 @@ export default function DashboardWeb() {
                   <h3 className="chart-title" style={{ margin: 0 }}>
                     Transactions by Account
                   </h3>
-                  <span className="chart-period-hint">{PERIOD_LABELS[chartPeriod]}</span>
+                  <span className="chart-period-hint">
+                    {PERIOD_LABELS[chartPeriod]}
+                  </span>
                 </div>
                 {transactionBarData.length > 0 && (
                   <span className="commission-total">

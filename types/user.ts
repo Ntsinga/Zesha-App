@@ -4,6 +4,11 @@
 import type { BaseModel } from "./base";
 import type { RoleEnum } from "./enums";
 
+export type AgencyOnboardingStatus =
+  | "PENDING_COMPANY_INFO"
+  | "PENDING_ACCOUNTS"
+  | "COMPLETED";
+
 /**
  * User entity - matches backend UserResponse schema
  */
@@ -16,6 +21,7 @@ export interface User extends BaseModel {
   phoneNumber: string | null;
   role: RoleEnum;
   companyId: number | null;
+  onboardingStatus: AgencyOnboardingStatus | null;
   isActive: boolean;
   lastLoginAt: string | null;
   userMetadata: string | null;
@@ -33,6 +39,7 @@ export interface UserCreate {
   phoneNumber?: string | null;
   role?: RoleEnum;
   companyId?: number | null;
+  onboardingStatus?: AgencyOnboardingStatus | null;
   isActive?: boolean;
   userMetadata?: string | null;
 }
@@ -48,6 +55,7 @@ export interface UserUpdate {
   phoneNumber?: string | null;
   role?: RoleEnum;
   companyId?: number | null;
+  onboardingStatus?: AgencyOnboardingStatus | null;
   isActive?: boolean;
   lastLoginAt?: string | null;
   userMetadata?: string | null;
@@ -78,6 +86,14 @@ export interface UserInviteRequest {
   phoneNumber?: string | null;
   role?: RoleEnum;
   companyId?: number | null;
+  redirectUrl?: string | null;
+}
+
+export interface AgencySetupInviteRequest {
+  email: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  phoneNumber?: string | null;
   redirectUrl?: string | null;
 }
 

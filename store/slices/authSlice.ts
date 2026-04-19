@@ -4,6 +4,7 @@ import { Platform } from "react-native";
 import { secureApiRequest } from "@/services/secureApi";
 import type { User, UserSyncRequest, RoleEnum } from "@/types";
 import { mapApiResponse, mapApiRequest } from "@/types";
+import { API_ENDPOINTS } from "@/config/api";
 
 // Re-export for convenience (use types from types.ts)
 export type { User, UserSyncRequest };
@@ -172,6 +173,30 @@ export const updateUserProfile = createAsyncThunk(
   },
 );
 
+export const completeMyAgencyOnboarding = createAsyncThunk(
+  "auth/completeMyAgencyOnboarding",
+  async (_, { rejectWithValue }) => {
+    try {
+      const responseData = await secureApiRequest<any>(
+        API_ENDPOINTS.users.completeMyOnboarding,
+        {
+          method: "POST",
+        },
+      );
+
+      const user: User = mapApiResponse<User>(responseData);
+      await setSecureItem(USER_KEY, JSON.stringify(user));
+      return user;
+    } catch (error) {
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : "Failed to complete agency onboarding",
+      );
+    }
+  },
+);
+
 // Clear local auth data (used when Clerk signs out)
 export const clearLocalAuth = createAsyncThunk("auth/clearLocal", async () => {
   await deleteSecureItem(CLERK_USER_ID_KEY);
@@ -296,6 +321,21 @@ const authSlice = createSlice({
         state.error = action.payload as string;
       });
 
+    builder
+      .addCase(completeMyAgencyOnboarding.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(completeMyAgencyOnboarding.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.user = action.payload;
+        state.error = null;
+      })
+      .addCase(completeMyAgencyOnboarding.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
+      });
+
     // Clear local auth
     builder.addCase(clearLocalAuth.fulfilled, (state) => {
       state.user = null;
@@ -322,6 +362,23 @@ export const selectViewingAgencyName = (state: { auth: AuthState }) =>
   state.auth.viewingAgencyName;
 export const selectIsViewingAgency = (state: { auth: AuthState }) =>
   state.auth.viewingAgencyId !== null;
+
+export const selectNeedsAgencyOnboarding = (state: { auth: AuthState }) => {
+  const user = state.auth.user;
+  if (!user || user.role !== "Administrator") return false;
+  // Genuinely completed AND has a company — no onboarding needed
+  if (user.onboardingStatus === "COMPLETED" && !!user.companyId) return false;
+  // COMPLETED but no company is a corrupted state — still needs setup
+  // In-progress status — needs onboarding
+  if (
+    user.onboardingStatus === "PENDING_COMPANY_INFO" ||
+    user.onboardingStatus === "PENDING_ACCOUNTS"
+  )
+    return true;
+  // No status + no company — needs setup (covers pre-feature or metadata-less invites)
+  if (!user.companyId) return true;
+  return false;
+};
 
 /**
  * Returns the effective company ID for data queries.

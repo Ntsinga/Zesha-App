@@ -54,7 +54,6 @@ export function useSettingsScreen() {
   // Form state
   const [name, setName] = useState("");
   const [totalWorkingCapital, setTotalWorkingCapital] = useState("");
-  const [outstandingBalance, setOutstandingBalance] = useState("");
   const [currency, setCurrency] = useState("UGX");
   const [description, setDescription] = useState("");
   const [emails, setEmails] = useState<string[]>([]);
@@ -62,7 +61,7 @@ export function useSettingsScreen() {
 
   // Only bind settings to a company when the user is company-scoped or has entered an agency.
   const company: CompanyInfo | undefined = showCompanySettings
-    ? companies[0] ?? dashboardCompanyInfo
+    ? (companies[0] ?? dashboardCompanyInfo)
     : undefined;
 
   useEffect(() => {
@@ -74,14 +73,12 @@ export function useSettingsScreen() {
     if (company) {
       setName(company.name || "");
       setTotalWorkingCapital(company.totalWorkingCapital?.toString() || "0");
-      setOutstandingBalance(company.outstandingBalance?.toString() || "0");
       setCurrency(company.currency || "UGX");
       setDescription(company.description || "");
       setEmails(company.emails || []);
     } else if (!showCompanySettings) {
       setName("");
       setTotalWorkingCapital("");
-      setOutstandingBalance("");
       setCurrency("UGX");
       setDescription("");
       setEmails([]);
@@ -124,9 +121,8 @@ export function useSettingsScreen() {
     }
 
     const workingCapital = parseFloat(totalWorkingCapital) || 0;
-    const outstanding = parseFloat(outstandingBalance) || 0;
 
-    if (workingCapital < 0 || outstanding < 0) {
+    if (workingCapital < 0) {
       return { valid: false, message: "Amounts cannot be negative." };
     }
 
@@ -155,7 +151,6 @@ export function useSettingsScreen() {
       const data = {
         name: name.trim(),
         totalWorkingCapital: parseFloat(totalWorkingCapital) || 0,
-        outstandingBalance: parseFloat(outstandingBalance) || 0,
         currency,
         description: description.trim() || undefined,
         emails: emails.length > 0 ? emails : undefined,
@@ -195,11 +190,6 @@ export function useSettingsScreen() {
     return formatCurrency(value, currency);
   };
 
-  const getFormattedOutstandingBalance = () => {
-    const value = parseFloat(outstandingBalance) || 0;
-    return formatCurrency(value, currency);
-  };
-
   return {
     // State
     isLoading,
@@ -218,8 +208,6 @@ export function useSettingsScreen() {
     setName,
     totalWorkingCapital,
     setTotalWorkingCapital,
-    outstandingBalance,
-    setOutstandingBalance,
     currency,
     setCurrency,
     description,
@@ -238,6 +226,5 @@ export function useSettingsScreen() {
 
     // Formatters
     getFormattedWorkingCapital,
-    getFormattedOutstandingBalance,
   };
 }

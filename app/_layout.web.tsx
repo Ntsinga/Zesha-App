@@ -7,7 +7,10 @@ import { Provider } from "react-redux";
 import ErrorBoundary from "../components/ErrorBoundary";
 import { store } from "../store";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
-import { initializeAuth } from "../store/slices/authSlice";
+import {
+  initializeAuth,
+  selectNeedsAgencyOnboarding,
+} from "../store/slices/authSlice";
 import { ClerkProvider, useAuth, useUser } from "@clerk/clerk-react";
 import { useRouter } from "expo-router";
 import { useClerkUserSync } from "../hooks/useClerkUserSync.web";
@@ -54,6 +57,18 @@ function AppContent() {
   // Also read the Redux auth state directly (populated by initializeAuth from cache)
   const cachedUser = useAppSelector((state) => state.auth.user);
   const isAuthInitialized = useAppSelector((state) => state.auth.isInitialized);
+  const needsAgencyOnboarding = useAppSelector(selectNeedsAgencyOnboarding);
+
+  // Clerk metadata fallback — works even when backend sync is down
+  const clerkMeta = user?.publicMetadata as
+    | { role?: string; invitation_type?: string; onboarding_required?: boolean }
+    | undefined;
+  const isInvitedAgencyAdmin =
+    clerkMeta?.role === "Administrator" &&
+    clerkMeta?.invitation_type === "agency_setup";
+  const effectiveNeedsOnboarding =
+    needsAgencyOnboarding ||
+    (isInvitedAgencyAdmin && !(syncedUser ?? cachedUser)?.companyId);
 
   useEffect(() => {
     // Initialize auth state on app load (reads from localStorage cache)
@@ -131,6 +146,24 @@ function AppContent() {
       return;
     }
 
+    // Invited agency admin — route to onboarding before anything else
+    const isOnAgencySetup = currentPath.includes("/agency-setup");
+    if (effectiveNeedsOnboarding && !isOnAgencySetup) {
+      router.replace("/agency-setup");
+      return;
+    }
+
+    // Completed onboarding admin on agency-setup page — bounce to app
+    // Only bounce once backendUser is loaded (prevents bounce before sync)
+    if (
+      !effectiveNeedsOnboarding &&
+      isOnAgencySetup &&
+      !!(syncedUser ?? cachedUser)
+    ) {
+      router.replace("/");
+      return;
+    }
+
     // Fully authenticated - redirect away from auth pages
     if (isAuthPage && !isOnSetPassword) {
       router.replace("/");
@@ -142,6 +175,9 @@ function AppContent() {
     user?.id,
     user?.passwordEnabled,
     router,
+    effectiveNeedsOnboarding,
+    syncedUser,
+    cachedUser,
   ]);
 
   // Determine if we're on an auth page (also treats invite ticket URLs as auth
@@ -186,6 +222,7 @@ function AppContent() {
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="(auth)" />
           <Stack.Screen name="(app)" />
+          <Stack.Screen name="agency-setup" />
         </Stack>
       )}
       {isSigningOut && (

@@ -72,7 +72,6 @@ function AppContent() {
     const isOnSetPassword = authSegments[1] === "set-password";
     const isOnWelcome = authSegments[1] === "welcome";
     const isOnSignUp = authSegments[1] === "sign-up";
-
     // Check for invite ticket in URL params
     const hasInviteTicket = !!params.__clerk_ticket;
 
@@ -83,13 +82,19 @@ function AppContent() {
         pathname: "/(auth)/set-password",
         params: { __clerk_ticket: params.__clerk_ticket as string },
       });
-      if (!initialNavDoneRef.current) { initialNavDoneRef.current = true; setInitialNavDone(true); }
+      if (!initialNavDoneRef.current) {
+        initialNavDoneRef.current = true;
+        setInitialNavDone(true);
+      }
       return;
     }
 
     // Allow unauthenticated access to welcome, sign-up, and set-password for invite flow
     if (!isSignedIn && (isOnWelcome || isOnSignUp || isOnSetPassword)) {
-      if (!initialNavDoneRef.current) { initialNavDoneRef.current = true; setInitialNavDone(true); }
+      if (!initialNavDoneRef.current) {
+        initialNavDoneRef.current = true;
+        setInitialNavDone(true);
+      }
       return;
     }
 
@@ -99,7 +104,10 @@ function AppContent() {
       if (!inAuthGroup || !isOnSetPassword) {
         router.replace("/(auth)/set-password");
       }
-      if (!initialNavDoneRef.current) { initialNavDoneRef.current = true; setInitialNavDone(true); }
+      if (!initialNavDoneRef.current) {
+        initialNavDoneRef.current = true;
+        setInitialNavDone(true);
+      }
       return;
     }
 
@@ -154,6 +162,7 @@ function AppContent() {
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="(app)" />
+        <Stack.Screen name="agency-setup" />
       </Stack>
     </View>
   );
