@@ -106,8 +106,6 @@ export default function AgenciesScreen() {
     }
   };
 
-  const handleRefresh = () => dispatch(fetchCompanyInfoList({}));
-
   const handleInviteChange = (
     field: "email" | "firstName" | "lastName" | "phoneNumber",
     value: string,
@@ -185,19 +183,11 @@ export default function AgenciesScreen() {
         <div className="header-right">
           <button
             className="btn btn-secondary"
-            onClick={handleRefresh}
-            title="Refresh list"
-            disabled={isLoading}
-          >
-            <RefreshCw size={16} className={isLoading ? "spin" : ""} />
-          </button>
-          <button
-            className="btn btn-secondary"
             onClick={openInviteModal}
             title="Invite agency administrator"
           >
             <UserPlus size={17} />
-            <span>Invite Admin</span>
+            <span>Invite Agency</span>
           </button>
           <button className="btn btn-primary" onClick={handleCreate}>
             <Plus size={18} />
@@ -289,7 +279,18 @@ export default function AgenciesScreen() {
                       {agency.location || <span className="text-muted">—</span>}
                     </td>
                     <td>
-                      {agency.adminName || (
+                      {agency.adminName ? (
+                        (() => {
+                          const parts = agency.adminName
+                            .split(",")
+                            .map((p: string) => p.trim());
+                          const display =
+                            parts.length === 2
+                              ? `${parts[1]} ${parts[0]}`
+                              : agency.adminName;
+                          return <span>{display}</span>;
+                        })()
+                      ) : (
                         <span className="text-muted">—</span>
                       )}
                     </td>
@@ -371,7 +372,7 @@ export default function AgenciesScreen() {
                   />
                 </div>
                 <div>
-                  <h2 style={{ margin: 0 }}>Invite Agency Administrator</h2>
+                  <h2 style={{ margin: 0 }}>Invite Agency</h2>
                   <p
                     style={{
                       margin: "2px 0 0",

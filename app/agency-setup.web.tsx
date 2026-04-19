@@ -28,11 +28,16 @@ import {
   CheckCircle2,
   ChevronRight,
   Landmark,
-  LayoutTemplate,
   Plus,
   Trash2,
 } from "lucide-react";
 import "../styles/web.css";
+
+type TemplateInstance = {
+  instanceId: string;
+  templateId: number;
+  name: string;
+};
 
 type CustomAccountDraft = {
   id: string;
@@ -78,12 +83,13 @@ export default function AgencySetupWeb() {
   });
   const [emailInput, setEmailInput] = useState("");
   const [stepOneError, setStepOneError] = useState<string | null>(null);
-  const [templateSelections, setTemplateSelections] = useState<
-    Record<number, { selected: boolean; name: string }>
-  >({});
+  const [templateInstances, setTemplateInstances] = useState<
+    TemplateInstance[]
+  >([]);
   const [customAccounts, setCustomAccounts] = useState<CustomAccountDraft[]>(
     [],
   );
+  const [isFinishing, setIsFinishing] = useState(false);
   const [accountStepError, setAccountStepError] = useState<string | null>(null);
 
   const companyId = authUser?.companyId ?? null;
@@ -213,27 +219,34 @@ export default function AgencySetupWeb() {
     }
   };
 
-  const toggleTemplateSelection = (templateId: number, defaultName: string) => {
-    setTemplateSelections((prev) => {
-      const current = prev[templateId];
-      return {
-        ...prev,
-        [templateId]: {
-          selected: !current?.selected,
-          name: current?.name || defaultName,
-        },
-      };
-    });
+  const addTemplateInstance = (templateId: number, defaultName: string) => {
+    const existingCount = templateInstances.filter(
+      (inst) => inst.templateId === templateId,
+    ).length;
+    const numberedName =
+      existingCount === 0 ? defaultName : `${defaultName} ${existingCount + 1}`;
+    setTemplateInstances((prev) => [
+      ...prev,
+      {
+        instanceId: `${templateId}-${Date.now()}`,
+        templateId,
+        name: numberedName,
+      },
+    ]);
   };
 
-  const updateTemplateName = (templateId: number, name: string) => {
-    setTemplateSelections((prev) => ({
-      ...prev,
-      [templateId]: {
-        selected: true,
-        name,
-      },
-    }));
+  const updateTemplateInstanceName = (instanceId: string, name: string) => {
+    setTemplateInstances((prev) =>
+      prev.map((inst) =>
+        inst.instanceId === instanceId ? { ...inst, name } : inst,
+      ),
+    );
+  };
+
+  const removeTemplateInstance = (instanceId: string) => {
+    setTemplateInstances((prev) =>
+      prev.filter((inst) => inst.instanceId !== instanceId),
+    );
   };
 
   const addCustomAccount = () => {
@@ -265,6 +278,15 @@ export default function AgencySetupWeb() {
     setCustomAccounts((prev) => prev.filter((account) => account.id !== id));
   };
 
+  const handleFinishOnboarding = async () => {
+    setIsFinishing(true);
+    try {
+      await finishOnboarding();
+    } finally {
+      setIsFinishing(false);
+    }
+  };
+
   const finishOnboarding = async () => {
     const effectiveCompanyId = companyId ?? authUser?.companyId;
     if (!effectiveCompanyId || !authUser?.clerkUserId) {
@@ -274,18 +296,16 @@ export default function AgencySetupWeb() {
 
     setAccountStepError(null);
 
-    const selectedTemplates = templates
-      .filter((template) => templateSelections[template.id]?.selected)
-      .map((template) => ({
-        templateId: template.id,
-        name: templateSelections[template.id]?.name?.trim() || template.name,
-      }));
+    const selectedTemplates = templateInstances.map((inst) => ({
+      templateId: inst.templateId,
+      name: inst.name.trim(),
+    }));
 
     const invalidTemplate = selectedTemplates.find(
       (template) => !template.name,
     );
     if (invalidTemplate) {
-      setAccountStepError("Every selected template needs an account name.");
+      setAccountStepError("Every selected account needs a name.");
       return;
     }
 
@@ -676,12 +696,12 @@ export default function AgencySetupWeb() {
             <>
               <div className="settings-card-header">
                 <Landmark size={24} className="text-primary" />
-                <h2>Accounts Setup</h2>
+                <h2>Which accounts does your agency use?</h2>
               </div>
 
               <p className="form-hint mb-4">
-                Add the bank and telecom accounts this agency operates. You can
-                reuse system templates or create accounts from scratch.
+                Select all the mobile money and bank services your agency
+                operates. You need at least two to get started.
               </p>
 
               {(accountStepError || accountsError) && (
@@ -692,152 +712,190 @@ export default function AgencySetupWeb() {
 
               <div style={{ display: "grid", gap: 24 }}>
                 <section>
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 10,
-                      marginBottom: 12,
-                    }}
-                  >
-                    <LayoutTemplate size={18} />
-                    <h3 style={{ margin: 0 }}>System Templates</h3>
-                  </div>
                   {isTemplatesLoading ? (
-                    <p className="text-muted">Loading templates...</p>
+                    <p className="text-muted">Loading accounts...</p>
                   ) : templates.length === 0 ? (
-                    <p className="text-muted">
-                      No templates are available yet.
-                    </p>
+                    <p className="text-muted">No accounts are available yet.</p>
                   ) : (
                     <div style={{ display: "grid", gap: 12 }}>
                       {templates.map((template) => {
-                        const selection = templateSelections[template.id];
                         const isBank = template.accountType === "BANK";
-                        return (
-                          <div
-                            key={template.id}
-                            style={{
-                              border: selection?.selected
-                                ? "1.5px solid var(--color-primary)"
-                                : "1px solid var(--color-border)",
-                              borderRadius: "var(--radius-md)",
-                              padding: 16,
-                              background: selection?.selected
-                                ? "#fff5f5"
-                                : "var(--color-bg-card)",
-                              transition: "border-color 0.2s, background 0.2s",
-                            }}
-                          >
+                        return (() => {
+                          const instances = templateInstances.filter(
+                            (inst) => inst.templateId === template.id,
+                          );
+                          const hasInstances = instances.length > 0;
+                          return (
                             <div
+                              key={template.id}
                               style={{
-                                display: "flex",
-                                justifyContent: "space-between",
-                                gap: 16,
-                                alignItems: "flex-start",
+                                border: hasInstances
+                                  ? "1.5px solid var(--color-primary)"
+                                  : "1px solid var(--color-border)",
+                                borderRadius: "var(--radius-md)",
+                                padding: 16,
+                                background: hasInstances
+                                  ? "#fff5f5"
+                                  : "var(--color-bg-card)",
+                                transition:
+                                  "border-color 0.2s, background 0.2s",
                               }}
                             >
-                              <div style={{ flex: 1, minWidth: 0 }}>
-                                <div
-                                  style={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: 8,
-                                    flexWrap: "wrap",
-                                    marginBottom: 4,
-                                  }}
-                                >
-                                  <span
-                                    style={{ fontWeight: 700, fontSize: 15 }}
-                                  >
-                                    {template.name}
-                                  </span>
-                                  <span
-                                    style={{
-                                      display: "inline-block",
-                                      padding: "2px 8px",
-                                      borderRadius: 999,
-                                      fontSize: 11,
-                                      fontWeight: 700,
-                                      letterSpacing: 0.3,
-                                      background: isBank
-                                        ? "var(--color-success-light)"
-                                        : "var(--color-info-light)",
-                                      color: isBank
-                                        ? "var(--color-success)"
-                                        : "var(--color-info)",
-                                    }}
-                                  >
-                                    {template.accountType}
-                                  </span>
-                                  {template.commissionSchedule?.name && (
-                                    <span
-                                      style={{
-                                        fontSize: 12,
-                                        color: "var(--color-text-secondary)",
-                                      }}
-                                    >
-                                      {template.commissionSchedule.name}
-                                    </span>
-                                  )}
-                                </div>
-                                {template.description && (
+                              {/* Template header row */}
+                              <div
+                                style={{
+                                  display: "flex",
+                                  justifyContent: "space-between",
+                                  gap: 16,
+                                  alignItems: "flex-start",
+                                }}
+                              >
+                                <div style={{ flex: 1, minWidth: 0 }}>
                                   <div
                                     style={{
-                                      color: "var(--color-text-secondary)",
-                                      fontSize: 13,
-                                      lineHeight: 1.4,
+                                      display: "flex",
+                                      alignItems: "center",
+                                      gap: 8,
+                                      flexWrap: "wrap",
+                                      marginBottom: 4,
                                     }}
                                   >
-                                    {template.description}
+                                    <span
+                                      style={{
+                                        fontWeight: 700,
+                                        fontSize: 15,
+                                      }}
+                                    >
+                                      {template.name}
+                                    </span>
+                                    <span
+                                      style={{
+                                        display: "inline-block",
+                                        padding: "2px 8px",
+                                        borderRadius: 999,
+                                        fontSize: 11,
+                                        fontWeight: 700,
+                                        letterSpacing: 0.3,
+                                        background: isBank
+                                          ? "var(--color-success-light)"
+                                          : "var(--color-info-light)",
+                                        color: isBank
+                                          ? "var(--color-success)"
+                                          : "var(--color-info)",
+                                      }}
+                                    >
+                                      {template.accountType}
+                                    </span>
+                                    {template.commissionSchedule?.name && (
+                                      <span
+                                        style={{
+                                          fontSize: 12,
+                                          color: "var(--color-text-secondary)",
+                                        }}
+                                      >
+                                        {template.commissionSchedule.name}
+                                      </span>
+                                    )}
                                   </div>
-                                )}
-                              </div>
-                              <button
-                                type="button"
-                                className={
-                                  selection?.selected
-                                    ? "btn btn-secondary btn-sm"
-                                    : "btn btn-primary btn-sm"
-                                }
-                                onClick={() =>
-                                  toggleTemplateSelection(
-                                    template.id,
-                                    template.name,
-                                  )
-                                }
-                                style={{ flexShrink: 0 }}
-                              >
-                                {selection?.selected ? (
-                                  <>
-                                    <CheckCircle2 size={14} />
-                                    Selected
-                                  </>
-                                ) : (
-                                  "Use Template"
-                                )}
-                              </button>
-                            </div>
-                            {selection?.selected && (
-                              <div style={{ marginTop: 12 }}>
-                                <label className="form-label">
-                                  Account Name
-                                </label>
-                                <input
-                                  type="text"
-                                  value={selection.name}
-                                  onChange={(e) =>
-                                    updateTemplateName(
+                                  {template.description && (
+                                    <div
+                                      style={{
+                                        color: "var(--color-text-secondary)",
+                                        fontSize: 13,
+                                        lineHeight: 1.4,
+                                      }}
+                                    >
+                                      {template.description}
+                                    </div>
+                                  )}
+                                </div>
+                                <button
+                                  type="button"
+                                  className="btn btn-primary btn-sm"
+                                  onClick={() =>
+                                    addTemplateInstance(
                                       template.id,
-                                      e.target.value,
+                                      template.name,
                                     )
                                   }
-                                  className="form-input"
-                                />
+                                  style={{ flexShrink: 0 }}
+                                >
+                                  {hasInstances ? (
+                                    <>
+                                      <Plus size={13} />
+                                      Add another
+                                    </>
+                                  ) : (
+                                    "I use this"
+                                  )}
+                                </button>
                               </div>
-                            )}
-                          </div>
-                        );
+
+                              {/* Inline instances */}
+                              {hasInstances && (
+                                <div
+                                  style={{
+                                    marginTop: 14,
+                                    display: "grid",
+                                    gap: 8,
+                                  }}
+                                >
+                                  {instances.map((inst, idx) => (
+                                    <div
+                                      key={inst.instanceId}
+                                      style={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: 10,
+                                        background: "var(--color-bg-card)",
+                                        border:
+                                          "1px solid var(--color-border-light)",
+                                        borderRadius: "var(--radius-sm, 8px)",
+                                        padding: "8px 10px",
+                                      }}
+                                    >
+                                      <span
+                                        style={{
+                                          fontSize: 12,
+                                          color: "var(--color-text-secondary)",
+                                          whiteSpace: "nowrap",
+                                          minWidth: 20,
+                                        }}
+                                      >
+                                        #{idx + 1}
+                                      </span>
+                                      <input
+                                        type="text"
+                                        value={inst.name}
+                                        onChange={(e) =>
+                                          updateTemplateInstanceName(
+                                            inst.instanceId,
+                                            e.target.value,
+                                          )
+                                        }
+                                        className="form-input"
+                                        placeholder="Account name"
+                                        style={{ flex: 1, margin: 0 }}
+                                      />
+                                      <button
+                                        type="button"
+                                        className="btn-icon"
+                                        onClick={() =>
+                                          removeTemplateInstance(
+                                            inst.instanceId,
+                                          )
+                                        }
+                                        title="Remove"
+                                      >
+                                        <Trash2 size={15} />
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })();
                       })}
                     </div>
                   )}
@@ -853,7 +911,7 @@ export default function AgencySetupWeb() {
                     }}
                   >
                     <div>
-                      <h3 style={{ margin: 0 }}>Custom Accounts</h3>
+                      <h3 style={{ margin: 0 }}>Don't see yours?</h3>
                       <div
                         style={{
                           color: "#64748b",
@@ -861,7 +919,7 @@ export default function AgencySetupWeb() {
                           marginTop: 4,
                         }}
                       >
-                        Add accounts that do not have a matching template yet.
+                        Add an account that isn't in the list above.
                       </div>
                     </div>
                     <button
@@ -870,12 +928,12 @@ export default function AgencySetupWeb() {
                       onClick={addCustomAccount}
                     >
                       <Plus size={16} />
-                      Add Custom Account
+                      Add manually
                     </button>
                   </div>
 
                   {customAccounts.length === 0 ? (
-                    <p className="text-muted">No custom accounts added.</p>
+                    <p className="text-muted">None added yet.</p>
                   ) : (
                     <div style={{ display: "grid", gap: 14 }}>
                       {customAccounts.map((account, index) => (
@@ -999,11 +1057,31 @@ export default function AgencySetupWeb() {
                 <button
                   type="button"
                   className="btn-primary"
-                  disabled={isAccountsSaving || isTemplatesLoading}
-                  onClick={finishOnboarding}
+                  disabled={isFinishing || isTemplatesLoading}
+                  onClick={handleFinishOnboarding}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 8,
+                  }}
                 >
-                  <CheckCircle2 size={18} />
-                  {isAccountsSaving ? "Saving accounts..." : "Finish Setup"}
+                  {isFinishing ? (
+                    <span
+                      style={{
+                        width: 16,
+                        height: 16,
+                        border: "2px solid rgba(255,255,255,0.4)",
+                        borderTopColor: "#fff",
+                        borderRadius: "50%",
+                        display: "inline-block",
+                        animation: "spin 0.7s linear infinite",
+                        flexShrink: 0,
+                      }}
+                    />
+                  ) : (
+                    <CheckCircle2 size={18} />
+                  )}
+                  {isFinishing ? "Finishing setup..." : "Finish Setup"}
                 </button>
               </div>
             </>
