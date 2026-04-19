@@ -64,6 +64,7 @@ export default function ExpensesWeb() {
 
   const { showToast } = useToast();
   const [clearNotes, setClearNotes] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,9 +75,14 @@ export default function ExpensesWeb() {
   };
 
   const onDelete = async (id: number) => {
-    const result = await handleDelete(id);
-    if (!result.success && result.error) {
-      showToast(result.error, "error");
+    setIsDeleting(true);
+    try {
+      const result = await handleDelete(id);
+      if (!result.success && result.error) {
+        showToast(result.error, "error");
+      }
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -519,14 +525,31 @@ export default function ExpensesWeb() {
               <button
                 onClick={() => setDeleteConfirmId(null)}
                 className="btn-secondary"
+                disabled={isDeleting}
               >
                 Cancel
               </button>
               <button
                 onClick={() => onDelete(deleteConfirmId)}
                 className="btn-danger"
+                disabled={isDeleting}
+                style={{ display: "inline-flex", alignItems: "center", gap: 8 }}
               >
-                Delete
+                {isDeleting ? (
+                  <span
+                    style={{
+                      width: 14,
+                      height: 14,
+                      border: "2px solid rgba(255,255,255,0.4)",
+                      borderTopColor: "#fff",
+                      borderRadius: "50%",
+                      display: "inline-block",
+                      animation: "spin 0.7s linear infinite",
+                      flexShrink: 0,
+                    }}
+                  />
+                ) : null}
+                {isDeleting ? "Deleting..." : "Delete"}
               </button>
             </div>
           </div>
