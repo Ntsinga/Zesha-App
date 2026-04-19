@@ -187,7 +187,9 @@ export default function SetPasswordWeb() {
           await setActive({ session: result.createdSessionId });
           setSuccess(true);
           setTimeout(() => {
-            window.location.href = "/";
+            // Invite flow users are agency admins who need onboarding setup.
+            // Redirect directly to avoid race condition with async backend sync.
+            window.location.href = "/agency-setup";
           }, 1500);
         } else {
           // Maybe needs verification or other step
@@ -398,7 +400,7 @@ export default function SetPasswordWeb() {
   }
 
   return (
-    <AuthBrandPanel>
+    <AuthBrandPanel wide>
       <div className="auth-centered-card">
         <div className="auth-form-header">
           <h2 className="auth-form-title">Set Your Password</h2>

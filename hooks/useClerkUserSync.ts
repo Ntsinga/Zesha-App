@@ -44,10 +44,23 @@ export function useClerkUserSync() {
     syncedClerkIdRef.current = clerkUser.id;
     syncInProgressRef.current = true;
 
-    // Extract companyId and role from Clerk public metadata (set during invite)
+    // Extract only the minimum invite metadata needed for first sync.
     const publicMetadata = clerkUser.publicMetadata as
-      | { company_id?: number; role?: RoleEnum }
+      | { company_id?: number; role?: RoleEnum; invitation_type?: string }
       | undefined;
+    const inviteMetadata = publicMetadata
+      ? {
+          ...(publicMetadata.company_id !== undefined
+            ? { company_id: publicMetadata.company_id }
+            : {}),
+          ...(publicMetadata.role !== undefined
+            ? { role: publicMetadata.role }
+            : {}),
+          ...(publicMetadata.invitation_type
+            ? { invitation_type: publicMetadata.invitation_type }
+            : {}),
+        }
+      : null;
     const companyId = publicMetadata?.company_id ?? null;
     const role = publicMetadata?.role ?? null;
 
@@ -59,9 +72,7 @@ export function useClerkUserSync() {
       lastName: clerkUser.lastName,
       profileImageUrl: clerkUser.imageUrl,
       phoneNumber: clerkUser.primaryPhoneNumber?.phoneNumber || null,
-      userMetadata: clerkUser.publicMetadata
-        ? JSON.stringify(clerkUser.publicMetadata)
-        : null,
+      userMetadata: inviteMetadata ? JSON.stringify(inviteMetadata) : null,
       companyId: companyId,
       role: role,
     };

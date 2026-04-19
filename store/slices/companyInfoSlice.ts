@@ -133,6 +133,28 @@ export const createCompanyInfo = createAsyncThunk(
   },
 );
 
+export const completeAgencyOnboarding = createAsyncThunk(
+  "companyInfo/completeAgencyOnboarding",
+  async (data: CompanyInfoCreate, { rejectWithValue }) => {
+    try {
+      const company = await apiRequest<CompanyInfo>(
+        API_ENDPOINTS.companyInfo.onboardingCreate,
+        {
+          method: "POST",
+          body: JSON.stringify(mapApiRequest(data)),
+        },
+      );
+      return company;
+    } catch (error) {
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : "Failed to complete agency onboarding",
+      );
+    }
+  },
+);
+
 export const updateCompanyInfo = createAsyncThunk(
   "companyInfo/update",
   async (
@@ -234,6 +256,26 @@ const companyInfoSlice = createSlice({
         state.items.unshift(action.payload);
       })
       .addCase(createCompanyInfo.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
+      })
+      .addCase(completeAgencyOnboarding.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(completeAgencyOnboarding.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.selectedCompany = action.payload;
+        const existingIndex = state.items.findIndex(
+          (item) => item.id === action.payload.id,
+        );
+        if (existingIndex === -1) {
+          state.items.unshift(action.payload);
+        } else {
+          state.items[existingIndex] = action.payload;
+        }
+      })
+      .addCase(completeAgencyOnboarding.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
       });

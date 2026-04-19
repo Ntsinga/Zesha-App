@@ -84,7 +84,6 @@ export default function Settings() {
   // Form state
   const [name, setName] = useState("");
   const [totalWorkingCapital, setTotalWorkingCapital] = useState("");
-  const [outstandingBalance, setOutstandingBalance] = useState("");
   const [currency, setCurrency] = useState("UGX");
   const [description, setDescription] = useState("");
   const [emails, setEmails] = useState<string[]>([]);
@@ -106,7 +105,6 @@ export default function Settings() {
     if (company) {
       setName(company.name || "");
       setTotalWorkingCapital(company.totalWorkingCapital?.toString() || "0");
-      setOutstandingBalance(company.outstandingBalance?.toString() || "0");
       setCurrency(company.currency || "UGX");
       setDescription(company.description || "");
       setEmails(company.emails || []);
@@ -189,9 +187,8 @@ export default function Settings() {
     }
 
     const workingCapital = parseFloat(totalWorkingCapital) || 0;
-    const outstanding = parseFloat(outstandingBalance) || 0;
 
-    if (workingCapital < 0 || outstanding < 0) {
+    if (workingCapital < 0) {
       Toast.show({
         type: "error",
         text1: "Error",
@@ -206,7 +203,6 @@ export default function Settings() {
       const data = {
         name: name.trim(),
         total_working_capital: workingCapital,
-        outstanding_balance: outstanding,
         currency,
         description: description.trim() || undefined,
         emails: emails.length > 0 ? emails : undefined,

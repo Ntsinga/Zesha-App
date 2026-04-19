@@ -25,8 +25,6 @@ export default function Settings() {
     setName,
     totalWorkingCapital,
     setTotalWorkingCapital,
-    outstandingBalance,
-    setOutstandingBalance,
     currency,
     setCurrency,
     description,
@@ -64,7 +62,6 @@ export default function Settings() {
         <div className="header-left">
           <h1 className="header-title">Settings</h1>
         </div>
-
       </header>
 
       {/* Content */}
@@ -194,33 +191,6 @@ export default function Settings() {
                       style={{ fontSize: 12, color: "#9CA3AF", marginTop: 4 }}
                     >
                       The total capital deployed across all accounts
-                    </span>
-                  </div>
-                  <div className="form-group">
-                    <label>Outstanding Balance</label>
-                    <input
-                      className="form-input"
-                      type="number"
-                      min="0"
-                      value={outstandingBalance}
-                      onChange={(e) => setOutstandingBalance(e.target.value)}
-                      placeholder="0"
-                      disabled={!canEditSettings}
-                      style={
-                        !canEditSettings
-                          ? {
-                              background: "#F9FAFB",
-                              color: "#6B7280",
-                              cursor: "not-allowed",
-                            }
-                          : undefined
-                      }
-                    />
-                    <span
-                      style={{ fontSize: 12, color: "#9CA3AF", marginTop: 4 }}
-                    >
-                      Capital not yet in circulation (deducted from expected
-                      total)
                     </span>
                   </div>
                 </div>

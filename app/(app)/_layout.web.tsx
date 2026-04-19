@@ -293,6 +293,15 @@ export default function AppLayoutWeb() {
     router.push("/agencies");
   };
 
+  // Render agency-setup outside the sidebar layout (full-screen onboarding)
+  if (pathname === "/agency-setup") {
+    return (
+      <ToastProvider>
+        <Slot />
+      </ToastProvider>
+    );
+  }
+
   return (
     <ToastProvider>
       <div className="web-layout">

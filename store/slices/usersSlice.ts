@@ -1,6 +1,12 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
-import { UserInviteRequest, UserInviteResponse, mapApiRequest } from "../../types";
+import {
+  UserInviteRequest,
+  AgencySetupInviteRequest,
+  UserInviteResponse,
+  mapApiRequest,
+} from "../../types";
 import { secureApiRequest } from "../../services/secureApi";
+import { API_ENDPOINTS } from "@/config/api";
 
 export interface UsersState {
   isInviting: boolean;
@@ -29,7 +35,7 @@ export const inviteUser = createAsyncThunk(
   "users/invite",
   async (inviteData: UserInviteRequest, { rejectWithValue }) => {
     try {
-      const response = await apiRequest<UserInviteResponse>("/users/invite", {
+      const response = await apiRequest<UserInviteResponse>(API_ENDPOINTS.users.invite, {
         method: "POST",
         body: JSON.stringify(mapApiRequest(inviteData)),
       });
@@ -37,6 +43,28 @@ export const inviteUser = createAsyncThunk(
     } catch (error) {
       return rejectWithValue(
         error instanceof Error ? error.message : "Failed to send invitation",
+      );
+    }
+  },
+);
+
+export const inviteAgencyAdmin = createAsyncThunk(
+  "users/inviteAgencyAdmin",
+  async (inviteData: AgencySetupInviteRequest, { rejectWithValue }) => {
+    try {
+      const response = await apiRequest<UserInviteResponse>(
+        API_ENDPOINTS.users.inviteAgencyAdmin,
+        {
+          method: "POST",
+          body: JSON.stringify(mapApiRequest(inviteData)),
+        },
+      );
+      return response;
+    } catch (error) {
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : "Failed to send agency setup invitation",
       );
     }
   },
@@ -67,6 +95,21 @@ const usersSlice = createSlice({
         state.lastInvitedEmail = action.payload.email;
       })
       .addCase(inviteUser.rejected, (state, action) => {
+        state.isInviting = false;
+        state.inviteError = action.payload as string;
+        state.inviteSuccess = false;
+      })
+      .addCase(inviteAgencyAdmin.pending, (state) => {
+        state.isInviting = true;
+        state.inviteError = null;
+        state.inviteSuccess = false;
+      })
+      .addCase(inviteAgencyAdmin.fulfilled, (state, action) => {
+        state.isInviting = false;
+        state.inviteSuccess = true;
+        state.lastInvitedEmail = action.payload.email;
+      })
+      .addCase(inviteAgencyAdmin.rejected, (state, action) => {
         state.isInviting = false;
         state.inviteError = action.payload as string;
         state.inviteSuccess = false;

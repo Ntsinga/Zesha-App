@@ -39,6 +39,8 @@ export const API_ENDPOINTS = {
     list: "/users/",
     sync: "/users/sync",
     invite: "/users/invite",
+    inviteAgencyAdmin: "/users/invite-agency-admin",
+    completeMyOnboarding: "/users/me/onboarding/complete",
     getByClerkId: (clerkId: string) => `/users/clerk/${clerkId}`,
     get: (id: number) => `/users/${id}`,
     update: (id: number) => `/users/${id}`,
@@ -131,6 +133,7 @@ export const API_ENDPOINTS = {
   companyInfo: {
     list: "/company-info/",
     create: "/company-info/",
+    onboardingCreate: "/company-info/onboarding",
     get: (id: number) => `/company-info/${id}`,
     update: (id: number) => `/company-info/${id}`,
     delete: (id: number) => `/company-info/${id}`,
