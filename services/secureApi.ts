@@ -65,6 +65,35 @@ async function getAuthHeaders(): Promise<Record<string, string>> {
   return {};
 }
 
+function buildRequestHeaders(
+  options: RequestInit,
+  authHeaders: Record<string, string>,
+): Headers {
+  const isMultipartBody =
+    typeof FormData !== "undefined" && options.body instanceof FormData;
+  const defaultHeaders = isMultipartBody
+    ? Object.fromEntries(
+        Object.entries(API_HEADERS).filter(
+          ([key]) => key.toLowerCase() !== "content-type",
+        ),
+      )
+    : API_HEADERS;
+
+  const headers = new Headers(defaultHeaders);
+
+  Object.entries(authHeaders).forEach(([key, value]) => {
+    headers.set(key, value);
+  });
+
+  if (options.headers) {
+    new Headers(options.headers).forEach((value, key) => {
+      headers.set(key, value);
+    });
+  }
+
+  return headers;
+}
+
 /**
  * Make an authenticated fetch request (returns Response object)
  * This is for compatibility with existing code that needs the raw Response.
@@ -79,14 +108,11 @@ export async function secureRequest(
     ? urlOrEndpoint
     : `${API_BASE_URL.replace(/\/$/, "")}${urlOrEndpoint}`;
   const authHeaders = await getAuthHeaders();
+  const headers = buildRequestHeaders(options, authHeaders);
 
   return fetch(url, {
     ...options,
-    headers: {
-      ...API_HEADERS,
-      ...authHeaders,
-      ...options.headers,
-    },
+    headers,
   });
 }
 
@@ -131,14 +157,11 @@ export async function secureApiRequest<T>(
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
+      const headers = buildRequestHeaders(options, authHeaders);
       const response = await fetch(url, {
         ...options,
         signal: controller.signal,
-        headers: {
-          ...API_HEADERS,
-          ...authHeaders,
-          ...options.headers,
-        },
+        headers,
       });
 
       // Handle authentication errors — not retryable
@@ -168,15 +191,19 @@ export async function secureApiRequest<T>(
         const errorData = await response
           .json()
           .catch(() => ({ detail: `HTTP ${response.status}` }));
-        const retryDetail = errorData.detail ?? errorData.message ?? `HTTP ${response.status}`;
+        const retryDetail =
+          errorData.detail ?? errorData.message ?? `HTTP ${response.status}`;
         const retryMessage = Array.isArray(retryDetail)
-          ? retryDetail.map((e: { msg?: string; message?: string }) => e.msg ?? e.message ?? JSON.stringify(e)).join("; ")
-          : typeof retryDetail === "string" ? retryDetail : JSON.stringify(retryDetail);
-        lastError = new ApiError(
-          retryMessage,
-          response.status,
-          "TRANSIENT",
-        );
+          ? retryDetail
+              .map(
+                (e: { msg?: string; message?: string }) =>
+                  e.msg ?? e.message ?? JSON.stringify(e),
+              )
+              .join("; ")
+          : typeof retryDetail === "string"
+            ? retryDetail
+            : JSON.stringify(retryDetail);
+        lastError = new ApiError(retryMessage, response.status, "TRANSIENT");
         await retryDelay(getRetryDelay(attempt));
         continue;
       }
@@ -187,17 +214,18 @@ export async function secureApiRequest<T>(
           .catch(() => ({ detail: "Request failed" }));
         // FastAPI returns validation errors as an array in `detail`.
         // Flatten it to a readable string instead of letting it become "[object Object]".
-        const detail = errorData.detail ?? errorData.message ?? `HTTP ${response.status}`;
-        const message =
-          Array.isArray(detail)
-            ? detail
-                .map((e: { msg?: string; loc?: string[]; message?: string }) =>
+        const detail =
+          errorData.detail ?? errorData.message ?? `HTTP ${response.status}`;
+        const message = Array.isArray(detail)
+          ? detail
+              .map(
+                (e: { msg?: string; loc?: string[]; message?: string }) =>
                   e.msg ?? e.message ?? JSON.stringify(e),
-                )
-                .join("; ")
-            : typeof detail === "string"
-              ? detail
-              : JSON.stringify(detail);
+              )
+              .join("; ")
+          : typeof detail === "string"
+            ? detail
+            : JSON.stringify(detail);
         throw new ApiError(message, response.status);
       }
 
@@ -262,7 +290,10 @@ export async function secureApiRequest<T>(
   }
 
   // If we exhausted all retries, throw the last error
-  throw lastError ?? new ApiError("Request failed after retries", 0, "RETRY_EXHAUSTED");
+  throw (
+    lastError ??
+    new ApiError("Request failed after retries", 0, "RETRY_EXHAUSTED")
+  );
 }
 
 /**

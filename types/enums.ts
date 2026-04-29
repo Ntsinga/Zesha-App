@@ -49,8 +49,16 @@ export type TransactionTypeEnum =
 // Float purchase source - matches backend FloatSourceEnum
 export type FloatSourceEnum = "AGENT" | "BANK";
 
+// Float direction persisted on each float transaction row
+export type FloatDirectionEnum = "IN" | "OUT";
+
 // Transaction subtypes - optional qualifier for commission rule matching
-export type TransactionSubtypeEnum = "AGENT_TO_AGENT";
+export type TransactionSubtypeEnum =
+  | "AGENT_TO_AGENT"
+  | "AIRTIME"
+  | "VOICE_BUNDLE"
+  | "DATA_BUNDLE"
+  | "BILL_PAYMENT";
 
 // Commission rule calculation type
 export type CommissionRuleTypeEnum = "PERCENTAGE" | "TIERED_FLAT";

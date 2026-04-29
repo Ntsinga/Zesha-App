@@ -3,6 +3,7 @@
  */
 import type { BaseModel, BulkOperationResponse } from "./base";
 import type {
+  FloatDirectionEnum,
   FloatSourceEnum,
   ShiftEnum,
   TransactionSubtypeEnum,
@@ -34,6 +35,7 @@ export interface Transaction extends BaseModel {
   linkedTransactionId?: number | null;
   reconciliationId?: number | null;
   floatSource?: FloatSourceEnum | null;
+  floatDirection?: FloatDirectionEnum | null;
   reference?: string | null;
   notes?: string | null;
   isConfirmed: boolean;
@@ -111,6 +113,206 @@ export interface CashCapitalInjectionResult {
   reference?: string | null;
   notes?: string | null;
   message: string;
+}
+
+export type StatementProvider = "MTN" | "AIRTEL";
+
+export type StatementDecision = "READY" | "REVIEW" | "SKIP";
+
+export type StatementFloatDirection = "IN" | "OUT";
+
+export type StatementReviewDesignation =
+  | "KEEP_REVIEW"
+  | "REGULAR_DEPOSIT"
+  | "REGULAR_WITHDRAW"
+  | "FLOAT_PURCHASE_IN"
+  | "FLOAT_PURCHASE_OUT"
+  | "AIRTIME_DEPOSIT"
+  | "VOICE_BUNDLE_DEPOSIT"
+  | "DATA_BUNDLE_DEPOSIT"
+  | "BILL_PAYMENT_DEPOSIT";
+
+export interface StatementMetadata {
+  provider: StatementProvider;
+  filename: string;
+  accountHolderName?: string | null;
+  mobileNumber?: string | null;
+  periodStart?: string | null;
+  periodEnd?: string | null;
+  openingBalance?: number | null;
+  closingBalance?: number | null;
+  totalCredit?: number | null;
+  totalDebit?: number | null;
+}
+
+export interface StatementTransactionCandidate {
+  companyId: number;
+  accountId: number;
+  transactionType: TransactionTypeEnum;
+  transactionSubtype?: TransactionSubtypeEnum | null;
+  amount: number;
+  transactionTime: string;
+  reference: string;
+  floatSource?: FloatSourceEnum | null;
+  floatDirection?: StatementFloatDirection | null;
+  notes?: string | null;
+}
+
+export interface StatementParsedRow {
+  rowIndex: number;
+  providerReference: string;
+  providerTransactionType: string;
+  transactionTime: string;
+  description?: string | null;
+  fromParty?: string | null;
+  toParty?: string | null;
+  status?: string | null;
+  creditDebit?: string | null;
+  amount: number;
+  fee: number;
+  balance: number;
+  decision: StatementDecision;
+  mappedTransactionType?: TransactionTypeEnum | null;
+  mappedTransactionSubtype?: TransactionSubtypeEnum | null;
+  reason: string;
+  candidate?: StatementTransactionCandidate | null;
+  rawText?: string | null;
+  overlapStatus?: StatementOverlapStatus;
+  overlapTransactionIds?: number[];
+  overlapDetail?: string | null;
+}
+
+export type StatementOverlapStatus =
+  | "NO_MATCH"
+  | "EXACT_MATCH"
+  | "POSSIBLE_MATCH"
+  | "REFERENCE_CONFLICT"
+  | "REFERENCE_ONLY_MATCH"
+  | "AMBIGUOUS_FLOAT_MATCH"
+  | "UNMAPPED_ROW";
+
+export interface StatementReviewOverride {
+  rowIndex: number;
+  providerReference: string;
+  designation: StatementReviewDesignation;
+}
+
+export interface StatementTypeSummary {
+  providerTransactionType: string;
+  count: number;
+  readyCount: number;
+  reviewCount: number;
+  skippedCount: number;
+}
+
+export interface StatementPreviewSummary {
+  totalRows: number;
+  readyCount: number;
+  reviewCount: number;
+  skippedCount: number;
+  readyTotalAmount: number;
+}
+
+export interface StatementPreviewResponse {
+  metadata: StatementMetadata;
+  summary: StatementPreviewSummary;
+  overlapSummary: StatementOverlapSummary;
+  typeSummary: StatementTypeSummary[];
+  rows: StatementParsedRow[];
+}
+
+export interface StatementOverlapSummary {
+  exactMatchCount: number;
+  possibleMatchCount: number;
+  ambiguousMatchCount: number;
+  referenceConflictCount: number;
+  referenceOnlyMatchCount: number;
+  unmappedRowCount: number;
+  noMatchCount: number;
+  existingOnlyCount: number;
+}
+
+export interface StatementImportResponse {
+  batchId: number;
+  metadata: StatementMetadata;
+  totalReadyRows: number;
+  selectedReviewRows: number;
+  totalSelectedRows: number;
+  overlapSummary: StatementOverlapSummary;
+  importedCount: number;
+  duplicateCount: number;
+  overlapBlockedCount: number;
+  reviewCount: number;
+  skippedCount: number;
+  duplicates: string[];
+  overlapBlockedReferences: string[];
+  imported: Transaction[];
+}
+
+export interface StatementImportRowRecord {
+  batchId: number;
+  importedTransactionId?: number | null;
+  rowIndex: number;
+  providerReference: string;
+  providerTransactionType: string;
+  transactionTime: string;
+  description?: string | null;
+  fromParty?: string | null;
+  toParty?: string | null;
+  status?: string | null;
+  creditDebit?: string | null;
+  amount: number;
+  fee: number;
+  balance: number;
+  decision: StatementDecision;
+  mappedTransactionType?: TransactionTypeEnum | null;
+  mappedTransactionSubtype?: TransactionSubtypeEnum | null;
+  selectedDesignation?: StatementReviewDesignation | null;
+  finalDisposition: string;
+  overlapStatus: StatementOverlapStatus;
+  overlapTransactionIds: number[];
+  overlapDetail?: string | null;
+  reason: string;
+  rawText?: string | null;
+}
+
+export interface StatementImportBatchHistoryItem {
+  id: number;
+  companyId: number;
+  accountId: number;
+  accountName?: string | null;
+  provider: StatementProvider;
+  status: string;
+  fileName: string;
+  uploadedBy?: string | null;
+  periodStart?: string | null;
+  periodEnd?: string | null;
+  totalRows: number;
+  readyCount: number;
+  reviewCount: number;
+  skippedCount: number;
+  selectedReviewRows: number;
+  importedCount: number;
+  duplicateCount: number;
+  overlapBlockedCount: number;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+}
+
+export interface StatementImportBatchDetail extends StatementImportBatchHistoryItem {
+  openingBalance?: number | null;
+  closingBalance?: number | null;
+  totalCredit?: number | null;
+  totalDebit?: number | null;
+  overlapSummary: StatementOverlapSummary;
+  rows: StatementImportRowRecord[];
+}
+
+export interface StatementImportHistoryParams {
+  accountId?: number;
+  provider?: StatementProvider | null;
+  skip?: number;
+  limit?: number;
 }
 
 /**
