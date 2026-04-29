@@ -1,5 +1,9 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
-import type { TransactionFilters, ShiftEnum } from "@/types";
+import type {
+  TransactionFilters,
+  ShiftEnum,
+  TransactionTypeEnum,
+} from "@/types";
 import type {
   Transaction,
   TransactionCreate,
@@ -16,6 +20,13 @@ import type {
   CapitalInjectionCreate,
   CashCapitalInjectionCreate,
   CashCapitalInjectionResult,
+  StatementPreviewResponse,
+  StatementImportResponse,
+  StatementImportBatchDetail,
+  StatementImportBatchHistoryItem,
+  StatementImportHistoryParams,
+  StatementProvider,
+  StatementReviewOverride,
 } from "@/types/transaction";
 import { mapApiResponse, mapApiRequest, buildTypedQueryString } from "@/types";
 import { API_ENDPOINTS } from "@/config/api";
@@ -33,8 +44,16 @@ export interface TransactionsState {
   companyStatement: CompanyStatement | null;
   analytics: TransactionAnalyticsSummary | null;
   dailyAnalytics: TransactionDailyAnalytics[];
+  statementPreview: StatementPreviewResponse | null;
+  statementImportResult: StatementImportResponse | null;
+  statementImportHistory: StatementImportBatchHistoryItem[];
+  selectedStatementImportBatch: StatementImportBatchDetail | null;
   isLoading: boolean;
   isCreating: boolean;
+  isPreviewingStatement: boolean;
+  isImportingStatement: boolean;
+  isLoadingStatementImportHistory: boolean;
+  isLoadingStatementImportBatch: boolean;
   error: string | null;
   lastFetched: number | null;
   filters: TransactionFilters;
@@ -47,8 +66,16 @@ const initialState: TransactionsState = {
   companyStatement: null,
   analytics: null,
   dailyAnalytics: [],
+  statementPreview: null,
+  statementImportResult: null,
+  statementImportHistory: [],
+  selectedStatementImportBatch: null,
   isLoading: false,
   isCreating: false,
+  isPreviewingStatement: false,
+  isImportingStatement: false,
+  isLoadingStatementImportHistory: false,
+  isLoadingStatementImportBatch: false,
   error: null,
   lastFetched: null,
   filters: {},
@@ -300,6 +327,191 @@ export const bulkCreateTransactions = createAsyncThunk<
 });
 
 /**
+ * Preview a statement import for a specific account.
+ */
+export const previewStatementImport = createAsyncThunk<
+  StatementPreviewResponse,
+  {
+    file: File;
+    accountId: number;
+    provider?: StatementProvider | "AUTO" | null;
+  },
+  { state: RootState; rejectValue: string }
+>(
+  "transactions/previewStatementImport",
+  async ({ file, accountId, provider }, { getState, rejectWithValue }) => {
+    try {
+      const state = getState();
+      const companyId =
+        state.auth.viewingAgencyId || state.auth.user?.companyId;
+
+      if (!companyId) {
+        return rejectWithValue("No companyId found. Please log in again.");
+      }
+
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const query = buildTypedQueryString({
+        companyId,
+        accountId,
+        provider: provider && provider !== "AUTO" ? provider : undefined,
+      });
+
+      const data = await secureApiRequest<unknown>(
+        `${API_ENDPOINTS.transactions.statementPreview}${query}`,
+        {
+          method: "POST",
+          body: formData,
+        },
+        120_000,
+      );
+
+      return mapApiResponse<StatementPreviewResponse>(data);
+    } catch (error) {
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : "Failed to preview statement import",
+      );
+    }
+  },
+);
+
+/**
+ * Import READY statement rows for a specific account.
+ */
+export const importStatementTransactions = createAsyncThunk<
+  StatementImportResponse,
+  {
+    file: File;
+    accountId: number;
+    provider?: StatementProvider | "AUTO" | null;
+    reviewOverrides?: StatementReviewOverride[];
+  },
+  { state: RootState; rejectValue: string }
+>(
+  "transactions/importStatementTransactions",
+  async (
+    { file, accountId, provider, reviewOverrides },
+    { getState, rejectWithValue },
+  ) => {
+    try {
+      const state = getState();
+      const companyId =
+        state.auth.viewingAgencyId || state.auth.user?.companyId;
+
+      if (!companyId) {
+        return rejectWithValue("No companyId found. Please log in again.");
+      }
+
+      const formData = new FormData();
+      formData.append("file", file);
+      if (reviewOverrides?.length) {
+        formData.append(
+          "review_overrides",
+          JSON.stringify(mapApiRequest(reviewOverrides)),
+        );
+      }
+
+      const query = buildTypedQueryString({
+        companyId,
+        accountId,
+        provider: provider && provider !== "AUTO" ? provider : undefined,
+      });
+
+      const data = await secureApiRequest<unknown>(
+        `${API_ENDPOINTS.transactions.statementImport}${query}`,
+        {
+          method: "POST",
+          body: formData,
+        },
+        120_000,
+      );
+
+      return mapApiResponse<StatementImportResponse>(data);
+    } catch (error) {
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : "Failed to import statement transactions",
+      );
+    }
+  },
+);
+
+/**
+ * Fetch statement import batch history for the current company.
+ */
+export const fetchStatementImportHistory = createAsyncThunk<
+  StatementImportBatchHistoryItem[],
+  StatementImportHistoryParams | undefined,
+  { state: RootState; rejectValue: string }
+>(
+  "transactions/fetchStatementImportHistory",
+  async (params = {}, { getState, rejectWithValue }) => {
+    try {
+      const state = getState();
+      const companyId =
+        state.auth.viewingAgencyId || state.auth.user?.companyId;
+
+      if (!companyId) {
+        return rejectWithValue("No companyId found. Please log in again.");
+      }
+
+      const query = buildTypedQueryString({
+        ...params,
+        companyId,
+        provider: params.provider ?? undefined,
+      });
+
+      return await apiRequest<StatementImportBatchHistoryItem[]>(
+        `${API_ENDPOINTS.transactions.statementImportHistory}${query}`,
+      );
+    } catch (error) {
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : "Failed to fetch statement import history",
+      );
+    }
+  },
+);
+
+/**
+ * Fetch one statement import batch with its staged rows.
+ */
+export const fetchStatementImportBatchDetail = createAsyncThunk<
+  StatementImportBatchDetail,
+  number,
+  { state: RootState; rejectValue: string }
+>(
+  "transactions/fetchStatementImportBatchDetail",
+  async (batchId, { getState, rejectWithValue }) => {
+    try {
+      const state = getState();
+      const companyId =
+        state.auth.viewingAgencyId || state.auth.user?.companyId;
+
+      if (!companyId) {
+        return rejectWithValue("No companyId found. Please log in again.");
+      }
+
+      const query = buildTypedQueryString({ companyId });
+      return await apiRequest<StatementImportBatchDetail>(
+        `${API_ENDPOINTS.transactions.statementImportBatch(batchId)}${query}`,
+      );
+    } catch (error) {
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : "Failed to fetch statement import batch detail",
+      );
+    }
+  },
+);
+
+/**
  * Update transaction (notes only — audit integrity)
  */
 export const updateTransaction = createAsyncThunk<
@@ -530,6 +742,18 @@ const transactionsSlice = createSlice({
       state.analytics = null;
       state.dailyAnalytics = [];
     },
+    clearStatementPreview: (state) => {
+      state.statementPreview = null;
+    },
+    clearStatementImportResult: (state) => {
+      state.statementImportResult = null;
+    },
+    clearStatementImportHistory: (state) => {
+      state.statementImportHistory = [];
+    },
+    clearSelectedStatementImportBatch: (state) => {
+      state.selectedStatementImportBatch = null;
+    },
   },
   extraReducers: (builder) => {
     // ---- Fetch All ----
@@ -646,6 +870,68 @@ const transactionsSlice = createSlice({
       })
       .addCase(bulkCreateTransactions.rejected, (state, action) => {
         state.isCreating = false;
+        state.error = action.payload as string;
+      });
+
+    // ---- Statement Preview ----
+    builder
+      .addCase(previewStatementImport.pending, (state) => {
+        state.isPreviewingStatement = true;
+        state.error = null;
+        state.statementImportResult = null;
+      })
+      .addCase(previewStatementImport.fulfilled, (state, action) => {
+        state.isPreviewingStatement = false;
+        state.statementPreview = action.payload;
+      })
+      .addCase(previewStatementImport.rejected, (state, action) => {
+        state.isPreviewingStatement = false;
+        state.error = action.payload as string;
+      });
+
+    // ---- Statement Import ----
+    builder
+      .addCase(importStatementTransactions.pending, (state) => {
+        state.isImportingStatement = true;
+        state.error = null;
+      })
+      .addCase(importStatementTransactions.fulfilled, (state, action) => {
+        state.isImportingStatement = false;
+        state.statementImportResult = action.payload;
+        state.lastFetched = null;
+      })
+      .addCase(importStatementTransactions.rejected, (state, action) => {
+        state.isImportingStatement = false;
+        state.error = action.payload as string;
+      });
+
+    // ---- Statement Import History ----
+    builder
+      .addCase(fetchStatementImportHistory.pending, (state) => {
+        state.isLoadingStatementImportHistory = true;
+        state.error = null;
+      })
+      .addCase(fetchStatementImportHistory.fulfilled, (state, action) => {
+        state.isLoadingStatementImportHistory = false;
+        state.statementImportHistory = action.payload;
+      })
+      .addCase(fetchStatementImportHistory.rejected, (state, action) => {
+        state.isLoadingStatementImportHistory = false;
+        state.error = action.payload as string;
+      });
+
+    // ---- Statement Import Batch Detail ----
+    builder
+      .addCase(fetchStatementImportBatchDetail.pending, (state) => {
+        state.isLoadingStatementImportBatch = true;
+        state.error = null;
+      })
+      .addCase(fetchStatementImportBatchDetail.fulfilled, (state, action) => {
+        state.isLoadingStatementImportBatch = false;
+        state.selectedStatementImportBatch = action.payload;
+      })
+      .addCase(fetchStatementImportBatchDetail.rejected, (state, action) => {
+        state.isLoadingStatementImportBatch = false;
         state.error = action.payload as string;
       });
 
@@ -782,6 +1068,10 @@ export const {
   clearAccountStatement,
   clearCompanyStatement,
   clearAnalytics,
+  clearStatementPreview,
+  clearStatementImportResult,
+  clearStatementImportHistory,
+  clearSelectedStatementImportBatch,
 } = transactionsSlice.actions;
 
 export default transactionsSlice.reducer;

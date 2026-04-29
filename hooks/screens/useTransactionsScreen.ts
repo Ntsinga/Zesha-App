@@ -11,9 +11,13 @@ import {
   confirmTransaction,
   reverseTransaction,
   updateTransaction,
+  previewStatementImport,
+  importStatementTransactions,
   clearError,
   setFilters,
   clearFilters,
+  clearStatementPreview,
+  clearStatementImportResult,
 } from "../../store/slices/transactionsSlice";
 import { fetchAccounts } from "../../store/slices/accountsSlice";
 import { fetchDashboard } from "../../store/slices/dashboardSlice";
@@ -24,6 +28,7 @@ import type {
   ShiftEnum,
   TransactionTypeEnum,
   FloatSourceEnum,
+  StatementProvider,
 } from "../../types";
 import type {
   TransactionCreate,
@@ -31,7 +36,31 @@ import type {
   CapitalInjectionCreate,
   CashCapitalInjectionCreate,
   Transaction,
+  StatementPreviewResponse,
+  StatementImportResponse,
+  StatementParsedRow,
+  StatementReviewDesignation,
+  StatementReviewOverride,
+  StatementOverlapStatus,
 } from "../../types/transaction";
+
+function getStatementRowKey(
+  rowIndex: number,
+  providerReference: string,
+): string {
+  return `${rowIndex}:${providerReference}`;
+}
+
+function isStatementRowOverlapBlocked(
+  overlapStatus?: StatementOverlapStatus,
+): boolean {
+  return (
+    overlapStatus === "EXACT_MATCH" ||
+    overlapStatus === "POSSIBLE_MATCH" ||
+    overlapStatus === "REFERENCE_CONFLICT" ||
+    overlapStatus === "AMBIGUOUS_FLOAT_MATCH"
+  );
+}
 
 function getLocalDateString(): string {
   const date = new Date();
@@ -117,6 +146,7 @@ export function useTransactionsScreen() {
   const [showAddTransaction, setShowAddTransaction] = useState(false);
   const [showFloatPurchase, setShowFloatPurchase] = useState(false);
   const [showCapitalInjection, setShowCapitalInjection] = useState(false);
+  const [showStatementImport, setShowStatementImport] = useState(false);
   const [showReverseConfirm, setShowReverseConfirm] = useState(false);
   const [transactionToReverse, setTransactionToReverse] =
     useState<Transaction | null>(null);
@@ -129,13 +159,26 @@ export function useTransactionsScreen() {
     useState<FloatPurchaseFormState>(initialFloatPurchaseForm);
   const [capitalInjectionForm, setCapitalInjectionForm] =
     useState<CapitalInjectionFormState>(initialCapitalInjectionForm);
+  const [statementAccountId, setStatementAccountId] = useState<number | null>(
+    null,
+  );
+  const [statementProvider, setStatementProvider] = useState<
+    StatementProvider | "AUTO"
+  >("AUTO");
+  const [statementFile, setStatementFile] = useState<File | null>(null);
+  const [statementReviewDesignations, setStatementReviewDesignations] =
+    useState<Record<string, StatementReviewDesignation>>({});
 
   // ---- Redux state ----
   const {
     items: transactions,
     analytics,
+    statementPreview,
+    statementImportResult,
     isLoading,
     isCreating,
+    isPreviewingStatement,
+    isImportingStatement,
     error,
   } = useAppSelector((state) => state.transactions);
   const { totals: commissionTotals } = useAppSelector(
@@ -337,10 +380,20 @@ export function useTransactionsScreen() {
     );
     if (!account) return null;
 
+    const depositRate =
+      "commissionDepositPercentage" in account &&
+      typeof account.commissionDepositPercentage === "number"
+        ? account.commissionDepositPercentage
+        : null;
+    const withdrawRate =
+      "commissionWithdrawPercentage" in account &&
+      typeof account.commissionWithdrawPercentage === "number"
+        ? account.commissionWithdrawPercentage
+        : null;
     const rate =
       transactionForm.transactionType === "DEPOSIT"
-        ? account.commissionDepositPercentage
-        : account.commissionWithdrawPercentage;
+        ? depositRate
+        : withdrawRate;
 
     if (rate == null || rate === 0) return null;
 
@@ -616,6 +669,213 @@ export function useTransactionsScreen() {
     dispatch(clearError());
   }, [dispatch]);
 
+  const handleStatementFileChange = useCallback(
+    (file: File | null) => {
+      setStatementFile(file);
+      setStatementReviewDesignations({});
+      dispatch(clearStatementPreview());
+      dispatch(clearStatementImportResult());
+      clearSubmitError();
+    },
+    [dispatch, clearSubmitError],
+  );
+
+  const handleStatementAccountChange = useCallback(
+    (accountId: number | null) => {
+      setStatementAccountId(accountId);
+      setStatementReviewDesignations({});
+      dispatch(clearStatementPreview());
+      dispatch(clearStatementImportResult());
+      clearSubmitError();
+    },
+    [dispatch, clearSubmitError],
+  );
+
+  const handleStatementProviderChange = useCallback(
+    (provider: StatementProvider | "AUTO") => {
+      setStatementProvider(provider);
+      setStatementReviewDesignations({});
+      dispatch(clearStatementPreview());
+      dispatch(clearStatementImportResult());
+      clearSubmitError();
+    },
+    [dispatch, clearSubmitError],
+  );
+
+  const closeStatementImport = useCallback(() => {
+    setShowStatementImport(false);
+    setStatementAccountId(null);
+    setStatementProvider("AUTO");
+    setStatementFile(null);
+    setStatementReviewDesignations({});
+    dispatch(clearStatementPreview());
+    dispatch(clearStatementImportResult());
+    clearSubmitError();
+  }, [dispatch, clearSubmitError]);
+
+  useEffect(() => {
+    setStatementReviewDesignations({});
+  }, [statementPreview?.metadata.filename]);
+
+  const statementReviewOverrides = useMemo<StatementReviewOverride[]>(() => {
+    return (statementPreview?.rows ?? []).flatMap((row) => {
+      if (row.decision !== "REVIEW") {
+        return [];
+      }
+
+      const designation =
+        statementReviewDesignations[
+          getStatementRowKey(row.rowIndex, row.providerReference)
+        ];
+      if (!designation || designation === "KEEP_REVIEW") {
+        return [];
+      }
+
+      return [
+        {
+          rowIndex: row.rowIndex,
+          providerReference: row.providerReference,
+          designation,
+        },
+      ];
+    });
+  }, [statementPreview, statementReviewDesignations]);
+
+  const selectedReviewRowCount = statementReviewOverrides.length;
+  const overlapBlockedStatementRowCount = useMemo(() => {
+    return (statementPreview?.rows ?? []).filter((row) => {
+      if (row.decision === "READY") {
+        return isStatementRowOverlapBlocked(row.overlapStatus);
+      }
+
+      if (row.decision !== "REVIEW") {
+        return false;
+      }
+
+      const designation =
+        statementReviewDesignations[
+          getStatementRowKey(row.rowIndex, row.providerReference)
+        ];
+      if (!designation || designation === "KEEP_REVIEW") {
+        return false;
+      }
+
+      return isStatementRowOverlapBlocked(row.overlapStatus);
+    }).length;
+  }, [statementPreview, statementReviewDesignations]);
+
+  const importableStatementRowCount = useMemo(() => {
+    return (statementPreview?.rows ?? []).filter((row) => {
+      if (isStatementRowOverlapBlocked(row.overlapStatus)) {
+        return false;
+      }
+
+      if (row.decision === "READY") {
+        return true;
+      }
+
+      if (row.decision !== "REVIEW") {
+        return false;
+      }
+
+      const designation =
+        statementReviewDesignations[
+          getStatementRowKey(row.rowIndex, row.providerReference)
+        ];
+      return !!designation && designation !== "KEEP_REVIEW";
+    }).length;
+  }, [statementPreview, statementReviewDesignations]);
+
+  const handleStatementReviewDesignationChange = useCallback(
+    (row: StatementParsedRow, designation: StatementReviewDesignation) => {
+      setStatementReviewDesignations((current) => ({
+        ...current,
+        [getStatementRowKey(row.rowIndex, row.providerReference)]: designation,
+      }));
+      dispatch(clearStatementImportResult());
+      clearSubmitError();
+    },
+    [dispatch, clearSubmitError],
+  );
+
+  const handlePreviewStatement = useCallback(async () => {
+    if (!statementFile || !statementAccountId) {
+      setSubmitError("Select a telecom account and PDF statement first.");
+      return;
+    }
+
+    setSubmitError(null);
+    try {
+      await dispatch(
+        previewStatementImport({
+          file: statementFile,
+          accountId: statementAccountId,
+          provider: statementProvider,
+        }),
+      ).unwrap();
+    } catch (err) {
+      setSubmitError(
+        typeof err === "string"
+          ? err
+          : err instanceof Error
+            ? err.message
+            : "Failed to preview statement.",
+      );
+      dispatch(clearError());
+    }
+  }, [
+    dispatch,
+    statementFile,
+    statementAccountId,
+    statementProvider,
+    clearSubmitError,
+  ]);
+
+  const handleImportStatement = useCallback(async () => {
+    if (!statementFile || !statementAccountId) {
+      setSubmitError("Select a telecom account and PDF statement first.");
+      return;
+    }
+
+    if (!importableStatementRowCount) {
+      setSubmitError(
+        "Preview the statement first and designate any REVIEW rows you want to import.",
+      );
+      return;
+    }
+
+    setSubmitError(null);
+    try {
+      await dispatch(
+        importStatementTransactions({
+          file: statementFile,
+          accountId: statementAccountId,
+          provider: statementProvider,
+          reviewOverrides: statementReviewOverrides,
+        }),
+      ).unwrap();
+      refreshCurrentRange();
+      dispatch(fetchDashboard({ forceRefresh: true }));
+    } catch (err) {
+      setSubmitError(
+        typeof err === "string"
+          ? err
+          : err instanceof Error
+            ? err.message
+            : "Failed to import statement.",
+      );
+      dispatch(clearError());
+    }
+  }, [
+    dispatch,
+    statementFile,
+    statementAccountId,
+    statementProvider,
+    importableStatementRowCount,
+    statementReviewOverrides,
+    refreshCurrentRange,
+  ]);
+
   const handleResetFilters = useCallback(() => {
     const today = getLocalDateString();
     setFilterType("ALL");
@@ -696,6 +956,8 @@ export function useTransactionsScreen() {
     setShowFloatPurchase,
     showCapitalInjection,
     setShowCapitalInjection,
+    showStatementImport,
+    setShowStatementImport,
     showReverseConfirm,
     setShowReverseConfirm,
     transactionToReverse,
@@ -707,15 +969,35 @@ export function useTransactionsScreen() {
     setFloatPurchaseForm,
     capitalInjectionForm,
     setCapitalInjectionForm,
+    statementAccountId,
+    statementProvider,
+    statementFile,
+    statementPreview,
+    statementImportResult,
+    statementReviewDesignations,
+    selectedReviewRowCount,
+    overlapBlockedStatementRowCount,
+    importableStatementRowCount,
 
     // Submit error (inline modal feedback)
     submitError,
     clearSubmitError,
 
+    // Statement upload state
+    isPreviewingStatement,
+    isImportingStatement,
+
     // Handlers
     handleCreateTransaction,
     handleCreateFloatPurchase,
     handleCreateCapitalInjection,
+    handleStatementAccountChange,
+    handleStatementProviderChange,
+    handleStatementFileChange,
+    handleStatementReviewDesignationChange,
+    handlePreviewStatement,
+    handleImportStatement,
+    closeStatementImport,
     handleReverse,
     handleConfirmTransaction,
     confirmReverse,

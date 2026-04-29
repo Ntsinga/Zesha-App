@@ -165,6 +165,11 @@ export const API_ENDPOINTS = {
     capitalInjection: "/transactions/capital-injection",
     cashCapitalInjection: "/transactions/cash-capital-injection",
     bulk: "/transactions/bulk",
+    statementPreview: "/transactions/statement-preview",
+    statementImport: "/transactions/statement-import",
+    statementImportHistory: "/transactions/statement-import/history",
+    statementImportBatch: (batchId: number) =>
+      `/transactions/statement-import/${batchId}`,
     get: (id: number) => `/transactions/${id}`,
     update: (id: number) => `/transactions/${id}`,
     reverse: (id: number, companyId: number) =>
