@@ -47,6 +47,7 @@ export default function DashboardWeb() {
   const {
     isLoading,
     isInitializing,
+    hasCoreDashboardData,
     refreshing,
     snapshotDate,
     accounts,
@@ -194,7 +195,7 @@ export default function DashboardWeb() {
     year: "Past Year",
   };
 
-  if (isInitializing || (isLoading && !refreshing)) {
+  if (isInitializing || (!hasCoreDashboardData && isLoading && !refreshing)) {
     return (
       <div className="loading-container">
         <div className="loading-content">

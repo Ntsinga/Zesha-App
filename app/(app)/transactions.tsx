@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -28,6 +28,7 @@ import { fetchAccounts } from "../../store/slices/accountsSlice";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { formatDate } from "../../utils/formatters";
 import { useCurrencyFormatter } from "../../hooks/useCurrency";
+import { generateIdempotencyKey } from "../../utils/idempotency";
 import type {
   TransactionRecord as Transaction,
   TransactionTypeEnum,
@@ -117,6 +118,7 @@ export default function Transactions() {
     notes: "",
   });
   const [isSubmittingInjection, setIsSubmittingInjection] = useState(false);
+  const capitalInjectionRequestKeyRef = useRef<string | null>(null);
   const { items: transactions, isLoading } = useAppSelector(
     (state) => state.transactions,
   );
@@ -140,6 +142,16 @@ export default function Transactions() {
     dispatch(fetchTransactions(buildFilters()));
   }, [dispatch, filterType, filterShift, filterAccountId]);
 
+  useEffect(() => {
+    capitalInjectionRequestKeyRef.current = null;
+  }, [
+    injectionForm.injectionType,
+    injectionForm.accountId,
+    injectionForm.amount,
+    injectionForm.reference,
+    injectionForm.notes,
+  ]);
+
   const onRefresh = async () => {
     setRefreshing(true);
     await dispatch(fetchTransactions(buildFilters()));
@@ -162,6 +174,10 @@ export default function Transactions() {
 
     try {
       setIsSubmittingInjection(true);
+      const requestKey =
+        capitalInjectionRequestKeyRef.current ??
+        generateIdempotencyKey("capital-native");
+      capitalInjectionRequestKeyRef.current = requestKey;
 
       if (injectionForm.injectionType === "FLOAT") {
         if (!injectionForm.accountId) return;
@@ -172,6 +188,7 @@ export default function Transactions() {
           transactionTime: new Date().toISOString(),
           reference: injectionForm.reference || undefined,
           notes: injectionForm.notes || undefined,
+          idempotencyKey: requestKey,
         };
         await dispatch(createCapitalInjection(data)).unwrap();
       } else {
@@ -181,10 +198,12 @@ export default function Transactions() {
           transactionTime: new Date().toISOString(),
           reference: injectionForm.reference || undefined,
           notes: injectionForm.notes || undefined,
+          idempotencyKey: requestKey,
         };
         await dispatch(createCashCapitalInjection(data)).unwrap();
       }
 
+      capitalInjectionRequestKeyRef.current = null;
       setShowInjectionModal(false);
       setInjectionForm({
         injectionType: "FLOAT",
@@ -572,6 +591,7 @@ export default function Transactions() {
         <AddTransactionForm
           onSuccess={handleFormSuccess}
           onClose={() => setIsModalOpen(false)}
+          visible={isModalOpen}
         />
       </ActionModal>
 
