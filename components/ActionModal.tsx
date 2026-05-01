@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -26,6 +26,7 @@ import {
   createFloatPurchase,
 } from "../store/slices/transactionsSlice";
 import { fetchAccounts } from "../store/slices/accountsSlice";
+import { generateIdempotencyKey } from "../utils/idempotency";
 import type { FloatSourceEnum, ShiftEnum } from "../types";
 
 type TxMode = "DEPOSIT" | "WITHDRAW" | "FLOAT";
@@ -88,11 +89,13 @@ export const ActionModal: React.FC<ActionModalProps> = ({
 interface AddTransactionFormProps {
   onSuccess?: () => void;
   onClose?: () => void;
+  visible?: boolean;
 }
 
 export const AddTransactionForm: React.FC<AddTransactionFormProps> = ({
   onSuccess,
   onClose,
+  visible = true,
 }) => {
   const dispatch = useAppDispatch();
   const { formatCurrency } = useCurrencyFormatter();
@@ -122,6 +125,7 @@ export const AddTransactionForm: React.FC<AddTransactionFormProps> = ({
   const [pickerOnSelect, setPickerOnSelect] = useState<(id: number) => void>(
     () => () => {},
   );
+  const submissionKeyRef = useRef<string | null>(null);
 
   const activeAccounts = accounts.filter((a) => a.isActive);
 
@@ -133,6 +137,7 @@ export const AddTransactionForm: React.FC<AddTransactionFormProps> = ({
   }, [companyId]);
 
   const reset = () => {
+    submissionKeyRef.current = null;
     setMode("DEPOSIT");
     setAccountId(null);
     setSourceAccountId(null);
@@ -142,6 +147,25 @@ export const AddTransactionForm: React.FC<AddTransactionFormProps> = ({
     setReference("");
     setNotes("");
   };
+
+  useEffect(() => {
+    submissionKeyRef.current = null;
+  }, [
+    mode,
+    accountId,
+    sourceAccountId,
+    destAccountId,
+    floatSource,
+    amount,
+    reference,
+    notes,
+  ]);
+
+  useEffect(() => {
+    if (!visible) {
+      reset();
+    }
+  }, [visible]);
 
   const pickAccount = (
     title: string,
@@ -171,6 +195,10 @@ export const AddTransactionForm: React.FC<AddTransactionFormProps> = ({
     }
 
     try {
+      const requestKey =
+        submissionKeyRef.current ?? generateIdempotencyKey("txn-modal");
+      submissionKeyRef.current = requestKey;
+
       if (mode === "FLOAT") {
         if (!destAccountId) {
           Alert.alert("Validation", "Please select a destination account.");
@@ -195,6 +223,7 @@ export const AddTransactionForm: React.FC<AddTransactionFormProps> = ({
             transactionTime: new Date().toISOString(),
             reference: reference || undefined,
             notes: notes || undefined,
+            idempotencyKey: requestKey,
           }),
         ).unwrap();
       } else {
@@ -211,6 +240,7 @@ export const AddTransactionForm: React.FC<AddTransactionFormProps> = ({
             transactionTime: new Date().toISOString(),
             reference: reference || undefined,
             notes: notes || undefined,
+            idempotencyKey: requestKey,
           }),
         ).unwrap();
       }
@@ -239,6 +269,8 @@ export const AddTransactionForm: React.FC<AddTransactionFormProps> = ({
     shift,
     reference,
     notes,
+    onClose,
+    onSuccess,
   ]);
 
   const modeColors = {

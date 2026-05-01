@@ -24,6 +24,7 @@ import { fetchDashboard } from "../../store/slices/dashboardSlice";
 import { fetchCommissionTotals } from "../../store/slices/expectedCommissionsSlice";
 import { useCurrencyFormatter } from "../useCurrency";
 import { formatDateTime } from "../../utils/formatters";
+import { generateIdempotencyKey } from "../../utils/idempotency";
 import type {
   ShiftEnum,
   TransactionTypeEnum,
@@ -191,6 +192,9 @@ export function useTransactionsScreen() {
   );
 
   const lastFetchedCompanyId = useRef<number | null>(null);
+  const transactionRequestKeyRef = useRef<string | null>(null);
+  const floatPurchaseRequestKeyRef = useRef<string | null>(null);
+  const capitalInjectionRequestKeyRef = useRef<string | null>(null);
 
   // ---- Fetch data on mount ----
   useEffect(() => {
@@ -369,6 +373,56 @@ export function useTransactionsScreen() {
       });
   }, [accounts, transactionCountsByAccount]);
 
+  useEffect(() => {
+    transactionRequestKeyRef.current = null;
+  }, [
+    transactionForm.accountId,
+    transactionForm.transactionType,
+    transactionForm.amount,
+    transactionForm.reference,
+    transactionForm.notes,
+  ]);
+
+  useEffect(() => {
+    floatPurchaseRequestKeyRef.current = null;
+  }, [
+    floatPurchaseForm.sourceAccountId,
+    floatPurchaseForm.destinationAccountId,
+    floatPurchaseForm.amount,
+    floatPurchaseForm.floatSource,
+    floatPurchaseForm.reference,
+    floatPurchaseForm.notes,
+    floatPurchaseForm.isConfirmed,
+  ]);
+
+  useEffect(() => {
+    capitalInjectionRequestKeyRef.current = null;
+  }, [
+    capitalInjectionForm.injectionType,
+    capitalInjectionForm.accountId,
+    capitalInjectionForm.amount,
+    capitalInjectionForm.reference,
+    capitalInjectionForm.notes,
+  ]);
+
+  useEffect(() => {
+    if (!showAddTransaction) {
+      transactionRequestKeyRef.current = null;
+    }
+  }, [showAddTransaction]);
+
+  useEffect(() => {
+    if (!showFloatPurchase) {
+      floatPurchaseRequestKeyRef.current = null;
+    }
+  }, [showFloatPurchase]);
+
+  useEffect(() => {
+    if (!showCapitalInjection) {
+      capitalInjectionRequestKeyRef.current = null;
+    }
+  }, [showCapitalInjection]);
+
   // ---- Commission preview for transaction form ----
   const transactionCommissionPreview = useMemo(() => {
     if (!transactionForm.accountId || !transactionForm.amount) return null;
@@ -510,11 +564,17 @@ export function useTransactionsScreen() {
       transactionTime: new Date().toISOString(),
       reference: transactionForm.reference || undefined,
       notes: transactionForm.notes || undefined,
+      idempotencyKey:
+        transactionRequestKeyRef.current ??
+        generateIdempotencyKey("txn-screen"),
     };
+
+    transactionRequestKeyRef.current = data.idempotencyKey ?? null;
 
     setSubmitError(null);
     try {
       await dispatch(createTransaction(data)).unwrap();
+      transactionRequestKeyRef.current = null;
       setShowAddTransaction(false);
       setTransactionForm(initialTransactionForm);
       refreshCurrentRange();
@@ -555,11 +615,17 @@ export function useTransactionsScreen() {
       reference: floatPurchaseForm.reference || undefined,
       notes: floatPurchaseForm.notes || undefined,
       isConfirmed: floatPurchaseForm.isConfirmed,
+      idempotencyKey:
+        floatPurchaseRequestKeyRef.current ??
+        generateIdempotencyKey("float-screen"),
     };
+
+    floatPurchaseRequestKeyRef.current = data.idempotencyKey ?? null;
 
     setSubmitError(null);
     try {
       await dispatch(createFloatPurchase(data)).unwrap();
+      floatPurchaseRequestKeyRef.current = null;
       setShowFloatPurchase(false);
       setFloatPurchaseForm(initialFloatPurchaseForm);
       refreshCurrentRange();
@@ -586,6 +652,11 @@ export function useTransactionsScreen() {
 
     setSubmitError(null);
     try {
+      const requestKey =
+        capitalInjectionRequestKeyRef.current ??
+        generateIdempotencyKey("capital-screen");
+      capitalInjectionRequestKeyRef.current = requestKey;
+
       if (capitalInjectionForm.injectionType === "FLOAT") {
         const data: CapitalInjectionCreate = {
           companyId,
@@ -594,6 +665,7 @@ export function useTransactionsScreen() {
           transactionTime: new Date().toISOString(),
           reference: capitalInjectionForm.reference || undefined,
           notes: capitalInjectionForm.notes || undefined,
+          idempotencyKey: requestKey,
         };
         await dispatch(createCapitalInjection(data)).unwrap();
       } else {
@@ -603,10 +675,12 @@ export function useTransactionsScreen() {
           transactionTime: new Date().toISOString(),
           reference: capitalInjectionForm.reference || undefined,
           notes: capitalInjectionForm.notes || undefined,
+          idempotencyKey: requestKey,
         };
         await dispatch(createCashCapitalInjection(data)).unwrap();
       }
 
+      capitalInjectionRequestKeyRef.current = null;
       setShowCapitalInjection(false);
       setCapitalInjectionForm(initialCapitalInjectionForm);
       refreshCurrentRange();

@@ -106,6 +106,7 @@ export function useDashboardScreen() {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   })();
+  const hasCoreDashboardData = Boolean(summary);
   const chartRange = useMemo(
     () => getChartDateRange(chartPeriod),
     [chartPeriod],
@@ -119,7 +120,7 @@ export function useDashboardScreen() {
 
   // Fetch today's transactions (always today — powers balances table)
   useEffect(() => {
-    if (effectiveCompanyId) {
+    if (effectiveCompanyId && hasCoreDashboardData) {
       dispatch(
         fetchTransactions({
           companyId: effectiveCompanyId,
@@ -129,11 +130,11 @@ export function useDashboardScreen() {
         }),
       );
     }
-  }, [dispatch, effectiveCompanyId, today]);
+  }, [dispatch, effectiveCompanyId, today, hasCoreDashboardData]);
 
   // Fetch chart data based on selected period (commission pies + transaction bar + daily charts)
   useEffect(() => {
-    if (!effectiveCompanyId) return;
+    if (!effectiveCompanyId || !hasCoreDashboardData) return;
     const { startDate, endDate } = chartRange;
     dispatch(
       fetchCommissionTotals({ startDate, endDate, shift: currentShift }),
@@ -156,18 +157,25 @@ export function useDashboardScreen() {
         days: getChartDays(chartPeriod),
       }),
     );
-  }, [dispatch, effectiveCompanyId, chartPeriod, currentShift, chartRange]);
+  }, [
+    dispatch,
+    effectiveCompanyId,
+    chartPeriod,
+    currentShift,
+    chartRange,
+    hasCoreDashboardData,
+  ]);
 
   // Fetch all expenses (not just today) so totalPendingExpenses reflects cumulative pending
   useEffect(() => {
-    if (effectiveCompanyId) {
+    if (effectiveCompanyId && hasCoreDashboardData) {
       dispatch(
         fetchExpenses({
           companyId: effectiveCompanyId,
         }),
       );
     }
-  }, [dispatch, effectiveCompanyId]);
+  }, [dispatch, effectiveCompanyId, hasCoreDashboardData]);
 
   // Auto-refresh after offline → online transition + sync complete
   useAutoRefreshOnReconnect(
@@ -727,7 +735,8 @@ export function useDashboardScreen() {
     // State
     isLoading,
     // True while waiting for companyId to resolve or the very first data fetch
-    isInitializing: !effectiveCompanyId || (!summary && isLoading),
+    isInitializing: !effectiveCompanyId || (!hasCoreDashboardData && isLoading),
+    hasCoreDashboardData,
     error,
     refreshing,
     snapshotDate,

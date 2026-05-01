@@ -48,6 +48,7 @@ export default function BalanceDetailWeb() {
     balances,
     cashCounts,
     commissions,
+    reconciliation,
     totalFloat,
     totalCash,
     totalCommission,
@@ -137,7 +138,7 @@ export default function BalanceDetailWeb() {
     );
   }
 
-  if (error) {
+  if (error && !reconciliation) {
     return (
       <div className="page-wrapper">
         <div className="error-container">

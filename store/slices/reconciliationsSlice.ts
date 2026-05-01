@@ -642,17 +642,24 @@ const reconciliationsSlice = createSlice({
       .addCase(calculateReconciliation.fulfilled, (state, action) => {
         state.isCalculating = false;
         state.calculatedResult = action.payload;
+        state.balanceValidation =
+          action.payload.balanceValidation?.results ?? [];
         // Merge fresh totals back into reconciliationDetails so the UI reflects
         // the updated commission, float, cash and variance values immediately.
         if (state.reconciliationDetails?.reconciliation) {
           const r = state.reconciliationDetails.reconciliation;
-          const res = action.payload;
-          r.totalCommissions = res.commissionTotal;
-          r.totalFloat = res.reportedTotals.totalFloat;
-          r.totalCash = res.reportedTotals.totalCash;
-          r.actualClosing = res.reportedTotals.grandTotal;
-          r.variance = res.variances.grandVariance;
+          const res = action.payload.data;
+          r.totalCommissions = res.totalCommissions;
+          r.totalFloat = res.totalFloat;
+          r.totalCash = res.totalCash;
+          r.expectedClosing = res.expectedClosing;
+          r.actualClosing = res.actualClosing;
+          r.variance = res.variance;
+          r.shiftOpeningBalance = res.shiftOpeningBalance;
+          r.shiftVariance = res.shiftVariance;
           r.status = res.status;
+          r.isFinalized = res.isFinalized;
+          r.reconciliationStatus = "CALCULATED";
         }
       })
       .addCase(calculateReconciliation.rejected, (state, action) => {
@@ -726,7 +733,6 @@ const reconciliationsSlice = createSlice({
       .addCase(fetchReconciliationDetails.pending, (state) => {
         state.isLoadingDetails = true;
         state.error = null;
-        state.reconciliationDetails = null;
       })
       .addCase(fetchReconciliationDetails.fulfilled, (state, action) => {
         state.isLoadingDetails = false;
@@ -735,7 +741,6 @@ const reconciliationsSlice = createSlice({
       .addCase(fetchReconciliationDetails.rejected, (state, action) => {
         state.isLoadingDetails = false;
         state.error = action.payload as string;
-        state.reconciliationDetails = null;
       });
 
     // Fetch balance validation

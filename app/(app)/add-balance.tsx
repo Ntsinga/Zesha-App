@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   View,
   Text,
@@ -49,7 +49,12 @@ import {
 } from "../../services/balanceExtractor";
 import * as FileSystem from "expo-file-system/legacy";
 import type { AppDispatch, RootState } from "../../store";
-import type { ShiftEnum, BalanceCreate, Account, ReconciliationSubtypeEnum } from "../../types";
+import type {
+  ShiftEnum,
+  BalanceCreate,
+  Account,
+  ReconciliationSubtypeEnum,
+} from "../../types";
 import { useCurrencyFormatter } from "../../hooks/useCurrency";
 import { useEffectiveRole } from "../../hooks/useEffectiveRole";
 import { selectEffectiveCompanyId } from "../../store/slices/authSlice";
@@ -142,28 +147,42 @@ export default function AddBalancePage() {
     .toISOString()
     .split("T")[0];
 
-  // Fetch accounts and balances on mount (or when subtype changes, i.e. OPENING→CLOSING nav)
-  // force refresh to get latest reconciliation_id linkage from the backend.
+  const hasRelevantBalances = useMemo(
+    () =>
+      balances.some(
+        (bal) =>
+          bal.date.startsWith(today) &&
+          bal.shift === currentShift &&
+          bal.subtype === currentSubtype,
+      ),
+    [balances, today, currentShift, currentSubtype],
+  );
+
+  const isBlockingLoad =
+    !isInitialized &&
+    (accountsLoading || (!freshDataReady && !hasRelevantBalances));
+
+  // Fetch accounts and balances on mount (or when subtype changes, i.e. OPENING→CLOSING nav).
+  // Allow cached balances to prepopulate immediately while fresh data loads in the background.
   useEffect(() => {
     setFreshDataReady(false);
     setIsInitialized(false);
     Promise.all([
-      dispatch(fetchAccounts({ isActive: true, forceRefresh: true })),
+      dispatch(fetchAccounts({ isActive: true })),
       dispatch(
-        fetchBalances({ dateFrom: today, dateTo: today, forceRefresh: true }),
+        fetchBalances({
+          dateFrom: today,
+          dateTo: today,
+          subtype: currentSubtype,
+        }),
       ),
     ]).then(() => setFreshDataReady(true));
   }, [dispatch, today, currentSubtype]);
 
   // Initialize entries from existing balances or draft entries
   useEffect(() => {
-    if (
-      isInitialized ||
-      !freshDataReady ||
-      accountsLoading ||
-      accounts.length === 0
-    )
-      return;
+    if (isInitialized || accounts.length === 0) return;
+    if (!freshDataReady && !hasRelevantBalances) return;
 
     // Check if there are balances for today with the current shift.
     // Exclude balances already linked to the opening recon — those belong to OPENING,
@@ -216,22 +235,22 @@ export default function AddBalancePage() {
 
       setEntries(prepopulatedEntries);
       setIsInitialized(true);
-    } else if (draftEntries.length > 0) {
+    } else if (freshDataReady && draftEntries.length > 0) {
       // Load draft entries if no existing balances
       setEntries(draftEntries);
       setIsInitialized(true);
-    } else {
+    } else if (freshDataReady) {
       setIsInitialized(true);
     }
   }, [
     balances,
+    hasRelevantBalances,
     draftEntries,
     today,
     currentShift,
     currentSubtype,
     isInitialized,
     freshDataReady,
-    accountsLoading,
     accounts,
   ]);
 
@@ -290,7 +309,11 @@ export default function AddBalancePage() {
         await extractAndValidateBalance(entryId, imageUri);
       }
     } catch (error) {
-      Toast.show({ type: "error", text1: "Error", text2: "Failed to take photo. Please try again." });
+      Toast.show({
+        type: "error",
+        text1: "Error",
+        text2: "Failed to take photo. Please try again.",
+      });
     }
   };
 
@@ -314,7 +337,11 @@ export default function AddBalancePage() {
         await extractAndValidateBalance(entryId, imageUri);
       }
     } catch (error) {
-      Toast.show({ type: "error", text1: "Error", text2: "Failed to pick image. Please try again." });
+      Toast.show({
+        type: "error",
+        text1: "Error",
+        text2: "Failed to pick image. Please try again.",
+      });
     }
   };
 
@@ -371,7 +398,9 @@ export default function AddBalancePage() {
         Toast.show({
           type: "info",
           text1: "Extraction Notice",
-          text2: result.error || "Could not extract balance from image. Please verify manually.",
+          text2:
+            result.error ||
+            "Could not extract balance from image. Please verify manually.",
         });
       }
     } catch (error) {
@@ -675,7 +704,11 @@ export default function AddBalancePage() {
     if (!validateEntries()) return;
 
     if (!companyId) {
-      Toast.show({ type: "error", text1: "Error", text2: "Company not found. Please log in again." });
+      Toast.show({
+        type: "error",
+        text1: "Error",
+        text2: "Company not found. Please log in again.",
+      });
       return;
     }
 
@@ -899,8 +932,8 @@ export default function AddBalancePage() {
     );
   }
 
-  // Show a loading screen while the forced fetch completes and entries are initialised
-  if (!freshDataReady || !isInitialized) {
+  // Show a blocking loading screen only when we have nothing usable yet.
+  if (isBlockingLoad) {
     return (
       <View className="flex-1 bg-gray-50">
         {/* Header stays visible so the user can go back */}

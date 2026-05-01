@@ -171,7 +171,7 @@ export default function BalanceDetailPage() {
     return <LoadingSpinner message="Loading reconciliation details..." />;
   }
 
-  if (error && !refreshing) {
+  if (error && !refreshing && !reconciliation) {
     return (
       <View className="flex-1 bg-gray-50 items-center justify-center px-6">
         <AlertTriangle color="#EF4444" size={48} />

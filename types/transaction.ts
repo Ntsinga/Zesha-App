@@ -57,6 +57,7 @@ export interface TransactionCreate {
   transactionTime: string;
   reference?: string | null;
   notes?: string | null;
+  idempotencyKey?: string | null;
 }
 
 /**
@@ -78,6 +79,7 @@ export interface FloatPurchaseCreate {
   reference?: string | null;
   notes?: string | null;
   isConfirmed?: boolean; // default true; false = pending destination confirmation
+  idempotencyKey?: string | null;
 }
 
 /**
@@ -90,6 +92,7 @@ export interface CapitalInjectionCreate {
   transactionTime: string;
   reference?: string | null;
   notes?: string | null;
+  idempotencyKey?: string | null;
 }
 
 /**
@@ -101,6 +104,7 @@ export interface CashCapitalInjectionCreate {
   transactionTime: string;
   reference?: string | null;
   notes?: string | null;
+  idempotencyKey?: string | null;
 }
 
 /**

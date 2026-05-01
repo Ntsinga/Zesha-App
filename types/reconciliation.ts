@@ -116,29 +116,30 @@ export interface ReconciliationUpdate {
  * Reconciliation calculation result from calculate endpoint
  */
 export interface ReconciliationCalculationResult {
-  date: string;
-  shift: ShiftEnum;
-  calculatedTotals: {
+  status: "success" | "error";
+  message: string;
+  reconciliationId: number;
+  data: {
+    date: string;
+    shift: ShiftEnum;
+    subtype: ReconciliationSubtypeEnum;
     totalFloat: number;
     totalCash: number;
-    grandTotal: number;
+    totalCommissions: number;
+    expectedClosing: number;
+    actualClosing: number;
+    variance: number;
+    shiftOpeningBalance: number | null;
+    shiftVariance: number | null;
+    status: StatusEnum;
+    isFinalized: boolean;
   };
-  reportedTotals: {
-    totalFloat: number;
-    totalCash: number;
-    grandTotal: number;
+  balanceValidation: {
+    results: BalanceValidationResult[];
+    hasDiscrepancies: boolean;
+    discrepancyCount: number;
+    discrepancies: BalanceValidationResult[];
   };
-  variances: {
-    floatVariance: number;
-    cashVariance: number;
-    grandVariance: number;
-  };
-  commissionTotal: number;
-  expenseTotal: number;
-  cashCountTotal: number;
-  status: StatusEnum;
-  isReady: boolean;
-  validationErrors: string[];
 }
 
 /**

@@ -88,19 +88,33 @@ export function useAddBalanceScreen() {
     string | null
   >(null);
 
-  // Fetch data on mount (or when subtype changes, i.e. OPENING→CLOSING nav)
-  // force refresh to get latest reconciliation_id linkage from the backend.
+  const hasRelevantBalances = useMemo(
+    () =>
+      balances.some(
+        (bal) =>
+          bal.date.startsWith(today) &&
+          bal.shift === currentShift &&
+          bal.subtype === currentSubtype,
+      ),
+    [balances, today, currentShift, currentSubtype],
+  );
+
+  const isBlockingLoad =
+    !isInitialized &&
+    (accountsLoading || (!freshDataReady && !hasRelevantBalances && isDataLoading));
+
+  // Fetch data on mount (or when subtype changes, i.e. OPENING→CLOSING nav).
+  // Allow cached data to hydrate the form immediately, then refresh in the background.
   useEffect(() => {
     setFreshDataReady(false);
     setIsInitialized(false);
     Promise.all([
-      dispatch(fetchAccounts({ isActive: true, forceRefresh: true })),
+      dispatch(fetchAccounts({ isActive: true })),
       dispatch(
         fetchBalances({
           dateFrom: today,
           dateTo: today,
           subtype: currentSubtype,
-          forceRefresh: true,
         }),
       ),
     ]).then(() => setFreshDataReady(true));
@@ -108,7 +122,8 @@ export function useAddBalanceScreen() {
 
   // Initialize entries from existing balances or draft entries
   useEffect(() => {
-    if (isInitialized || !freshDataReady || accounts.length === 0) return;
+    if (isInitialized || accounts.length === 0) return;
+    if (!freshDataReady && !hasRelevantBalances) return;
 
     // Use currentShift (from params) for prepopulation.
     // Exclude balances already linked to the opening recon — those belong to OPENING,
@@ -152,14 +167,15 @@ export function useAddBalanceScreen() {
 
       setEntries(prepopulatedEntries);
       setIsInitialized(true);
-    } else if (draftEntries.length > 0) {
+    } else if (freshDataReady && draftEntries.length > 0) {
       setEntries(draftEntries);
       setIsInitialized(true);
-    } else {
+    } else if (freshDataReady) {
       setIsInitialized(true);
     }
   }, [
     balances,
+    hasRelevantBalances,
     draftEntries,
     today,
     currentShift,
@@ -684,7 +700,7 @@ export function useAddBalanceScreen() {
     entries,
     errors,
     isSubmitting,
-    accountsLoading: isDataLoading,
+    accountsLoading: isBlockingLoad,
     isInitialized,
     currentShift,
     today,

@@ -220,6 +220,8 @@ export function useReconciliationScreen({
       return { success: false, error: "Missing date or shift" };
 
     try {
+      const needsBlockingDetailsLoad = !reconciliationDetails;
+
       await dispatch(
         calculateReconciliation({
           companyId: resolvedCompanyId,
@@ -229,31 +231,27 @@ export function useReconciliationScreen({
           userId: backendUser?.id,
         }),
       ).unwrap();
-      // Refresh detail, validation and live float
-      await Promise.all([
-        dispatch(
-          fetchReconciliationDetails({
-            companyId: resolvedCompanyId,
-            date,
-            shift,
-            subtype,
-          }),
-        ),
-        dispatch(
-          fetchBalanceValidation({
-            companyId: resolvedCompanyId,
-            date,
-            shift,
-            subtype,
-          }),
-        ),
-        dispatch(
-          fetchDashboard({
-            companyId: resolvedCompanyId,
-            forceRefresh: true,
-          }),
-        ),
-      ]);
+
+      const refreshDetails = dispatch(
+        fetchReconciliationDetails({
+          companyId: resolvedCompanyId,
+          date,
+          shift,
+          subtype,
+        }),
+      );
+
+      if (needsBlockingDetailsLoad) {
+        await refreshDetails.unwrap();
+      }
+
+      void dispatch(
+        fetchDashboard({
+          companyId: resolvedCompanyId,
+          forceRefresh: true,
+        }),
+      );
+
       return { success: true };
     } catch (error: unknown) {
       const msg =
@@ -283,17 +281,17 @@ export function useReconciliationScreen({
     }
 
     try {
-      await dispatch(
-        finalizeReconciliation({
-          companyId: resolvedCompanyId,
-          date,
-          shift,
-          subtype,
-          reconciledBy: backendUser.id,
-          notes: notes.trim() || undefined,
-          forceWithDiscrepancies: hasDiscrepancies ? true : undefined,
-        }),
-      ).unwrap();
+        await dispatch(
+          finalizeReconciliation({
+            companyId: resolvedCompanyId,
+            date,
+            shift,
+            subtype,
+            reconciledBy: backendUser.id,
+            notes: notes.trim() || undefined,
+            forceWithDiscrepancies: hasDiscrepancies ? true : undefined,
+          }),
+        ).unwrap();
       // Refresh live float after finalization
       dispatch(
         fetchDashboard({
