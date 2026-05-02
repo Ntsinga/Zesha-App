@@ -96,7 +96,7 @@ export default function BottomNav() {
             <Ionicons
               name={(active ? tab.activeIcon : tab.icon) as any}
               size={24}
-              color={active ? "#DC2626" : "#9CA3AF"}
+              color={active ? "#DC2626" : "#4B5563"}
             />
             <Text style={[styles.tabLabel, active && styles.tabLabelActive]}>
               {tab.name}
@@ -115,11 +115,11 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     flexDirection: "row",
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#f5f1ea",
     paddingTop: 10,
     paddingHorizontal: 10,
     borderTopWidth: 1,
-    borderTopColor: "#E5E7EB",
+    borderTopColor: "#e8e0d4",
     alignItems: "center",
     justifyContent: "space-around",
     ...Platform.select({
@@ -142,7 +142,7 @@ const styles = StyleSheet.create({
   tabLabel: {
     fontSize: 11,
     marginTop: 4,
-    color: "#9CA3AF",
+    color: "#4B5563",
     fontWeight: "500",
   },
   tabLabelActive: {

@@ -134,9 +134,9 @@ export default function TopBar() {
 // StyleSheet for proper React Native styling (better performance than inline styles)
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#f5f1ea",
     borderBottomWidth: 1,
-    borderBottomColor: "#E5E7EB",
+    borderBottomColor: "#e8e0d4",
     paddingHorizontal: 20,
     paddingVertical: 12,
     zIndex: 1000,
