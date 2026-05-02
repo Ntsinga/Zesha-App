@@ -16,6 +16,7 @@ import {
   Layers,
 } from "lucide-react";
 import { useCommissionSchedulesScreen } from "../../hooks/screens/useCommissionSchedulesScreen";
+import { formatAmountInput, parseAmountInput } from "../../utils/formatters";
 import type {
   CommissionRule,
   CommissionRuleTypeEnum,
@@ -117,24 +118,28 @@ function TierRow({ tier, index, canRemove, onChange, onRemove }: TierRowProps) {
           <label style={{ fontSize: 11 }}>Min Amount</label>
           <input
             className="form-input"
-            type="number"
+            type="text"
+            inputMode="decimal"
             placeholder="0"
-            min="0"
-            step="0.01"
-            value={tier.minAmount}
-            onChange={(e) => onChange(tier.id, "minAmount", e.target.value)}
+            value={formatAmountInput(tier.minAmount)}
+            onChange={(e) => {
+              const clean = parseAmountInput(e.target.value);
+              if (clean !== null) onChange(tier.id, "minAmount", clean);
+            }}
           />
         </div>
         <div className="form-group" style={{ marginBottom: 8 }}>
           <label style={{ fontSize: 11 }}>Max Amount (blank = unlimited)</label>
           <input
             className="form-input"
-            type="number"
+            type="text"
+            inputMode="decimal"
             placeholder="Unlimited"
-            min="0"
-            step="0.01"
-            value={tier.maxAmount}
-            onChange={(e) => onChange(tier.id, "maxAmount", e.target.value)}
+            value={formatAmountInput(tier.maxAmount)}
+            onChange={(e) => {
+              const clean = parseAmountInput(e.target.value);
+              if (clean !== null) onChange(tier.id, "maxAmount", clean);
+            }}
           />
         </div>
       </div>
@@ -148,28 +153,30 @@ function TierRow({ tier, index, canRemove, onChange, onRemove }: TierRowProps) {
           </label>
           <input
             className="form-input"
-            type="number"
+            type="text"
+            inputMode="decimal"
             placeholder="0.00"
-            min="0"
-            step="0.01"
-            value={tier.customerChargeAmount}
-            onChange={(e) =>
-              onChange(tier.id, "customerChargeAmount", e.target.value)
-            }
+            value={formatAmountInput(tier.customerChargeAmount)}
+            onChange={(e) => {
+              const clean = parseAmountInput(e.target.value);
+              if (clean !== null)
+                onChange(tier.id, "customerChargeAmount", clean);
+            }}
           />
         </div>
         <div className="form-group" style={{ marginBottom: 0 }}>
           <label style={{ fontSize: 11 }}>Agent Commission</label>
           <input
             className="form-input"
-            type="number"
+            type="text"
+            inputMode="decimal"
             placeholder="0.00"
-            min="0"
-            step="0.01"
-            value={tier.agentCommissionAmount}
-            onChange={(e) =>
-              onChange(tier.id, "agentCommissionAmount", e.target.value)
-            }
+            value={formatAmountInput(tier.agentCommissionAmount)}
+            onChange={(e) => {
+              const clean = parseAmountInput(e.target.value);
+              if (clean !== null)
+                onChange(tier.id, "agentCommissionAmount", clean);
+            }}
           />
         </div>
       </div>
@@ -1819,8 +1826,8 @@ export default function CommissionSchedulesPage() {
             </div>
             <div className="modal-body">
               <p>
-                Are you sure you want to delete this structure? All its rules and
-                tiers will also be removed.
+                Are you sure you want to delete this structure? All its rules
+                and tiers will also be removed.
               </p>
               <p
                 style={{

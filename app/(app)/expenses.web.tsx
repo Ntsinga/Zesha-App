@@ -17,6 +17,7 @@ import {
   EXPENSE_CATEGORIES,
 } from "../../hooks/screens/useExpensesScreen";
 import { useToast } from "../../components/Toast.web";
+import { formatAmountInput, parseAmountInput } from "../../utils/formatters";
 import "../../styles/web.css";
 
 /**
@@ -437,13 +438,15 @@ export default function ExpensesWeb() {
                 <div className="form-group">
                   <label>Amount *</label>
                   <input
-                    type="number"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
+                    type="text"
+                    inputMode="decimal"
+                    value={formatAmountInput(amount)}
+                    onChange={(e) => {
+                      const clean = parseAmountInput(e.target.value);
+                      if (clean !== null) setAmount(clean);
+                    }}
                     placeholder="0.00"
                     className="form-input"
-                    min="0"
-                    step="0.01"
                     required
                   />
                 </div>

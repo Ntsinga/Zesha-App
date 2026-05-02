@@ -18,6 +18,7 @@ import { useCurrencyFormatter } from "../../hooks/useCurrency";
 import { useToast } from "../../components/Toast.web";
 import { useAppSelector } from "../../store/hooks";
 import { selectUserRole } from "../../store/slices/authSlice";
+import { formatAmountInput, parseAmountInput } from "../../utils/formatters";
 import "../../styles/web.css";
 
 /**
@@ -147,9 +148,16 @@ export default function AddBalanceWeb() {
         </header>
         <div className="dashboard-content">
           <div className="empty-state">
-            <AlertTriangle size={48} className="empty-icon" style={{ color: "var(--color-warning)" }} />
+            <AlertTriangle
+              size={48}
+              className="empty-icon"
+              style={{ color: "var(--color-warning)" }}
+            />
             <h3>No Accounts Set Up</h3>
-            <p>You need to create at least one account before adding float balances.</p>
+            <p>
+              You need to create at least one account before adding float
+              balances.
+            </p>
             {isAdmin && (
               <button
                 className="btn btn-primary"
@@ -327,16 +335,19 @@ export default function AddBalanceWeb() {
                         <span className="currency-symbol">R</span>
                         <input
                           type="text"
+                          inputMode="decimal"
                           className={`amount-input ${
                             entryErrors.amount ? "has-error" : ""
                           } ${
                             entry.validationResult?.isValid ? "is-valid" : ""
                           }`}
                           placeholder="0.00"
-                          value={entry.amount}
-                          onChange={(e) =>
-                            handleAmountChange(entry.id, e.target.value)
-                          }
+                          value={formatAmountInput(entry.amount)}
+                          onChange={(e) => {
+                            const clean = parseAmountInput(e.target.value);
+                            if (clean !== null)
+                              handleAmountChange(entry.id, clean);
+                          }}
                         />
                       </div>
                       {entryErrors.amount && (
@@ -497,7 +508,10 @@ export default function AddBalanceWeb() {
 
       {/* Image Preview Modal */}
       {previewImage && (
-        <div className="image-modal-overlay" onClick={() => setPreviewImage(null)}>
+        <div
+          className="image-modal-overlay"
+          onClick={() => setPreviewImage(null)}
+        >
           <div className="image-modal" onClick={(e) => e.stopPropagation()}>
             <button
               className="modal-close"

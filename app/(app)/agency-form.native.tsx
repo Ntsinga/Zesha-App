@@ -21,6 +21,7 @@ import {
 } from "@/store/slices/companyInfoSlice";
 import type { CompanyInfoCreate, CompanyInfoUpdate } from "@/types";
 import { CURRENCIES } from "@/hooks/screens/useSettingsScreen";
+import { formatAmountInput, parseAmountInput } from "@/utils/formatters";
 import {
   ArrowLeft,
   Building2,
@@ -262,11 +263,14 @@ export default function AgencyFormScreen() {
             <Text style={styles.label}>Total Working Capital</Text>
             <TextInput
               style={styles.input}
-              value={totalWorkingCapital}
-              onChangeText={setTotalWorkingCapital}
+              value={formatAmountInput(totalWorkingCapital)}
+              onChangeText={(v) => {
+                const clean = parseAmountInput(v);
+                if (clean !== null) setTotalWorkingCapital(clean);
+              }}
               placeholder="0"
               placeholderTextColor="#9CA3AF"
-              keyboardType="numeric"
+              keyboardType="number-pad"
             />
           </View>
 
@@ -275,11 +279,14 @@ export default function AgencyFormScreen() {
             <Text style={styles.label}>Outstanding Balance</Text>
             <TextInput
               style={styles.input}
-              value={outstandingBalance}
-              onChangeText={setOutstandingBalance}
+              value={formatAmountInput(outstandingBalance)}
+              onChangeText={(v) => {
+                const clean = parseAmountInput(v);
+                if (clean !== null) setOutstandingBalance(clean);
+              }}
               placeholder="0"
               placeholderTextColor="#9CA3AF"
-              keyboardType="numeric"
+              keyboardType="number-pad"
             />
           </View>
 

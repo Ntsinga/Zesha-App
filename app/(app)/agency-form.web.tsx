@@ -16,6 +16,7 @@ import type {
 import { CURRENCIES } from "@/hooks/screens/useSettingsScreen";
 import { ArrowLeft, Building2, Save, X, Plus, Mail } from "lucide-react";
 import { useToast } from "../../components/Toast.web";
+import { formatAmountInput, parseAmountInput } from "../../utils/formatters";
 import "../../styles/web.css";
 
 export default function AgencyFormScreen() {
@@ -50,6 +51,10 @@ export default function AgencyFormScreen() {
   const [formError, setFormError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
+  // Local display strings for decimal-capable amount inputs (formData stores numbers)
+  const [capitalDisplay, setCapitalDisplay] = useState("");
+  const [balanceDisplay, setBalanceDisplay] = useState("");
+
   // Use effective role: backend role first, fall back to Clerk metadata
   const clerkMetadataRole =
     (clerkUser?.publicMetadata as { role?: string } | undefined)?.role ?? null;
@@ -69,6 +74,16 @@ export default function AgencyFormScreen() {
         location: editingAgency.location || "",
         adminName: editingAgency.adminName || "",
       });
+      setCapitalDisplay(
+        editingAgency.totalWorkingCapital
+          ? editingAgency.totalWorkingCapital.toString()
+          : "",
+      );
+      setBalanceDisplay(
+        editingAgency.outstandingBalance
+          ? editingAgency.outstandingBalance.toString()
+          : "",
+      );
     }
   }, [isEditing, editingAgency]);
 
@@ -248,18 +263,23 @@ export default function AgencyFormScreen() {
             <div className="form-group">
               <label htmlFor="capital">Total Working Capital</label>
               <input
-                type="number"
+                type="text"
+                inputMode="decimal"
                 id="capital"
-                value={formData.totalWorkingCapital || ""}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    totalWorkingCapital: Number(e.target.value) || 0,
-                  }))
-                }
+                value={formatAmountInput(capitalDisplay)}
+                onChange={(e) => {
+                  const clean = parseAmountInput(e.target.value);
+                  if (clean !== null) {
+                    setCapitalDisplay(clean);
+                    setFormData((prev) => ({
+                      ...prev,
+                      totalWorkingCapital:
+                        clean === "" || clean === "." ? 0 : Number(clean) || 0,
+                    }));
+                  }
+                }}
                 placeholder="0"
                 className="form-input"
-                min="0"
               />
             </div>
 
@@ -267,18 +287,23 @@ export default function AgencyFormScreen() {
             <div className="form-group">
               <label htmlFor="balance">Outstanding Balance</label>
               <input
-                type="number"
+                type="text"
+                inputMode="decimal"
                 id="balance"
-                value={formData.outstandingBalance || ""}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    outstandingBalance: Number(e.target.value) || 0,
-                  }))
-                }
+                value={formatAmountInput(balanceDisplay)}
+                onChange={(e) => {
+                  const clean = parseAmountInput(e.target.value);
+                  if (clean !== null) {
+                    setBalanceDisplay(clean);
+                    setFormData((prev) => ({
+                      ...prev,
+                      outstandingBalance:
+                        clean === "" || clean === "." ? 0 : Number(clean) || 0,
+                    }));
+                  }
+                }}
                 placeholder="0"
                 className="form-input"
-                min="0"
               />
             </div>
 
