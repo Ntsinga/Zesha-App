@@ -171,6 +171,7 @@ export const API_ENDPOINTS = {
     activate: (id: number) => `/accounts/${id}/activate`,
     listTemplates: "/accounts/templates",
     createTemplate: "/accounts/templates",
+    updateTemplate: (id: number) => `/accounts/templates/${id}`,
     inheritTemplate: (templateId: number) =>
       `/accounts/templates/${templateId}/inherit`,
   },

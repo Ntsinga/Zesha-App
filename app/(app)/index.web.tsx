@@ -221,112 +221,88 @@ export default function DashboardWeb() {
       <div className="dashboard-content">
         {/* === Full-width Grand Total Strip === */}
         <div className="gt-strip">
-          <div className="gt-strip-main">
-            <div className="gt-strip-title-group">
-              <span className="gt-strip-label">Total Operating Capital</span>
-              <span className="gt-strip-amount">
-                {formatCurrency(displayCapital)}
-              </span>
-            </div>
-          </div>
-          <div className="gt-strip-metrics">
-            {/* Group: Available */}
-            <div className="gt-strip-group">
-              <span className="gt-strip-group-label">Available</span>
-              <div className="gt-strip-group-items">
-                <div className="gt-strip-metric">
-                  <span className="gt-strip-metric-label">Float</span>
-                  <span className="gt-strip-metric-value">
-                    {formatCurrency(displayFloat)}
-                  </span>
-                </div>
-                <div className="gt-strip-metric">
-                  <span className="gt-strip-metric-label">Cash</span>
-                  <span className="gt-strip-metric-value">
-                    {formatCurrency(displayCash)}
-                  </span>
-                </div>
-              </div>
-            </div>
-            <div className="gt-strip-metric-divider" />
-            {/* Group: Projection */}
-            <div className="gt-strip-group">
-              <span className="gt-strip-group-label">Performance</span>
-              <div className="gt-strip-group-items">
-                <div className="gt-strip-metric">
-                  <span className="gt-strip-metric-label">Expected</span>
-                  <span className="gt-strip-metric-value">
-                    {formatCurrency(expectedGrandTotal)}
-                  </span>
-                </div>
-                <div className="gt-strip-metric">
-                  <span className="gt-strip-metric-label">
-                    {displayVariance > 0 ? "Excess" : "Loss"}
-                  </span>
-                  <span
-                    className={`gt-strip-metric-value ${displayVariance >= 0 ? "positive" : "negative"}`}
-                  >
-                    {displayVariance >= 0 ? "+" : ""}
-                    {formatCurrency(displayVariance)}
-                  </span>
-                </div>
-              </div>
-            </div>
-            <div className="gt-strip-metric-divider" />
-            {/* Group: Outflow */}
-            <div className="gt-strip-group">
-              <span className="gt-strip-group-label">
-                Outflow
-                {capitalPendingExpenses > 0 &&
-                  displayCapital > 0 &&
-                  capitalPendingExpenses / displayCapital > 0.3 && (
-                    <span className="gt-strip-expense-badge">
-                      {Math.round(
-                        (capitalPendingExpenses / displayCapital) * 100,
-                      )}
-                      % of capital
-                    </span>
+          {/* ── Row 1: Group labels ── */}
+          <span className="gt-strip-group-label gt-strip-grp-available">Available</span>
+          <span className="gt-strip-group-label gt-strip-grp-performance">Performance</span>
+          <span className="gt-strip-group-label gt-strip-grp-outflow">
+            Outflow
+            {capitalPendingExpenses > 0 &&
+              displayCapital > 0 &&
+              capitalPendingExpenses / displayCapital > 0.3 && (
+                <span className="gt-strip-expense-badge">
+                  {Math.round(
+                    (capitalPendingExpenses / displayCapital) * 100,
                   )}
-              </span>
-              <div className="gt-strip-group-items">
-                <div className="gt-strip-metric">
-                  <span
-                    className="gt-strip-metric-label"
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 3,
-                    }}
-                  >
-                    Unreimbursed
-                    <span className="tooltip-wrap">
-                      <Info size={11} style={{ color: "var(--color-text-muted)" }} />
-                      <span className="tooltip-box">
-                        Money spent from capital that hasn't been paid back yet.
-                        Until reimbursed, this amount is reducing your available
-                        working capital.
-                      </span>
-                    </span>
-                  </span>
-                  <span
-                    className={`gt-strip-metric-value ${capitalPendingExpenses > 0 ? "negative" : ""}`}
-                  >
-                    {capitalPendingExpenses > 0 ? "-" : ""}
-                    {formatCurrency(capitalPendingExpenses)}
-                  </span>
-                </div>
-                <div className="gt-strip-metric">
-                  <span className="gt-strip-metric-label">This Month</span>
-                  <span
-                    className={`gt-strip-metric-value ${totalMonthExpenses > 0 ? "negative" : ""}`}
-                  >
-                    {totalMonthExpenses > 0 ? "-" : ""}
-                    {formatCurrency(totalMonthExpenses)}
-                  </span>
-                </div>
-              </div>
-            </div>
+                  % of capital
+                </span>
+              )}
+          </span>
+
+          {/* ── Vertical dividers (span label + value rows) ── */}
+          <div className="gt-strip-metric-divider gt-strip-div1" />
+          <div className="gt-strip-metric-divider gt-strip-div2" />
+
+          {/* ── Row 2: Labels ── */}
+          <div className="gt-strip-toc-label-cell">
+            <span className="gt-strip-label">Total Operating Capital</span>
           </div>
+          <span className="gt-strip-metric-label gt-strip-cell-float-lbl">Float</span>
+          <span className="gt-strip-metric-label gt-strip-cell-cash-lbl">Cash</span>
+          <span className="gt-strip-metric-label gt-strip-cell-exp-lbl">Expected</span>
+          <span className="gt-strip-metric-label gt-strip-cell-excess-lbl">
+            {displayVariance > 0 ? "Excess" : "Loss"}
+          </span>
+          <span
+            className="gt-strip-metric-label gt-strip-cell-unr-lbl"
+            style={{ display: "inline-flex", alignItems: "center", gap: 3 }}
+          >
+            Unreimbursed
+            <span className="tooltip-wrap">
+              <Info size={11} style={{ color: "var(--color-text-muted)" }} />
+              <span className="tooltip-box">
+                Money spent from capital that hasn't been paid back yet.
+                Until reimbursed, this amount is reducing your available
+                working capital.
+              </span>
+            </span>
+          </span>
+          <span className="gt-strip-metric-label gt-strip-cell-month-lbl">This Month</span>
+
+          {/* ── Row 3: Values ── */}
+          <div className="gt-strip-toc-val-cell">
+            <span className="gt-strip-amount">
+              {formatCurrency(displayCapital)}
+            </span>
+          </div>
+          <span className="gt-strip-metric-value gt-strip-cell-float-val">
+            {formatCurrency(displayFloat)}
+          </span>
+          <span className="gt-strip-metric-value gt-strip-cell-cash-val">
+            {formatCurrency(displayCash)}
+          </span>
+          <span className="gt-strip-metric-value gt-strip-cell-exp-val">
+            {formatCurrency(expectedGrandTotal)}
+          </span>
+          <span
+            className={`gt-strip-metric-value gt-strip-cell-excess-val ${displayVariance >= 0 ? "positive" : "negative"}`}
+          >
+            {displayVariance >= 0 ? "+" : ""}
+            {formatCurrency(displayVariance)}
+          </span>
+          <span
+            className={`gt-strip-metric-value gt-strip-cell-unr-val ${capitalPendingExpenses > 0 ? "negative" : ""}`}
+          >
+            {capitalPendingExpenses > 0 ? "-" : ""}
+            {formatCurrency(capitalPendingExpenses)}
+          </span>
+          <span
+            className={`gt-strip-metric-value gt-strip-cell-month-val ${totalMonthExpenses > 0 ? "negative" : ""}`}
+          >
+            {totalMonthExpenses > 0 ? "-" : ""}
+            {formatCurrency(totalMonthExpenses)}
+          </span>
+
+          {/* ── Live indicator ── */}
           <div className="gt-strip-live">
             {liveGrandTotal !== null && <span className="gt-live-dot" />}
             <span className="gt-strip-live-label">{capitalLabel}</span>
