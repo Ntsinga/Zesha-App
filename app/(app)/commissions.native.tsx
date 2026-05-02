@@ -171,7 +171,7 @@ export default function CommissionsPage() {
             onPress={() => applyPreset(p.key)}
             className="px-3 py-1.5 rounded-full border"
             style={{
-              backgroundColor: activePreset === p.key ? "#7c3aed" : "#F9FAFB",
+              backgroundColor: activePreset === p.key ? "#7c3aed" : "#FFFFFF",
               borderColor: activePreset === p.key ? "#7c3aed" : "#E5E7EB",
             }}
           >
@@ -221,7 +221,7 @@ export default function CommissionsPage() {
             onPress={() => setFilterShift(s)}
             className="px-4 py-1.5 rounded-full border"
             style={{
-              backgroundColor: filterShift === s ? "#7c3aed" : "#F9FAFB",
+              backgroundColor: filterShift === s ? "#7c3aed" : "#FFFFFF",
               borderColor: filterShift === s ? "#7c3aed" : "#E5E7EB",
             }}
           >
@@ -283,7 +283,7 @@ export default function CommissionsPage() {
   );
 
   return (
-    <View className="flex-1 bg-gray-50">
+    <View className="flex-1 bg-brand-bg">
       {/* Header */}
       <View className="bg-white border-b border-gray-100 px-4 pt-4 pb-4">
         <View className="flex-row items-center justify-between">

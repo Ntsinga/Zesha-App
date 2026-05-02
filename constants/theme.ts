@@ -9,15 +9,15 @@ export const Colors = {
   // Primary Brand Colors
   primary: {
     main: "#5b0611", // Brand Red - Main actions, primary buttons
-    light: "#FFEBEE", // Light Red - Hover states, backgrounds
-    dark: "#B71C1C", // Dark Red - Active states
+    light: "#f5c6cb", // Light Red - Hover states, backgrounds
+    dark: "#9a0e1f", // Dark Red - Active states
   },
 
   // Secondary Brand Colors
   secondary: {
-    main: "#B8860B", // Brand Gold - Financial stats, balances
-    light: "#FDD835", // Light Gold - Highlights
-    dark: "#FBC02D", // Dark Gold - Borders, dividers
+    main: "#f59e0b", // Brand Gold - Financial stats, balances
+    light: "#f59e0b", // Light Gold - Highlights
+    dark: "#d97706", // Dark Gold - Borders, dividers
   },
 
   // Shift Colors
@@ -106,7 +106,7 @@ export const Colors = {
 
   // Background Colors
   background: {
-    primary: "#F9FAFB", // Gray 50 - Main app background
+    primary: "#f5f1ea", // Warm cream - Main app background
     card: "#FFFFFF", // White - Card backgrounds
     elevated: "#FFFFFF", // White - Elevated card backgrounds
   },

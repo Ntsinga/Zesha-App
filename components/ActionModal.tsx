@@ -466,8 +466,29 @@ export const AddTransactionForm: React.FC<AddTransactionFormProps> = ({
             Deposit Subtype{" "}
             <Text className="text-gray-400 font-normal">(optional)</Text>
           </Text>
-          {([null, "AGENT_TO_AGENT"] as (TransactionSubtypeEnum | null)[]).map(
-            (val) => (
+          {(
+            [
+              null,
+              "AGENT_TO_AGENT",
+              "AIRTIME",
+              "VOICE_BUNDLE",
+              "DATA_BUNDLE",
+              "BILL_PAYMENT",
+            ] as (TransactionSubtypeEnum | null)[]
+          ).map((val) => {
+            const label =
+              val === null
+                ? "Standard deposit"
+                : val === "AGENT_TO_AGENT"
+                  ? "Agent-to-Agent"
+                  : val === "AIRTIME"
+                    ? "Airtime"
+                    : val === "VOICE_BUNDLE"
+                      ? "Voice Bundle"
+                      : val === "DATA_BUNDLE"
+                        ? "Data Bundle"
+                        : "Bill Payment";
+            return (
               <TouchableOpacity
                 key={val ?? "standard"}
                 onPress={() => setTransactionSubtype(val)}
@@ -486,11 +507,11 @@ export const AddTransactionForm: React.FC<AddTransactionFormProps> = ({
                     fontSize: 13,
                   }}
                 >
-                  {val === null ? "Standard deposit" : "Agent-to-Agent"}
+                  {label}
                 </Text>
               </TouchableOpacity>
-            ),
-          )}
+            );
+          })}
           <View className="mb-2" />
         </>
       )}

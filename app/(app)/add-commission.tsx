@@ -47,7 +47,12 @@ import {
 } from "../../services/balanceExtractor";
 import * as FileSystem from "expo-file-system/legacy";
 import type { AppDispatch, RootState } from "../../store";
-import type { ShiftEnum, CommissionCreate, Account, ReconciliationSubtypeEnum } from "../../types";
+import type {
+  ShiftEnum,
+  CommissionCreate,
+  Account,
+  ReconciliationSubtypeEnum,
+} from "../../types";
 import { useCurrencyFormatter } from "../../hooks/useCurrency";
 
 interface CommissionEntry {
@@ -227,7 +232,11 @@ export default function AddCommissionPage() {
         await extractAndValidateCommission(entryId, imageUri);
       }
     } catch {
-      Toast.show({ type: "error", text1: "Error", text2: "Failed to take photo. Please try again." });
+      Toast.show({
+        type: "error",
+        text1: "Error",
+        text2: "Failed to take photo. Please try again.",
+      });
     }
   };
 
@@ -247,7 +256,11 @@ export default function AddCommissionPage() {
         await extractAndValidateCommission(entryId, imageUri);
       }
     } catch {
-      Toast.show({ type: "error", text1: "Error", text2: "Failed to pick image. Please try again." });
+      Toast.show({
+        type: "error",
+        text1: "Error",
+        text2: "Failed to pick image. Please try again.",
+      });
     }
   };
 
@@ -294,7 +307,9 @@ export default function AddCommissionPage() {
         Toast.show({
           type: "info",
           text1: "Extraction Notice",
-          text2: result.error || "Could not extract commission from image. Please verify manually.",
+          text2:
+            result.error ||
+            "Could not extract commission from image. Please verify manually.",
         });
       }
     } catch (error) {
@@ -517,7 +532,11 @@ export default function AddCommissionPage() {
   const handleSubmit = async () => {
     if (!validateEntries()) return;
     if (!companyId) {
-      Toast.show({ type: "error", text1: "Error", text2: "Company not found. Please log in again." });
+      Toast.show({
+        type: "error",
+        text1: "Error",
+        text2: "Company not found. Please log in again.",
+      });
       return;
     }
 
@@ -634,7 +653,13 @@ export default function AddCommissionPage() {
       // The server may have committed the data before the client timed out.
       // Refresh so the user sees the real state, and warn instead of erroring.
       if (message.toLowerCase().includes("timed out")) {
-        dispatch(fetchCommissions({ dateFrom: today, dateTo: today, forceRefresh: true }));
+        dispatch(
+          fetchCommissions({
+            dateFrom: today,
+            dateTo: today,
+            forceRefresh: true,
+          }),
+        );
         dispatch(fetchDashboard({}));
         Toast.show({
           type: "info",
@@ -658,7 +683,7 @@ export default function AddCommissionPage() {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      className="flex-1 bg-gray-50"
+      className="flex-1 bg-brand-bg"
     >
       <View className="flex-1">
         {/* Header */}

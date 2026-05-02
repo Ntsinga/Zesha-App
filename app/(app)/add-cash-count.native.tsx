@@ -58,7 +58,7 @@ export default function AddCashCountPage() {
   };
 
   return (
-    <KeyboardAvoidingView behavior="padding" className="flex-1 bg-gray-50">
+    <KeyboardAvoidingView behavior="padding" className="flex-1 bg-brand-bg">
       <View className="flex-1">
         {/* Header */}
         <View className="px-5 pt-6 pb-4 bg-white border-b border-gray-100">
@@ -170,7 +170,9 @@ export default function AddCashCountPage() {
                     keyboardType="number-pad"
                     returnKeyType={index < entries.length - 1 ? "next" : "done"}
                     blurOnSubmit={index === entries.length - 1}
-                    submitBehavior={index < entries.length - 1 ? "submit" : "blurAndSubmit"}
+                    submitBehavior={
+                      index < entries.length - 1 ? "submit" : "blurAndSubmit"
+                    }
                     className="w-16 text-center text-xl font-bold text-gray-800 mx-2 bg-gray-100 rounded-xl py-2 border border-gray-300"
                     maxLength={4}
                   />

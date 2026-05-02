@@ -1,5 +1,5 @@
 ﻿import React, { useMemo } from "react";
-import { Wallet, RefreshCw } from "lucide-react";
+import { Wallet, RefreshCw, Info } from "lucide-react";
 import {
   PieChart,
   Pie,
@@ -55,7 +55,8 @@ export default function DashboardWeb() {
     expectedGrandTotal,
     totalExpenses,
     todayExpenses,
-    totalPendingExpenses,
+    capitalPendingExpenses,
+    totalMonthExpenses,
     topCommissionAccounts,
     chartTransactionAccounts,
     dailyCommission,
@@ -276,12 +277,12 @@ export default function DashboardWeb() {
             <div className="gt-strip-group">
               <span className="gt-strip-group-label">
                 Outflow
-                {totalPendingExpenses > 0 &&
+                {capitalPendingExpenses > 0 &&
                   displayCapital > 0 &&
-                  totalPendingExpenses / displayCapital > 0.3 && (
+                  capitalPendingExpenses / displayCapital > 0.3 && (
                     <span className="gt-strip-expense-badge">
                       {Math.round(
-                        (totalPendingExpenses / displayCapital) * 100,
+                        (capitalPendingExpenses / displayCapital) * 100,
                       )}
                       % of capital
                     </span>
@@ -289,22 +290,40 @@ export default function DashboardWeb() {
               </span>
               <div className="gt-strip-group-items">
                 <div className="gt-strip-metric">
-                  <span className="gt-strip-metric-label">Total Expenses</span>
                   <span
-                    className={`gt-strip-metric-value ${totalPendingExpenses > 0 ? "negative" : ""}`}
+                    className="gt-strip-metric-label"
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 3,
+                    }}
                   >
-                    {totalPendingExpenses > 0 ? "-" : ""}
-                    {formatCurrency(Math.abs(totalPendingExpenses))}
+                    Unreimbursed
+                    <span className="tooltip-wrap">
+                      <Info size={11} style={{ color: "var(--color-text-muted)" }} />
+                      <span className="tooltip-box">
+                        Money spent from capital that hasn't been paid back yet.
+                        Until reimbursed, this amount is reducing your available
+                        working capital.
+                      </span>
+                    </span>
+                  </span>
+                  <span
+                    className={`gt-strip-metric-value ${capitalPendingExpenses > 0 ? "negative" : ""}`}
+                  >
+                    {capitalPendingExpenses > 0 ? "-" : ""}
+                    {formatCurrency(capitalPendingExpenses)}
                   </span>
                 </div>
-                {todayExpenses > 0 && (
-                  <div className="gt-strip-metric">
-                    <span className="gt-strip-metric-label">Today</span>
-                    <span className="gt-strip-metric-value negative">
-                      -{formatCurrency(todayExpenses)}
-                    </span>
-                  </div>
-                )}
+                <div className="gt-strip-metric">
+                  <span className="gt-strip-metric-label">This Month</span>
+                  <span
+                    className={`gt-strip-metric-value ${totalMonthExpenses > 0 ? "negative" : ""}`}
+                  >
+                    {totalMonthExpenses > 0 ? "-" : ""}
+                    {formatCurrency(totalMonthExpenses)}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
@@ -314,22 +333,35 @@ export default function DashboardWeb() {
           </div>
         </div>
 
-        {/* === Horizontal Scrollable Balance Pills === */}
-        <div className="balance-pills-container">
-          {accounts.map((account) => (
-            <div key={account.accountId} className="balance-pill">
-              <span className="balance-pill-name">{account.accountName}</span>
-              <span className="balance-pill-amount">
-                {formatCurrency(account.balance || 0)}
-              </span>
-            </div>
-          ))}
-          {accounts.length === 0 && (
-            <span style={{ color: "var(--color-text-muted)", fontSize: 13 }}>
-              No accounts
+        {/* === Current Balances === */}
+        {accounts.length > 0 && (
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <span
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                color: "#6b7280",
+                textTransform: "uppercase",
+                letterSpacing: "0.8px",
+                flexShrink: 0,
+              }}
+            >
+              Current Balances
             </span>
-          )}
-        </div>
+            <div className="balance-pills-container">
+              {accounts.map((account) => (
+                <div key={account.accountId} className="balance-pill">
+                  <span className="balance-pill-name">
+                    {account.accountName}
+                  </span>
+                  <span className="balance-pill-amount">
+                    {formatCurrency(account.balance || 0)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* === Chart Section === */}
         <div className="dashboard-charts-section">
@@ -611,7 +643,7 @@ export default function DashboardWeb() {
             <div className="chart-card">
               <div className="commission-chart-header">
                 <h3 className="chart-title" style={{ margin: 0 }}>
-                  Net Earnings Over Time
+                  Profit Over Time
                 </h3>
                 <span
                   className={`commission-total ${netEarningsTotal < 0 ? "negative" : ""}`}
@@ -662,7 +694,7 @@ export default function DashboardWeb() {
                         if (name === "expenses") {
                           return [formatCurrency(amount), "Expenses"];
                         }
-                        return [formatCurrency(amount), "Net Earnings"];
+                        return [formatCurrency(amount), "Profit"];
                       }}
                     />
                     <Line

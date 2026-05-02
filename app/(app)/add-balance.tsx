@@ -894,7 +894,7 @@ export default function AddBalancePage() {
   const activeAccounts = accounts.filter((a) => a.isActive);
   if (freshDataReady && isInitialized && activeAccounts.length === 0) {
     return (
-      <View className="flex-1 bg-gray-50">
+      <View className="flex-1 bg-brand-bg">
         <View className="px-5 pt-6 pb-2">
           <View className="flex-row items-center mb-2">
             <TouchableOpacity
@@ -935,7 +935,7 @@ export default function AddBalancePage() {
   // Show a blocking loading screen only when we have nothing usable yet.
   if (isBlockingLoad) {
     return (
-      <View className="flex-1 bg-gray-50">
+      <View className="flex-1 bg-brand-bg">
         {/* Header stays visible so the user can go back */}
         <View className="px-5 pt-6 pb-2">
           <View className="flex-row items-center mb-2">
@@ -975,7 +975,7 @@ export default function AddBalancePage() {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      className="flex-1 bg-gray-50"
+      className="flex-1 bg-brand-bg"
     >
       <View className="flex-1">
         {/* Header */}

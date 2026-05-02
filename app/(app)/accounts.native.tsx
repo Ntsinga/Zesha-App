@@ -84,7 +84,7 @@ export default function Accounts() {
   }
 
   return (
-    <View className="flex-1 bg-gray-50">
+    <View className="flex-1 bg-brand-bg">
       <ScrollView
         contentContainerStyle={{ padding: 20, paddingBottom: 120 }}
         refreshControl={

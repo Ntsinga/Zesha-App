@@ -263,8 +263,7 @@ const expensesSlice = createSlice({
         state.isLoading = false;
         state.items = action.payload;
         state.totalAmount = action.payload.reduce(
-          (sum, expense) =>
-            expense.status === "PENDING" ? sum + Number(expense.amount) : sum,
+          (sum, expense) => sum + Number(expense.amount),
           0,
         );
         state.lastFetched = Date.now();
@@ -334,7 +333,7 @@ const expensesSlice = createSlice({
         const deletedExpense = state.items.find(
           (item) => item.id === action.payload,
         );
-        if (deletedExpense && deletedExpense.status === "PENDING") {
+        if (deletedExpense) {
           state.totalAmount -= Number(deletedExpense.amount);
         }
         state.items = state.items.filter((item) => item.id !== action.payload);
@@ -353,8 +352,6 @@ const expensesSlice = createSlice({
           (item) => item.id === action.payload.id,
         );
         if (index !== -1) {
-          // Subtract from total since it was PENDING before
-          state.totalAmount -= Number(state.items[index].amount);
           state.items[index] = action.payload;
         }
         if (state.selectedExpense?.id === action.payload.id) {

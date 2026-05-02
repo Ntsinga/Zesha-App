@@ -73,6 +73,24 @@ export const API_ENDPOINTS = {
       `/expenses/${id}/clear?company_id=${companyId}`,
   },
 
+  recurringExpenses: {
+    list: "/recurring-expenses/",
+    create: "/recurring-expenses/",
+    get: (id: number, companyId: number) =>
+      `/recurring-expenses/${id}?company_id=${companyId}`,
+    update: (id: number, companyId: number) =>
+      `/recurring-expenses/${id}?company_id=${companyId}`,
+    delete: (id: number, companyId: number) =>
+      `/recurring-expenses/${id}?company_id=${companyId}`,
+  },
+
+  expenseCategories: {
+    list: (companyId: number) => `/expense-categories/?company_id=${companyId}`,
+    create: "/expense-categories/",
+    delete: (id: number, companyId: number) =>
+      `/expense-categories/${id}?company_id=${companyId}`,
+  },
+
   // Commissions
   commissions: {
     list: "/commissions/",

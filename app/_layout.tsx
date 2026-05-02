@@ -63,24 +63,25 @@ function AppContent() {
     dispatch(initializeAuth());
   }, [dispatch]);
 
+  // Stable derived values from segments — useSegments() returns a new array reference
+  // on every render, so using `segments` directly in useEffect deps causes the effect
+  // to fire every render. Booleans have value equality and are safe as deps.
+  const inAuthGroup = segments[0] === "(auth)";
+  const isOnSetPassword = (segments as string[])[1] === "set-password";
+  const isOnWelcome = (segments as string[])[1] === "welcome";
+  const isOnSignUp = (segments as string[])[1] === "sign-up";
+  const hasInviteTicket = !!params.__clerk_ticket;
+  const inviteTicket = params.__clerk_ticket as string | undefined;
+
   useEffect(() => {
     if (!isLoaded) return;
-
-    const inAuthGroup = segments[0] === "(auth)";
-    // Type assertion to handle segments array properly
-    const authSegments = segments as string[];
-    const isOnSetPassword = authSegments[1] === "set-password";
-    const isOnWelcome = authSegments[1] === "welcome";
-    const isOnSignUp = authSegments[1] === "sign-up";
-    // Check for invite ticket in URL params
-    const hasInviteTicket = !!params.__clerk_ticket;
 
     // If there's an invite ticket and not on set-password, redirect to set-password
     // Invited users are already created in Clerk - they just need to set their password
     if (hasInviteTicket && !isOnSetPassword) {
       router.replace({
         pathname: "/(auth)/set-password",
-        params: { __clerk_ticket: params.__clerk_ticket as string },
+        params: { __clerk_ticket: inviteTicket! },
       });
       if (!initialNavDoneRef.current) {
         initialNavDoneRef.current = true;
@@ -124,10 +125,22 @@ function AppContent() {
       initialNavDoneRef.current = true;
       setInitialNavDone(true);
     }
-  }, [isSignedIn, isLoaded, user?.passwordEnabled, segments, router]);
+  }, [
+    isSignedIn,
+    isLoaded,
+    user?.passwordEnabled,
+    inAuthGroup,
+    isOnSetPassword,
+    isOnWelcome,
+    isOnSignUp,
+    hasInviteTicket,
+    inviteTicket,
+    // router is a stable singleton from useRouter() — must NOT be in deps;
+    // adding it causes the effect to re-fire on every navigation state change,
+    // creating an infinite router.replace → re-render → re-fire loop.
+  ]);
 
   // Determine if we're on an auth page
-  const inAuthGroup = segments[0] === "(auth)";
   const isAppReady =
     isLoaded && isSecureApiReady && (!isSyncing || inAuthGroup);
 

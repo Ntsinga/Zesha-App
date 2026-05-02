@@ -9,9 +9,10 @@ module.exports = {
         // Primary Brand Colors
         brand: {
           red: "#C62828",
-          lightRed: "#FFEBEE",
-          gold: "#FDD835",
-          darkGold: "#FBC02D",
+          lightRed: "#f5c6cb",
+          gold: "#f59e0b",
+          darkGold: "#d97706",
+          bg: "#f5f1ea",
         },
         // You can import from constants/theme.ts for consistency
         // But Tailwind config needs static values, so we define them here
