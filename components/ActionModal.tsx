@@ -27,7 +27,11 @@ import {
 } from "../store/slices/transactionsSlice";
 import { fetchAccounts } from "../store/slices/accountsSlice";
 import { generateIdempotencyKey } from "../utils/idempotency";
-import type { FloatSourceEnum, ShiftEnum } from "../types";
+import type {
+  FloatSourceEnum,
+  ShiftEnum,
+  TransactionSubtypeEnum,
+} from "../types";
 
 type TxMode = "DEPOSIT" | "WITHDRAW" | "FLOAT";
 
@@ -111,6 +115,8 @@ export const AddTransactionForm: React.FC<AddTransactionFormProps> = ({
   const [sourceAccountId, setSourceAccountId] = useState<number | null>(null);
   const [destAccountId, setDestAccountId] = useState<number | null>(null);
   const [floatSource, setFloatSource] = useState<FloatSourceEnum | null>(null);
+  const [transactionSubtype, setTransactionSubtype] =
+    useState<TransactionSubtypeEnum | null>(null);
   const [amount, setAmount] = useState("");
   const [reference, setReference] = useState("");
   const [notes, setNotes] = useState("");
@@ -143,6 +149,7 @@ export const AddTransactionForm: React.FC<AddTransactionFormProps> = ({
     setSourceAccountId(null);
     setDestAccountId(null);
     setFloatSource(null);
+    setTransactionSubtype(null);
     setAmount("");
     setReference("");
     setNotes("");
@@ -156,6 +163,7 @@ export const AddTransactionForm: React.FC<AddTransactionFormProps> = ({
     sourceAccountId,
     destAccountId,
     floatSource,
+    transactionSubtype,
     amount,
     reference,
     notes,
@@ -236,6 +244,7 @@ export const AddTransactionForm: React.FC<AddTransactionFormProps> = ({
             companyId,
             accountId,
             transactionType: mode,
+            transactionSubtype: transactionSubtype ?? undefined,
             amount: parseFloat(amount),
             transactionTime: new Date().toISOString(),
             reference: reference || undefined,
@@ -305,7 +314,10 @@ export const AddTransactionForm: React.FC<AddTransactionFormProps> = ({
           return (
             <TouchableOpacity
               key={m}
-              onPress={() => setMode(m)}
+              onPress={() => {
+                setMode(m);
+                if (m !== "DEPOSIT") setTransactionSubtype(null);
+              }}
               className="flex-1 rounded-xl py-3 items-center flex-row justify-center"
               style={{
                 gap: 5,
@@ -443,6 +455,42 @@ export const AddTransactionForm: React.FC<AddTransactionFormProps> = ({
             </Text>
             <ChevronDown size={16} color="#9ca3af" />
           </TouchableOpacity>
+        </>
+      )}
+
+      {/* Deposit Subtype — only for deposits */}
+      {mode === "DEPOSIT" && (
+        <>
+          <Text className="text-sm font-medium text-gray-600 mb-1">
+            Deposit Subtype{" "}
+            <Text className="text-gray-400 font-normal">(optional)</Text>
+          </Text>
+          {([null, "AGENT_TO_AGENT"] as (TransactionSubtypeEnum | null)[]).map(
+            (val) => (
+              <TouchableOpacity
+                key={val ?? "standard"}
+                onPress={() => setTransactionSubtype(val)}
+                className="border rounded-xl px-4 py-3 mb-2 flex-row justify-between items-center"
+                style={{
+                  borderColor:
+                    transactionSubtype === val ? "#16a34a" : "#e5e7eb",
+                  backgroundColor:
+                    transactionSubtype === val ? "#dcfce7" : "#f9fafb",
+                }}
+              >
+                <Text
+                  style={{
+                    color: transactionSubtype === val ? "#16a34a" : "#6b7280",
+                    fontWeight: "500",
+                    fontSize: 13,
+                  }}
+                >
+                  {val === null ? "Standard deposit" : "Agent-to-Agent"}
+                </Text>
+              </TouchableOpacity>
+            ),
+          )}
+          <View className="mb-2" />
         </>
       )}
 

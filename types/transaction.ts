@@ -53,6 +53,7 @@ export interface TransactionCreate {
     TransactionTypeEnum,
     "FLOAT_PURCHASE" | "CAPITAL_INJECTION"
   >;
+  transactionSubtype?: TransactionSubtypeEnum | null;
   amount: number;
   transactionTime: string;
   reference?: string | null;
