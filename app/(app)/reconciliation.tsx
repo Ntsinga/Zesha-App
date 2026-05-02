@@ -173,7 +173,7 @@ export default function BalanceDetailPage() {
 
   if (error && !refreshing && !reconciliation) {
     return (
-      <View className="flex-1 bg-gray-50 items-center justify-center px-6">
+      <View className="flex-1 bg-brand-bg items-center justify-center px-6">
         <AlertTriangle color="#EF4444" size={48} />
         <Text className="text-gray-900 font-bold text-lg mt-4 text-center">
           Failed to Load
@@ -190,7 +190,7 @@ export default function BalanceDetailPage() {
   }
 
   return (
-    <View className="flex-1 bg-gray-50">
+    <View className="flex-1 bg-brand-bg">
       {/* Header */}
       <View className="bg-white border-b border-gray-100 px-4 pt-14 pb-4">
         <View className="flex-row items-center justify-between">

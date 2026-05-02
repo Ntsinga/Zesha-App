@@ -256,7 +256,7 @@ export default function AgenciesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F9FAFB",
+    backgroundColor: "#f5f1ea",
   },
   // Header
   header: {

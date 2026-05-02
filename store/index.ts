@@ -26,6 +26,7 @@ import usersReducer from "./slices/usersSlice";
 import syncQueueReducer from "./slices/syncQueueSlice";
 import expectedCommissionsReducer from "./slices/expectedCommissionsSlice";
 import commissionSchedulesReducer from "./slices/commissionSchedulesSlice";
+import expenseCategoriesReducer from "./slices/expenseCategoriesSlice";
 
 const appReducer = combineReducers({
   auth: authReducer,
@@ -43,6 +44,7 @@ const appReducer = combineReducers({
   syncQueue: syncQueueReducer,
   expectedCommissions: expectedCommissionsReducer,
   commissionSchedules: commissionSchedulesReducer,
+  expenseCategories: expenseCategoriesReducer,
 });
 
 /**
@@ -51,7 +53,10 @@ const appReducer = combineReducers({
  * then the clearLocalAuth.fulfilled action also fires in authSlice's
  * extraReducers to clean up auth-specific fields.
  */
-const rootReducer: typeof appReducer = (state, action) => {
+const rootReducer: typeof appReducer = (
+  state: Parameters<typeof appReducer>[0],
+  action: Parameters<typeof appReducer>[1],
+) => {
   if (action.type === "auth/clearLocal/fulfilled") {
     return appReducer(undefined, action);
   }
@@ -78,7 +83,9 @@ const persistConfig = {
 
 // Only use redux-persist on mobile
 const maybePersistedReducer =
-  Platform.OS === "web" ? rootReducer : persistReducer(persistConfig, rootReducer);
+  Platform.OS === "web"
+    ? rootReducer
+    : persistReducer(persistConfig, rootReducer);
 
 export const store = configureStore({
   reducer: maybePersistedReducer as typeof rootReducer,

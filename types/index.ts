@@ -120,7 +120,14 @@ export {
   type ExpenseClear,
   type ExpenseFilters,
   type ExpenseCategory,
+  type ExpenseCategoryCreate,
   type ExpenseStatus,
+  type ExpenseFundingSource,
+  type RecurringExpense,
+  type RecurringExpenseCreate,
+  type RecurringExpenseUpdate,
+  type RecurringExpenseFilters,
+  type RecurringExpenseStatus,
 } from "./expense";
 
 // ============= Cash Count Types =============

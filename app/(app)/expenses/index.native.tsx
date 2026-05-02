@@ -30,9 +30,13 @@ import {
 import {
   useExpensesScreen,
   EXPENSE_CATEGORIES,
-} from "../../hooks/screens/useExpensesScreen";
-import { LoadingSpinner } from "../../components/LoadingSpinner";
-import { formatDate } from "../../utils/formatters";
+} from "../../../hooks/screens/useExpensesScreen";
+import { LoadingSpinner } from "../../../components/LoadingSpinner";
+import {
+  formatAmountInput,
+  formatDate,
+  parseAmountInput,
+} from "../../../utils/formatters";
 
 export default function Expenses() {
   const {
@@ -49,6 +53,7 @@ export default function Expenses() {
     description,
     expenseDate,
     category,
+    fundingSource,
     filterStatus,
     setFilterStatus,
     setName,
@@ -56,6 +61,7 @@ export default function Expenses() {
     setDescription,
     setExpenseDate,
     setCategory,
+    setFundingSource,
     setDeleteConfirmId,
     setClearConfirmId,
     onRefresh,
@@ -66,20 +72,19 @@ export default function Expenses() {
     handleDelete,
     handleClear,
     formatCurrency,
+    fundingSources,
   } = useExpensesScreen();
 
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
+  const [showFundingSourcePicker, setShowFundingSourcePicker] = useState(false);
   const [clearNotes, setClearNotes] = useState("");
 
-  // Format amount with commas for display, store raw number
-  const displayAmount = amount
-    ? Number(amount).toLocaleString("en-US", { maximumFractionDigits: 2 })
-    : "";
+  const displayAmount = formatAmountInput(amount);
 
   const handleAmountChange = (text: string) => {
-    const raw = text.replace(/,/g, "");
-    if (raw === "" || /^\d*\.?\d{0,2}$/.test(raw)) {
-      setAmount(raw);
+    const clean = parseAmountInput(text);
+    if (clean !== null) {
+      setAmount(clean);
     }
   };
 
@@ -108,6 +113,12 @@ export default function Expenses() {
     }
   };
 
+  const getFundingSourceLabel = (value: string) => {
+    return (
+      fundingSources.find((source) => source.value === value)?.label || value
+    );
+  };
+
   const onSubmit = async () => {
     const result = await handleSubmit();
     if (result.success) {
@@ -119,17 +130,30 @@ export default function Expenses() {
           : "Expense added successfully!",
       });
       setShowCategoryPicker(false);
+      setShowFundingSourcePicker(false);
     } else {
-      Toast.show({ type: "error", text1: "Error", text2: result.error || "An error occurred" });
+      Toast.show({
+        type: "error",
+        text1: "Error",
+        text2: result.error || "An error occurred",
+      });
     }
   };
 
   const onDelete = async (id: number) => {
     const result = await handleDelete(id);
     if (result.success) {
-      Toast.show({ type: "success", text1: "Success", text2: "Expense deleted successfully!" });
+      Toast.show({
+        type: "success",
+        text1: "Success",
+        text2: "Expense deleted successfully!",
+      });
     } else {
-      Toast.show({ type: "error", text1: "Error", text2: result.error || "An error occurred" });
+      Toast.show({
+        type: "error",
+        text1: "Error",
+        text2: result.error || "An error occurred",
+      });
     }
   };
 
@@ -137,15 +161,24 @@ export default function Expenses() {
     const result = await handleClear(id, clearNotes || undefined);
     setClearNotes("");
     if (result.success) {
-      Toast.show({ type: "success", text1: "Success", text2: "Expense marked as cleared!" });
+      Toast.show({
+        type: "success",
+        text1: "Success",
+        text2: "Expense marked as cleared!",
+      });
     } else {
-      Toast.show({ type: "error", text1: "Error", text2: result.error || "An error occurred" });
+      Toast.show({
+        type: "error",
+        text1: "Error",
+        text2: result.error || "An error occurred",
+      });
     }
   };
 
   const onCloseModal = () => {
     closeModal();
     setShowCategoryPicker(false);
+    setShowFundingSourcePicker(false);
   };
 
   if (isLoading && !refreshing) {
@@ -153,7 +186,7 @@ export default function Expenses() {
   }
 
   return (
-    <View className="flex-1 bg-gray-50">
+    <View className="flex-1 bg-brand-bg">
       <ScrollView
         contentContainerStyle={{ padding: 20, paddingBottom: 120 }}
         refreshControl={
@@ -165,10 +198,10 @@ export default function Expenses() {
           <Text className="text-3xl font-bold text-brand-red">Expenses</Text>
         </View>
 
-        {/* Total Expenses Card */}
+        {/* This Month's Expenses Card */}
         <View className="bg-brand-red rounded-2xl p-5 mb-6 shadow-md">
           <Text className="text-white/80 text-sm font-medium">
-            Total Expenses
+            This Month's Expenses
           </Text>
           <Text className="text-white text-3xl font-bold mt-1">
             {formatCurrency(totalAmount)}
@@ -214,7 +247,9 @@ export default function Expenses() {
           {expenses.length === 0 ? (
             <View className="py-8 items-center">
               <DollarSign color="#9CA3AF" size={48} />
-              <Text className="text-gray-400 mt-2">No expenses recorded</Text>
+              <Text className="text-gray-400 mt-2">
+                No expenses recorded this month
+              </Text>
             </View>
           ) : (
             expenses.map((expense) => (
@@ -258,6 +293,18 @@ export default function Expenses() {
                         {expense.status === "CLEARED" ? "Cleared" : "Pending"}
                       </Text>
                     </View>
+                    <View className="bg-blue-50 px-2 py-0.5 rounded mr-1">
+                      <Text className="text-xs text-blue-700 font-medium">
+                        {getFundingSourceLabel(expense.fundingSource)}
+                      </Text>
+                    </View>
+                    {expense.recurringExpenseId ? (
+                      <View className="bg-purple-50 px-2 py-0.5 rounded mr-1">
+                        <Text className="text-xs text-purple-700 font-medium">
+                          Recurring
+                        </Text>
+                      </View>
+                    ) : null}
                     <Text className="text-xs text-gray-400">
                       {formatDate(expense.expenseDate, "short")}
                     </Text>
@@ -407,6 +454,51 @@ export default function Expenses() {
                         }`}
                       >
                         {cat}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+            </View>
+
+            <View className="mb-4">
+              <Text className="text-gray-700 font-semibold mb-2">
+                Funding Source
+              </Text>
+              <TouchableOpacity
+                onPress={() => setShowFundingSourcePicker(!showFundingSourcePicker)}
+                className="bg-gray-50 rounded-xl px-4 py-3 border border-gray-200 flex-row justify-between items-center"
+              >
+                <View className="flex-row items-center">
+                  <DollarSign color="#6B7280" size={20} />
+                  <Text className="ml-2 text-gray-800">
+                    {getFundingSourceLabel(fundingSource)}
+                  </Text>
+                </View>
+                <Text className="text-gray-400">▼</Text>
+              </TouchableOpacity>
+
+              {showFundingSourcePicker && (
+                <View className="bg-white border border-gray-200 rounded-xl mt-2">
+                  {fundingSources.map((source) => (
+                    <TouchableOpacity
+                      key={source.value}
+                      onPress={() => {
+                        setFundingSource(source.value);
+                        setShowFundingSourcePicker(false);
+                      }}
+                      className={`px-4 py-3 border-b border-gray-100 ${
+                        fundingSource === source.value ? "bg-red-50" : ""
+                      }`}
+                    >
+                      <Text
+                        className={`${
+                          fundingSource === source.value
+                            ? "text-brand-red font-bold"
+                            : "text-gray-700"
+                        }`}
+                      >
+                        {source.label}
                       </Text>
                     </TouchableOpacity>
                   ))}

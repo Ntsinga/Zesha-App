@@ -75,7 +75,8 @@ export default function BalancePage() {
     }
   };
 
-  const showPhaseDependentActions = !isResolvingPhase && showCommissionsAndTransactions;
+  const showPhaseDependentActions =
+    !isResolvingPhase && showCommissionsAndTransactions;
   const reconciliationHeading = isResolvingPhase
     ? `Loading ${selectedShift} Shift`
     : buttonLabel;
@@ -86,7 +87,7 @@ export default function BalancePage() {
       : `Calculate the ${selectedShift} shift reconciliation to review discrepancies`;
 
   return (
-    <View className="flex-1 bg-gray-50">
+    <View className="flex-1 bg-brand-bg">
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ padding: 20, paddingBottom: 120 }}
@@ -102,29 +103,30 @@ export default function BalancePage() {
               const isLoadingPhase = isResolvingPhase;
               const isOpening =
                 !isLoadingPhase &&
-                currentSubtype === "OPENING" && shiftPhase !== "COMPLETE";
+                currentSubtype === "OPENING" &&
+                shiftPhase !== "COMPLETE";
               const isComplete = !isLoadingPhase && shiftPhase === "COMPLETE";
               const phaseBg = isLoadingPhase
                 ? "#f3f4f6"
                 : isComplete
-                ? "#dcfce7"
-                : isOpening
-                  ? "#dbeafe"
-                  : "#fef3c7";
+                  ? "#dcfce7"
+                  : isOpening
+                    ? "#dbeafe"
+                    : "#fef3c7";
               const phaseColor = isLoadingPhase
                 ? "#6b7280"
                 : isComplete
-                ? "#15803d"
-                : isOpening
-                  ? "#1d4ed8"
-                  : "#92400e";
+                  ? "#15803d"
+                  : isOpening
+                    ? "#1d4ed8"
+                    : "#92400e";
               const phaseLabel = isLoadingPhase
                 ? "Loading"
                 : isComplete
-                ? "Complete"
-                : isOpening
-                  ? "Opening"
-                  : "Closing";
+                  ? "Complete"
+                  : isOpening
+                    ? "Opening"
+                    : "Closing";
               const shiftBg = selectedShift === "AM" ? "#fee2e2" : "#ede9fe";
               const shiftColor = selectedShift === "AM" ? "#991b1b" : "#5b21b6";
               return (
@@ -519,16 +521,14 @@ export default function BalancePage() {
                       isCalculating ||
                       !hasSelectedCashCount ||
                       !hasSelectedBalances ||
-                      (showPhaseDependentActions &&
-                        !hasSelectedCommissions)
+                      (showPhaseDependentActions && !hasSelectedCommissions)
                     }
                     className={`bg-brand-red rounded-2xl p-5 shadow-lg ${
                       isResolvingPhase ||
                       isCalculating ||
                       !hasSelectedCashCount ||
                       !hasSelectedBalances ||
-                      (showPhaseDependentActions &&
-                        !hasSelectedCommissions)
+                      (showPhaseDependentActions && !hasSelectedCommissions)
                         ? "opacity-50"
                         : ""
                     }`}
@@ -539,10 +539,10 @@ export default function BalancePage() {
                         {isResolvingPhase
                           ? "Loading Shift Status..."
                           : isCalculating
-                          ? "Calculating..."
-                          : !hasSelectedCashCount || !hasSelectedBalances
-                            ? "Complete Required Steps First"
-                            : reconciliationHeading}
+                            ? "Calculating..."
+                            : !hasSelectedCashCount || !hasSelectedBalances
+                              ? "Complete Required Steps First"
+                              : reconciliationHeading}
                       </Text>
                     </View>
                     <Text className="text-white/80 text-sm text-center mt-2">

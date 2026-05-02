@@ -269,7 +269,7 @@ export default function Transactions() {
   }
 
   return (
-    <View className="flex-1 bg-gray-50">
+    <View className="flex-1 bg-brand-bg">
       <ScrollView
         contentContainerStyle={{ padding: 20 }}
         refreshControl={

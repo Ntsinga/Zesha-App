@@ -1,5 +1,10 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
+
+import { useNetworkContext } from "@/hooks/useNetworkStatus";
+import { queueOfflineMutation } from "@/utils/offlineQueue";
+import { selectEffectiveCompanyId } from "@/store/slices/authSlice";
+
 import {
   fetchExpenses,
   createExpense,
@@ -7,42 +12,53 @@ import {
   deleteExpense,
   clearExpense,
 } from "../../store/slices/expensesSlice";
-import { useNetworkContext } from "@/hooks/useNetworkStatus";
-import { queueOfflineMutation } from "@/utils/offlineQueue";
+import {
+  fetchExpenseCategories,
+  createExpenseCategory,
+  deleteExpenseCategory,
+} from "../../store/slices/expenseCategoriesSlice";
 import { fetchDashboard } from "../../store/slices/dashboardSlice";
-import { selectEffectiveCompanyId } from "../../store/slices/authSlice";
 import { useCurrencyFormatter } from "../useCurrency";
 import type { AppDispatch, RootState } from "../../store";
-import type { Expense, ExpenseStatus } from "../../types";
+import type { Expense, ExpenseFundingSource, ExpenseStatus } from "../../types";
 
-// Common expense categories
-export const EXPENSE_CATEGORIES = [
-  "Utilities",
-  "Rent",
-  "Salaries",
-  "Transport",
-  "Supplies",
-  "Maintenance",
-  "Marketing",
-  "Other",
-  "Shortage",
+export const EXPENSE_FUNDING_SOURCES: Array<{
+  value: ExpenseFundingSource;
+  label: string;
+}> = [
+  { value: "CAPITAL", label: "Capital" },
+  { value: "COMMISSIONS", label: "Commissions" },
+  { value: "EXTERNAL_INCOME", label: "External Income" },
 ];
 
-/**
- * Shared hook for Expenses screen
- * Contains all business logic used by both web and native versions
- */
+const getCurrentMonthValue = (): string => {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+};
+
+const getMonthRange = (monthValue: string): { start: string; end: string } => {
+  const [year, month] = monthValue.split("-").map(Number);
+  const start = `${year}-${String(month).padStart(2, "0")}-01T00:00:00`;
+  const lastDay = new Date(year, month, 0).getDate();
+  const end = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}T23:59:59`;
+  return { start, end };
+};
+
+const normalizeDateInput = (value: string): string => value.slice(0, 10);
+
 export function useExpensesScreen() {
   const dispatch = useDispatch<AppDispatch>();
   const { formatCurrency } = useCurrencyFormatter();
   const companyId = useSelector(selectEffectiveCompanyId);
   const { isConnected } = useNetworkContext();
 
-  const {
-    items: expenses,
-    isLoading,
-    totalAmount,
-  } = useSelector((state: RootState) => state.expenses);
+  const { items: expenses, isLoading } = useSelector(
+    (state: RootState) => state.expenses,
+  );
+
+  const { items: categories, isLoading: categoriesLoading } = useSelector(
+    (state: RootState) => state.expenseCategories,
+  );
 
   const [refreshing, setRefreshing] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -50,7 +66,6 @@ export function useExpensesScreen() {
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
   const [clearConfirmId, setClearConfirmId] = useState<number | null>(null);
 
-  // Form state
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
@@ -58,73 +73,95 @@ export function useExpensesScreen() {
     new Date().toISOString().split("T")[0],
   );
   const [category, setCategory] = useState("");
+  const [fundingSource, setFundingSource] =
+    useState<ExpenseFundingSource>("CAPITAL");
 
-  // Filter state
+  const [selectedMonth, setSelectedMonth] =
+    useState<string>(getCurrentMonthValue);
   const [filterCategory, setFilterCategory] = useState<string>("ALL");
   const [filterStatus, setFilterStatus] = useState<ExpenseStatus | "ALL">(
     "ALL",
   );
+  const [filterSource, setFilterSource] = useState<
+    ExpenseFundingSource | "ALL"
+  >("ALL");
 
-  // Load expenses on mount
+  const monthRange = useMemo(
+    () => getMonthRange(selectedMonth),
+    [selectedMonth],
+  );
+
+  const refreshExpenses = useCallback(
+    async (forceRefresh = false) => {
+      await dispatch(
+        fetchExpenses({
+          dateFrom: monthRange.start,
+          dateTo: monthRange.end,
+          forceRefresh,
+        }),
+      );
+    },
+    [dispatch, monthRange.end, monthRange.start],
+  );
+
   useEffect(() => {
     if (companyId) {
-      dispatch(fetchExpenses({}));
+      refreshExpenses();
+      dispatch(fetchExpenseCategories({ companyId }));
     }
-  }, [dispatch, companyId]);
+  }, [companyId, refreshExpenses]);
 
-  // Refresh handler - forces cache bypass
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await dispatch(fetchExpenses({ forceRefresh: true }));
+    await refreshExpenses(true);
     setRefreshing(false);
-  }, [dispatch]);
+  }, [refreshExpenses]);
 
-  // Reset form
   const resetForm = useCallback(() => {
     setName("");
     setAmount("");
     setDescription("");
     setExpenseDate(new Date().toISOString().split("T")[0]);
     setCategory("");
+    setFundingSource("CAPITAL");
     setEditingExpense(null);
   }, []);
 
-  // Open add modal
   const openAddModal = useCallback(() => {
     resetForm();
     setIsModalOpen(true);
   }, [resetForm]);
 
-  // Open edit modal
   const openEditModal = useCallback((expense: Expense) => {
     setEditingExpense(expense);
     setName(expense.name);
     setAmount(expense.amount.toString());
     setDescription(expense.description || "");
-    setExpenseDate(expense.expenseDate);
+    setExpenseDate(normalizeDateInput(expense.expenseDate));
     setCategory(expense.category || "");
+    setFundingSource(expense.fundingSource);
     setIsModalOpen(true);
   }, []);
 
-  // Close modal
   const closeModal = useCallback(() => {
     setIsModalOpen(false);
     resetForm();
   }, [resetForm]);
 
-  // Validate form
   const validateForm = useCallback((): string | null => {
     if (!name.trim()) {
       return "Expense name is required.";
     }
     const amountNum = parseFloat(amount);
-    if (isNaN(amountNum) || amountNum <= 0) {
+    if (Number.isNaN(amountNum) || amountNum <= 0) {
       return "Please enter a valid amount.";
     }
+    if (!fundingSource) {
+      return "Please select a funding source.";
+    }
     return null;
-  }, [name, amount]);
+  }, [amount, fundingSource, name]);
 
-  // Submit form
   const handleSubmit = useCallback(async (): Promise<{
     success: boolean;
     error?: string;
@@ -143,7 +180,6 @@ export function useExpensesScreen() {
 
     const amountNum = parseFloat(amount);
 
-    // Offline queue
     if (!isConnected) {
       if (editingExpense) {
         return {
@@ -164,6 +200,7 @@ export function useExpensesScreen() {
             description: description.trim() || undefined,
             expenseDate,
             category: category || undefined,
+            fundingSource,
           },
         });
         closeModal();
@@ -185,53 +222,56 @@ export function useExpensesScreen() {
               name: name.trim(),
               amount: amountNum,
               description: description.trim() || undefined,
-              expenseDate: expenseDate,
+              expenseDate,
               category: category || undefined,
+              fundingSource,
             },
           }),
         ).unwrap();
       } else {
         await dispatch(
           createExpense({
-            companyId: companyId,
+            companyId,
             name: name.trim(),
             amount: amountNum,
             description: description.trim() || undefined,
-            expenseDate: expenseDate,
+            expenseDate,
             category: category || undefined,
+            fundingSource,
           }),
         ).unwrap();
       }
 
       closeModal();
-      dispatch(fetchExpenses({}));
-      dispatch(fetchDashboard({}));
+      await refreshExpenses(true);
+      dispatch(fetchDashboard({ forceRefresh: true }));
       return { success: true };
     } catch (error) {
       return { success: false, error: error as string };
     }
   }, [
-    name,
     amount,
-    description,
-    expenseDate,
     category,
-    companyId,
-    editingExpense,
-    dispatch,
     closeModal,
-    validateForm,
+    companyId,
+    description,
+    dispatch,
+    editingExpense,
+    expenseDate,
+    fundingSource,
     isConnected,
+    name,
+    refreshExpenses,
+    validateForm,
   ]);
 
-  // Delete expense
   const handleDelete = useCallback(
     async (id: number): Promise<{ success: boolean; error?: string }> => {
       try {
         await dispatch(deleteExpense(id)).unwrap();
         setDeleteConfirmId(null);
-        dispatch(fetchExpenses({}));
-        dispatch(fetchDashboard({}));
+        await refreshExpenses(true);
+        dispatch(fetchDashboard({ forceRefresh: true }));
         return { success: true };
       } catch (error) {
         const errorMessage =
@@ -243,10 +283,9 @@ export function useExpensesScreen() {
         return { success: false, error: errorMessage };
       }
     },
-    [dispatch],
+    [dispatch, refreshExpenses],
   );
 
-  // Clear (recover/reimburse) expense
   const handleClear = useCallback(
     async (
       id: number,
@@ -255,7 +294,8 @@ export function useExpensesScreen() {
       try {
         await dispatch(clearExpense({ id, data: { clearedNotes } })).unwrap();
         setClearConfirmId(null);
-        dispatch(fetchDashboard({}));
+        await refreshExpenses(true);
+        dispatch(fetchDashboard({ forceRefresh: true }));
         return { success: true };
       } catch (error) {
         const errorMessage =
@@ -267,56 +307,146 @@ export function useExpensesScreen() {
         return { success: false, error: errorMessage };
       }
     },
-    [dispatch],
+    [dispatch, refreshExpenses],
   );
 
-  // Filter expenses by category and status
-  const filteredExpenses = expenses
-    .filter((e) => filterCategory === "ALL" || e.category === filterCategory)
-    .filter((e) => filterStatus === "ALL" || e.status === filterStatus);
+  const addCategory = useCallback(
+    async (name: string): Promise<{ success: boolean; error?: string }> => {
+      if (!companyId) return { success: false, error: "Company not found" };
+      try {
+        await dispatch(
+          createExpenseCategory({ companyId, name: name.trim() }),
+        ).unwrap();
+        return { success: true };
+      } catch (error) {
+        return {
+          success: false,
+          error:
+            error instanceof Error ? error.message : "Failed to add category",
+        };
+      }
+    },
+    [companyId, dispatch],
+  );
 
-  // Computed breakdowns (always from all expenses, not filtered)
+  const removeCategory = useCallback(
+    async (id: number): Promise<{ success: boolean; error?: string }> => {
+      if (!companyId) return { success: false, error: "Company not found" };
+      try {
+        await dispatch(deleteExpenseCategory({ id, companyId })).unwrap();
+        return { success: true };
+      } catch (error) {
+        return {
+          success: false,
+          error:
+            error instanceof Error
+              ? error.message
+              : "Failed to delete category",
+        };
+      }
+    },
+    [companyId, dispatch],
+  );
+
+  const filteredExpenses = expenses
+    .filter((expense) =>
+      filterCategory === "ALL" ? true : expense.category === filterCategory,
+    )
+    .filter((expense) =>
+      filterStatus === "ALL" ? true : expense.status === filterStatus,
+    )
+    .filter((expense) =>
+      filterSource === "ALL" ? true : expense.fundingSource === filterSource,
+    );
+
+  const totalAmount = useMemo(
+    () => expenses.reduce((sum, expense) => sum + expense.amount, 0),
+    [expenses],
+  );
+
   const pendingTotal = useMemo(
     () =>
       expenses
-        .filter((e) => e.status === "PENDING")
-        .reduce((sum, e) => sum + e.amount, 0),
+        .filter((expense) => expense.status === "PENDING")
+        .reduce((sum, expense) => sum + expense.amount, 0),
     [expenses],
   );
 
   const clearedTotal = useMemo(
     () =>
       expenses
-        .filter((e) => e.status === "CLEARED")
+        .filter((expense) => expense.status === "CLEARED")
+        .reduce((sum, expense) => sum + expense.amount, 0),
+    [expenses],
+  );
+
+  const topExpense = useMemo(() => {
+    if (expenses.length === 0) {
+      return null;
+    }
+    return expenses.reduce((maxExpense, expense) =>
+      expense.amount > maxExpense.amount ? expense : maxExpense,
+    );
+  }, [expenses]);
+
+  const categoryTotals = useMemo(() => {
+    const totals = new Map<string, number>();
+    for (const expense of expenses) {
+      const categoryName = expense.category || "Other";
+      totals.set(
+        categoryName,
+        (totals.get(categoryName) ?? 0) + expense.amount,
+      );
+    }
+    return Array.from(totals.entries())
+      .map(([categoryName, total]) => ({ category: categoryName, total }))
+      .sort((left, right) => right.total - left.total)
+      .slice(0, 4);
+  }, [expenses]);
+
+  const capitalTotal = useMemo(
+    () =>
+      expenses
+        .filter((e) => e.fundingSource === "CAPITAL")
         .reduce((sum, e) => sum + e.amount, 0),
     [expenses],
   );
 
-  const topExpense = useMemo(
+  const capitalPendingTotal = useMemo(
     () =>
-      expenses.length === 0
-        ? null
-        : expenses.reduce(
-            (max, e) => (e.amount > max.amount ? e : max),
-            expenses[0],
-          ),
+      expenses
+        .filter((e) => e.fundingSource === "CAPITAL" && e.status === "PENDING")
+        .reduce((sum, e) => sum + e.amount, 0),
     [expenses],
   );
 
-  const categoryTotals = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const e of expenses) {
-      const cat = e.category || "Other";
-      map.set(cat, (map.get(cat) ?? 0) + e.amount);
-    }
-    return Array.from(map.entries())
-      .map(([category, total]) => ({ category, total }))
-      .sort((a, b) => b.total - a.total)
-      .slice(0, 4);
-  }, [expenses]);
+  const commissionsTotal = useMemo(
+    () =>
+      expenses
+        .filter((e) => e.fundingSource === "COMMISSIONS")
+        .reduce((sum, e) => sum + e.amount, 0),
+    [expenses],
+  );
+
+  const externalIncomeTotal = useMemo(
+    () =>
+      expenses
+        .filter((e) => e.fundingSource === "EXTERNAL_INCOME")
+        .reduce((sum, e) => sum + e.amount, 0),
+    [expenses],
+  );
+
+  const recurringTotal = useMemo(
+    () =>
+      expenses
+        .filter((e) => e.recurringExpenseId !== null)
+        .reduce((sum, e) => sum + e.amount, 0),
+    [expenses],
+  );
+
+  const totalCount = expenses.length;
 
   return {
-    // State
     isLoading,
     refreshing,
     isModalOpen,
@@ -324,38 +454,47 @@ export function useExpensesScreen() {
     deleteConfirmId,
     clearConfirmId,
 
-    // Form state
     name,
     amount,
     description,
     expenseDate,
     category,
+    fundingSource,
 
-    // Filter
+    selectedMonth,
+    setSelectedMonth,
     filterCategory,
     setFilterCategory,
     filterStatus,
     setFilterStatus,
 
-    // Data
     expenses: filteredExpenses,
     totalAmount,
+    totalCount,
     pendingTotal,
     clearedTotal,
     topExpense,
     categoryTotals,
-    categories: EXPENSE_CATEGORIES,
+    capitalTotal,
+    capitalPendingTotal,
+    commissionsTotal,
+    externalIncomeTotal,
+    recurringTotal,
+    filterSource,
+    setFilterSource,
+    categories,
+    categoriesLoading,
+    fundingSources: EXPENSE_FUNDING_SOURCES,
 
-    // Form setters
     setName,
     setAmount,
     setDescription,
     setExpenseDate,
     setCategory,
+    setFundingSource,
     setDeleteConfirmId,
     setClearConfirmId,
 
-    // Actions
     onRefresh,
     openAddModal,
     openEditModal,
@@ -363,8 +502,9 @@ export function useExpensesScreen() {
     handleSubmit,
     handleDelete,
     handleClear,
+    addCategory,
+    removeCategory,
 
-    // Formatters
     formatCurrency,
   };
 }

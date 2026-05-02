@@ -599,12 +599,24 @@ export function useDashboardScreen() {
     [expenses, today],
   );
 
-  const totalPendingExpenses = useMemo(
+  const capitalPendingExpenses = useMemo(
     () =>
       expenses
-        .filter((expense) => expense.status === "PENDING")
+        .filter(
+          (expense) =>
+            expense.fundingSource === "CAPITAL" && expense.status === "PENDING",
+        )
         .reduce((sum, expense) => sum + (expense.amount || 0), 0),
     [expenses],
+  );
+
+  const currentMonth = today.slice(0, 7);
+  const totalMonthExpenses = useMemo(
+    () =>
+      expenses
+        .filter((expense) => expense.expenseDate?.startsWith(currentMonth))
+        .reduce((sum, expense) => sum + (expense.amount || 0), 0),
+    [expenses, currentMonth],
   );
 
   const totalBankCommission = useMemo(
@@ -786,7 +798,8 @@ export function useDashboardScreen() {
     dailyDeposits,
     dailyWithdrawals,
     todayExpenses,
-    totalPendingExpenses,
+    capitalPendingExpenses,
+    totalMonthExpenses,
     recentTransactions,
 
     totalBankCommission,

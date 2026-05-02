@@ -25,7 +25,8 @@ export default function DashboardNative() {
     displayVariance,
     totalExpenses,
     todayExpenses,
-    totalPendingExpenses,
+    capitalPendingExpenses,
+    totalMonthExpenses,
     dailyCommission,
     totalBankCommission,
     totalTelecomCommission,
@@ -52,7 +53,7 @@ export default function DashboardNative() {
   }
 
   return (
-    <View className="flex-1 bg-gray-50">
+    <View className="flex-1 bg-brand-bg">
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ paddingBottom: 100 }}
@@ -61,7 +62,7 @@ export default function DashboardNative() {
         }
       >
         {/* Header Section */}
-        <View className="px-5 pt-6 pb-4 bg-white">
+        <View className="px-5 pt-6 pb-4 bg-brand-bg">
           <Text className="text-xl font-bold text-gray-900" numberOfLines={1}>
             Hi, {companyName}
           </Text>
@@ -194,34 +195,49 @@ export default function DashboardNative() {
                 </Text>
               </View>
 
-              {/* Total Expenses */}
-              {/* <View className="flex-row justify-between items-center py-1.5 border-t border-gray-100">
-                <Text className="text-gray-600 text-sm">Today's Expenses</Text>
-                <Text className="font-bold text-red-600 text-sm">
-                  {formatCurrency(todayExpenses)}
-                </Text>
-              </View> */}
-
-              <View className="flex-row justify-between items-center py-1.5 border-t border-gray-100">
-                <Text className="text-gray-600 text-sm">Total Expenses</Text>
-                <Text className="font-bold text-sm text-red-600">
-                  -{formatCurrency(totalPendingExpenses)}
-                </Text>
-              </View>
+              {capitalPendingExpenses > 0 ? (
+                <View className="flex-row justify-between items-center py-1.5 border-t border-gray-100">
+                  <View>
+                    <Text className="text-gray-600 text-sm">Unreimbursed</Text>
+                    <Text className="text-xs text-gray-400">Capital not yet paid back</Text>
+                  </View>
+                  <Text className="font-bold text-sm text-red-600">
+                    -{formatCurrency(capitalPendingExpenses)}
+                  </Text>
+                </View>
+              ) : (
+                <View className="flex-row justify-between items-center py-1.5 border-t border-gray-100">
+                  <Text className="text-gray-600 text-sm">This Month's Expenses</Text>
+                  <Text className="font-bold text-sm text-red-600">
+                    {totalMonthExpenses > 0 ? "-" : ""}{formatCurrency(totalMonthExpenses)}
+                  </Text>
+                </View>
+              )}
 
               {/* Commission — bank (expected) + telecom (reconciled) */}
               <View className="border-t border-gray-100 pt-2">
-                <View className="flex-row justify-between items-center py-1">
-                  <View>
+                <View className="flex-row justify-between items-start py-1">
+                  <View style={{ flex: 1, marginRight: 8 }}>
                     <Text className="text-gray-600 text-sm">
                       Daily Commission
                     </Text>
-                    <Text className="text-xs text-gray-400">
-                      Bank {formatCurrency(totalBankCommission)} · Telecom{" "}
-                      {formatCurrency(totalTelecomCommission)}
-                    </Text>
+                    <View className="flex-row flex-wrap mt-0.5" style={{ gap: 4 }}>
+                      {totalBankCommission > 0 && (
+                        <Text className="text-xs text-gray-400">
+                          Bank {formatCurrency(totalBankCommission)}
+                        </Text>
+                      )}
+                      {totalBankCommission > 0 && totalTelecomCommission > 0 && (
+                        <Text className="text-xs text-gray-300">·</Text>
+                      )}
+                      {totalTelecomCommission > 0 && (
+                        <Text className="text-xs text-gray-400">
+                          Telecom {formatCurrency(totalTelecomCommission)}
+                        </Text>
+                      )}
+                    </View>
                   </View>
-                  <Text className="font-bold text-sm text-green-600">
+                  <Text className="font-bold text-sm text-green-600" style={{ flexShrink: 0 }}>
                     +{formatCurrency(dailyCommission)}
                   </Text>
                 </View>

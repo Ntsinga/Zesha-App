@@ -2138,6 +2138,10 @@ export default function TransactionsWeb() {
                   >
                     <option value="">Standard deposit</option>
                     <option value="AGENT_TO_AGENT">Agent-to-Agent</option>
+                    <option value="AIRTIME">Airtime</option>
+                    <option value="VOICE_BUNDLE">Voice Bundle</option>
+                    <option value="DATA_BUNDLE">Data Bundle</option>
+                    <option value="BILL_PAYMENT">Bill Payment</option>
                   </select>
                 </div>
               )}

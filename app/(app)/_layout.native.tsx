@@ -41,7 +41,8 @@ export default function AppLayout() {
     ) {
       router.replace("/agencies");
     }
-  }, [isSuperAdmin, isViewingAgency, pathname, router]);
+  }, [isSuperAdmin, isViewingAgency, pathname]);
+  // router is a stable singleton from useRouter() — must NOT be in deps.
 
   const handleExitAgency = () => {
     dispatch(exitAgency());
