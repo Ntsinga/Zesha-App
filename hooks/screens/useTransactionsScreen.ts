@@ -30,6 +30,7 @@ import type {
   TransactionTypeEnum,
   FloatSourceEnum,
   StatementProvider,
+  TransactionSubtypeEnum,
 } from "../../types";
 import type {
   TransactionCreate,
@@ -73,6 +74,7 @@ function getLocalDateString(): string {
 export interface TransactionFormState {
   accountId: number | null;
   transactionType: "DEPOSIT" | "WITHDRAW";
+  transactionSubtype: TransactionSubtypeEnum | null;
   amount: string;
   reference: string;
   notes: string;
@@ -91,6 +93,7 @@ export interface FloatPurchaseFormState {
 const initialTransactionForm: TransactionFormState = {
   accountId: null,
   transactionType: "DEPOSIT",
+  transactionSubtype: null,
   amount: "",
   reference: "",
   notes: "",
@@ -560,6 +563,7 @@ export function useTransactionsScreen() {
       companyId,
       accountId: transactionForm.accountId,
       transactionType: transactionForm.transactionType,
+      transactionSubtype: transactionForm.transactionSubtype ?? undefined,
       amount: parseFloat(transactionForm.amount),
       transactionTime: new Date().toISOString(),
       reference: transactionForm.reference || undefined,

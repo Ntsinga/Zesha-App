@@ -303,10 +303,13 @@ utils/                # Utility functions
 
 ### After Completing Tasks
 
-**ALWAYS run error checks after completing any task:**
+**ALWAYS follow this review-fix cycle after completing any task:**
 
 1. Use the error checking tool to verify no TypeScript/compilation errors
-2. Review and fix any errors in user code (ignore `node_modules` errors)
-3. Confirm successful completion only after error check passes
+2. Review the changed files for logic bugs, missing edge cases, and security issues
+3. Fix every issue found
+4. Re-run error checks and re-review the fixes
+5. Repeat steps 2–4 until there are zero errors and no remaining issues
+6. Only confirm successful completion after the cycle is clean
 
 This ensures code quality and prevents broken deployments.

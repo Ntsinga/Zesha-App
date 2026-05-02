@@ -24,7 +24,7 @@ import {
   ShieldX,
 } from "lucide-react";
 import { useTransactionsScreen } from "../../hooks/screens/useTransactionsScreen";
-import type { TransactionTypeEnum } from "../../types";
+import type { TransactionTypeEnum, TransactionSubtypeEnum } from "../../types";
 import type {
   StatementParsedRow,
   StatementOverlapStatus,
@@ -2081,6 +2081,7 @@ export default function TransactionsWeb() {
                       setTransactionForm((prev) => ({
                         ...prev,
                         transactionType: "WITHDRAW",
+                        transactionSubtype: null,
                       }))
                     }
                     style={{
@@ -2112,6 +2113,33 @@ export default function TransactionsWeb() {
                   </button>
                 </div>
               </div>
+
+              {/* Deposit Subtype — only for deposits */}
+              {transactionForm.transactionType === "DEPOSIT" && (
+                <div className="form-group">
+                  <label className="form-label">
+                    Deposit Subtype{" "}
+                    <span style={{ fontWeight: 400, color: "#94a3b8" }}>
+                      (optional)
+                    </span>
+                  </label>
+                  <select
+                    value={transactionForm.transactionSubtype ?? ""}
+                    onChange={(e) =>
+                      setTransactionForm((prev) => ({
+                        ...prev,
+                        transactionSubtype: e.target.value
+                          ? (e.target.value as TransactionSubtypeEnum)
+                          : null,
+                      }))
+                    }
+                    className="form-input"
+                  >
+                    <option value="">Standard deposit</option>
+                    <option value="AGENT_TO_AGENT">Agent-to-Agent</option>
+                  </select>
+                </div>
+              )}
 
               {/* Account */}
               <div className="form-group">
