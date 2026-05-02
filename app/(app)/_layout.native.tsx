@@ -51,7 +51,7 @@ export default function AppLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+      <StatusBar barStyle="dark-content" backgroundColor="#f5f1ea" />
       <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
         {/* Agency Viewing Banner - only for superadmins */}
         {isSuperAdmin && isViewingAgency && (

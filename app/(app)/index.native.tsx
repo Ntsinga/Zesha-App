@@ -62,9 +62,15 @@ export default function DashboardNative() {
         }
       >
         {/* Header Section */}
-        <View className="px-5 pt-6 pb-4 bg-brand-bg">
-          <Text className="text-xl font-bold text-gray-900" numberOfLines={1}>
-            Hi, {companyName}
+        <View className="px-5 pt-6 pb-3 bg-brand-bg">
+          <Text
+            className="text-xs font-medium uppercase tracking-wide mb-0.5"
+            style={{ color: "#d97706" }}
+          >
+            Welcome back
+          </Text>
+          <Text className="text-2xl font-bold text-gray-900" numberOfLines={1}>
+            {companyName}
           </Text>
           <View className="flex-row items-center mt-1" style={{ gap: 4 }}>
             <Ionicons name="calendar-outline" size={12} color="#9CA3AF" />
@@ -73,174 +79,270 @@ export default function DashboardNative() {
         </View>
 
         {/* Total Operating Capital Card */}
-        <View className="px-5 pt-3 pb-2">
-          <View className="bg-yellow-400 rounded-3xl p-4 shadow-md">
-            {/* Title */}
-            <Text className="text-yellow-800 font-semibold text-xs uppercase tracking-wide mb-1">
-              Total Operating Capital
-            </Text>
+        <View className="px-5 pt-2 pb-2">
+          {/* Outer wrapper holds shadow; inner clip handles accent bar radius */}
+          <View
+            style={{
+              borderRadius: 20,
+              shadowColor: "#d97706",
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.18,
+              shadowRadius: 12,
+              elevation: 5,
+            }}
+          >
+            <View
+              style={{
+                backgroundColor: "#fff",
+                borderRadius: 20,
+                overflow: "hidden",
+              }}
+            >
+              {/* Amber accent bar */}
+              <View style={{ height: 5, backgroundColor: "#d97706" }} />
 
-            {/* Grand Total */}
-            <Text className="text-3xl font-bold text-yellow-900 mb-4">
-              {formatCurrency(displayCapital)}
-            </Text>
-
-            {/* Float and Cash Row */}
-            <View className="flex-row">
-              {/* Float Section */}
-              <View className="flex-1">
-                <Text className="text-yellow-800 font-semibold text-sm uppercase mb-1">
-                  Float
+              {/* Card content */}
+              <View style={{ padding: 18 }}>
+                <Text
+                  style={{
+                    color: "#d97706",
+                    fontSize: 10,
+                    fontWeight: "700",
+                    textTransform: "uppercase",
+                    letterSpacing: 1,
+                    marginBottom: 4,
+                  }}
+                >
+                  Total Operating Capital
                 </Text>
-                <Text className="text-l font-bold text-yellow-900">
-                  {formatCurrency(displayFloat)}
-                </Text>
-              </View>
 
-              {/* Divider */}
-              <View className="w-px bg-yellow-600 mx-4" />
-
-              {/* Cash Section */}
-              <View className="flex-1">
-                <Text className="text-yellow-800 font-semibold text-sm uppercase mb-1">
-                  Cash
+                <Text
+                  style={{
+                    color: "#111827",
+                    fontSize: 37,
+                    fontWeight: "600",
+                    letterSpacing: -0.5,
+                    marginBottom: 16,
+                  }}
+                >
+                  {formatCurrency(displayCapital)}
                 </Text>
-                <Text className="text-l font-bold text-yellow-900">
-                  {formatCurrency(displayCash)}
-                </Text>
-              </View>
-            </View>
 
-            {/* Capital label */}
-            <View className="flex-row items-center mt-3" style={{ gap: 6 }}>
-              {liveGrandTotal !== null && (
+                <View style={{ flexDirection: "row" }}>
+                  <View style={{ flex: 1 }}>
+                    <Text
+                      style={{
+                        color: "#d97706",
+                        fontSize: 10,
+                        fontWeight: "700",
+                        textTransform: "uppercase",
+                        letterSpacing: 0.8,
+                        marginBottom: 2,
+                      }}
+                    >
+                      Float
+                    </Text>
+                    <Text
+                      style={{
+                        color: "#1f2937",
+                        fontSize: 15,
+                        fontWeight: "700",
+                      }}
+                    >
+                      {formatCurrency(displayFloat)}
+                    </Text>
+                  </View>
+
+                  <View
+                    style={{
+                      width: 1,
+                      backgroundColor: "#e5e7eb",
+                      marginHorizontal: 16,
+                    }}
+                  />
+
+                  <View style={{ flex: 1 }}>
+                    <Text
+                      style={{
+                        color: "#d97706",
+                        fontSize: 10,
+                        fontWeight: "700",
+                        textTransform: "uppercase",
+                        letterSpacing: 0.8,
+                        marginBottom: 2,
+                      }}
+                    >
+                      Cash
+                    </Text>
+                    <Text
+                      style={{
+                        color: "#1f2937",
+                        fontSize: 15,
+                        fontWeight: "700",
+                      }}
+                    >
+                      {formatCurrency(displayCash)}
+                    </Text>
+                  </View>
+                </View>
+
                 <View
                   style={{
-                    width: 7,
-                    height: 7,
-                    borderRadius: 3.5,
-                    backgroundColor: "#16a34a",
+                    flexDirection: "row",
+                    alignItems: "center",
+                    marginTop: 12,
+                    gap: 6,
                   }}
-                />
-              )}
-              <Text
-                className="text-yellow-700 text-xs"
-                style={{ opacity: 0.75 }}
-              >
-                {capitalLabel}
-              </Text>
+                >
+                  {liveGrandTotal !== null && (
+                    <View
+                      style={{
+                        width: 6,
+                        height: 6,
+                        borderRadius: 3,
+                        backgroundColor: "#16a34a",
+                      }}
+                    />
+                  )}
+                  <Text style={{ color: "#d97706", fontSize: 11 }}>
+                    {capitalLabel}
+                  </Text>
+                </View>
+              </View>
             </View>
           </View>
         </View>
 
         {/* Comparison Section */}
-        <View className="px-5 pt-2 pb-4">
-          <View className="bg-white rounded-3xl p-4 shadow-sm">
-            {/* Comparison Items */}
-            <View className="space-y-4">
-              {/* Variance */}
-              <View className="mb-2">
-                <View
-                  className={`${
-                    displayVariance >= 0 ? "bg-green-50" : "bg-red-50"
-                  } rounded-2xl p-3 flex-row justify-between items-center`}
+        <View className="px-5 pt-2 pb-3">
+          <View
+            style={{
+              backgroundColor: "#fff",
+              borderRadius: 16,
+              paddingHorizontal: 16,
+              paddingVertical: 12,
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.1,
+              shadowRadius: 8,
+              elevation: 4,
+            }}
+          >
+            {/* Variance row */}
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+                paddingVertical: 8,
+                marginBottom: 4,
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 15,
+                  fontWeight: "700",
+                  color: displayVariance >= 0 ? "#16A34A" : "#DC2626",
+                }}
+              >
+                {displayVariance >= 0 ? "Excess" : "Loss"}
+              </Text>
+              <View
+                style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
+              >
+                <Ionicons
+                  name={displayVariance >= 0 ? "trending-up" : "trending-down"}
+                  size={16}
+                  color={displayVariance >= 0 ? "#16A34A" : "#DC2626"}
+                />
+                <Text
+                  style={{
+                    fontSize: 15,
+                    fontWeight: "700",
+                    color: displayVariance >= 0 ? "#16A34A" : "#DC2626",
+                  }}
                 >
-                  <View>
-                    <Text
-                      className={`${
-                        displayVariance >= 0 ? "text-green-600" : "text-red-600"
-                      } font-bold text-base`}
-                    >
-                      {displayVariance >= 0 ? "Excess" : "Loss"}
-                    </Text>
-                  </View>
-                  <View className="flex-row items-center">
-                    <Ionicons
-                      name={
-                        displayVariance >= 0 ? "trending-up" : "trending-down"
-                      }
-                      size={20}
-                      color={displayVariance >= 0 ? "#16A34A" : "#DC2626"}
-                    />
-                    <Text
-                      className={`font-bold ${
-                        displayVariance >= 0 ? "text-green-600" : "text-red-600"
-                      } text-base ml-2`}
-                    >
-                      {displayVariance >= 0 ? "+" : "-"}
-                      {formatCurrency(Math.abs(displayVariance))}
-                    </Text>
-                  </View>
-                </View>
-              </View>
-
-              {/* Expected Total */}
-              <View className="flex-row justify-between items-center py-1.5">
-                <Text className="text-gray-600 text-sm">Expected Total</Text>
-                <Text className="font-bold text-gray-900 text-sm">
-                  {formatCurrency(expectedGrandTotal)}
+                  {displayVariance >= 0 ? "+" : "-"}
+                  {formatCurrency(Math.abs(displayVariance))}
                 </Text>
               </View>
+            </View>
 
-              {/* Working Capital baseline */}
+            {/* Expected Total */}
+            <View className="flex-row justify-between items-center py-1.5 border-t border-gray-100">
+              <Text className="text-gray-600 text-sm">Expected Total</Text>
+              <Text className="font-bold text-gray-900 text-sm">
+                {formatCurrency(expectedGrandTotal)}
+              </Text>
+            </View>
+
+            {/* Working Capital baseline */}
+            <View className="flex-row justify-between items-center py-1.5 border-t border-gray-100">
+              <View>
+                <Text className="text-gray-600 text-sm">Working Capital</Text>
+                <Text className="text-xs text-gray-400">Business baseline</Text>
+              </View>
+              <Text className="font-bold text-gray-900 text-sm">
+                {formatCurrency(totalWorkingCapital)}
+              </Text>
+            </View>
+
+            {capitalPendingExpenses > 0 ? (
               <View className="flex-row justify-between items-center py-1.5 border-t border-gray-100">
                 <View>
-                  <Text className="text-gray-600 text-sm">Working Capital</Text>
+                  <Text className="text-gray-600 text-sm">Unreimbursed</Text>
                   <Text className="text-xs text-gray-400">
-                    Business baseline
+                    Capital not yet paid back
                   </Text>
                 </View>
-                <Text className="font-bold text-gray-900 text-sm">
-                  {formatCurrency(totalWorkingCapital)}
+                <Text className="font-bold text-sm text-red-600">
+                  -{formatCurrency(capitalPendingExpenses)}
                 </Text>
               </View>
+            ) : (
+              <View className="flex-row justify-between items-center py-1.5 border-t border-gray-100">
+                <Text className="text-gray-600 text-sm">
+                  This Month's Expenses
+                </Text>
+                <Text className="font-bold text-sm text-red-600">
+                  {totalMonthExpenses > 0 ? "-" : ""}
+                  {formatCurrency(totalMonthExpenses)}
+                </Text>
+              </View>
+            )}
 
-              {capitalPendingExpenses > 0 ? (
-                <View className="flex-row justify-between items-center py-1.5 border-t border-gray-100">
-                  <View>
-                    <Text className="text-gray-600 text-sm">Unreimbursed</Text>
-                    <Text className="text-xs text-gray-400">Capital not yet paid back</Text>
+            {/* Commission */}
+            <View className="border-t border-gray-100 pt-1.5">
+              <View className="flex-row justify-between items-start py-1">
+                <View style={{ flex: 1, marginRight: 8 }}>
+                  <Text className="text-gray-600 text-sm">
+                    Daily Commission
+                  </Text>
+                  <View
+                    className="flex-row flex-wrap mt-0.5"
+                    style={{ gap: 4 }}
+                  >
+                    {totalBankCommission > 0 && (
+                      <Text className="text-xs text-gray-400">
+                        Bank {formatCurrency(totalBankCommission)}
+                      </Text>
+                    )}
+                    {totalBankCommission > 0 && totalTelecomCommission > 0 && (
+                      <Text className="text-xs text-gray-300">{"\u00B7"}</Text>
+                    )}
+                    {totalTelecomCommission > 0 && (
+                      <Text className="text-xs text-gray-400">
+                        Telecom {formatCurrency(totalTelecomCommission)}
+                      </Text>
+                    )}
                   </View>
-                  <Text className="font-bold text-sm text-red-600">
-                    -{formatCurrency(capitalPendingExpenses)}
-                  </Text>
                 </View>
-              ) : (
-                <View className="flex-row justify-between items-center py-1.5 border-t border-gray-100">
-                  <Text className="text-gray-600 text-sm">This Month's Expenses</Text>
-                  <Text className="font-bold text-sm text-red-600">
-                    {totalMonthExpenses > 0 ? "-" : ""}{formatCurrency(totalMonthExpenses)}
-                  </Text>
-                </View>
-              )}
-
-              {/* Commission — bank (expected) + telecom (reconciled) */}
-              <View className="border-t border-gray-100 pt-2">
-                <View className="flex-row justify-between items-start py-1">
-                  <View style={{ flex: 1, marginRight: 8 }}>
-                    <Text className="text-gray-600 text-sm">
-                      Daily Commission
-                    </Text>
-                    <View className="flex-row flex-wrap mt-0.5" style={{ gap: 4 }}>
-                      {totalBankCommission > 0 && (
-                        <Text className="text-xs text-gray-400">
-                          Bank {formatCurrency(totalBankCommission)}
-                        </Text>
-                      )}
-                      {totalBankCommission > 0 && totalTelecomCommission > 0 && (
-                        <Text className="text-xs text-gray-300">·</Text>
-                      )}
-                      {totalTelecomCommission > 0 && (
-                        <Text className="text-xs text-gray-400">
-                          Telecom {formatCurrency(totalTelecomCommission)}
-                        </Text>
-                      )}
-                    </View>
-                  </View>
-                  <Text className="font-bold text-sm text-green-600" style={{ flexShrink: 0 }}>
-                    +{formatCurrency(dailyCommission)}
-                  </Text>
-                </View>
+                <Text
+                  className="font-bold text-sm text-green-600"
+                  style={{ flexShrink: 0 }}
+                >
+                  +{formatCurrency(dailyCommission)}
+                </Text>
               </View>
             </View>
           </View>
