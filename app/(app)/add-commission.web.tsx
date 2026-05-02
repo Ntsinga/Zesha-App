@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { useAddCommissionScreen } from "../../hooks/screens/useAddCommissionScreen";
 import { useToast } from "../../components/Toast.web";
+import { formatAmountInput, parseAmountInput } from "../../utils/formatters";
 import "../../styles/web.css";
 
 /**
@@ -250,16 +251,19 @@ export default function AddCommissionWeb() {
                         <span className="currency-symbol">R</span>
                         <input
                           type="text"
+                          inputMode="decimal"
                           className={`amount-input ${
                             entryErrors.amount ? "has-error" : ""
                           } ${
                             entry.validationResult?.isValid ? "is-valid" : ""
                           }`}
                           placeholder="0.00"
-                          value={entry.amount}
-                          onChange={(e) =>
-                            handleAmountChange(entry.id, e.target.value)
-                          }
+                          value={formatAmountInput(entry.amount)}
+                          onChange={(e) => {
+                            const clean = parseAmountInput(e.target.value);
+                            if (clean !== null)
+                              handleAmountChange(entry.id, clean);
+                          }}
                         />
                       </div>
                       {entryErrors.amount && (
@@ -411,7 +415,10 @@ export default function AddCommissionWeb() {
 
       {/* Image Preview Modal */}
       {previewImage && (
-        <div className="image-modal-overlay" onClick={() => setPreviewImage(null)}>
+        <div
+          className="image-modal-overlay"
+          onClick={() => setPreviewImage(null)}
+        >
           <div className="image-modal" onClick={(e) => e.stopPropagation()}>
             <button
               className="modal-close"

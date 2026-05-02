@@ -24,6 +24,7 @@ import {
   ShieldX,
 } from "lucide-react";
 import { useTransactionsScreen } from "../../hooks/screens/useTransactionsScreen";
+import { formatAmountInput, parseAmountInput } from "../../utils/formatters";
 import type { TransactionTypeEnum, TransactionSubtypeEnum } from "../../types";
 import type {
   StatementParsedRow,
@@ -2171,16 +2172,17 @@ export default function TransactionsWeb() {
               <div className="form-group">
                 <label className="form-label">Amount</label>
                 <input
-                  type="number"
-                  step="0.01"
-                  min="0.01"
-                  value={transactionForm.amount}
-                  onChange={(e) =>
-                    setTransactionForm((prev) => ({
-                      ...prev,
-                      amount: e.target.value,
-                    }))
-                  }
+                  type="text"
+                  inputMode="decimal"
+                  value={formatAmountInput(transactionForm.amount)}
+                  onChange={(e) => {
+                    const clean = parseAmountInput(e.target.value);
+                    if (clean !== null)
+                      setTransactionForm((prev) => ({
+                        ...prev,
+                        amount: clean,
+                      }));
+                  }}
                   className="form-input"
                   placeholder="0.00"
                   required
@@ -2477,16 +2479,17 @@ export default function TransactionsWeb() {
               <div className="form-group">
                 <label className="form-label">Amount</label>
                 <input
-                  type="number"
-                  step="0.01"
-                  min="0.01"
-                  value={floatPurchaseForm.amount}
-                  onChange={(e) =>
-                    setFloatPurchaseForm((prev) => ({
-                      ...prev,
-                      amount: e.target.value,
-                    }))
-                  }
+                  type="text"
+                  inputMode="decimal"
+                  value={formatAmountInput(floatPurchaseForm.amount)}
+                  onChange={(e) => {
+                    const clean = parseAmountInput(e.target.value);
+                    if (clean !== null)
+                      setFloatPurchaseForm((prev) => ({
+                        ...prev,
+                        amount: clean,
+                      }));
+                  }}
                   className="form-input"
                   placeholder="0.00"
                   required
@@ -2733,16 +2736,17 @@ export default function TransactionsWeb() {
                 <div className="form-group">
                   <label className="form-label">Amount</label>
                   <input
-                    type="number"
-                    step="0.01"
-                    min="0.01"
-                    value={capitalInjectionForm.amount}
-                    onChange={(e) =>
-                      setCapitalInjectionForm((prev) => ({
-                        ...prev,
-                        amount: e.target.value,
-                      }))
-                    }
+                    type="text"
+                    inputMode="decimal"
+                    value={formatAmountInput(capitalInjectionForm.amount)}
+                    onChange={(e) => {
+                      const clean = parseAmountInput(e.target.value);
+                      if (clean !== null)
+                        setCapitalInjectionForm((prev) => ({
+                          ...prev,
+                          amount: clean,
+                        }));
+                    }}
                     className="form-input"
                     placeholder="0.00"
                     required

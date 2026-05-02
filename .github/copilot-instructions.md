@@ -306,10 +306,17 @@ utils/                # Utility functions
 **ALWAYS follow this review-fix cycle after completing any task:**
 
 1. Use the error checking tool to verify no TypeScript/compilation errors
-2. Review the changed files for logic bugs, missing edge cases, and security issues
-3. Fix every issue found
-4. Re-run error checks and re-review the fixes
-5. Repeat steps 2–4 until there are zero errors and no remaining issues
-6. Only confirm successful completion after the cycle is clean
+2. **Read the actual changed code** — use `read_file` on every modified file to inspect what was written. Do not rely on memory of what you intended to write.
+3. Review each file for:
+   - Logic bugs (e.g. type mismatches — storing a string-in-progress like `"1000."` into a `number` field)
+   - Missing edge cases (empty string, `"."`, `NaN`, `null`, `undefined`, `0` as falsy)
+   - State management issues in controlled inputs (intermediate typing state lost on re-render)
+   - Security issues (unvalidated input reaching API, XSS, etc.)
+4. Fix every issue found
+5. Re-run error checks and re-review the fixes
+6. Repeat steps 3–5 until there are zero errors and no remaining issues
+7. Only confirm successful completion after the cycle is clean
+
+**Common pitfall**: Running only the TypeScript error checker is NOT sufficient. TypeScript cannot catch runtime logic bugs like `Number("1000.") === 1000` causing a controlled input to swallow a trailing decimal point. Always do the manual logic review in step 3.
 
 This ensures code quality and prevents broken deployments.

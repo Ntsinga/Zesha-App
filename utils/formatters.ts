@@ -7,9 +7,9 @@
 export function formatCurrency(
   amount: number | string | null | undefined,
   currency: string = "USD",
-  locale: string = "en-US"
+  locale: string = "en-US",
 ): string {
-  const num = typeof amount === "string" ? parseFloat(amount) : amount ?? 0;
+  const num = typeof amount === "string" ? parseFloat(amount) : (amount ?? 0);
   const safeNum = isNaN(num) ? 0 : num;
   return new Intl.NumberFormat(locale, {
     style: "currency",
@@ -26,9 +26,9 @@ export function formatCurrency(
  */
 export function formatCompactCurrency(
   amount: number | string | null | undefined,
-  currencySymbol: string = "$"
+  currencySymbol: string = "$",
 ): string {
-  const num = typeof amount === "string" ? parseFloat(amount) : amount ?? 0;
+  const num = typeof amount === "string" ? parseFloat(amount) : (amount ?? 0);
   const safeNum = isNaN(num) ? 0 : num;
 
   if (Math.abs(safeNum) >= 1000000) {
@@ -47,7 +47,7 @@ export function formatCompactCurrency(
  */
 export function formatDate(
   dateString: string | Date,
-  format: "short" | "medium" | "long" = "medium"
+  format: "short" | "medium" | "long" = "medium",
 ): string {
   const date =
     typeof dateString === "string" ? new Date(dateString) : dateString;
@@ -132,6 +132,39 @@ export function truncateText(text: string, maxLength: number): string {
 export function capitalize(text: string): string {
   if (!text) return "";
   return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
+}
+
+/**
+ * Format a raw numeric string for display in an amount input field.
+ * Adds thousands separators while preserving trailing decimal editing.
+ * Returns an empty string for empty/invalid input.
+ */
+export function formatAmountInput(raw: string): string {
+  if (!raw || raw === "") return "";
+  const num = parseFloat(raw);
+  if (isNaN(num)) return raw;
+  // Preserve a trailing decimal point or trailing zeros so the user can keep typing
+  const hasTrailingDot = raw.endsWith(".");
+  const trailingDecimals = raw.includes(".") ? raw.split(".")[1] : null;
+  const intPart = Math.floor(Math.abs(num));
+  const intFormatted = intPart.toLocaleString("en-US");
+  if (hasTrailingDot) return `${intFormatted}.`;
+  if (trailingDecimals !== null && trailingDecimals.length > 0) {
+    // Format the integer part with commas, keep the decimal digits as typed
+    return `${intFormatted}.${trailingDecimals}`;
+  }
+  return num.toLocaleString("en-US", { maximumFractionDigits: 2 });
+}
+
+/**
+ * Parse a user-typed amount string (possibly with commas) into a clean numeric string.
+ * Returns the cleaned string if valid, or null if the input is not a valid number.
+ */
+export function parseAmountInput(value: string): string | null {
+  const clean = value.replace(/,/g, "");
+  if (clean === "" || clean === ".") return clean;
+  if (!/^\d*\.?\d*$/.test(clean)) return null;
+  return clean;
 }
 
 /**

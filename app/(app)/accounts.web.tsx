@@ -15,6 +15,7 @@ import {
   ArrowLeft,
   Layers,
 } from "lucide-react";
+import { formatAmountInput, parseAmountInput } from "../../utils/formatters";
 import {
   useAccountsScreen,
   ACCOUNT_TYPES,
@@ -747,13 +748,15 @@ export default function Accounts() {
                     <div className="form-group">
                       <label className="form-label">Initial Balance</label>
                       <input
-                        type="number"
-                        value={initialBalance}
-                        onChange={(e) => setInitialBalance(e.target.value)}
+                        type="text"
+                        inputMode="decimal"
+                        value={formatAmountInput(initialBalance)}
+                        onChange={(e) => {
+                          const clean = parseAmountInput(e.target.value);
+                          if (clean !== null) setInitialBalance(clean);
+                        }}
                         placeholder="0.00"
                         className="form-input"
-                        min="0"
-                        step="0.01"
                       />
                       <span className="form-hint">
                         Starting balance for audit tracking (cannot be changed

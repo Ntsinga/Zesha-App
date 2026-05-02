@@ -14,6 +14,7 @@ import {
   RotateCcw,
   Wallet,
 } from "lucide-react-native";
+import { formatAmountInput, parseAmountInput } from "../../utils/formatters";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import { ActionModal, AddTransactionForm } from "../../components/ActionModal";
@@ -706,8 +707,12 @@ export default function Transactions() {
             Amount *
           </Text>
           <TextInput
-            value={injectionForm.amount}
-            onChangeText={(v) => setInjectionForm((f) => ({ ...f, amount: v }))}
+            value={formatAmountInput(injectionForm.amount)}
+            onChangeText={(v) => {
+              const clean = parseAmountInput(v);
+              if (clean !== null)
+                setInjectionForm((f) => ({ ...f, amount: clean }));
+            }}
             placeholder="0.00"
             keyboardType="decimal-pad"
             className="border border-gray-200 rounded-xl px-4 py-3 text-base text-gray-800 bg-white mb-4"

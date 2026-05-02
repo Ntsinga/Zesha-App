@@ -19,6 +19,7 @@ import {
   ArrowLeftRight,
   ChevronDown,
 } from "lucide-react-native";
+import { formatAmountInput, parseAmountInput } from "../utils/formatters";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import { useCurrencyFormatter } from "../hooks/useCurrency";
 import {
@@ -498,8 +499,11 @@ export const AddTransactionForm: React.FC<AddTransactionFormProps> = ({
       <Text className="text-sm font-medium text-gray-600 mb-1">Amount *</Text>
       <TextInput
         className="border border-gray-200 rounded-xl px-4 py-3 mb-4 text-gray-800 text-base"
-        value={amount}
-        onChangeText={setAmount}
+        value={formatAmountInput(amount)}
+        onChangeText={(v) => {
+          const clean = parseAmountInput(v);
+          if (clean !== null) setAmount(clean);
+        }}
         keyboardType="decimal-pad"
         placeholder="0.00"
         placeholderTextColor="#9ca3af"

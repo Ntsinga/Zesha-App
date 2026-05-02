@@ -224,6 +224,10 @@ export function useAddCommissionScreen() {
   // Handle amount change with validation
   const handleAmountChange = useCallback(
     (entryId: string, value: string) => {
+      // Strip commas and reject non-numeric input
+      const cleanValue = value.replace(/,/g, "");
+      if (cleanValue && !/^\d*\.?\d*$/.test(cleanValue)) return;
+
       setEntries((prev) =>
         prev.map((entry) => {
           if (entry.id !== entryId) return entry;
@@ -231,8 +235,8 @@ export function useAddCommissionScreen() {
           let validationResult: BalanceValidationResult | null = null;
 
           // Validate against extracted balance if available
-          if (entry.extractedBalance !== null && value.trim()) {
-            const inputBalance = parseFloat(value);
+          if (entry.extractedBalance !== null && cleanValue.trim()) {
+            const inputBalance = parseFloat(cleanValue);
             if (!isNaN(inputBalance)) {
               const difference = Math.abs(
                 entry.extractedBalance - inputBalance,
@@ -250,7 +254,7 @@ export function useAddCommissionScreen() {
 
           return {
             ...entry,
-            amount: value,
+            amount: cleanValue,
             validationResult,
           };
         }),
