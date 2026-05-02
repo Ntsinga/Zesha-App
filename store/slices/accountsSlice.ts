@@ -164,6 +164,26 @@ export const updateAccount = createAsyncThunk<
   }
 });
 
+export const updateAccountTemplate = createAsyncThunk<
+  Account,
+  { id: number; data: AccountUpdate },
+  { rejectValue: string }
+>("accounts/updateTemplate", async ({ id, data }, { rejectWithValue }) => {
+  try {
+    return await apiRequest<Account>(
+      API_ENDPOINTS.accounts.updateTemplate(id),
+      {
+        method: "PATCH",
+        body: JSON.stringify(mapApiRequest(data)),
+      },
+    );
+  } catch (error) {
+    return rejectWithValue(
+      error instanceof Error ? error.message : "Failed to update template",
+    );
+  }
+});
+
 export const deleteAccount = createAsyncThunk<
   number,
   number,
@@ -251,7 +271,9 @@ export const fetchAccountTemplates = createAsyncThunk<
     return await apiRequest<Account[]>(API_ENDPOINTS.accounts.listTemplates);
   } catch (error) {
     return rejectWithValue(
-      error instanceof Error ? error.message : "Failed to fetch account templates",
+      error instanceof Error
+        ? error.message
+        : "Failed to fetch account templates",
     );
   }
 });
@@ -268,7 +290,9 @@ export const createAccountTemplate = createAsyncThunk<
     });
   } catch (error) {
     return rejectWithValue(
-      error instanceof Error ? error.message : "Failed to create account template",
+      error instanceof Error
+        ? error.message
+        : "Failed to create account template",
     );
   }
 });
@@ -277,21 +301,26 @@ export const inheritAccountTemplate = createAsyncThunk<
   Account,
   { templateId: number; name: string; companyId: number },
   { rejectValue: string }
->("accounts/inheritTemplate", async ({ templateId, name, companyId }, { rejectWithValue }) => {
-  try {
-    return await apiRequest<Account>(
-      API_ENDPOINTS.accounts.inheritTemplate(templateId),
-      {
-        method: "POST",
-        body: JSON.stringify(mapApiRequest({ name, companyId })),
-      },
-    );
-  } catch (error) {
-    return rejectWithValue(
-      error instanceof Error ? error.message : "Failed to inherit account template",
-    );
-  }
-});
+>(
+  "accounts/inheritTemplate",
+  async ({ templateId, name, companyId }, { rejectWithValue }) => {
+    try {
+      return await apiRequest<Account>(
+        API_ENDPOINTS.accounts.inheritTemplate(templateId),
+        {
+          method: "POST",
+          body: JSON.stringify(mapApiRequest({ name, companyId })),
+        },
+      );
+    } catch (error) {
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : "Failed to inherit account template",
+      );
+    }
+  },
+);
 
 // Slice
 const accountsSlice = createSlice({
@@ -340,6 +369,11 @@ const accountsSlice = createSlice({
       .addCase(fetchAccountById.fulfilled, (state, action) => {
         state.isLoading = false;
         state.selectedAccount = action.payload;
+        // Keep list item in sync
+        const idx = state.items.findIndex(
+          (item) => item.id === action.payload.id,
+        );
+        if (idx !== -1) state.items[idx] = action.payload;
       })
       .addCase(fetchAccountById.rejected, (state, action) => {
         state.isLoading = false;
@@ -375,6 +409,23 @@ const accountsSlice = createSlice({
         }
       })
       .addCase(updateAccount.rejected, (state, action) => {
+        state.error = action.payload as string;
+      });
+
+    // Update template
+    builder
+      .addCase(updateAccountTemplate.fulfilled, (state, action) => {
+        const index = state.templates.findIndex(
+          (item) => item.id === action.payload.id,
+        );
+        if (index !== -1) {
+          state.templates[index] = action.payload;
+        }
+        if (state.selectedAccount?.id === action.payload.id) {
+          state.selectedAccount = action.payload;
+        }
+      })
+      .addCase(updateAccountTemplate.rejected, (state, action) => {
         state.error = action.payload as string;
       });
 

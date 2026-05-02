@@ -103,28 +103,25 @@ export const createCommissionSchedule = createAsyncThunk<
   CommissionSchedule,
   CommissionScheduleCreate,
   { state: RootState; rejectValue: string }
->(
-  "commissionSchedules/create",
-  async (data, { getState, rejectWithValue }) => {
-    try {
-      const companyId = getCompanyId(getState());
-      if (!companyId) return rejectWithValue("No companyId found.");
+>("commissionSchedules/create", async (data, { getState, rejectWithValue }) => {
+  try {
+    const companyId = getCompanyId(getState());
+    if (!companyId) return rejectWithValue("No companyId found.");
 
-      return await apiRequest<CommissionSchedule>(
-        API_ENDPOINTS.commissionSchedules.create,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(mapApiRequest({ ...data, companyId })),
-        },
-      );
-    } catch (error) {
-      return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to create schedule",
-      );
-    }
-  },
-);
+    return await apiRequest<CommissionSchedule>(
+      API_ENDPOINTS.commissionSchedules.create,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(mapApiRequest({ ...data, companyId })),
+      },
+    );
+  } catch (error) {
+    return rejectWithValue(
+      error instanceof Error ? error.message : "Failed to create schedule",
+    );
+  }
+});
 
 export const updateCommissionSchedule = createAsyncThunk<
   CommissionSchedule,
@@ -157,70 +154,61 @@ export const deleteCommissionSchedule = createAsyncThunk<
   number,
   number,
   { state: RootState; rejectValue: string }
->(
-  "commissionSchedules/delete",
-  async (id, { getState, rejectWithValue }) => {
-    try {
-      const companyId = getCompanyId(getState());
-      if (!companyId) return rejectWithValue("No companyId found.");
+>("commissionSchedules/delete", async (id, { getState, rejectWithValue }) => {
+  try {
+    const companyId = getCompanyId(getState());
+    if (!companyId) return rejectWithValue("No companyId found.");
 
-      await secureApiRequest(
-        `${API_ENDPOINTS.commissionSchedules.delete(id)}?company_id=${companyId}`,
-        { method: "DELETE" },
-      );
-      return id;
-    } catch (error) {
-      return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to delete schedule",
-      );
-    }
-  },
-);
+    await secureApiRequest(
+      `${API_ENDPOINTS.commissionSchedules.delete(id)}?company_id=${companyId}`,
+      { method: "DELETE" },
+    );
+    return id;
+  } catch (error) {
+    return rejectWithValue(
+      error instanceof Error ? error.message : "Failed to delete schedule",
+    );
+  }
+});
 
 // Fetch all system-wide templates (any authenticated user)
 export const fetchCommissionTemplates = createAsyncThunk<
   CommissionScheduleDetail[],
   void,
   { state: RootState; rejectValue: string }
->(
-  "commissionSchedules/fetchTemplates",
-  async (_, { rejectWithValue }) => {
-    try {
-      return await apiRequest<CommissionScheduleDetail[]>(
-        API_ENDPOINTS.commissionSchedules.listTemplates,
-      );
-    } catch (error) {
-      return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to fetch templates",
-      );
-    }
-  },
-);
+>("commissionSchedules/fetchTemplates", async (_, { rejectWithValue }) => {
+  try {
+    return await apiRequest<CommissionScheduleDetail[]>(
+      API_ENDPOINTS.commissionSchedules.listTemplates,
+    );
+  } catch (error) {
+    return rejectWithValue(
+      error instanceof Error ? error.message : "Failed to fetch templates",
+    );
+  }
+});
 
 // Create a system-wide template (Super Admin only)
 export const createCommissionTemplate = createAsyncThunk<
   CommissionSchedule,
   CommissionTemplateCreate,
   { state: RootState; rejectValue: string }
->(
-  "commissionSchedules/createTemplate",
-  async (data, { rejectWithValue }) => {
-    try {
-      return await apiRequest<CommissionSchedule>(
-        API_ENDPOINTS.commissionSchedules.createTemplate,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(mapApiRequest(data)),
-        },
-      );
-    } catch (error) {
-      return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to create template",
-      );
-    }
-  },
-);
+>("commissionSchedules/createTemplate", async (data, { rejectWithValue }) => {
+  try {
+    return await apiRequest<CommissionSchedule>(
+      API_ENDPOINTS.commissionSchedules.createTemplate,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(mapApiRequest(data)),
+      },
+    );
+  } catch (error) {
+    return rejectWithValue(
+      error instanceof Error ? error.message : "Failed to create template",
+    );
+  }
+});
 
 // Copy a template into the current company's own schedules
 export const copyTemplateToCompany = createAsyncThunk<
@@ -258,15 +246,16 @@ export const addCommissionRule = createAsyncThunk<
       if (!companyId) return rejectWithValue("No companyId found.");
 
       // Pre-check: reject before API call if an active rule already exists
-      const duplicate = getState().commissionSchedules.selectedSchedule?.rules.some(
-        (r) =>
-          r.isActive &&
-          r.transactionType === data.transactionType &&
-          r.transactionSubtype === data.transactionSubtype,
-      );
+      const duplicate =
+        getState().commissionSchedules.selectedSchedule?.rules.some(
+          (r) =>
+            r.isActive &&
+            r.transactionType === data.transactionType &&
+            r.transactionSubtype === data.transactionSubtype,
+        );
       if (duplicate) {
         return rejectWithValue(
-          "An active rule already exists for this transaction type and subtype. Use \"Revise\" to update it.",
+          'An active rule already exists for this transaction type and subtype. Use "Revise" to update it.',
         );
       }
 
@@ -300,9 +289,10 @@ export const reviseCommissionRule = createAsyncThunk<
 
       // Inject immutable transactionType/transactionSubtype from state — backend
       // enforces these cannot change during revision.
-      const existingRule = getState().commissionSchedules.selectedSchedule?.rules.find(
-        (r) => r.id === ruleId,
-      );
+      const existingRule =
+        getState().commissionSchedules.selectedSchedule?.rules.find(
+          (r) => r.id === ruleId,
+        );
       if (!existingRule) {
         return rejectWithValue(
           "Rule not found — load the schedule detail before revising.",
@@ -399,6 +389,99 @@ export const replaceCommissionTiers = createAsyncThunk<
   },
 );
 
+// ─── Template-specific rule/tier thunks (no company_id — for system templates) ──
+
+export const addCommissionTemplateRule = createAsyncThunk<
+  CommissionRule,
+  { scheduleId: number; data: CommissionRuleCreate },
+  { state: RootState; rejectValue: string }
+>(
+  "commissionSchedules/addTemplateRule",
+  async ({ scheduleId, data }, { getState, rejectWithValue }) => {
+    try {
+      const duplicate =
+        getState().commissionSchedules.selectedSchedule?.rules.some(
+          (r) =>
+            r.isActive &&
+            r.transactionType === data.transactionType &&
+            r.transactionSubtype === data.transactionSubtype,
+        );
+      if (duplicate) {
+        return rejectWithValue(
+          "An active rule already exists for this transaction type and subtype.",
+        );
+      }
+      return await apiRequest<CommissionRule>(
+        API_ENDPOINTS.commissionSchedules.addRule(scheduleId),
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(mapApiRequest(data)),
+        },
+      );
+    } catch (error) {
+      return rejectWithValue(
+        error instanceof Error ? error.message : "Failed to add rule",
+      );
+    }
+  },
+);
+
+export const deactivateCommissionTemplateRule = createAsyncThunk<
+  { scheduleId: number; ruleId: number },
+  { scheduleId: number; ruleId: number },
+  { state: RootState; rejectValue: string }
+>(
+  "commissionSchedules/deactivateTemplateRule",
+  async ({ scheduleId, ruleId }, { rejectWithValue }) => {
+    try {
+      await secureApiRequest(
+        API_ENDPOINTS.commissionSchedules.deactivateRule(scheduleId, ruleId),
+        { method: "DELETE" },
+      );
+      return { scheduleId, ruleId };
+    } catch (error) {
+      return rejectWithValue(
+        error instanceof Error ? error.message : "Failed to deactivate rule",
+      );
+    }
+  },
+);
+
+export const replaceCommissionTemplateTiers = createAsyncThunk<
+  { ruleId: number; tiers: CommissionTier[] },
+  { ruleId: number; tiers: CommissionTierCreate[] },
+  { state: RootState; rejectValue: string }
+>(
+  "commissionSchedules/replaceTemplateTiers",
+  async ({ ruleId, tiers }, { getState, rejectWithValue }) => {
+    try {
+      const rule = getState().commissionSchedules.selectedSchedule?.rules.find(
+        (r) => r.id === ruleId,
+      );
+      if (rule && !rule.isActive) {
+        return rejectWithValue("Cannot replace tiers on an inactive rule.");
+      }
+      if (rule && rule.ruleType !== "TIERED_FLAT") {
+        return rejectWithValue("Tiers can only be set on TIERED_FLAT rules.");
+      }
+      const result = await apiRequest<CommissionTier[]>(
+        API_ENDPOINTS.commissionSchedules.replaceTiers(ruleId),
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(tiers.map((t) => mapApiRequest(t))),
+        },
+      );
+      return { ruleId, tiers: result };
+    } catch (error) {
+      return rejectWithValue(
+        error instanceof Error ? error.message : "Failed to replace tiers",
+      );
+    }
+  },
+);
+
 // ─── Slice ────────────────────────────────────────────────────────────────────
 
 const commissionSchedulesSlice = createSlice({
@@ -407,6 +490,11 @@ const commissionSchedulesSlice = createSlice({
   reducers: {
     clearSelectedSchedule(state) {
       state.selectedSchedule = null;
+      state.isDetailLoading = false;
+    },
+    setSelectedSchedule(state, action: { payload: CommissionScheduleDetail }) {
+      state.selectedSchedule = action.payload;
+      state.isDetailLoading = false;
     },
     clearError(state) {
       state.error = null;
@@ -459,7 +547,10 @@ const commissionSchedulesSlice = createSlice({
         const idx = state.items.findIndex((s) => s.id === action.payload.id);
         if (idx !== -1) state.items[idx] = action.payload;
         if (state.selectedSchedule?.id === action.payload.id) {
-          state.selectedSchedule = { ...state.selectedSchedule, ...action.payload };
+          state.selectedSchedule = {
+            ...state.selectedSchedule,
+            ...action.payload,
+          };
         }
       })
       .addCase(updateCommissionSchedule.rejected, (state, action) => {
@@ -577,10 +668,57 @@ const commissionSchedulesSlice = createSlice({
       .addCase(replaceCommissionTiers.rejected, (state, action) => {
         state.error = action.payload ?? "Failed to replace tiers";
       });
+
+    // ── Template rule/tier thunks (reuse same state mutations) ──
+    builder
+      .addCase(addCommissionTemplateRule.fulfilled, (state, action) => {
+        if (state.selectedSchedule) {
+          state.selectedSchedule.rules.push(action.payload);
+        }
+      })
+      .addCase(addCommissionTemplateRule.rejected, (state, action) => {
+        state.error = action.payload ?? "Failed to add rule";
+      });
+
+    builder
+      .addCase(deactivateCommissionTemplateRule.fulfilled, (state, action) => {
+        if (!state.selectedSchedule) return;
+        const { ruleId } = action.payload;
+        const idx = state.selectedSchedule.rules.findIndex(
+          (r) => r.id === ruleId,
+        );
+        if (idx !== -1) {
+          state.selectedSchedule.rules[idx] = {
+            ...state.selectedSchedule.rules[idx],
+            isActive: false,
+          };
+        }
+      })
+      .addCase(deactivateCommissionTemplateRule.rejected, (state, action) => {
+        state.error = action.payload ?? "Failed to deactivate rule";
+      });
+
+    builder
+      .addCase(replaceCommissionTemplateTiers.fulfilled, (state, action) => {
+        if (!state.selectedSchedule) return;
+        const { ruleId, tiers } = action.payload;
+        const ruleIdx = state.selectedSchedule.rules.findIndex(
+          (r) => r.id === ruleId,
+        );
+        if (ruleIdx !== -1) {
+          state.selectedSchedule.rules[ruleIdx] = {
+            ...state.selectedSchedule.rules[ruleIdx],
+            tiers,
+          };
+        }
+      })
+      .addCase(replaceCommissionTemplateTiers.rejected, (state, action) => {
+        state.error = action.payload ?? "Failed to replace tiers";
+      });
   },
 });
 
-export const { clearSelectedSchedule, clearError } =
+export const { clearSelectedSchedule, setSelectedSchedule, clearError } =
   commissionSchedulesSlice.actions;
 
 export default commissionSchedulesSlice.reducer;

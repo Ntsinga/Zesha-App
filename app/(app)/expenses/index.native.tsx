@@ -29,7 +29,6 @@ import {
 } from "lucide-react-native";
 import {
   useExpensesScreen,
-  EXPENSE_CATEGORIES,
 } from "../../../hooks/screens/useExpensesScreen";
 import { LoadingSpinner } from "../../../components/LoadingSpinner";
 import {
@@ -73,6 +72,7 @@ export default function Expenses() {
     handleClear,
     formatCurrency,
     fundingSources,
+    categories,
   } = useExpensesScreen();
 
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
@@ -435,25 +435,25 @@ export default function Expenses() {
 
               {showCategoryPicker && (
                 <View className="bg-white border border-gray-200 rounded-xl mt-2">
-                  {EXPENSE_CATEGORIES.map((cat) => (
+                  {categories.map((cat) => (
                     <TouchableOpacity
-                      key={cat}
+                      key={cat.id}
                       onPress={() => {
-                        setCategory(cat);
+                        setCategory(cat.name);
                         setShowCategoryPicker(false);
                       }}
                       className={`px-4 py-3 border-b border-gray-100 ${
-                        category === cat ? "bg-red-50" : ""
+                        category === cat.name ? "bg-red-50" : ""
                       }`}
                     >
                       <Text
                         className={`${
-                          category === cat
+                          category === cat.name
                             ? "text-brand-red font-bold"
                             : "text-gray-700"
                         }`}
                       >
-                        {cat}
+                        {cat.name}
                       </Text>
                     </TouchableOpacity>
                   ))}

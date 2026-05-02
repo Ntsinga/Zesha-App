@@ -23,7 +23,7 @@ import {
   ArrowLeftRight,
   ChevronLeft,
   ChevronRight,
-  Layers,
+  Layers as _Layers,
   LayoutTemplate,
   Landmark,
 } from "lucide-react";
@@ -188,7 +188,7 @@ export default function AppLayoutWeb() {
   const superAdminNavItems: NavItem[] = [
     {
       href: "/agencies",
-      label: "Manage Agencies",
+      label: "Agencies",
       icon: <Building2 size={20} />,
     },
     {
@@ -238,15 +238,10 @@ export default function AppLayoutWeb() {
       label: "Accounts",
       icon: <Landmark size={20} />,
     },
-    {
-      href: "/commission-schedules",
-      label: "Commission Structures",
-      icon: <Layers size={20} />,
-    },
   ];
 
   // Items hidden from Agents
-  const agentHiddenRoutes = new Set(["/accounts", "/commission-schedules"]);
+  const agentHiddenRoutes = new Set(["/accounts"]);
 
   // Determine which nav items to show based on user role and viewing state
   // Superadmin NOT viewing agency = only see Manage Agencies
