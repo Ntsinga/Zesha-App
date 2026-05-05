@@ -84,14 +84,6 @@ export function useReconciliationScreen({
           subtype,
         }),
       );
-      dispatch(
-        fetchBalanceValidation({
-          companyId: resolvedCompanyId,
-          date,
-          shift,
-          subtype,
-        }),
-      );
     }
 
     return () => {
@@ -99,6 +91,44 @@ export function useReconciliationScreen({
       dispatch(clearBalanceValidation());
     };
   }, [dispatch, date, shift, subtype, resolvedCompanyId, autoRecalculate]);
+
+  useEffect(() => {
+    if (
+      autoRecalculate ||
+      !date ||
+      !shift ||
+      !resolvedCompanyId ||
+      !reconciliationDetails?.reconciliation
+    ) {
+      return;
+    }
+
+    const currentReconciliation = reconciliationDetails.reconciliation;
+    if (
+      currentReconciliation.date !== date ||
+      currentReconciliation.shift !== shift ||
+      currentReconciliation.subtype !== subtype
+    ) {
+      return;
+    }
+
+    void dispatch(
+      fetchBalanceValidation({
+        companyId: resolvedCompanyId,
+        date,
+        shift,
+        subtype,
+      }),
+    );
+  }, [
+    autoRecalculate,
+    date,
+    dispatch,
+    resolvedCompanyId,
+    shift,
+    subtype,
+    reconciliationDetails,
+  ]);
 
   // Load notes from reconciliation details when they're fetched
   useEffect(() => {
@@ -185,24 +215,14 @@ export function useReconciliationScreen({
   const onRefresh = async () => {
     if (!date || !shift || !resolvedCompanyId) return;
     setRefreshing(true);
-    await Promise.all([
-      dispatch(
-        fetchReconciliationDetails({
-          companyId: resolvedCompanyId,
-          date,
-          shift,
-          subtype,
-        }),
-      ),
-      dispatch(
-        fetchBalanceValidation({
-          companyId: resolvedCompanyId,
-          date,
-          shift,
-          subtype,
-        }),
-      ),
-    ]);
+    await dispatch(
+      fetchReconciliationDetails({
+        companyId: resolvedCompanyId,
+        date,
+        shift,
+        subtype,
+      }),
+    );
     setRefreshing(false);
   };
 
@@ -281,17 +301,17 @@ export function useReconciliationScreen({
     }
 
     try {
-        await dispatch(
-          finalizeReconciliation({
-            companyId: resolvedCompanyId,
-            date,
-            shift,
-            subtype,
-            reconciledBy: backendUser.id,
-            notes: notes.trim() || undefined,
-            forceWithDiscrepancies: hasDiscrepancies ? true : undefined,
-          }),
-        ).unwrap();
+      await dispatch(
+        finalizeReconciliation({
+          companyId: resolvedCompanyId,
+          date,
+          shift,
+          subtype,
+          reconciledBy: backendUser.id,
+          notes: notes.trim() || undefined,
+          forceWithDiscrepancies: hasDiscrepancies ? true : undefined,
+        }),
+      ).unwrap();
       // Refresh live float after finalization
       dispatch(
         fetchDashboard({
@@ -313,7 +333,13 @@ export function useReconciliationScreen({
 
   // Approve reconciliation (supervisor/admin only)
   const handleApprove = async () => {
-    if (!date || !shift || !backendUser?.id || !canReview || !resolvedCompanyId) {
+    if (
+      !date ||
+      !shift ||
+      !backendUser?.id ||
+      !canReview ||
+      !resolvedCompanyId
+    ) {
       return { success: false, error: "Not authorized" };
     }
 
@@ -342,7 +368,13 @@ export function useReconciliationScreen({
 
   // Reject reconciliation (supervisor/admin only)
   const handleReject = async () => {
-    if (!date || !shift || !backendUser?.id || !canReview || !resolvedCompanyId) {
+    if (
+      !date ||
+      !shift ||
+      !backendUser?.id ||
+      !canReview ||
+      !resolvedCompanyId
+    ) {
       return { success: false, error: "Not authorized" };
     }
 
