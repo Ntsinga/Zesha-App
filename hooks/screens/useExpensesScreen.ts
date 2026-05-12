@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 
 import { useNetworkContext } from "@/hooks/useNetworkStatus";
+import { generateIdempotencyKey } from "@/utils/idempotency";
 import { queueOfflineMutation } from "@/utils/offlineQueue";
 import { selectEffectiveCompanyId } from "@/store/slices/authSlice";
 
@@ -189,7 +190,10 @@ export function useExpensesScreen() {
       }
 
       try {
+        const requestKey = generateIdempotencyKey("expense-offline");
         await queueOfflineMutation({
+          clientMutationId: requestKey,
+          idempotencyKey: requestKey,
           entityType: "expense",
           method: "POST",
           endpoint: "/expenses/",

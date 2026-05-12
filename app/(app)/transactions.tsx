@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
+import { useAuth } from "@clerk/clerk-expo";
+import { useRouter } from "expo-router";
 import {
   View,
   Text,
@@ -21,15 +23,20 @@ import { ActionModal, AddTransactionForm } from "../../components/ActionModal";
 import {
   fetchTransactions,
   reverseTransaction,
-  createCapitalInjection,
-  createCashCapitalInjection,
 } from "../../store/slices/transactionsSlice";
-import { fetchDashboard } from "../../store/slices/dashboardSlice";
+import {
+  resetToPending,
+  type QueueItem,
+} from "../../store/slices/syncQueueSlice";
+import { API_ENDPOINTS } from "../../config/api";
 import { fetchAccounts } from "../../store/slices/accountsSlice";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
+import { triggerSync } from "../../services/syncEngine";
+import { clearLocalAuth } from "../../store/slices/authSlice";
 import { formatDate } from "../../utils/formatters";
 import { useCurrencyFormatter } from "../../hooks/useCurrency";
 import { generateIdempotencyKey } from "../../utils/idempotency";
+import { queueOfflineMutation } from "../../utils/offlineQueue";
 import type {
   TransactionRecord as Transaction,
   TransactionTypeEnum,
@@ -41,6 +48,200 @@ import type { Account } from "../../types";
 
 type TypeFilter = "ALL" | TransactionTypeEnum;
 type ShiftFilter = "ALL" | ShiftEnum;
+
+const FINANCIAL_QUEUE_ENTITY_TYPES = new Set([
+  "transaction",
+  "floatPurchase",
+  "capitalInjection",
+  "cashCapitalInjection",
+]);
+
+type PendingDisplayType =
+  | "DEPOSIT"
+  | "WITHDRAW"
+  | "FLOAT_PURCHASE"
+  | "CAPITAL_INJECTION";
+
+function isFinancialQueueItem(item: QueueItem): boolean {
+  return FINANCIAL_QUEUE_ENTITY_TYPES.has(item.entityType);
+}
+
+function getPendingDisplayType(item: QueueItem): PendingDisplayType {
+  if (item.entityType === "transaction") {
+    return item.payload?.transaction_type === "WITHDRAW"
+      ? "WITHDRAW"
+      : "DEPOSIT";
+  }
+
+  if (item.entityType === "floatPurchase") {
+    return "FLOAT_PURCHASE";
+  }
+
+  return "CAPITAL_INJECTION";
+}
+
+function getPendingCompanyId(item: QueueItem): number | null {
+  const companyId = item.payload?.company_id;
+  return typeof companyId === "number" ? companyId : null;
+}
+
+function getPendingAccountIds(item: QueueItem): number[] {
+  const payload = item.payload ?? {};
+
+  if (
+    item.entityType === "transaction" ||
+    item.entityType === "capitalInjection"
+  ) {
+    return typeof payload.account_id === "number" ? [payload.account_id] : [];
+  }
+
+  if (item.entityType === "cashCapitalInjection") {
+    return [];
+  }
+
+  const accountIds: number[] = [];
+
+  if (typeof payload.destination_account_id === "number") {
+    accountIds.push(payload.destination_account_id);
+  }
+
+  if (typeof payload.source_account_id === "number") {
+    accountIds.push(payload.source_account_id);
+  }
+
+  return accountIds;
+}
+
+function matchesPendingFilters(
+  item: QueueItem,
+  {
+    companyId,
+    filterType,
+    filterAccountId,
+    filterShift,
+  }: {
+    companyId: number | null | undefined;
+    filterType: TypeFilter;
+    filterAccountId: number | undefined;
+    filterShift: ShiftFilter;
+  },
+): boolean {
+  if (companyId != null && getPendingCompanyId(item) !== companyId) {
+    return false;
+  }
+
+  if (filterType !== "ALL" && getPendingDisplayType(item) !== filterType) {
+    return false;
+  }
+
+  if (
+    filterAccountId !== undefined &&
+    !getPendingAccountIds(item).includes(filterAccountId)
+  ) {
+    return false;
+  }
+
+  // Pending writes do not carry the backend-derived shift value yet.
+  if (filterShift !== "ALL") {
+    return false;
+  }
+
+  return true;
+}
+
+function getPendingAccountLabel(item: QueueItem, accounts: Account[]): string {
+  const payload = item.payload ?? {};
+
+  if (
+    item.entityType === "transaction" ||
+    item.entityType === "capitalInjection"
+  ) {
+    const accountId =
+      typeof payload.account_id === "number" ? payload.account_id : null;
+    if (accountId == null) {
+      return item.entityType === "capitalInjection"
+        ? "Working capital"
+        : "Pending account";
+    }
+
+    return (
+      accounts.find((account) => account.id === accountId)?.name ??
+      `Acct #${accountId}`
+    );
+  }
+
+  if (item.entityType === "cashCapitalInjection") {
+    return "Cash Working Capital";
+  }
+
+  const destinationAccountId =
+    typeof payload.destination_account_id === "number"
+      ? payload.destination_account_id
+      : null;
+
+  if (destinationAccountId == null) {
+    return "Float transfer";
+  }
+
+  const destinationName =
+    accounts.find((account) => account.id === destinationAccountId)?.name ??
+    `Acct #${destinationAccountId}`;
+
+  if (payload.float_source === "AGENT" || payload.float_source === "BANK") {
+    return `${destinationName} top-up`;
+  }
+
+  const sourceAccountId =
+    typeof payload.source_account_id === "number"
+      ? payload.source_account_id
+      : null;
+
+  if (sourceAccountId == null) {
+    return destinationName;
+  }
+
+  const sourceName =
+    accounts.find((account) => account.id === sourceAccountId)?.name ??
+    `Acct #${sourceAccountId}`;
+
+  return `${sourceName} -> ${destinationName}`;
+}
+
+function getPendingReference(item: QueueItem): string | null {
+  const reference = item.payload?.reference;
+  return typeof reference === "string" && reference.length > 0
+    ? reference
+    : null;
+}
+
+function getPendingNotes(item: QueueItem): string | null {
+  const notes = item.payload?.notes;
+  return typeof notes === "string" && notes.length > 0 ? notes : null;
+}
+
+function getPendingAmount(item: QueueItem): number {
+  const amount = item.payload?.amount;
+  return typeof amount === "number" ? amount : 0;
+}
+
+function getPendingTimestamp(item: QueueItem): string {
+  const transactionTime = item.payload?.transaction_time;
+  return typeof transactionTime === "string" && transactionTime.length > 0
+    ? transactionTime
+    : item.createdAt;
+}
+
+function getPendingStatusLabel(item: QueueItem): string {
+  return "Pending";
+}
+
+function canRetryPendingItem(item: QueueItem | null): boolean {
+  return item?.status === "failed" || item?.status === "awaiting_confirmation";
+}
+
+function isBlockedPendingItem(item: QueueItem | null): boolean {
+  return item?.status === "blocked";
+}
 
 function getTypeLabel(type: string): string {
   switch (type) {
@@ -99,7 +300,9 @@ function getAmountPrefix(type: string): string {
 }
 
 export default function Transactions() {
+  const router = useRouter();
   const dispatch = useAppDispatch();
+  const { signOut } = useAuth();
   const { formatCurrency } = useCurrencyFormatter();
   const insets = useSafeAreaInsets();
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -123,10 +326,52 @@ export default function Transactions() {
   const { items: transactions, isLoading } = useAppSelector(
     (state) => state.transactions,
   );
+  const queueItems = useAppSelector((state) => state.syncQueue.items);
+  const currentCompanyId = useAppSelector(
+    (state) => state.auth.viewingAgencyId || state.auth.user?.companyId,
+  );
   const accounts = useAppSelector((state) => state.accounts.items);
   const backendUser = useAppSelector((state) => state.auth.user);
   const canInjectCapital = backendUser?.role !== "Agent";
   const [refreshing, setRefreshing] = useState(false);
+
+  const pendingFinancialWrites = queueItems.filter(
+    (item) =>
+      isFinancialQueueItem(item) &&
+      matchesPendingFilters(item, {
+        companyId: currentCompanyId,
+        filterType,
+        filterAccountId,
+        filterShift,
+      }),
+  );
+  const pendingFinancialWritesIgnoringShift = queueItems.filter(
+    (item) =>
+      isFinancialQueueItem(item) &&
+      matchesPendingFilters(item, {
+        companyId: currentCompanyId,
+        filterType,
+        filterAccountId,
+        filterShift: "ALL",
+      }),
+  );
+  const oldestPendingFinancialWrite = pendingFinancialWrites[0] ?? null;
+  const queueHeadItem = queueItems[0] ?? null;
+  const queueHeadBlocksFinancialWrites =
+    pendingFinancialWritesIgnoringShift.length > 0 &&
+    queueHeadItem !== null &&
+    !isFinancialQueueItem(queueHeadItem);
+  const actionablePendingItem = queueHeadBlocksFinancialWrites
+    ? queueHeadItem
+    : oldestPendingFinancialWrite;
+  const hiddenPendingCount =
+    filterShift !== "ALL"
+      ? pendingFinancialWritesIgnoringShift.length
+      : Math.max(
+          pendingFinancialWritesIgnoringShift.length -
+            pendingFinancialWrites.length,
+          0,
+        );
 
   useEffect(() => {
     dispatch(fetchAccounts({}));
@@ -168,9 +413,50 @@ export default function Transactions() {
     dispatch(fetchTransactions(buildFilters()));
   };
 
+  const handleRetryOldestPending = useCallback(() => {
+    if (!actionablePendingItem || !canRetryPendingItem(actionablePendingItem)) {
+      return;
+    }
+
+    dispatch(resetToPending(actionablePendingItem.id));
+    void triggerSync();
+  }, [actionablePendingItem, dispatch]);
+
+  const handleSignInAgainToContinue = useCallback(() => {
+    if (!isBlockedPendingItem(actionablePendingItem)) {
+      return;
+    }
+
+    Alert.alert(
+      "Sign In Again",
+      "Your session needs to be refreshed before pending transactions can continue syncing.",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Sign In Again",
+          onPress: async () => {
+            try {
+              await dispatch(clearLocalAuth());
+              await signOut();
+              router.replace("/(auth)/sign-in");
+            } catch {
+              Alert.alert(
+                "Error",
+                "Couldn't start sign-in again. Please try once more.",
+              );
+            }
+          },
+        },
+      ],
+    );
+  }, [actionablePendingItem, dispatch, router, signOut]);
+
   const handleCreateCapitalInjection = useCallback(async () => {
     if (!injectionForm.amount) return;
-    const companyId = backendUser?.companyId;
+    const companyId = currentCompanyId;
     if (!companyId) return;
 
     try {
@@ -191,7 +477,14 @@ export default function Transactions() {
           notes: injectionForm.notes || undefined,
           idempotencyKey: requestKey,
         };
-        await dispatch(createCapitalInjection(data)).unwrap();
+        await queueOfflineMutation({
+          clientMutationId: requestKey,
+          idempotencyKey: requestKey,
+          entityType: "capitalInjection",
+          method: "POST",
+          endpoint: API_ENDPOINTS.transactions.capitalInjection,
+          payload: data as unknown as Record<string, unknown>,
+        });
       } else {
         const data: CashCapitalInjectionCreate = {
           companyId,
@@ -201,9 +494,17 @@ export default function Transactions() {
           notes: injectionForm.notes || undefined,
           idempotencyKey: requestKey,
         };
-        await dispatch(createCashCapitalInjection(data)).unwrap();
+        await queueOfflineMutation({
+          clientMutationId: requestKey,
+          idempotencyKey: requestKey,
+          entityType: "cashCapitalInjection",
+          method: "POST",
+          endpoint: API_ENDPOINTS.transactions.cashCapitalInjection,
+          payload: data as unknown as Record<string, unknown>,
+        });
       }
 
+      void triggerSync();
       capitalInjectionRequestKeyRef.current = null;
       setShowInjectionModal(false);
       setInjectionForm({
@@ -213,8 +514,10 @@ export default function Transactions() {
         reference: "",
         notes: "",
       });
-      dispatch(fetchTransactions(buildFilters()));
-      dispatch(fetchDashboard({ forceRefresh: true }));
+      Alert.alert(
+        "Saved as pending",
+        "This capital injection was saved locally and will sync in order automatically.",
+      );
     } catch (err) {
       Alert.alert(
         "Injection Failed",
@@ -225,7 +528,7 @@ export default function Transactions() {
     } finally {
       setIsSubmittingInjection(false);
     }
-  }, [dispatch, injectionForm, backendUser, buildFilters]);
+  }, [currentCompanyId, injectionForm]);
 
   const handleReverse = useCallback(
     (tx: Transaction) => {
@@ -268,6 +571,27 @@ export default function Transactions() {
     return <LoadingSpinner message="Loading transactions..." />;
   }
 
+  const pendingRows = pendingFinancialWrites.map((item) => {
+    const displayType = getPendingDisplayType(item);
+    return {
+      id: item.id,
+      accountLabel: getPendingAccountLabel(item, accounts),
+      amount: getPendingAmount(item),
+      displayType,
+      reference: getPendingReference(item),
+      notes: getPendingNotes(item),
+      transactionTime: getPendingTimestamp(item),
+      statusLabel: getPendingStatusLabel(item),
+      canRetry:
+        actionablePendingItem?.id === item.id &&
+        canRetryPendingItem(actionablePendingItem),
+      isHeadOfLine:
+        !queueHeadBlocksFinancialWrites &&
+        oldestPendingFinancialWrite?.id === item.id,
+    };
+  });
+  const displayedRowCount = pendingRows.length + transactions.length;
+
   return (
     <View className="flex-1 bg-brand-bg">
       <ScrollView
@@ -282,11 +606,73 @@ export default function Transactions() {
           </Text>
         </View>
 
+        {(pendingFinancialWrites.length > 0 || hiddenPendingCount > 0) && (
+          <View
+            className="mb-4 rounded-2xl border px-4 py-3"
+            style={{
+              backgroundColor: "#eff6ff",
+              borderColor: "#93c5fd",
+            }}
+          >
+            <Text
+              className="text-sm font-semibold"
+              style={{ color: "#1d4ed8" }}
+            >
+              {pendingFinancialWrites.length + hiddenPendingCount} pending
+              transaction
+              {pendingFinancialWrites.length + hiddenPendingCount === 1
+                ? ""
+                : "s"}
+            </Text>
+            <Text className="mt-1 text-xs" style={{ color: "#1e40af" }}>
+              {queueHeadBlocksFinancialWrites
+                ? "Another queued sync item must finish first. These transactions will continue automatically once that older item succeeds."
+                : "Saved transactions sync automatically in order. If one needs a retry, the rest continue after the oldest pending item succeeds."}
+            </Text>
+            {hiddenPendingCount > 0 && (
+              <Text className="mt-2 text-xs" style={{ color: "#1e3a8a" }}>
+                {hiddenPendingCount} pending item
+                {hiddenPendingCount === 1 ? " is" : "s are"} hidden by the
+                active shift filter because queued writes do not have a final
+                shift yet.
+              </Text>
+            )}
+            {canRetryPendingItem(actionablePendingItem) && (
+              <TouchableOpacity
+                onPress={handleRetryOldestPending}
+                className="self-start mt-3 rounded-lg px-3 py-2"
+                style={{ backgroundColor: "#1d4ed8" }}
+              >
+                <Text className="text-xs font-semibold text-white">
+                  {queueHeadBlocksFinancialWrites
+                    ? "Retry blocking sync item"
+                    : "Retry oldest pending item"}
+                </Text>
+              </TouchableOpacity>
+            )}
+            {isBlockedPendingItem(actionablePendingItem) && (
+              <TouchableOpacity
+                onPress={handleSignInAgainToContinue}
+                className="self-start mt-3 rounded-lg px-3 py-2"
+                style={{ backgroundColor: "#1d4ed8" }}
+              >
+                <Text className="text-xs font-semibold text-white">
+                  Sign in again to continue
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+
         {/* Filter row */}
         <View className="flex-row justify-between items-center mb-3">
           <Text className="text-sm text-gray-500">
-            {transactions.length} transaction
-            {transactions.length !== 1 ? "s" : ""}
+            {displayedRowCount} visible item
+            {displayedRowCount !== 1 ? "s" : ""}
+            {pendingRows.length > 0 ? ` · ${pendingRows.length} pending` : ""}
+            {transactions.length > 0
+              ? ` · ${transactions.length} confirmed`
+              : ""}
             {activeFilterCount > 0
               ? ` · ${activeFilterCount} filter${activeFilterCount > 1 ? "s" : ""} active`
               : ""}
@@ -463,87 +849,185 @@ export default function Transactions() {
             Recent Activity
           </Text>
 
-          {transactions.length === 0 ? (
+          {transactions.length === 0 && pendingRows.length === 0 ? (
             <View className="py-8 items-center">
-              <Text className="text-gray-400">No transactions yet</Text>
+              <Text className="text-gray-400">
+                {hiddenPendingCount > 0
+                  ? "Pending transactions are hidden by the active shift filter"
+                  : "No transactions yet"}
+              </Text>
             </View>
           ) : (
-            transactions.map((tx: Transaction, idx: number) => {
-              const badgeColors = getTypeBadgeColors(tx.transactionType);
-              return (
-                <View
-                  key={tx.id || `tx-${idx}`}
-                  className="border-b border-gray-100 py-4 flex-row justify-between items-center"
-                >
-                  <View className="flex-1">
-                    <View className="flex-row items-center mb-1">
-                      <Text className="font-bold text-gray-700 mr-2">
-                        {tx.account?.name || `Acct #${tx.accountId}`}
-                      </Text>
-                      <Text className="text-xs text-gray-400">
-                        {formatDate(tx.transactionTime, "short")} · {tx.shift}
-                      </Text>
-                    </View>
-                    {tx.reference ? (
-                      <Text className="text-gray-600 font-medium">
-                        {tx.reference}
-                      </Text>
-                    ) : null}
-                    {tx.notes ? (
-                      <Text className="text-xs text-gray-400 mt-0.5">
-                        {tx.notes}
-                      </Text>
-                    ) : null}
-                    <View
-                      className="self-start px-2 py-0.5 rounded mt-1"
-                      style={{ backgroundColor: badgeColors.bg }}
-                    >
-                      <Text
-                        className="text-xs font-medium"
-                        style={{ color: badgeColors.text }}
-                      >
-                        {getTypeLabel(tx.transactionType)}
-                      </Text>
-                    </View>
-                    {!tx.isConfirmed && (
-                      <View className="self-start bg-yellow-100 px-2 py-0.5 rounded mt-1">
-                        <Text className="text-xs font-medium text-yellow-700">
-                          ⚠ Unconfirmed
+            <>
+              {pendingRows.map((row) => {
+                const badgeColors = getTypeBadgeColors(row.displayType);
+                return (
+                  <View
+                    key={`pending-${row.id}`}
+                    className="border-b border-blue-100 py-4 flex-row justify-between items-center"
+                    style={{
+                      backgroundColor: row.isHeadOfLine
+                        ? "#f8fbff"
+                        : "transparent",
+                    }}
+                  >
+                    <View className="flex-1 pr-3">
+                      <View className="flex-row items-center mb-1">
+                        <Text className="font-bold text-gray-700 mr-2">
+                          {row.accountLabel}
+                        </Text>
+                        <Text className="text-xs text-gray-400">
+                          {formatDate(row.transactionTime, "short")}
                         </Text>
                       </View>
-                    )}
-                  </View>
-                  <View className="items-end">
-                    <Text
-                      className="font-bold text-base"
-                      style={{ color: getAmountColor(tx.transactionType) }}
-                    >
-                      {getAmountPrefix(tx.transactionType)}
-                      {formatCurrency(Math.abs(tx.amount))}
-                    </Text>
-                    {tx.expectedCommission && (
-                      <Text className="text-xs text-purple-600 mt-0.5">
-                        Commission:{" "}
-                        {formatCurrency(tx.expectedCommission.commissionAmount)}
-                      </Text>
-                    )}
-                    {!tx.reconciliationId && !tx.floatSource && (
-                      <TouchableOpacity
-                        onPress={() => handleReverse(tx)}
-                        disabled={isReversing}
-                        className="flex-row items-center mt-2 px-2 py-1 rounded"
-                        style={{ backgroundColor: "#FEF2F2" }}
-                      >
-                        <RotateCcw size={12} color="#DC2626" />
-                        <Text className="text-xs font-medium text-red-600 ml-1">
-                          Reverse
+                      {row.reference ? (
+                        <Text className="text-gray-600 font-medium">
+                          {row.reference}
                         </Text>
-                      </TouchableOpacity>
-                    )}
+                      ) : null}
+                      {row.notes ? (
+                        <Text className="text-xs text-gray-400 mt-0.5">
+                          {row.notes}
+                        </Text>
+                      ) : null}
+                      <View
+                        className="self-start px-2 py-0.5 rounded mt-1"
+                        style={{ backgroundColor: badgeColors.bg }}
+                      >
+                        <Text
+                          className="text-xs font-medium"
+                          style={{ color: badgeColors.text }}
+                        >
+                          {getTypeLabel(row.displayType)}
+                        </Text>
+                      </View>
+                      <View className="self-start bg-blue-100 px-2 py-0.5 rounded mt-1">
+                        <Text className="text-xs font-medium text-blue-700">
+                          {row.statusLabel}
+                        </Text>
+                      </View>
+                    </View>
+                    <View className="items-end">
+                      <Text
+                        className="font-bold text-base"
+                        style={{ color: getAmountColor(row.displayType) }}
+                      >
+                        {getAmountPrefix(row.displayType)}
+                        {formatCurrency(Math.abs(row.amount))}
+                      </Text>
+                      {row.canRetry && (
+                        <TouchableOpacity
+                          onPress={handleRetryOldestPending}
+                          className="mt-2 px-2 py-1 rounded"
+                          style={{ backgroundColor: "#DBEAFE" }}
+                        >
+                          <Text
+                            className="text-xs font-medium"
+                            style={{ color: "#1D4ED8" }}
+                          >
+                            Retry
+                          </Text>
+                        </TouchableOpacity>
+                      )}
+                      {row.isHeadOfLine &&
+                        isBlockedPendingItem(actionablePendingItem) && (
+                          <TouchableOpacity
+                            onPress={handleSignInAgainToContinue}
+                            className="mt-2 px-2 py-1 rounded"
+                            style={{ backgroundColor: "#DBEAFE" }}
+                          >
+                            <Text
+                              className="text-xs font-medium"
+                              style={{ color: "#1D4ED8" }}
+                            >
+                              Sign in again
+                            </Text>
+                          </TouchableOpacity>
+                        )}
+                    </View>
                   </View>
-                </View>
-              );
-            })
+                );
+              })}
+
+              {transactions.map((tx: Transaction, idx: number) => {
+                const badgeColors = getTypeBadgeColors(tx.transactionType);
+                return (
+                  <View
+                    key={tx.id || `tx-${idx}`}
+                    className="border-b border-gray-100 py-4 flex-row justify-between items-center"
+                  >
+                    <View className="flex-1">
+                      <View className="flex-row items-center mb-1">
+                        <Text className="font-bold text-gray-700 mr-2">
+                          {tx.account?.name || `Acct #${tx.accountId}`}
+                        </Text>
+                        <Text className="text-xs text-gray-400">
+                          {formatDate(tx.transactionTime, "short")} · {tx.shift}
+                        </Text>
+                      </View>
+                      {tx.reference ? (
+                        <Text className="text-gray-600 font-medium">
+                          {tx.reference}
+                        </Text>
+                      ) : null}
+                      {tx.notes ? (
+                        <Text className="text-xs text-gray-400 mt-0.5">
+                          {tx.notes}
+                        </Text>
+                      ) : null}
+                      <View
+                        className="self-start px-2 py-0.5 rounded mt-1"
+                        style={{ backgroundColor: badgeColors.bg }}
+                      >
+                        <Text
+                          className="text-xs font-medium"
+                          style={{ color: badgeColors.text }}
+                        >
+                          {getTypeLabel(tx.transactionType)}
+                        </Text>
+                      </View>
+                      {!tx.isConfirmed && (
+                        <View className="self-start bg-yellow-100 px-2 py-0.5 rounded mt-1">
+                          <Text className="text-xs font-medium text-yellow-700">
+                            ⚠ Unconfirmed
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                    <View className="items-end">
+                      <Text
+                        className="font-bold text-base"
+                        style={{ color: getAmountColor(tx.transactionType) }}
+                      >
+                        {getAmountPrefix(tx.transactionType)}
+                        {formatCurrency(Math.abs(tx.amount))}
+                      </Text>
+                      {tx.expectedCommission && (
+                        <Text className="text-xs text-purple-600 mt-0.5">
+                          Commission:{" "}
+                          {formatCurrency(
+                            tx.expectedCommission.commissionAmount,
+                          )}
+                        </Text>
+                      )}
+                      {!tx.reconciliationId && !tx.floatSource && (
+                        <TouchableOpacity
+                          onPress={() => handleReverse(tx)}
+                          disabled={isReversing}
+                          className="flex-row items-center mt-2 px-2 py-1 rounded"
+                          style={{ backgroundColor: "#FEF2F2" }}
+                        >
+                          <RotateCcw size={12} color="#DC2626" />
+                          <Text className="text-xs font-medium text-red-600 ml-1">
+                            Reverse
+                          </Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  </View>
+                );
+              })}
+            </>
           )}
         </View>
       </ScrollView>

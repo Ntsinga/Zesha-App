@@ -14,11 +14,13 @@ import { mapApiRequest } from "@/types";
 import { saveImageLocally } from "./localImageStore";
 
 interface QueueMutationParams {
+  clientMutationId?: string;
+  idempotencyKey?: string;
   entityType: SyncEntityType;
   method: SyncMethod;
   endpoint: string;
   /** Payload in camelCase — will be converted to snake_case automatically */
-  payload: Record<string, unknown> | null;
+  payload: object | null;
   /** Temporary image URIs (e.g., from camera/picker) that need local persistence */
   imageUris?: string[];
 }
@@ -62,12 +64,28 @@ export async function queueOfflineMutation(
     ? (mapApiRequest(params.payload) as Record<string, unknown>)
     : null;
 
+  const mappedIdempotencyKey =
+    params.idempotencyKey ??
+    (typeof mappedPayload?.idempotency_key === "string"
+      ? mappedPayload.idempotency_key
+      : undefined);
+
+  const payloadWithIdempotencyKey =
+    mappedPayload && mappedIdempotencyKey
+      ? {
+          ...mappedPayload,
+          idempotency_key: mappedIdempotencyKey,
+        }
+      : mappedPayload;
+
   store.dispatch(
     addToQueue({
+      clientMutationId: params.clientMutationId,
+      idempotencyKey: mappedIdempotencyKey,
       entityType: params.entityType,
       method: params.method,
       endpoint: params.endpoint,
-      payload: mappedPayload,
+      payload: payloadWithIdempotencyKey,
       localImageUris,
     }),
   );

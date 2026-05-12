@@ -22,12 +22,11 @@ import {
 import { formatAmountInput, parseAmountInput } from "../utils/formatters";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import { useCurrencyFormatter } from "../hooks/useCurrency";
-import {
-  createTransaction,
-  createFloatPurchase,
-} from "../store/slices/transactionsSlice";
 import { fetchAccounts } from "../store/slices/accountsSlice";
+import { API_ENDPOINTS } from "../config/api";
+import { triggerSync } from "../services/syncEngine";
 import { generateIdempotencyKey } from "../utils/idempotency";
+import { queueOfflineMutation } from "../utils/offlineQueue";
 import type {
   FloatSourceEnum,
   ShiftEnum,
@@ -132,6 +131,7 @@ export const AddTransactionForm: React.FC<AddTransactionFormProps> = ({
   const [pickerOnSelect, setPickerOnSelect] = useState<(id: number) => void>(
     () => () => {},
   );
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const submissionKeyRef = useRef<string | null>(null);
 
   const activeAccounts = accounts.filter((a) => a.isActive);
@@ -145,6 +145,7 @@ export const AddTransactionForm: React.FC<AddTransactionFormProps> = ({
 
   const reset = () => {
     submissionKeyRef.current = null;
+    setIsSubmitting(false);
     setMode("DEPOSIT");
     setAccountId(null);
     setSourceAccountId(null);
@@ -194,6 +195,10 @@ export const AddTransactionForm: React.FC<AddTransactionFormProps> = ({
     id ? (activeAccounts.find((a) => a.id === id)?.name ?? "Unknown") : null;
 
   const handleSubmit = useCallback(async () => {
+    if (isSubmitting) {
+      return;
+    }
+
     if (!companyId) {
       Alert.alert("Error", "Company not found. Please log in again.");
       return;
@@ -204,6 +209,7 @@ export const AddTransactionForm: React.FC<AddTransactionFormProps> = ({
     }
 
     try {
+      setIsSubmitting(true);
       const requestKey =
         submissionKeyRef.current ?? generateIdempotencyKey("txn-modal");
       submissionKeyRef.current = requestKey;
@@ -220,44 +226,63 @@ export const AddTransactionForm: React.FC<AddTransactionFormProps> = ({
           );
           return;
         }
-        await dispatch(
-          createFloatPurchase({
-            companyId,
-            destinationAccountId: destAccountId,
-            sourceAccountId: floatSource
-              ? undefined
-              : (sourceAccountId ?? undefined),
-            floatSource: floatSource ?? undefined,
-            amount: parseFloat(amount),
-            transactionTime: new Date().toISOString(),
-            reference: reference || undefined,
-            notes: notes || undefined,
-            idempotencyKey: requestKey,
-          }),
-        ).unwrap();
+        const payload = {
+          companyId,
+          destinationAccountId: destAccountId,
+          sourceAccountId: floatSource
+            ? undefined
+            : (sourceAccountId ?? undefined),
+          floatSource: floatSource ?? undefined,
+          amount: parseFloat(amount),
+          transactionTime: new Date().toISOString(),
+          reference: reference || undefined,
+          notes: notes || undefined,
+          idempotencyKey: requestKey,
+        };
+
+        await queueOfflineMutation({
+          clientMutationId: requestKey,
+          idempotencyKey: requestKey,
+          entityType: "floatPurchase",
+          method: "POST",
+          endpoint: API_ENDPOINTS.transactions.floatPurchase,
+          payload,
+        });
       } else {
         if (!accountId) {
           Alert.alert("Validation", "Please select an account.");
           return;
         }
-        await dispatch(
-          createTransaction({
-            companyId,
-            accountId,
-            transactionType: mode,
-            transactionSubtype: transactionSubtype ?? undefined,
-            amount: parseFloat(amount),
-            transactionTime: new Date().toISOString(),
-            reference: reference || undefined,
-            notes: notes || undefined,
-            idempotencyKey: requestKey,
-          }),
-        ).unwrap();
+        const payload = {
+          companyId,
+          accountId,
+          transactionType: mode,
+          transactionSubtype: transactionSubtype ?? undefined,
+          amount: parseFloat(amount),
+          transactionTime: new Date().toISOString(),
+          reference: reference || undefined,
+          notes: notes || undefined,
+          idempotencyKey: requestKey,
+        };
+
+        await queueOfflineMutation({
+          clientMutationId: requestKey,
+          idempotencyKey: requestKey,
+          entityType: "transaction",
+          method: "POST",
+          endpoint: API_ENDPOINTS.transactions.create,
+          payload,
+        });
       }
 
+      void triggerSync();
       reset();
       onSuccess?.();
       onClose?.();
+      Alert.alert(
+        "Saved as pending",
+        "This transaction was saved locally and will sync in order automatically.",
+      );
     } catch (err) {
       Alert.alert(
         "Error",
@@ -267,9 +292,12 @@ export const AddTransactionForm: React.FC<AddTransactionFormProps> = ({
             ? err.message
             : "Failed to save transaction.",
       );
+    } finally {
+      setIsSubmitting(false);
     }
   }, [
     companyId,
+    isSubmitting,
     mode,
     accountId,
     sourceAccountId,
@@ -560,11 +588,13 @@ export const AddTransactionForm: React.FC<AddTransactionFormProps> = ({
       {/* Submit */}
       <TouchableOpacity
         onPress={handleSubmit}
-        disabled={isCreating}
+        disabled={isSubmitting || isCreating}
         className="rounded-xl py-4 items-center"
-        style={{ backgroundColor: isCreating ? "#d1d5db" : c.solid }}
+        style={{
+          backgroundColor: isSubmitting || isCreating ? "#d1d5db" : c.solid,
+        }}
       >
-        {isCreating ? (
+        {isSubmitting || isCreating ? (
           <ActivityIndicator color="white" />
         ) : (
           <Text className="text-white font-bold text-base">

@@ -17,8 +17,10 @@ import {
 } from "react-native";
 import { useAppSelector } from "@/store/hooks";
 import {
+  selectAwaitingConfirmationCount,
+  selectBlockedCount,
+  selectNeedsAttentionCount,
   selectPendingCount,
-  selectFailedCount,
   selectIsSyncing,
 } from "@/store/slices/syncQueueSlice";
 import { triggerSync } from "@/services/syncEngine";
@@ -33,9 +35,13 @@ export default function SyncStatusIndicator({
 }: SyncStatusIndicatorProps) {
   // Hooks must always be called in the same order (Rules of Hooks)
   const pendingCount = useAppSelector(selectPendingCount);
-  const failedCount = useAppSelector(selectFailedCount);
+  const awaitingConfirmationCount = useAppSelector(
+    selectAwaitingConfirmationCount,
+  );
+  const blockedCount = useAppSelector(selectBlockedCount);
+  const needsAttentionCount = useAppSelector(selectNeedsAttentionCount);
   const isSyncing = useAppSelector(selectIsSyncing);
-  const totalCount = pendingCount + failedCount;
+  const totalCount = pendingCount + needsAttentionCount;
 
   // Only render on mobile
   if (Platform.OS === "web") return null;
@@ -43,53 +49,56 @@ export default function SyncStatusIndicator({
   // Nothing to show if queue is empty and not syncing
   if (totalCount === 0 && !isSyncing) return null;
 
-  if (compact) {
-    return (
-      <TouchableOpacity
-        onPress={() => triggerSync()}
-        style={styles.compactContainer}
-        accessibilityLabel={`${totalCount} items pending sync`}
-        accessibilityRole="button"
-      >
-        {isSyncing ? (
-          <ActivityIndicator size="small" color="#FFFFFF" />
-        ) : (
-          <>
-            <Text style={styles.icon}>↑</Text>
-            <Text style={styles.countText}>{totalCount}</Text>
-          </>
-        )}
-        {failedCount > 0 && !isSyncing && (
-          <View style={styles.errorDot} />
-        )}
-      </TouchableOpacity>
-    );
-  }
-
-  // Full (non-compact) variant
   return (
-    <TouchableOpacity
-      onPress={() => triggerSync()}
-      style={styles.fullContainer}
-      accessibilityLabel={`${totalCount} items pending sync. Tap to retry.`}
-      accessibilityRole="button"
-    >
-      {isSyncing ? (
-        <View style={styles.row}>
-          <ActivityIndicator size="small" color="#3B82F6" />
-          <Text style={styles.fullText}>Syncing...</Text>
-        </View>
+    <>
+      {compact ? (
+        <TouchableOpacity
+          onPress={() => triggerSync()}
+          style={styles.compactContainer}
+          accessibilityLabel={`${pendingCount} pending, ${needsAttentionCount} needing attention`}
+          accessibilityRole="button"
+        >
+          {isSyncing ? (
+            <ActivityIndicator size="small" color="#FFFFFF" />
+          ) : (
+            <>
+              <Text style={styles.icon}>↑</Text>
+              <Text style={styles.countText}>{totalCount}</Text>
+            </>
+          )}
+          {needsAttentionCount > 0 && !isSyncing && (
+            <View style={styles.errorDot} />
+          )}
+        </TouchableOpacity>
       ) : (
-        <View style={styles.row}>
-          <Text style={styles.fullIcon}>↑</Text>
-          <Text style={styles.fullText}>
-            {pendingCount > 0 && `${pendingCount} pending`}
-            {pendingCount > 0 && failedCount > 0 && " · "}
-            {failedCount > 0 && `${failedCount} failed`}
-          </Text>
-        </View>
+        <TouchableOpacity
+          onPress={() => triggerSync()}
+          style={styles.fullContainer}
+          accessibilityLabel={`${pendingCount} pending, ${needsAttentionCount} needing attention. Tap to retry sync.`}
+          accessibilityRole="button"
+        >
+          {isSyncing ? (
+            <View style={styles.row}>
+              <ActivityIndicator size="small" color="#3B82F6" />
+              <Text style={styles.fullText}>Syncing...</Text>
+            </View>
+          ) : (
+            <View style={styles.row}>
+              <Text style={styles.fullIcon}>↑</Text>
+              <Text style={styles.fullText}>
+                {pendingCount > 0 && `${pendingCount} pending`}
+                {pendingCount > 0 && needsAttentionCount > 0 && " · "}
+                {needsAttentionCount > 0 &&
+                  `${needsAttentionCount} need attention`}
+                {awaitingConfirmationCount > 0 &&
+                  ` (${awaitingConfirmationCount} awaiting confirmation)`}
+                {blockedCount > 0 && ` (${blockedCount} blocked)`}
+              </Text>
+            </View>
+          )}
+        </TouchableOpacity>
       )}
-    </TouchableOpacity>
+    </>
   );
 }
 

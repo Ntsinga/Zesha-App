@@ -7,6 +7,7 @@ import {
   deleteCashCountsByFilter,
 } from "../../store/slices/cashCountSlice";
 import { useNetworkContext } from "@/hooks/useNetworkStatus";
+import { generateIdempotencyKey } from "@/utils/idempotency";
 import { queueOfflineMutation } from "@/utils/offlineQueue";
 import { fetchDashboard } from "../../store/slices/dashboardSlice";
 import { selectEffectiveCompanyId } from "../../store/slices/authSlice";
@@ -259,7 +260,10 @@ export function useCashCountScreen() {
       }));
 
       try {
+        const requestKey = generateIdempotencyKey("cash-count-bulk-offline");
         await queueOfflineMutation({
+          clientMutationId: requestKey,
+          idempotencyKey: requestKey,
           entityType: "cashCountBulk",
           method: "POST",
           endpoint: "/cash-counts/bulk",
