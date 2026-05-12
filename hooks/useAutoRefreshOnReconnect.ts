@@ -11,7 +11,7 @@ import { useNetworkContext } from "@/hooks/useNetworkStatus";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import {
   selectIsSyncing,
-  selectTotalQueueCount,
+  selectOutstandingSyncCount,
 } from "@/store/slices/syncQueueSlice";
 import type { AsyncThunkAction } from "@reduxjs/toolkit";
 
@@ -34,7 +34,7 @@ export function useAutoRefreshOnReconnect(
   const dispatch = useAppDispatch();
   const { isConnected, isStatusKnown } = useNetworkContext();
   const isSyncing = useAppSelector(selectIsSyncing);
-  const queueCount = useAppSelector(selectTotalQueueCount);
+  const outstandingSyncCount = useAppSelector(selectOutstandingSyncCount);
   const wasOffline = useRef(false);
 
   useEffect(() => {
@@ -47,7 +47,7 @@ export function useAutoRefreshOnReconnect(
     }
 
     // We're online now — if we were previously offline and syncing is done
-    if (wasOffline.current && !isSyncing && queueCount === 0) {
+    if (wasOffline.current && !isSyncing && outstandingSyncCount === 0) {
       wasOffline.current = false;
       dispatch(refreshAction());
     }
@@ -55,7 +55,7 @@ export function useAutoRefreshOnReconnect(
     isConnected,
     isStatusKnown,
     isSyncing,
-    queueCount,
+    outstandingSyncCount,
     dispatch,
     refreshAction,
     enabled,

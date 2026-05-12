@@ -12,12 +12,15 @@ import NetInfo, { NetInfoState } from "@react-native-community/netinfo";
 import { AppState, AppStateStatus } from "react-native";
 import { store } from "@/store";
 import {
+  archiveSyncedItem,
+  appendErrorLog,
   markSyncing,
-  removeFromQueue,
-  markFailed,
+  markQueueOutcome,
+  recoverSyncingItems,
   setSyncing,
   setLastSyncedAt,
   type QueueItem,
+  type SyncQueueItemStatus,
 } from "@/store/slices/syncQueueSlice";
 import { secureApiRequest, isSecureApiInitialized } from "@/services/secureApi";
 import { readImageAsBase64, deleteLocalImage } from "@/utils/localImageStore";
@@ -32,6 +35,13 @@ const MAX_DELAY_MS = 30_000; // 30 seconds
 
 // Transient HTTP status codes worth retrying
 const RETRY_STATUS_CODES = new Set([408, 429, 500, 502, 503, 504]);
+
+type ProcessItemResult =
+  | "synced"
+  | "retryable_failure"
+  | "failed"
+  | "blocked"
+  | "awaiting_confirmation";
 
 // ---------------------------------------------------------------------------
 // Internal state
@@ -115,15 +125,102 @@ function injectImagesIntoPayload(
   return updated;
 }
 
+function injectIdempotencyKey(
+  payload: Record<string, unknown> | null,
+  idempotencyKey?: string,
+): Record<string, unknown> | null {
+  if (!payload || !idempotencyKey) {
+    return payload;
+  }
+
+  if (typeof payload.idempotency_key === "string" && payload.idempotency_key) {
+    return payload;
+  }
+
+  return {
+    ...payload,
+    idempotency_key: idempotencyKey,
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Core sync logic
 // ---------------------------------------------------------------------------
 
 /**
  * Process a single queue item — make the API call and handle the result.
- * Returns true if the item was successfully synced and removed, false otherwise.
+ * Returns the resulting sync outcome for queue control flow.
  */
-async function processItem(item: QueueItem): Promise<boolean> {
+function extractServerRecordId(response: unknown): string | number | null {
+  if (!response || typeof response !== "object") {
+    return null;
+  }
+
+  if ("id" in response) {
+    const value = response.id;
+    if (typeof value === "string" || typeof value === "number") {
+      return value;
+    }
+  }
+
+  if ("reconciliationId" in response) {
+    const value = response.reconciliationId;
+    if (typeof value === "string" || typeof value === "number") {
+      return value;
+    }
+  }
+
+  return null;
+}
+
+function summarizeResponse(response: unknown): string | null {
+  if (!response || typeof response !== "object") {
+    return "Synced successfully";
+  }
+
+  if ("message" in response && typeof response.message === "string") {
+    return response.message;
+  }
+
+  if ("status" in response && typeof response.status === "string") {
+    return `Synced (${response.status})`;
+  }
+
+  return "Synced successfully";
+}
+
+function hasReplayKey(item: QueueItem): boolean {
+  if (typeof item.idempotencyKey === "string" && item.idempotencyKey.length > 0) {
+    return true;
+  }
+
+  return (
+    typeof item.payload?.idempotency_key === "string" &&
+    item.payload.idempotency_key.length > 0
+  );
+}
+
+function isInFlightIdempotentConflict(
+  status: number,
+  errorMessage: string,
+  item: QueueItem,
+): boolean {
+  return (
+    status === 409 &&
+    hasReplayKey(item) &&
+    errorMessage.toLowerCase().includes("already being processed")
+  );
+}
+
+function isProcessableItem(item: QueueItem): boolean {
+  return (
+    item.status === "pending" ||
+    item.status === "failed" ||
+    (item.status === "awaiting_confirmation" && hasReplayKey(item))
+  );
+}
+
+async function processItem(item: QueueItem): Promise<ProcessItemResult> {
   const dispatch = store.dispatch;
 
   // Mark item as syncing
@@ -131,11 +228,11 @@ async function processItem(item: QueueItem): Promise<boolean> {
 
   try {
     // 1. Resolve local images if any
-    let finalPayload = item.payload;
+    let finalPayload = injectIdempotencyKey(item.payload, item.idempotencyKey);
     if (item.localImageUris && item.localImageUris.length > 0) {
       const imageMap = await resolveLocalImages(item.localImageUris);
       finalPayload = injectImagesIntoPayload(
-        item.payload,
+        finalPayload,
         imageMap,
         item.localImageUris,
       );
@@ -151,10 +248,17 @@ async function processItem(item: QueueItem): Promise<boolean> {
     }
 
     // 3. Make authenticated API call
-    await secureApiRequest(item.endpoint, options);
+    const response = await secureApiRequest<unknown>(item.endpoint, options);
 
     // 4. Success — remove from queue and clean up local images
-    dispatch(removeFromQueue(item.id));
+    dispatch(
+      archiveSyncedItem({
+        id: item.id,
+        httpStatus: 200,
+        serverRecordId: extractServerRecordId(response),
+        serverResponseSummary: summarizeResponse(response),
+      }),
+    );
 
     if (item.localImageUris && item.localImageUris.length > 0) {
       for (const uri of item.localImageUris) {
@@ -166,7 +270,7 @@ async function processItem(item: QueueItem): Promise<boolean> {
       }
     }
 
-    return true;
+    return "synced";
   } catch (error: unknown) {
     const errorMessage =
       error instanceof Error ? error.message : "Unknown sync error";
@@ -178,39 +282,68 @@ async function processItem(item: QueueItem): Promise<boolean> {
     // Don't retry auth errors — user needs to re-authenticate
     if (status === 401 || status === 403) {
       dispatch(
-        markFailed({
+        markQueueOutcome({
           id: item.id,
+          status: "blocked",
           error: `Auth error (${status}): ${errorMessage}`,
+          httpStatus: status,
         }),
       );
-      return false;
+      return "blocked";
+    }
+
+    if (status === 0) {
+      dispatch(
+        markQueueOutcome({
+          id: item.id,
+          status: "awaiting_confirmation",
+          error: errorMessage,
+          httpStatus: status,
+        }),
+      );
+      return "awaiting_confirmation";
+    }
+
+    if (isInFlightIdempotentConflict(status, errorMessage, item)) {
+      dispatch(
+        markQueueOutcome({
+          id: item.id,
+          status: "awaiting_confirmation",
+          error: errorMessage,
+          httpStatus: status,
+        }),
+      );
+      return "awaiting_confirmation";
     }
 
     // Check if we should retry
-    const isRetryable =
-      status === 0 || RETRY_STATUS_CODES.has(status);
+    const isRetryable = RETRY_STATUS_CODES.has(status);
     const canRetry = item.retryCount < MAX_RETRIES - 1; // -1 because markFailed increments
 
     if (isRetryable && canRetry) {
       dispatch(
-        markFailed({
+        markQueueOutcome({
           id: item.id,
+          status: "failed",
           error: errorMessage,
+          httpStatus: status,
         }),
       );
       // Delay before next item (backoff for this item's next attempt)
       await delay(getBackoffDelay(item.retryCount));
+      return "retryable_failure";
     } else {
       // Max retries exceeded or non-retryable error → mark permanently failed
       dispatch(
-        markFailed({
+        markQueueOutcome({
           id: item.id,
+          status: "failed",
           error: `Permanent failure after ${item.retryCount + 1} attempts: ${errorMessage}`,
+          httpStatus: status,
         }),
       );
+      return "failed";
     }
-
-    return false;
   }
 }
 
@@ -222,6 +355,7 @@ async function processQueue(): Promise<void> {
   if (isProcessing) return;
 
   const dispatch = store.dispatch;
+  dispatch(recoverSyncingItems());
 
   // Pre-check: is secure API initialized?
   if (!isSecureApiInitialized()) {
@@ -233,8 +367,8 @@ async function processQueue(): Promise<void> {
 
   // Pre-check: is there anything to sync?
   const state = store.getState();
-  const pendingItems = state.syncQueue.items.filter(
-    (i: QueueItem) => i.status === "pending" || i.status === "failed",
+  const pendingItems = state.syncQueue.items.filter((i: QueueItem) =>
+    isProcessableItem(i),
   );
 
   if (pendingItems.length === 0) return;
@@ -255,31 +389,59 @@ async function processQueue(): Promise<void> {
         break;
       }
 
-      // Get the next processable item (pending, or failed items ready for retry)
+      // Respect FIFO ordering. Blocked items stop the queue, but ambiguous items
+      // should be retried in place so the backend can confirm them idempotently.
       const currentState = store.getState();
-      const nextItem = currentState.syncQueue.items.find(
-        (i: QueueItem) =>
-          i.status === "pending" ||
-          (i.status === "failed" && i.retryCount < MAX_RETRIES),
-      );
+      const nextItem = currentState.syncQueue.items[0] as QueueItem | undefined;
 
-      if (!nextItem) {
+      if (!nextItem || !isProcessableItem(nextItem)) {
+        if (
+          nextItem?.status === "awaiting_confirmation" &&
+          !hasReplayKey(nextItem)
+        ) {
+          dispatch(
+            appendErrorLog({
+              id: nextItem.id,
+              status: "awaiting_confirmation",
+              message:
+                "This queued item cannot be auto-confirmed because it was saved without an idempotency key.",
+            }),
+          );
+        }
         hasMore = false;
         break;
       }
 
-      await processItem(nextItem);
+      if (nextItem.status === "failed" && nextItem.retryCount >= MAX_RETRIES) {
+        hasMore = false;
+        break;
+      }
+
+      const result = await processItem(nextItem);
+
+      if (
+        result === "blocked" ||
+        result === "awaiting_confirmation" ||
+        result === "failed"
+      ) {
+        hasMore = false;
+      }
 
       // Small delay between items to avoid hammering the server
-      await delay(200);
+      if (hasMore) {
+        await delay(200);
+      }
     }
 
-    // Update last synced timestamp if no pending items remain
+    // Update last synced timestamp only when the active queue is fully clear.
     const finalState = store.getState();
     const remaining = finalState.syncQueue.items.filter(
-      (i: QueueItem) => i.status === "pending" || i.status === "syncing",
+      (i: QueueItem) =>
+        i.status === "pending" ||
+        i.status === "syncing" ||
+        i.status === "awaiting_confirmation",
     );
-    if (remaining.length === 0) {
+    if (remaining.length === 0 && finalState.syncQueue.items.length === 0) {
       dispatch(setLastSyncedAt(new Date().toISOString()));
     }
   } finally {

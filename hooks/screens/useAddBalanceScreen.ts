@@ -8,6 +8,7 @@ import {
   clearDraftEntries,
 } from "../../store/slices/balancesSlice";
 import { useNetworkContext } from "@/hooks/useNetworkStatus";
+import { generateIdempotencyKey } from "@/utils/idempotency";
 import { queueOfflineMutation } from "@/utils/offlineQueue";
 import { fetchDashboard } from "../../store/slices/dashboardSlice";
 import { fetchAccounts } from "../../store/slices/accountsSlice";
@@ -517,7 +518,10 @@ export function useAddBalanceScreen() {
       });
 
       try {
+        const requestKey = generateIdempotencyKey("balance-bulk-offline");
         await queueOfflineMutation({
+          clientMutationId: requestKey,
+          idempotencyKey: requestKey,
           entityType: "balanceBulk",
           method: "POST",
           endpoint: "/balances/bulk",

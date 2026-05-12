@@ -9,6 +9,7 @@ import {
   clearDraftEntries,
 } from "../../store/slices/commissionsSlice";
 import { useNetworkContext } from "@/hooks/useNetworkStatus";
+import { generateIdempotencyKey } from "@/utils/idempotency";
 import { queueOfflineMutation } from "@/utils/offlineQueue";
 import { fetchDashboard } from "../../store/slices/dashboardSlice";
 import { fetchAccounts } from "../../store/slices/accountsSlice";
@@ -488,7 +489,10 @@ export function useAddCommissionScreen() {
       });
 
       try {
+        const requestKey = generateIdempotencyKey("commission-bulk-offline");
         await queueOfflineMutation({
+          clientMutationId: requestKey,
+          idempotencyKey: requestKey,
           entityType: "commissionBulk",
           method: "POST",
           endpoint: "/commissions/bulk",

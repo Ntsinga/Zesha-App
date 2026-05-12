@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useRouter } from "expo-router";
+import { Alert } from "react-native";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import {
   fetchTransactions,
@@ -22,9 +23,12 @@ import {
 import { fetchAccounts } from "../../store/slices/accountsSlice";
 import { fetchDashboard } from "../../store/slices/dashboardSlice";
 import { fetchCommissionTotals } from "../../store/slices/expectedCommissionsSlice";
+import { API_ENDPOINTS } from "../../config/api";
 import { useCurrencyFormatter } from "../useCurrency";
 import { formatDateTime } from "../../utils/formatters";
 import { generateIdempotencyKey } from "../../utils/idempotency";
+import { isDeviceOffline } from "../../utils/offlineCheck";
+import { queueOfflineMutation } from "../../utils/offlineQueue";
 import type {
   ShiftEnum,
   TransactionTypeEnum,
@@ -559,6 +563,10 @@ export function useTransactionsScreen() {
       return;
     }
 
+    const requestKey =
+      transactionRequestKeyRef.current ??
+      generateIdempotencyKey("txn-screen");
+
     const data: TransactionCreate = {
       companyId,
       accountId: transactionForm.accountId,
@@ -568,15 +576,33 @@ export function useTransactionsScreen() {
       transactionTime: new Date().toISOString(),
       reference: transactionForm.reference || undefined,
       notes: transactionForm.notes || undefined,
-      idempotencyKey:
-        transactionRequestKeyRef.current ??
-        generateIdempotencyKey("txn-screen"),
+      idempotencyKey: requestKey,
     };
 
-    transactionRequestKeyRef.current = data.idempotencyKey ?? null;
+    transactionRequestKeyRef.current = requestKey;
 
     setSubmitError(null);
     try {
+      const offline = await isDeviceOffline();
+      if (offline) {
+        await queueOfflineMutation({
+          clientMutationId: requestKey,
+          idempotencyKey: requestKey,
+          entityType: "transaction",
+          method: "POST",
+          endpoint: API_ENDPOINTS.transactions.create,
+          payload: data,
+        });
+        transactionRequestKeyRef.current = null;
+        setShowAddTransaction(false);
+        setTransactionForm(initialTransactionForm);
+        Alert.alert(
+          "Queued offline",
+          "The transaction will sync automatically when you reconnect.",
+        );
+        return;
+      }
+
       await dispatch(createTransaction(data)).unwrap();
       transactionRequestKeyRef.current = null;
       setShowAddTransaction(false);
@@ -607,6 +633,10 @@ export function useTransactionsScreen() {
       return;
     }
 
+    const requestKey =
+      floatPurchaseRequestKeyRef.current ??
+      generateIdempotencyKey("float-screen");
+
     const data: FloatPurchaseCreate = {
       companyId,
       destinationAccountId: floatPurchaseForm.destinationAccountId,
@@ -619,15 +649,33 @@ export function useTransactionsScreen() {
       reference: floatPurchaseForm.reference || undefined,
       notes: floatPurchaseForm.notes || undefined,
       isConfirmed: floatPurchaseForm.isConfirmed,
-      idempotencyKey:
-        floatPurchaseRequestKeyRef.current ??
-        generateIdempotencyKey("float-screen"),
+      idempotencyKey: requestKey,
     };
 
-    floatPurchaseRequestKeyRef.current = data.idempotencyKey ?? null;
+    floatPurchaseRequestKeyRef.current = requestKey;
 
     setSubmitError(null);
     try {
+      const offline = await isDeviceOffline();
+      if (offline) {
+        await queueOfflineMutation({
+          clientMutationId: requestKey,
+          idempotencyKey: requestKey,
+          entityType: "floatPurchase",
+          method: "POST",
+          endpoint: API_ENDPOINTS.transactions.floatPurchase,
+          payload: data,
+        });
+        floatPurchaseRequestKeyRef.current = null;
+        setShowFloatPurchase(false);
+        setFloatPurchaseForm(initialFloatPurchaseForm);
+        Alert.alert(
+          "Queued offline",
+          "The float purchase will sync automatically when you reconnect.",
+        );
+        return;
+      }
+
       await dispatch(createFloatPurchase(data)).unwrap();
       floatPurchaseRequestKeyRef.current = null;
       setShowFloatPurchase(false);
@@ -660,6 +708,7 @@ export function useTransactionsScreen() {
         capitalInjectionRequestKeyRef.current ??
         generateIdempotencyKey("capital-screen");
       capitalInjectionRequestKeyRef.current = requestKey;
+      const offline = await isDeviceOffline();
 
       if (capitalInjectionForm.injectionType === "FLOAT") {
         const data: CapitalInjectionCreate = {
@@ -671,7 +720,18 @@ export function useTransactionsScreen() {
           notes: capitalInjectionForm.notes || undefined,
           idempotencyKey: requestKey,
         };
-        await dispatch(createCapitalInjection(data)).unwrap();
+        if (offline) {
+          await queueOfflineMutation({
+            clientMutationId: requestKey,
+            idempotencyKey: requestKey,
+            entityType: "capitalInjection",
+            method: "POST",
+            endpoint: API_ENDPOINTS.transactions.capitalInjection,
+            payload: data,
+          });
+        } else {
+          await dispatch(createCapitalInjection(data)).unwrap();
+        }
       } else {
         const data: CashCapitalInjectionCreate = {
           companyId,
@@ -681,14 +741,32 @@ export function useTransactionsScreen() {
           notes: capitalInjectionForm.notes || undefined,
           idempotencyKey: requestKey,
         };
-        await dispatch(createCashCapitalInjection(data)).unwrap();
+        if (offline) {
+          await queueOfflineMutation({
+            clientMutationId: requestKey,
+            idempotencyKey: requestKey,
+            entityType: "cashCapitalInjection",
+            method: "POST",
+            endpoint: API_ENDPOINTS.transactions.cashCapitalInjection,
+            payload: data,
+          });
+        } else {
+          await dispatch(createCashCapitalInjection(data)).unwrap();
+        }
       }
 
       capitalInjectionRequestKeyRef.current = null;
       setShowCapitalInjection(false);
       setCapitalInjectionForm(initialCapitalInjectionForm);
-      refreshCurrentRange();
-      dispatch(fetchDashboard({ forceRefresh: true }));
+      if (offline) {
+        Alert.alert(
+          "Queued offline",
+          "The capital injection will sync automatically when you reconnect.",
+        );
+      } else {
+        refreshCurrentRange();
+        dispatch(fetchDashboard({ forceRefresh: true }));
+      }
     } catch (err) {
       setSubmitError(
         typeof err === "string"
