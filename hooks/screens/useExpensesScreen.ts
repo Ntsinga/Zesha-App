@@ -79,6 +79,7 @@ export function useExpensesScreen() {
 
   const [selectedMonth, setSelectedMonth] =
     useState<string>(getCurrentMonthValue);
+  const [showAllTime, setShowAllTime] = useState(false);
   const [filterCategory, setFilterCategory] = useState<string>("ALL");
   const [filterStatus, setFilterStatus] = useState<ExpenseStatus | "ALL">(
     "ALL",
@@ -96,13 +97,14 @@ export function useExpensesScreen() {
     async (forceRefresh = false) => {
       await dispatch(
         fetchExpenses({
-          dateFrom: monthRange.start,
-          dateTo: monthRange.end,
+          ...(showAllTime
+            ? {}
+            : { dateFrom: monthRange.start, dateTo: monthRange.end }),
           forceRefresh,
         }),
       );
     },
-    [dispatch, monthRange.end, monthRange.start],
+    [dispatch, monthRange.end, monthRange.start, showAllTime],
   );
 
   useEffect(() => {
@@ -467,6 +469,8 @@ export function useExpensesScreen() {
 
     selectedMonth,
     setSelectedMonth,
+    showAllTime,
+    setShowAllTime,
     filterCategory,
     setFilterCategory,
     filterStatus,
