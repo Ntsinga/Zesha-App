@@ -37,7 +37,6 @@ import {
 } from "../../store/slices/authSlice";
 import TopBarWeb from "../../components/TopBar.web";
 import { ToastProvider } from "../../components/Toast.web";
-import TelebaIcon from "../../components/TelebaIcon";
 
 interface NavItem {
   href: string;
@@ -311,7 +310,13 @@ export default function AppLayoutWeb() {
           <div className="mobile-menu-header">
             <div className="mobile-menu-brand">
               <div className="mobile-menu-logo">
-                <TelebaIcon size={36} />
+                <img
+                  src="/assets/teleba_icon_final.png"
+                  alt="Teleba"
+                  width={36}
+                  height={36}
+                  style={{ borderRadius: 8, display: "block" }}
+                />
               </div>
               <div>
                 <div className="mobile-menu-title">Teleba</div>
@@ -365,7 +370,13 @@ export default function AppLayoutWeb() {
           <div className="sidebar-header">
             <div className="sidebar-brand">
               <div className="sidebar-logo">
-                <TelebaIcon size={38} />
+                <img
+                  src="/assets/teleba_icon_final.png"
+                  alt="Teleba"
+                  width={38}
+                  height={38}
+                  style={{ borderRadius: 8, display: "block" }}
+                />
               </div>
               {!isSidebarCollapsed && (
                 <div>
@@ -445,7 +456,13 @@ export default function AppLayoutWeb() {
           <header className="mobile-header">
             <div className="mobile-header-brand">
               <div className="mobile-header-logo">
-                <TelebaIcon size={32} />
+                <img
+                  src="/assets/teleba_icon_final.png"
+                  alt="Teleba"
+                  width={32}
+                  height={32}
+                  style={{ borderRadius: 7, display: "block" }}
+                />
               </div>
               <span className="mobile-header-title">Teleba</span>
             </div>
