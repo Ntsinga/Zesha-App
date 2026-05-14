@@ -89,7 +89,7 @@ export default function AgenciesScreen() {
 
   const handleEnterAgency = (agency: CompanyInfo) => {
     dispatch(enterAgency({ agencyId: agency.id, agencyName: agency.name }));
-    router.push("/(app)");
+    router.push("/");
   };
 
   const handleCreate = () => router.push("/agency-form");

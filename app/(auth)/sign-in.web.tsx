@@ -14,7 +14,7 @@ export default function SignInWeb() {
   const getRedirectTarget = () => {
     const params = new URLSearchParams(window.location.search);
     const redirect = params.get("redirect");
-    return redirect && redirect.startsWith("/") ? redirect : "/(app)";
+    return redirect && redirect.startsWith("/") ? redirect : "/";
   };
 
   // Already signed in — go straight to intended page (or app)

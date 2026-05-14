@@ -84,7 +84,7 @@ export default function SignUpWeb() {
       const attempt = await signUp.attemptEmailAddressVerification({ code });
       if (attempt.status === "complete") {
         await setActive({ session: attempt.createdSessionId });
-        router.replace("/(app)");
+        router.replace("/");
       } else {
         setError("Verification failed. Please try again.");
       }
