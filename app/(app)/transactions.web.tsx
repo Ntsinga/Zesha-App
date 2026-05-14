@@ -684,8 +684,21 @@ export default function TransactionsWeb() {
                       {formatDateTime(txn.transactionTime)}
                     </td>
                     <td>
-                      <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                      <div
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: "3px",
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "6px",
+                            flexWrap: "wrap",
+                          }}
+                        >
                           <span
                             className="category-badge"
                             style={{
@@ -697,7 +710,8 @@ export default function TransactionsWeb() {
                                   ? "rgba(34,197,94,0.15)"
                                   : txn.transactionType === "WITHDRAW"
                                     ? "rgba(239,68,68,0.15)"
-                                    : txn.transactionType === "CAPITAL_INJECTION"
+                                    : txn.transactionType ===
+                                        "CAPITAL_INJECTION"
                                       ? "rgba(20,184,166,0.15)"
                                       : "rgba(59,130,246,0.15)",
                               color:
@@ -705,7 +719,8 @@ export default function TransactionsWeb() {
                                   ? "#22c55e"
                                   : txn.transactionType === "WITHDRAW"
                                     ? "#ef4444"
-                                    : txn.transactionType === "CAPITAL_INJECTION"
+                                    : txn.transactionType ===
+                                        "CAPITAL_INJECTION"
                                       ? "#14b8a6"
                                       : "#3b82f6",
                               borderColor:
@@ -713,7 +728,8 @@ export default function TransactionsWeb() {
                                   ? "rgba(34,197,94,0.3)"
                                   : txn.transactionType === "WITHDRAW"
                                     ? "rgba(239,68,68,0.3)"
-                                    : txn.transactionType === "CAPITAL_INJECTION"
+                                    : txn.transactionType ===
+                                        "CAPITAL_INJECTION"
                                       ? "rgba(20,184,166,0.3)"
                                       : "rgba(59,130,246,0.3)",
                             }}
@@ -752,21 +768,25 @@ export default function TransactionsWeb() {
                                   : "Internal · In"}
                           </span>
                         )}
-                        {txn.transactionType === "DEPOSIT" && txn.transactionSubtype && (
-                          <span style={{ fontSize: "11px", color: "#64748b" }}>
-                            {txn.transactionSubtype === "AIRTIME"
-                              ? "Airtime"
-                              : txn.transactionSubtype === "VOICE_BUNDLE"
-                                ? "Voice Bundle"
-                                : txn.transactionSubtype === "DATA_BUNDLE"
-                                  ? "Data Bundle"
-                                  : txn.transactionSubtype === "BILL_PAYMENT"
-                                    ? "Bill Payment"
-                                    : txn.transactionSubtype === "AGENT_TO_AGENT"
-                                      ? "Agent to Agent"
-                                      : txn.transactionSubtype}
-                          </span>
-                        )}
+                        {txn.transactionType === "DEPOSIT" &&
+                          txn.transactionSubtype && (
+                            <span
+                              style={{ fontSize: "11px", color: "#64748b" }}
+                            >
+                              {txn.transactionSubtype === "AIRTIME"
+                                ? "Airtime"
+                                : txn.transactionSubtype === "VOICE_BUNDLE"
+                                  ? "Voice Bundle"
+                                  : txn.transactionSubtype === "DATA_BUNDLE"
+                                    ? "Data Bundle"
+                                    : txn.transactionSubtype === "BILL_PAYMENT"
+                                      ? "Bill Payment"
+                                      : txn.transactionSubtype ===
+                                          "AGENT_TO_AGENT"
+                                        ? "Agent to Agent"
+                                        : txn.transactionSubtype}
+                            </span>
+                          )}
                       </div>
                     </td>
                     <td className="font-medium">
