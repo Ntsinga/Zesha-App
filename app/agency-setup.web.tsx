@@ -103,7 +103,7 @@ export default function AgencySetupWeb() {
 
   useEffect(() => {
     if (!needsAgencyOnboarding && companyId) {
-      router.replace("/(app)");
+      router.replace("/");
     }
   }, [companyId, needsAgencyOnboarding, router]);
 
@@ -374,7 +374,7 @@ export default function AgencySetupWeb() {
     }
 
     await dispatch(fetchUserByClerkId(authUser.clerkUserId));
-    router.replace("/(app)");
+    router.replace("/");
   };
 
   return (

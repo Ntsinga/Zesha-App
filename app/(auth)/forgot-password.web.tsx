@@ -53,7 +53,7 @@ export default function ForgotPasswordWeb() {
 
   useEffect(() => {
     if (isSignedIn) {
-      router.replace("/(app)");
+      router.replace("/");
     }
   }, [isSignedIn, router]);
 
@@ -261,7 +261,7 @@ export default function ForgotPasswordWeb() {
 
       if (resetAttempt.status === "complete" && resetAttempt.createdSessionId) {
         await setActive({ session: resetAttempt.createdSessionId });
-        router.replace("/(app)");
+        router.replace("/");
         return;
       }
 
@@ -310,7 +310,7 @@ export default function ForgotPasswordWeb() {
         signInAttempt.createdSessionId
       ) {
         await setActive({ session: signInAttempt.createdSessionId });
-        router.replace("/(app)");
+        router.replace("/");
         return;
       }
 
