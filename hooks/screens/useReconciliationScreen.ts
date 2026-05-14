@@ -161,6 +161,7 @@ export function useReconciliationScreen({
   const status = reconciliation?.status || "FLAGGED";
   const isFinalized = reconciliation?.isFinalized || false;
   const isApproved = reconciliation?.approvalStatus === "APPROVED" || false;
+  const isRejected = reconciliation?.approvalStatus === "REJECTED" || false;
 
   // --- Balance validation computed values ---
   const { hasDiscrepancies, discrepancyCount, totalDiscrepancyAmount } =
@@ -466,6 +467,7 @@ export function useReconciliationScreen({
     status,
     isFinalized,
     isApproved,
+    isRejected,
 
     // Balance validation
     balanceValidation,

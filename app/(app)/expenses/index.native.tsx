@@ -26,6 +26,9 @@ import {
   Users,
   Home,
   CheckCircle,
+  ChevronLeft,
+  ChevronRight,
+  SlidersHorizontal,
 } from "lucide-react-native";
 import { useExpensesScreen } from "../../../hooks/screens/useExpensesScreen";
 import { LoadingSpinner } from "../../../components/LoadingSpinner";
@@ -45,14 +48,21 @@ export default function Expenses() {
     deleteConfirmId,
     clearConfirmId,
     totalAmount,
+    totalCount,
     name,
     amount,
     description,
     expenseDate,
     category,
     fundingSource,
-    filterStatus,
-    setFilterStatus,
+    selectedMonth,
+    setSelectedMonth,
+    showAllTime,
+    setShowAllTime,
+    filterCategory,
+    setFilterCategory,
+    filterSource,
+    setFilterSource,
     setName,
     setAmount,
     setDescription,
@@ -76,8 +86,30 @@ export default function Expenses() {
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [showFundingSourcePicker, setShowFundingSourcePicker] = useState(false);
   const [clearNotes, setClearNotes] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
 
   const displayAmount = formatAmountInput(amount);
+
+  // Month navigation helpers
+  const navigateMonth = (direction: -1 | 1) => {
+    const [year, month] = selectedMonth.split("-").map(Number);
+    const d = new Date(year, month - 1 + direction, 1);
+    setSelectedMonth(
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`,
+    );
+    if (showAllTime) setShowAllTime(false);
+  };
+
+  const monthLabel = (() => {
+    const [year, month] = selectedMonth.split("-").map(Number);
+    return new Date(year, month - 1).toLocaleDateString("en-US", {
+      month: "long",
+      year: "numeric",
+    });
+  })();
+
+  const activeFilterCount =
+    (filterCategory !== "ALL" ? 1 : 0) + (filterSource !== "ALL" ? 1 : 0);
 
   const handleAmountChange = (text: string) => {
     const clean = parseAmountInput(text);
@@ -196,57 +228,227 @@ export default function Expenses() {
           <Text className="text-3xl font-bold text-brand-red">Expenses</Text>
         </View>
 
-        {/* This Month's Expenses Card */}
-        <View className="bg-brand-red rounded-2xl p-5 mb-6 shadow-md">
+        {/* Month Navigation */}
+        <View className="flex-row items-center justify-between mb-4">
+          <TouchableOpacity
+            onPress={() => navigateMonth(-1)}
+            className="p-2"
+            disabled={showAllTime}
+          >
+            <ChevronLeft
+              color={showAllTime ? "#D1D5DB" : "#374151"}
+              size={24}
+            />
+          </TouchableOpacity>
+          <Text
+            className={`text-lg font-bold ${showAllTime ? "text-gray-400" : "text-gray-800"}`}
+          >
+            {monthLabel}
+          </Text>
+          <TouchableOpacity
+            onPress={() => navigateMonth(1)}
+            className="p-2"
+            disabled={showAllTime}
+          >
+            <ChevronRight
+              color={showAllTime ? "#D1D5DB" : "#374151"}
+              size={24}
+            />
+          </TouchableOpacity>
+        </View>
+        <View className="flex-row items-center gap-2 mb-4">
+          <TouchableOpacity
+            onPress={() => setShowAllTime(false)}
+            className={`flex-1 py-2 rounded-full border ${
+              !showAllTime
+                ? "bg-brand-red border-brand-red"
+                : "bg-white border-gray-300"
+            }`}
+          >
+            <Text
+              className={`text-center text-sm font-semibold ${
+                !showAllTime ? "text-white" : "text-gray-600"
+              }`}
+            >
+              This Month
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => setShowAllTime(true)}
+            className={`flex-1 py-2 rounded-full border ${
+              showAllTime
+                ? "bg-brand-red border-brand-red"
+                : "bg-white border-gray-300"
+            }`}
+          >
+            <Text
+              className={`text-center text-sm font-semibold ${
+                showAllTime ? "text-white" : "text-gray-600"
+              }`}
+            >
+              All Time
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Summary Card */}
+        <View className="bg-brand-red rounded-2xl p-5 mb-4 shadow-md">
           <Text className="text-white/80 text-sm font-medium">
-            This Month's Expenses
+            {showAllTime ? "Total Expenses" : "Monthly Expenses"}
           </Text>
           <Text className="text-white text-3xl font-bold mt-1">
             {formatCurrency(totalAmount)}
           </Text>
           <Text className="text-white/60 text-xs mt-2">
-            {expenses.length} expense{expenses.length !== 1 ? "s" : ""} recorded
+            {totalCount} expense{totalCount !== 1 ? "s" : ""} recorded
           </Text>
         </View>
 
-        {/* Status Filter Chips */}
-        <View className="flex-row mb-4 gap-2">
-          {(["ALL", "PENDING", "CLEARED"] as const).map((s) => (
+        {/* Filter Toggle + Active Chips */}
+        <View className="flex-row items-center justify-between mb-2">
+          <TouchableOpacity
+            onPress={() => setShowFilters(!showFilters)}
+            className="flex-row items-center px-3 py-2 rounded-full bg-white border border-gray-200"
+          >
+            <SlidersHorizontal color="#6B7280" size={16} />
+            <Text className="text-sm text-gray-600 ml-1.5 font-medium">
+              Filters
+            </Text>
+            {activeFilterCount > 0 && (
+              <View className="ml-1.5 bg-brand-red w-5 h-5 rounded-full items-center justify-center">
+                <Text className="text-white text-xs font-bold">
+                  {activeFilterCount}
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
+
+          {activeFilterCount > 0 && (
             <TouchableOpacity
-              key={s}
-              onPress={() => setFilterStatus(s)}
-              className={`px-3 py-1.5 rounded-full border ${
-                filterStatus === s
-                  ? s === "CLEARED"
-                    ? "bg-green-500 border-green-500"
-                    : s === "PENDING"
-                      ? "bg-amber-500 border-amber-500"
-                      : "bg-brand-red border-brand-red"
-                  : "bg-white border-gray-300"
-              }`}
+              onPress={() => {
+                setFilterCategory("ALL");
+                setFilterSource("ALL");
+              }}
             >
-              <Text
-                className={`text-xs font-semibold ${
-                  filterStatus === s ? "text-white" : "text-gray-600"
-                }`}
-              >
-                {s === "ALL" ? "All" : s === "PENDING" ? "Pending" : "Cleared"}
+              <Text className="text-sm text-brand-red font-medium">
+                Clear filters
               </Text>
             </TouchableOpacity>
-          ))}
+          )}
         </View>
+
+        {/* Expandable Filter Panel */}
+        {showFilters && (
+          <View className="bg-white rounded-2xl p-4 mb-4 border border-gray-100">
+            {/* Category Filter */}
+            <Text className="text-xs font-semibold text-gray-500 uppercase mb-2">
+              Category
+            </Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              className="mb-3"
+            >
+              <View className="flex-row gap-2">
+                <TouchableOpacity
+                  onPress={() => setFilterCategory("ALL")}
+                  className={`px-3 py-1.5 rounded-full border ${
+                    filterCategory === "ALL"
+                      ? "bg-brand-red border-brand-red"
+                      : "bg-white border-gray-300"
+                  }`}
+                >
+                  <Text
+                    className={`text-xs font-semibold ${
+                      filterCategory === "ALL" ? "text-white" : "text-gray-600"
+                    }`}
+                  >
+                    All
+                  </Text>
+                </TouchableOpacity>
+                {categories.map((cat) => (
+                  <TouchableOpacity
+                    key={cat.id}
+                    onPress={() => setFilterCategory(cat.name)}
+                    className={`px-3 py-1.5 rounded-full border ${
+                      filterCategory === cat.name
+                        ? "bg-brand-red border-brand-red"
+                        : "bg-white border-gray-300"
+                    }`}
+                  >
+                    <Text
+                      className={`text-xs font-semibold ${
+                        filterCategory === cat.name
+                          ? "text-white"
+                          : "text-gray-600"
+                      }`}
+                    >
+                      {cat.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </ScrollView>
+
+            {/* Source Filter */}
+            <Text className="text-xs font-semibold text-gray-500 uppercase mb-2">
+              Funding Source
+            </Text>
+            <View className="flex-row flex-wrap gap-2">
+              <TouchableOpacity
+                onPress={() => setFilterSource("ALL")}
+                className={`px-3 py-1.5 rounded-full border ${
+                  filterSource === "ALL"
+                    ? "bg-brand-red border-brand-red"
+                    : "bg-white border-gray-300"
+                }`}
+              >
+                <Text
+                  className={`text-xs font-semibold ${
+                    filterSource === "ALL" ? "text-white" : "text-gray-600"
+                  }`}
+                >
+                  All
+                </Text>
+              </TouchableOpacity>
+              {fundingSources.map((src) => (
+                <TouchableOpacity
+                  key={src.value}
+                  onPress={() => setFilterSource(src.value)}
+                  className={`px-3 py-1.5 rounded-full border ${
+                    filterSource === src.value
+                      ? "bg-brand-red border-brand-red"
+                      : "bg-white border-gray-300"
+                  }`}
+                >
+                  <Text
+                    className={`text-xs font-semibold ${
+                      filterSource === src.value
+                        ? "text-white"
+                        : "text-gray-600"
+                    }`}
+                  >
+                    {src.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        )}
 
         {/* Expenses List */}
         <View className="bg-white rounded-3xl shadow-sm p-4 border border-gray-100">
           <Text className="text-lg font-bold text-gray-800 mb-4">
-            Recent Expenses
+            {showAllTime ? "All Expenses" : "Expenses"}
           </Text>
 
           {expenses.length === 0 ? (
             <View className="py-8 items-center">
               <DollarSign color="#9CA3AF" size={48} />
               <Text className="text-gray-400 mt-2">
-                No expenses recorded this month
+                {showAllTime
+                  ? "No expenses recorded yet"
+                  : "No expenses recorded this month"}
               </Text>
             </View>
           ) : (

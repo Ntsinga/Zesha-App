@@ -69,6 +69,7 @@ export default function BalanceDetailWeb() {
     isFinalizing,
     isFinalized,
     isApproved,
+    isRejected,
     handleCalculate,
     handleFinalize,
     handleApprove,
@@ -181,7 +182,6 @@ export default function BalanceDetailWeb() {
             </span>
           </div>
         </div>
-
       </header>
 
       <div className="dashboard-content">
@@ -260,7 +260,9 @@ export default function BalanceDetailWeb() {
               <span className="gt-strip-group-label">Performance</span>
               <div className="gt-strip-group-items">
                 <div className="gt-strip-metric">
-                  <span className="gt-strip-metric-label">{isOpening ? "Expected Opening" : "Expected Closing"}</span>
+                  <span className="gt-strip-metric-label">
+                    {isOpening ? "Expected Opening" : "Expected Closing"}
+                  </span>
                   <span className="gt-strip-metric-value">
                     {formatCurrency(expectedClosing)}
                   </span>
@@ -295,7 +297,7 @@ export default function BalanceDetailWeb() {
             )}
 
             {/* Supervisor actions — after metrics */}
-            {isFinalized && canReview && !isApproved && (
+            {isFinalized && canReview && !isApproved && !isRejected && (
               <>
                 <div className="gt-strip-metric-divider" />
                 <button
@@ -317,16 +319,46 @@ export default function BalanceDetailWeb() {
               </>
             )}
 
-            {/* Approved badge in strip */}
+            {/* Approval status badge */}
             {isApproved && (
               <>
                 <div className="gt-strip-metric-divider" />
                 <span
-                  className="gt-strip-action-btn approve"
-                  style={{ cursor: "default", pointerEvents: "none" }}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 4,
+                    padding: "2px 9px",
+                    borderRadius: 20,
+                    fontSize: 11,
+                    fontWeight: 600,
+                    background: "#dcfce7",
+                    color: "#15803d",
+                  }}
                 >
-                  <Check size={14} />
+                  <Check size={11} />
                   Approved
+                </span>
+              </>
+            )}
+            {isRejected && (
+              <>
+                <div className="gt-strip-metric-divider" />
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 4,
+                    padding: "2px 9px",
+                    borderRadius: 20,
+                    fontSize: 11,
+                    fontWeight: 600,
+                    background: "#fee2e2",
+                    color: "#991b1b",
+                  }}
+                >
+                  <XCircle size={11} />
+                  Rejected
                 </span>
               </>
             )}
