@@ -30,8 +30,8 @@ import { readImageAsBase64, deleteLocalImage } from "@/utils/localImageStore";
 // ---------------------------------------------------------------------------
 
 const MAX_RETRIES = 5;
-const BASE_DELAY_MS = 1_000; // 1 second
-const MAX_DELAY_MS = 30_000; // 30 seconds
+const BASE_DELAY_MS = 500; // 500ms
+const MAX_DELAY_MS = 8_000; // 8 seconds
 
 // Transient HTTP status codes worth retrying
 const RETRY_STATUS_CODES = new Set([408, 429, 500, 502, 503, 504]);
@@ -48,7 +48,8 @@ type ProcessItemResult =
 // ---------------------------------------------------------------------------
 
 let netInfoUnsubscribe: (() => void) | null = null;
-let appStateSubscription: ReturnType<typeof AppState.addEventListener> | null = null;
+let appStateSubscription: ReturnType<typeof AppState.addEventListener> | null =
+  null;
 let isProcessing = false;
 let isStarted = false;
 
@@ -190,7 +191,10 @@ function summarizeResponse(response: unknown): string | null {
 }
 
 function hasReplayKey(item: QueueItem): boolean {
-  if (typeof item.idempotencyKey === "string" && item.idempotencyKey.length > 0) {
+  if (
+    typeof item.idempotencyKey === "string" &&
+    item.idempotencyKey.length > 0
+  ) {
     return true;
   }
 
@@ -497,7 +501,10 @@ export function startSyncEngine(): void {
   if (isStarted) return;
 
   netInfoUnsubscribe = NetInfo.addEventListener(handleNetInfoChange);
-  appStateSubscription = AppState.addEventListener("change", handleAppStateChange);
+  appStateSubscription = AppState.addEventListener(
+    "change",
+    handleAppStateChange,
+  );
   isStarted = true;
 
   // Initial sync attempt on start

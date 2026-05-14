@@ -684,61 +684,90 @@ export default function TransactionsWeb() {
                       {formatDateTime(txn.transactionTime)}
                     </td>
                     <td>
-                      <span
-                        className="category-badge"
-                        style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: "4px",
-                          background:
-                            txn.transactionType === "DEPOSIT"
-                              ? "rgba(34,197,94,0.15)"
-                              : txn.transactionType === "WITHDRAW"
-                                ? "rgba(239,68,68,0.15)"
-                                : txn.transactionType === "CAPITAL_INJECTION"
-                                  ? "rgba(20,184,166,0.15)"
-                                  : "rgba(59,130,246,0.15)",
-                          color:
-                            txn.transactionType === "DEPOSIT"
-                              ? "#22c55e"
-                              : txn.transactionType === "WITHDRAW"
-                                ? "#ef4444"
-                                : txn.transactionType === "CAPITAL_INJECTION"
-                                  ? "#14b8a6"
-                                  : "#3b82f6",
-                          borderColor:
-                            txn.transactionType === "DEPOSIT"
-                              ? "rgba(34,197,94,0.3)"
-                              : txn.transactionType === "WITHDRAW"
-                                ? "rgba(239,68,68,0.3)"
-                                : txn.transactionType === "CAPITAL_INJECTION"
-                                  ? "rgba(20,184,166,0.3)"
-                                  : "rgba(59,130,246,0.3)",
-                        }}
-                      >
-                        <TypeIcon type={txn.transactionType} />
-                        {getTransactionTypeLabel(txn.transactionType)}
-                      </span>
-                      {!txn.isConfirmed && (
-                        <span
-                          style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: "3px",
-                            marginLeft: "6px",
-                            padding: "2px 6px",
-                            borderRadius: "4px",
-                            fontSize: "11px",
-                            fontWeight: 500,
-                            background: "rgba(234,179,8,0.15)",
-                            color: "#eab308",
-                            border: "1px solid rgba(234,179,8,0.3)",
-                          }}
-                        >
-                          <AlertTriangle size={10} />
-                          Unconfirmed
-                        </span>
-                      )}
+                      <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                          <span
+                            className="category-badge"
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "4px",
+                              background:
+                                txn.transactionType === "DEPOSIT"
+                                  ? "rgba(34,197,94,0.15)"
+                                  : txn.transactionType === "WITHDRAW"
+                                    ? "rgba(239,68,68,0.15)"
+                                    : txn.transactionType === "CAPITAL_INJECTION"
+                                      ? "rgba(20,184,166,0.15)"
+                                      : "rgba(59,130,246,0.15)",
+                              color:
+                                txn.transactionType === "DEPOSIT"
+                                  ? "#22c55e"
+                                  : txn.transactionType === "WITHDRAW"
+                                    ? "#ef4444"
+                                    : txn.transactionType === "CAPITAL_INJECTION"
+                                      ? "#14b8a6"
+                                      : "#3b82f6",
+                              borderColor:
+                                txn.transactionType === "DEPOSIT"
+                                  ? "rgba(34,197,94,0.3)"
+                                  : txn.transactionType === "WITHDRAW"
+                                    ? "rgba(239,68,68,0.3)"
+                                    : txn.transactionType === "CAPITAL_INJECTION"
+                                      ? "rgba(20,184,166,0.3)"
+                                      : "rgba(59,130,246,0.3)",
+                            }}
+                          >
+                            <TypeIcon type={txn.transactionType} />
+                            {getTransactionTypeLabel(txn.transactionType)}
+                          </span>
+                          {!txn.isConfirmed && (
+                            <span
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "3px",
+                                padding: "2px 6px",
+                                borderRadius: "4px",
+                                fontSize: "11px",
+                                fontWeight: 500,
+                                background: "rgba(234,179,8,0.15)",
+                                color: "#eab308",
+                                border: "1px solid rgba(234,179,8,0.3)",
+                              }}
+                            >
+                              <AlertTriangle size={10} />
+                              Unconfirmed
+                            </span>
+                          )}
+                        </div>
+                        {txn.transactionType === "FLOAT_PURCHASE" && (
+                          <span style={{ fontSize: "11px", color: "#64748b" }}>
+                            {txn.floatSource === "AGENT"
+                              ? "Agent Top-up"
+                              : txn.floatSource === "BANK"
+                                ? "Bank Top-up"
+                                : txn.floatDirection === "OUT"
+                                  ? "Internal · Out"
+                                  : "Internal · In"}
+                          </span>
+                        )}
+                        {txn.transactionType === "DEPOSIT" && txn.transactionSubtype && (
+                          <span style={{ fontSize: "11px", color: "#64748b" }}>
+                            {txn.transactionSubtype === "AIRTIME"
+                              ? "Airtime"
+                              : txn.transactionSubtype === "VOICE_BUNDLE"
+                                ? "Voice Bundle"
+                                : txn.transactionSubtype === "DATA_BUNDLE"
+                                  ? "Data Bundle"
+                                  : txn.transactionSubtype === "BILL_PAYMENT"
+                                    ? "Bill Payment"
+                                    : txn.transactionSubtype === "AGENT_TO_AGENT"
+                                      ? "Agent to Agent"
+                                      : txn.transactionSubtype}
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="font-medium">
                       {txn.account?.name || `Account #${txn.accountId}`}

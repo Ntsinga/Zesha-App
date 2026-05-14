@@ -27,9 +27,7 @@ import {
   Home,
   CheckCircle,
 } from "lucide-react-native";
-import {
-  useExpensesScreen,
-} from "../../../hooks/screens/useExpensesScreen";
+import { useExpensesScreen } from "../../../hooks/screens/useExpensesScreen";
 import { LoadingSpinner } from "../../../components/LoadingSpinner";
 import {
   formatAmountInput,
@@ -276,23 +274,27 @@ export default function Expenses() {
                         </Text>
                       </View>
                     )}
-                    <View
-                      className={`px-2 py-0.5 rounded mr-1 ${
-                        expense.status === "CLEARED"
-                          ? "bg-green-100"
-                          : "bg-amber-100"
-                      }`}
-                    >
-                      <Text
-                        className={`text-xs font-semibold ${
+                    {expense.fundingSource === "CAPITAL" && (
+                      <View
+                        className={`px-2 py-0.5 rounded mr-1 ${
                           expense.status === "CLEARED"
-                            ? "text-green-700"
-                            : "text-amber-700"
+                            ? "bg-green-100"
+                            : "bg-amber-100"
                         }`}
                       >
-                        {expense.status === "CLEARED" ? "Cleared" : "Pending"}
-                      </Text>
-                    </View>
+                        <Text
+                          className={`text-xs font-semibold ${
+                            expense.status === "CLEARED"
+                              ? "text-green-700"
+                              : "text-amber-700"
+                          }`}
+                        >
+                          {expense.status === "CLEARED"
+                            ? "Reimbursed"
+                            : "Unreimbursed"}
+                        </Text>
+                      </View>
+                    )}
                     <View className="bg-blue-50 px-2 py-0.5 rounded mr-1">
                       <Text className="text-xs text-blue-700 font-medium">
                         {getFundingSourceLabel(expense.fundingSource)}
@@ -319,14 +321,15 @@ export default function Expenses() {
                 >
                   -{formatCurrency(expense.amount)}
                 </Text>
-                {expense.status === "PENDING" && (
-                  <TouchableOpacity
-                    onPress={() => setClearConfirmId(expense.id)}
-                    className="p-2 mr-1"
-                  >
-                    <CheckCircle color="#10B981" size={18} />
-                  </TouchableOpacity>
-                )}
+                {expense.fundingSource === "CAPITAL" &&
+                  expense.status === "PENDING" && (
+                    <TouchableOpacity
+                      onPress={() => setClearConfirmId(expense.id)}
+                      className="p-2 mr-1"
+                    >
+                      <CheckCircle color="#10B981" size={18} />
+                    </TouchableOpacity>
+                  )}
                 <TouchableOpacity
                   onPress={() => setDeleteConfirmId(expense.id)}
                   className="p-2"
@@ -466,7 +469,9 @@ export default function Expenses() {
                 Funding Source
               </Text>
               <TouchableOpacity
-                onPress={() => setShowFundingSourcePicker(!showFundingSourcePicker)}
+                onPress={() =>
+                  setShowFundingSourcePicker(!showFundingSourcePicker)
+                }
                 className="bg-gray-50 rounded-xl px-4 py-3 border border-gray-200 flex-row justify-between items-center"
               >
                 <View className="flex-row items-center">

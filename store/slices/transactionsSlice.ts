@@ -754,6 +754,9 @@ const transactionsSlice = createSlice({
     clearSelectedStatementImportBatch: (state) => {
       state.selectedStatementImportBatch = null;
     },
+    invalidateTransactionsCache: (state) => {
+      state.lastFetched = null;
+    },
   },
   extraReducers: (builder) => {
     // ---- Fetch All ----
@@ -1072,6 +1075,7 @@ export const {
   clearStatementImportResult,
   clearStatementImportHistory,
   clearSelectedStatementImportBatch,
+  invalidateTransactionsCache,
 } = transactionsSlice.actions;
 
 export default transactionsSlice.reducer;
