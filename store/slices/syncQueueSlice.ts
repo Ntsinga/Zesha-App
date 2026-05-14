@@ -74,8 +74,7 @@ export interface QueueItem {
   localImageUris?: string[];
 }
 
-export interface SyncHistoryItem
-  extends Omit<QueueItem, "status"> {
+export interface SyncHistoryItem extends Omit<QueueItem, "status"> {
   status: "synced";
   archivedAt: string;
 }
@@ -186,10 +185,7 @@ const syncQueueSlice = createSlice({
   initialState,
   reducers: {
     /** Add a new item to the sync queue */
-    addToQueue(
-      state,
-      action: PayloadAction<AddToQueuePayload>,
-    ) {
+    addToQueue(state, action: PayloadAction<AddToQueuePayload>) {
       const queueId = generateId();
       state.items.push({
         ...action.payload,
@@ -218,7 +214,9 @@ const syncQueueSlice = createSlice({
 
     /** Archive an item after a confirmed successful sync */
     archiveSyncedItem(state, action: PayloadAction<ArchiveSyncedPayload>) {
-      const itemIndex = state.items.findIndex((i) => i.id === action.payload.id);
+      const itemIndex = state.items.findIndex(
+        (i) => i.id === action.payload.id,
+      );
       if (itemIndex === -1) {
         return;
       }
@@ -320,6 +318,11 @@ const syncQueueSlice = createSlice({
       state.items = state.items.filter((i) => i.status !== "failed");
     },
 
+    /** Dismiss a single queue item by ID (only safe for definitively-rejected items) */
+    dismissQueueItem(state, action: PayloadAction<string>) {
+      state.items = state.items.filter((i) => i.id !== action.payload);
+    },
+
     /** Clear recent synced history (manual user action or logout) */
     clearRecentHistory(state) {
       state.recentHistory = [];
@@ -349,6 +352,7 @@ export const {
   clearFailedItems,
   clearRecentHistory,
   clearQueue,
+  dismissQueueItem,
 } = syncQueueSlice.actions;
 
 export default syncQueueSlice.reducer;
@@ -407,6 +411,5 @@ export const selectQueueItems = (state: { syncQueue: SyncQueueState }) =>
 export const selectSyncErrorLog = (state: { syncQueue: SyncQueueState }) =>
   state.syncQueue.errorLog;
 
-export const selectRecentSyncHistory = (state: {
-  syncQueue: SyncQueueState;
-}) => state.syncQueue.recentHistory;
+export const selectRecentSyncHistory = (state: { syncQueue: SyncQueueState }) =>
+  state.syncQueue.recentHistory;

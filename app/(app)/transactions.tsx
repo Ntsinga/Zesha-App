@@ -23,9 +23,11 @@ import { ActionModal, AddTransactionForm } from "../../components/ActionModal";
 import {
   fetchTransactions,
   reverseTransaction,
+  invalidateTransactionsCache,
 } from "../../store/slices/transactionsSlice";
 import {
   resetToPending,
+  dismissQueueItem,
   type QueueItem,
 } from "../../store/slices/syncQueueSlice";
 import { API_ENDPOINTS } from "../../config/api";
@@ -235,8 +237,22 @@ function getPendingStatusLabel(item: QueueItem): string {
   return "Pending";
 }
 
+function canDismissPendingItem(item: QueueItem | null): boolean {
+  const http = item?.lastHttpStatus;
+  return (
+    item?.status === "failed" &&
+    http !== undefined &&
+    http >= 400 &&
+    http < 500 &&
+    http !== 409
+  );
+}
+
 function canRetryPendingItem(item: QueueItem | null): boolean {
-  return item?.status === "failed" || item?.status === "awaiting_confirmation";
+  if (!item) return false;
+  if (item.status === "awaiting_confirmation") return true;
+  if (item.status === "failed") return !canDismissPendingItem(item);
+  return false;
 }
 
 function isBlockedPendingItem(item: QueueItem | null): boolean {
@@ -312,6 +328,9 @@ export default function Transactions() {
   const [filterAccountId, setFilterAccountId] = useState<number | undefined>(
     undefined,
   );
+  const syncFetchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
   const [isReversing, setIsReversing] = useState(false);
   const [showInjectionModal, setShowInjectionModal] = useState(false);
   const [injectionForm, setInjectionForm] = useState({
@@ -333,6 +352,7 @@ export default function Transactions() {
   const accounts = useAppSelector((state) => state.accounts.items);
   const backendUser = useAppSelector((state) => state.auth.user);
   const canInjectCapital = backendUser?.role !== "Agent";
+  const lastSyncedAt = useAppSelector((state) => state.syncQueue.lastSyncedAt);
   const [refreshing, setRefreshing] = useState(false);
 
   const pendingFinancialWrites = queueItems.filter(
@@ -377,6 +397,37 @@ export default function Transactions() {
     dispatch(fetchAccounts({}));
   }, [dispatch]);
 
+  // Re-fetch transactions after sync activity settles (debounced) so a large
+  // queue flushing over a restored network only triggers one fetch, not one
+  // per synced item.
+  useEffect(() => {
+    if (!lastSyncedAt) return;
+
+    if (syncFetchDebounceRef.current) {
+      clearTimeout(syncFetchDebounceRef.current);
+    }
+
+    syncFetchDebounceRef.current = setTimeout(() => {
+      dispatch(invalidateTransactionsCache());
+      dispatch(
+        fetchTransactions({
+          transactionType:
+            filterType !== "ALL"
+              ? (filterType as TransactionTypeEnum)
+              : undefined,
+          shift: filterShift !== "ALL" ? (filterShift as ShiftEnum) : undefined,
+          accountId: filterAccountId,
+        }),
+      );
+    }, 1500);
+
+    return () => {
+      if (syncFetchDebounceRef.current) {
+        clearTimeout(syncFetchDebounceRef.current);
+      }
+    };
+  }, [lastSyncedAt, dispatch, filterType, filterShift, filterAccountId]);
+
   const buildFilters = () => ({
     transactionType:
       filterType !== "ALL" ? (filterType as TransactionTypeEnum) : undefined,
@@ -410,7 +461,8 @@ export default function Transactions() {
     (filterAccountId !== undefined ? 1 : 0);
 
   const handleFormSuccess = () => {
-    dispatch(fetchTransactions(buildFilters()));
+    // Post-queue refresh is handled by the lastSyncedAt watcher above,
+    // which fires after the sync engine confirms the item with the server.
   };
 
   const handleRetryOldestPending = useCallback(() => {
@@ -421,6 +473,27 @@ export default function Transactions() {
     dispatch(resetToPending(actionablePendingItem.id));
     void triggerSync();
   }, [actionablePendingItem, dispatch]);
+
+  const handleDismissItem = useCallback(
+    (item: QueueItem) => {
+      if (!canDismissPendingItem(item)) return;
+      Alert.alert(
+        "Remove Transaction",
+        `The server rejected this transaction${
+          item.lastError ? ": " + item.lastError : "."
+        } Remove it from the queue?`,
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Remove",
+            style: "destructive",
+            onPress: () => dispatch(dismissQueueItem(item.id)),
+          },
+        ],
+      );
+    },
+    [dispatch],
+  );
 
   const handleSignInAgainToContinue = useCallback(() => {
     if (!isBlockedPendingItem(actionablePendingItem)) {
@@ -585,6 +658,7 @@ export default function Transactions() {
       canRetry:
         actionablePendingItem?.id === item.id &&
         canRetryPendingItem(actionablePendingItem),
+      canDismiss: canDismissPendingItem(item),
       isHeadOfLine:
         !queueHeadBlocksFinancialWrites &&
         oldestPendingFinancialWrite?.id === item.id,
@@ -608,7 +682,7 @@ export default function Transactions() {
 
         {(pendingFinancialWrites.length > 0 || hiddenPendingCount > 0) && (
           <View
-            className="mb-4 rounded-2xl border px-4 py-3"
+            className="mb-4 rounded-2xl border px-4 py-3 flex-row items-center justify-between"
             style={{
               backgroundColor: "#eff6ff",
               borderColor: "#93c5fd",
@@ -619,45 +693,38 @@ export default function Transactions() {
               style={{ color: "#1d4ed8" }}
             >
               {pendingFinancialWrites.length + hiddenPendingCount} pending
-              transaction
-              {pendingFinancialWrites.length + hiddenPendingCount === 1
-                ? ""
-                : "s"}
             </Text>
-            <Text className="mt-1 text-xs" style={{ color: "#1e40af" }}>
-              {queueHeadBlocksFinancialWrites
-                ? "Another queued sync item must finish first. These transactions will continue automatically once that older item succeeds."
-                : "Saved transactions sync automatically in order. If one needs a retry, the rest continue after the oldest pending item succeeds."}
-            </Text>
-            {hiddenPendingCount > 0 && (
-              <Text className="mt-2 text-xs" style={{ color: "#1e3a8a" }}>
-                {hiddenPendingCount} pending item
-                {hiddenPendingCount === 1 ? " is" : "s are"} hidden by the
-                active shift filter because queued writes do not have a final
-                shift yet.
-              </Text>
-            )}
             {canRetryPendingItem(actionablePendingItem) && (
               <TouchableOpacity
                 onPress={handleRetryOldestPending}
-                className="self-start mt-3 rounded-lg px-3 py-2"
+                className="rounded-lg px-3 py-1.5"
                 style={{ backgroundColor: "#1d4ed8" }}
               >
-                <Text className="text-xs font-semibold text-white">
-                  {queueHeadBlocksFinancialWrites
-                    ? "Retry blocking sync item"
-                    : "Retry oldest pending item"}
+                <Text className="text-xs font-semibold text-white">Retry</Text>
+              </TouchableOpacity>
+            )}
+            {canDismissPendingItem(actionablePendingItem) && (
+              <TouchableOpacity
+                onPress={() => handleDismissItem(actionablePendingItem!)}
+                className="rounded-lg px-3 py-1.5"
+                style={{ backgroundColor: "#fee2e2" }}
+              >
+                <Text
+                  className="text-xs font-semibold"
+                  style={{ color: "#b91c1c" }}
+                >
+                  Remove
                 </Text>
               </TouchableOpacity>
             )}
             {isBlockedPendingItem(actionablePendingItem) && (
               <TouchableOpacity
                 onPress={handleSignInAgainToContinue}
-                className="self-start mt-3 rounded-lg px-3 py-2"
+                className="rounded-lg px-3 py-1.5"
                 style={{ backgroundColor: "#1d4ed8" }}
               >
                 <Text className="text-xs font-semibold text-white">
-                  Sign in again to continue
+                  Sign in
                 </Text>
               </TouchableOpacity>
             )}
@@ -667,12 +734,8 @@ export default function Transactions() {
         {/* Filter row */}
         <View className="flex-row justify-between items-center mb-3">
           <Text className="text-sm text-gray-500">
-            {displayedRowCount} visible item
+            {displayedRowCount} transaction
             {displayedRowCount !== 1 ? "s" : ""}
-            {pendingRows.length > 0 ? ` · ${pendingRows.length} pending` : ""}
-            {transactions.length > 0
-              ? ` · ${transactions.length} confirmed`
-              : ""}
             {activeFilterCount > 0
               ? ` · ${activeFilterCount} filter${activeFilterCount > 1 ? "s" : ""} active`
               : ""}
@@ -864,12 +927,7 @@ export default function Transactions() {
                 return (
                   <View
                     key={`pending-${row.id}`}
-                    className="border-b border-blue-100 py-4 flex-row justify-between items-center"
-                    style={{
-                      backgroundColor: row.isHeadOfLine
-                        ? "#f8fbff"
-                        : "transparent",
-                    }}
+                    className="border-b border-gray-100 py-4 flex-row justify-between items-center"
                   >
                     <View className="flex-1 pr-3">
                       <View className="flex-row items-center mb-1">
@@ -926,6 +984,26 @@ export default function Transactions() {
                             style={{ color: "#1D4ED8" }}
                           >
                             Retry
+                          </Text>
+                        </TouchableOpacity>
+                      )}
+                      {row.canDismiss && (
+                        <TouchableOpacity
+                          onPress={() =>
+                            handleDismissItem(
+                              pendingFinancialWrites.find(
+                                (i) => i.id === row.id,
+                              )!,
+                            )
+                          }
+                          className="mt-2 px-2 py-1 rounded"
+                          style={{ backgroundColor: "#FEE2E2" }}
+                        >
+                          <Text
+                            className="text-xs font-medium"
+                            style={{ color: "#B91C1C" }}
+                          >
+                            Remove
                           </Text>
                         </TouchableOpacity>
                       )}
