@@ -311,7 +311,7 @@ export default function AppLayoutWeb() {
             <div className="mobile-menu-brand">
               <div className="mobile-menu-logo">
                 <img
-                  src="/assets/teleba_icon_final.png"
+                  src="/teleba_icon_final.png"
                   alt="Teleba"
                   width={36}
                   height={36}
@@ -371,7 +371,7 @@ export default function AppLayoutWeb() {
             <div className="sidebar-brand">
               <div className="sidebar-logo">
                 <img
-                  src="/assets/teleba_icon_final.png"
+                  src="/teleba_icon_final.png"
                   alt="Teleba"
                   width={38}
                   height={38}
@@ -457,7 +457,7 @@ export default function AppLayoutWeb() {
             <div className="mobile-header-brand">
               <div className="mobile-header-logo">
                 <img
-                  src="/assets/teleba_icon_final.png"
+                  src="/teleba_icon_final.png"
                   alt="Teleba"
                   width={32}
                   height={32}
