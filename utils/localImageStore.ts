@@ -6,16 +6,45 @@
  * later when connectivity is restored.
  */
 
-import { Directory, File, Paths } from "expo-file-system";
+import { Platform } from "react-native";
 
-const OFFLINE_IMAGES_DIR = new Directory(Paths.document, "offline-images");
+// expo-file-system is not supported on web — guard all usage behind Platform.OS check.
+// Imports are lazy to avoid crashing at module load time on web.
+let _Directory: typeof import("expo-file-system").Directory | null = null;
+let _File: typeof import("expo-file-system").File | null = null;
+let _Paths: typeof import("expo-file-system").Paths | null = null;
+let _offlineImagesDir: InstanceType<
+  typeof import("expo-file-system").Directory
+> | null = null;
+
+function getFS() {
+  if (Platform.OS === "web") return null;
+  if (!_Directory) {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const fs = require("expo-file-system");
+    _Directory = fs.Directory;
+    _File = fs.File;
+    _Paths = fs.Paths;
+  }
+  return { Directory: _Directory!, File: _File!, Paths: _Paths! };
+}
+
+function getOfflineDir() {
+  if (_offlineImagesDir) return _offlineImagesDir;
+  const fs = getFS();
+  if (!fs) return null;
+  _offlineImagesDir = new fs.Directory(fs.Paths.document, "offline-images");
+  return _offlineImagesDir;
+}
 
 /**
  * Ensure the offline images directory exists
  */
 async function ensureDir(): Promise<void> {
-  if (!OFFLINE_IMAGES_DIR.exists) {
-    OFFLINE_IMAGES_DIR.create({
+  const dir = getOfflineDir();
+  if (!dir) return;
+  if (!dir.exists) {
+    dir.create({
       idempotent: true,
       intermediates: true,
     });
@@ -34,13 +63,17 @@ export async function saveImageLocally(
   tempUri: string,
   filename?: string,
 ): Promise<string> {
+  const fs = getFS();
+  if (!fs) return tempUri; // On web, return the original URI as-is
   await ensureDir();
 
-  const name = filename ?? `img-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
-  // Preserve extension from original URI
+  const dir = getOfflineDir()!;
+  const name =
+    filename ??
+    `img-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
   const extension = tempUri.split(".").pop()?.split("?")[0] ?? "jpg";
-  const sourceFile = new File(tempUri);
-  const destinationFile = new File(OFFLINE_IMAGES_DIR, `${name}.${extension}`);
+  const sourceFile = new fs.File(tempUri);
+  const destinationFile = new fs.File(dir, `${name}.${extension}`);
 
   sourceFile.copy(destinationFile);
 
@@ -51,14 +84,18 @@ export async function saveImageLocally(
  * Read an image as a base64 string (useful for uploading)
  */
 export async function readImageAsBase64(uri: string): Promise<string> {
-  return new File(uri).base64();
+  const fs = getFS();
+  if (!fs) return "";
+  return new fs.File(uri).base64();
 }
 
 /**
  * Delete a locally stored image after successful upload
  */
 export async function deleteLocalImage(uri: string): Promise<void> {
-  const file = new File(uri);
+  const fs = getFS();
+  if (!fs) return;
+  const file = new fs.File(uri);
   if (file.exists) {
     file.delete();
   }
@@ -68,8 +105,10 @@ export async function deleteLocalImage(uri: string): Promise<void> {
  * Delete all offline images (e.g., after logout or full sync)
  */
 export async function clearAllLocalImages(): Promise<void> {
-  if (OFFLINE_IMAGES_DIR.exists) {
-    OFFLINE_IMAGES_DIR.delete();
+  const dir = getOfflineDir();
+  if (!dir) return;
+  if (dir.exists) {
+    dir.delete();
   }
 }
 
@@ -77,13 +116,15 @@ export async function clearAllLocalImages(): Promise<void> {
  * Get the total size of locally stored images in bytes
  */
 export async function getLocalImagesSize(): Promise<number> {
-  if (!OFFLINE_IMAGES_DIR.exists) return 0;
+  const fs = getFS();
+  const dir = getOfflineDir();
+  if (!fs || !dir || !dir.exists) return 0;
 
-  const files = OFFLINE_IMAGES_DIR.list();
+  const files = dir.list();
   let totalSize = 0;
 
   for (const file of files) {
-    if (file instanceof File) {
+    if (file instanceof fs.File) {
       totalSize += file.size ?? 0;
     }
   }
@@ -95,9 +136,15 @@ export async function getLocalImagesSize(): Promise<number> {
  * List all locally stored image URIs
  */
 export async function listLocalImages(): Promise<string[]> {
-  if (!OFFLINE_IMAGES_DIR.exists) return [];
+  const fs = getFS();
+  const dir = getOfflineDir();
+  if (!fs || !dir || !dir.exists) return [];
 
-  return OFFLINE_IMAGES_DIR.list()
-    .filter((entry): entry is File => entry instanceof File)
+  return dir
+    .list()
+    .filter(
+      (entry): entry is InstanceType<typeof fs.File> =>
+        entry instanceof fs.File,
+    )
     .map((file) => file.uri);
 }
