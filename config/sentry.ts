@@ -18,8 +18,16 @@ export function initSentry(): void {
     dsn: SENTRY_DSN,
     debug: __DEV__,
     environment: __DEV__ ? "development" : "production",
+    sendDefaultPii: true,
     tracesSampleRate: __DEV__ ? 1.0 : 0.2,
-    integrations: [sentryNavigationIntegration],
+    enableLogs: true,
+    replaysSessionSampleRate: 0.1,
+    replaysOnErrorSampleRate: 1.0,
+    integrations: [
+      sentryNavigationIntegration,
+      Sentry.mobileReplayIntegration(),
+      Sentry.feedbackIntegration(),
+    ],
     beforeSend(event) {
       // Strip PII from breadcrumbs in production
       if (!__DEV__ && event.breadcrumbs) {

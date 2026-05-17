@@ -11,7 +11,9 @@
       "resizeMode": "contain",
       "backgroundColor": "#520610"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.teleba.agentbanking"
@@ -28,7 +30,17 @@
       "favicon": "./assets/icon.png",
       "output": "single"
     },
-    "plugins": ["expo-router"],
+    "plugins": [
+      "expo-router",
+      [
+        "@sentry/react-native/expo",
+        {
+          "url": "https://sentry.io/",
+          "project": "teleba-mobile",
+          "organization": "teleba"
+        }
+      ]
+    ],
     "scheme": "teleba",
     "extra": {
       "router": {},
