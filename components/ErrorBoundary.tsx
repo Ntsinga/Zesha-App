@@ -1,6 +1,7 @@
 import React, { Component, ErrorInfo, ReactNode } from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { AlertTriangle, RefreshCw } from "lucide-react-native";
+import { Sentry } from "../config/sentry";
 
 interface Props {
   children: ReactNode;
@@ -23,12 +24,12 @@ class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    // Log error to your error reporting service
     console.error("Error caught by boundary:", error);
     console.error("Error info:", errorInfo);
 
-    // TODO: Send to error reporting service (Sentry, etc.)
-    // Sentry.captureException(error, { extra: errorInfo });
+    Sentry.captureException(error, {
+      extra: { componentStack: errorInfo.componentStack },
+    });
   }
 
   handleRetry = () => {

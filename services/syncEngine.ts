@@ -24,6 +24,7 @@ import {
 } from "@/store/slices/syncQueueSlice";
 import { secureApiRequest, isSecureApiInitialized } from "@/services/secureApi";
 import { readImageAsBase64, deleteLocalImage } from "@/utils/localImageStore";
+import { captureSyncStall, addSyncBreadcrumb } from "@/config/sentry";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -32,6 +33,7 @@ import { readImageAsBase64, deleteLocalImage } from "@/utils/localImageStore";
 const MAX_RETRIES = 5;
 const BASE_DELAY_MS = 500; // 500ms
 const MAX_DELAY_MS = 8_000; // 8 seconds
+const RECOVERY_POLL_MS = 30_000;
 
 // Transient HTTP status codes worth retrying
 const RETRY_STATUS_CODES = new Set([408, 429, 500, 502, 503, 504]);
@@ -50,8 +52,10 @@ type ProcessItemResult =
 let netInfoUnsubscribe: (() => void) | null = null;
 let appStateSubscription: ReturnType<typeof AppState.addEventListener> | null =
   null;
+let recoveryInterval: ReturnType<typeof setInterval> | null = null;
 let isProcessing = false;
 let isStarted = false;
+let currentAppState: AppStateStatus = AppState.currentState;
 
 // ---------------------------------------------------------------------------
 // Backoff helpers
@@ -204,6 +208,21 @@ function hasReplayKey(item: QueueItem): boolean {
   );
 }
 
+function isOnlineState(
+  state: Pick<NetInfoState, "isConnected" | "isInternetReachable">,
+): boolean {
+  return state.isConnected === true && state.isInternetReachable !== false;
+}
+
+function canAutoRetryFailedItem(item: QueueItem): boolean {
+  return (
+    item.status === "failed" &&
+    typeof item.lastHttpStatus === "number" &&
+    RETRY_STATUS_CODES.has(item.lastHttpStatus) &&
+    item.retryCount < MAX_RETRIES
+  );
+}
+
 function isInFlightIdempotentConflict(
   status: number,
   errorMessage: string,
@@ -219,9 +238,15 @@ function isInFlightIdempotentConflict(
 function isProcessableItem(item: QueueItem): boolean {
   return (
     item.status === "pending" ||
-    item.status === "failed" ||
+    canAutoRetryFailedItem(item) ||
     (item.status === "awaiting_confirmation" && hasReplayKey(item))
   );
+}
+
+function hasRecoverableQueueHead(): boolean {
+  const state = store.getState();
+  const queueHead = state.syncQueue.items[0] as QueueItem | undefined;
+  return !!queueHead && isProcessableItem(queueHead);
 }
 
 async function processItem(item: QueueItem): Promise<ProcessItemResult> {
@@ -263,6 +288,10 @@ async function processItem(item: QueueItem): Promise<ProcessItemResult> {
         serverResponseSummary: summarizeResponse(response),
       }),
     );
+    addSyncBreadcrumb("Item synced", {
+      entityType: item.entityType,
+      endpoint: item.endpoint,
+    });
 
     if (item.localImageUris && item.localImageUris.length > 0) {
       for (const uri of item.localImageUris) {
@@ -293,6 +322,17 @@ async function processItem(item: QueueItem): Promise<ProcessItemResult> {
           httpStatus: status,
         }),
       );
+      captureSyncStall({
+        entityType: item.entityType,
+        endpoint: item.endpoint,
+        method: item.method,
+        status: "blocked",
+        httpStatus: status,
+        error: errorMessage,
+        retryCount: item.retryCount,
+        queueItemId: item.id,
+        idempotencyKey: item.idempotencyKey,
+      });
       return "blocked";
     }
 
@@ -346,6 +386,17 @@ async function processItem(item: QueueItem): Promise<ProcessItemResult> {
           httpStatus: status,
         }),
       );
+      captureSyncStall({
+        entityType: item.entityType,
+        endpoint: item.endpoint,
+        method: item.method,
+        status: "failed",
+        httpStatus: status,
+        error: errorMessage,
+        retryCount: item.retryCount + 1,
+        queueItemId: item.id,
+        idempotencyKey: item.idempotencyKey,
+      });
       return "failed";
     }
   }
@@ -371,9 +422,9 @@ async function processQueue(): Promise<void> {
 
   // Pre-check: is there anything to sync?
   const state = store.getState();
-  const pendingItems = state.syncQueue.items.filter((i: QueueItem) =>
-    isProcessableItem(i),
-  );
+  const pendingItems = state.syncQueue.items[0]
+    ? [state.syncQueue.items[0]].filter((i: QueueItem) => isProcessableItem(i))
+    : [];
 
   if (pendingItems.length === 0) return;
 
@@ -386,7 +437,7 @@ async function processQueue(): Promise<void> {
     while (hasMore) {
       // Check connectivity before each item
       const netState = await NetInfo.fetch();
-      if (!netState.isConnected || !netState.isInternetReachable) {
+      if (!isOnlineState(netState)) {
         if (__DEV__) {
           console.warn("[SyncEngine] Lost connectivity, pausing sync");
         }
@@ -412,11 +463,6 @@ async function processQueue(): Promise<void> {
             }),
           );
         }
-        hasMore = false;
-        break;
-      }
-
-      if (nextItem.status === "failed" && nextItem.retryCount >= MAX_RETRIES) {
         hasMore = false;
         break;
       }
@@ -454,6 +500,21 @@ async function processQueue(): Promise<void> {
   }
 }
 
+async function retryRecoverableQueue(): Promise<void> {
+  if (!isStarted || isProcessing || currentAppState !== "active") {
+    return;
+  }
+
+  if (!hasRecoverableQueueHead()) {
+    return;
+  }
+
+  const state = await NetInfo.fetch();
+  if (isOnlineState(state)) {
+    await processQueue();
+  }
+}
+
 // ---------------------------------------------------------------------------
 // NetInfo & AppState listeners
 // ---------------------------------------------------------------------------
@@ -463,12 +524,12 @@ async function processQueue(): Promise<void> {
  * Triggers queue processing when transitioning to online.
  */
 function handleNetInfoChange(state: NetInfoState): void {
-  const isOnline = state.isConnected && (state.isInternetReachable ?? true);
+  const isOnline = isOnlineState(state);
 
   if (isOnline && !isProcessing) {
     // Small delay to let the connection stabilize
     setTimeout(() => {
-      processQueue();
+      void processQueue();
     }, 1_500);
   }
 }
@@ -478,11 +539,12 @@ function handleNetInfoChange(state: NetInfoState): void {
  * Re-triggers sync when app comes back to foreground.
  */
 function handleAppStateChange(nextState: AppStateStatus): void {
+  currentAppState = nextState;
   if (nextState === "active" && !isProcessing) {
     // Check connectivity and sync if online
     NetInfo.fetch().then((state) => {
-      if (state.isConnected && (state.isInternetReachable ?? true)) {
-        processQueue();
+      if (isOnlineState(state)) {
+        void processQueue();
       }
     });
   }
@@ -505,12 +567,15 @@ export function startSyncEngine(): void {
     "change",
     handleAppStateChange,
   );
+  recoveryInterval = setInterval(() => {
+    void retryRecoverableQueue();
+  }, RECOVERY_POLL_MS);
   isStarted = true;
 
   // Initial sync attempt on start
   NetInfo.fetch().then((state) => {
-    if (state.isConnected && (state.isInternetReachable ?? true)) {
-      processQueue();
+    if (isOnlineState(state)) {
+      void processQueue();
     }
   });
 
@@ -532,6 +597,11 @@ export function stopSyncEngine(): void {
   appStateSubscription?.remove();
   appStateSubscription = null;
 
+  if (recoveryInterval) {
+    clearInterval(recoveryInterval);
+    recoveryInterval = null;
+  }
+
   isStarted = false;
 
   if (__DEV__) {
@@ -547,7 +617,7 @@ export async function triggerSync(): Promise<void> {
   if (isProcessing) return;
 
   const state = await NetInfo.fetch();
-  if (state.isConnected && (state.isInternetReachable ?? true)) {
+  if (isOnlineState(state)) {
     await processQueue();
   }
 }

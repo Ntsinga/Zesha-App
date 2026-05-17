@@ -233,8 +233,30 @@ function getPendingTimestamp(item: QueueItem): string {
     : item.createdAt;
 }
 
+function isStalledPendingItem(item: QueueItem): boolean {
+  return (
+    item.status === "awaiting_confirmation" ||
+    item.status === "failed" ||
+    item.status === "blocked"
+  );
+}
+
 function getPendingStatusLabel(item: QueueItem): string {
-  return "Pending";
+  return isStalledPendingItem(item) ? "Stalled" : "Pending";
+}
+
+function getPendingStatusColors(item: QueueItem) {
+  if (isStalledPendingItem(item)) {
+    return {
+      bg: "#FEF3C7",
+      text: "#B45309",
+    };
+  }
+
+  return {
+    bg: "#DBEAFE",
+    text: "#1D4ED8",
+  };
 }
 
 function canDismissPendingItem(item: QueueItem | null): boolean {
@@ -257,6 +279,64 @@ function canRetryPendingItem(item: QueueItem | null): boolean {
 
 function isBlockedPendingItem(item: QueueItem | null): boolean {
   return item?.status === "blocked";
+}
+
+function getQueueEntityLabel(item: { entityType: string }): string {
+  switch (item.entityType) {
+    case "balance":
+      return "balance";
+    case "balanceBulk":
+      return "balance batch";
+    case "commission":
+      return "commission";
+    case "commissionBulk":
+      return "commission batch";
+    case "expense":
+      return "expense";
+    case "cashCount":
+      return "cash count";
+    case "cashCountBulk":
+      return "cash count batch";
+    case "transaction":
+      return "transaction";
+    case "floatPurchase":
+      return "float purchase";
+    case "capitalInjection":
+      return "capital injection";
+    case "cashCapitalInjection":
+      return "cash capital injection";
+    case "reconciliation":
+      return "reconciliation";
+    default:
+      return item.entityType;
+  }
+}
+
+function getTechnicalQueueStatusLabel(status: string): string {
+  switch (status) {
+    case "awaiting_confirmation":
+      return "awaiting confirmation";
+    case "synced":
+      return "synced";
+    default:
+      return status;
+  }
+}
+
+function getQueueHeadActionHint(item: QueueItem): string {
+  if (isBlockedPendingItem(item)) {
+    return "Sign in again to continue syncing.";
+  }
+
+  if (canDismissPendingItem(item)) {
+    return "Remove it to unblock later transactions.";
+  }
+
+  if (canRetryPendingItem(item)) {
+    return "Retry it to resume syncing.";
+  }
+
+  return "It will continue automatically in queue order.";
 }
 
 function getTypeLabel(type: string): string {
@@ -346,6 +426,10 @@ export default function Transactions() {
     (state) => state.transactions,
   );
   const queueItems = useAppSelector((state) => state.syncQueue.items);
+  const recentSyncHistory = useAppSelector(
+    (state) => state.syncQueue.recentHistory,
+  );
+  const syncErrorLog = useAppSelector((state) => state.syncQueue.errorLog);
   const currentCompanyId = useAppSelector(
     (state) => state.auth.viewingAgencyId || state.auth.user?.companyId,
   );
@@ -392,6 +476,14 @@ export default function Transactions() {
             pendingFinancialWrites.length,
           0,
         );
+  const queueHeadBlockerMessage =
+    queueHeadBlocksFinancialWrites && queueHeadItem
+      ? `Transactions are ${getPendingStatusLabel(queueHeadItem).toLowerCase()} behind an earlier ${getQueueEntityLabel(queueHeadItem)}.${queueHeadItem.lastError ? ` Last error: ${queueHeadItem.lastError}.` : ""} ${getQueueHeadActionHint(queueHeadItem)}`
+      : null;
+  const latestSyncHistoryItem = recentSyncHistory[0] ?? null;
+  const latestSyncError = syncErrorLog[0] ?? null;
+  const showQueueDiagnostics =
+    queueHeadItem !== null && isStalledPendingItem(queueHeadItem);
 
   useEffect(() => {
     dispatch(fetchAccounts({}));
@@ -512,7 +604,7 @@ export default function Transactions() {
           text: "Sign In Again",
           onPress: async () => {
             try {
-              await dispatch(clearLocalAuth());
+              await dispatch(clearLocalAuth({ preserveSyncQueue: true }));
               await signOut();
               router.replace("/(auth)/sign-in");
             } catch {
@@ -655,10 +747,13 @@ export default function Transactions() {
       notes: getPendingNotes(item),
       transactionTime: getPendingTimestamp(item),
       statusLabel: getPendingStatusLabel(item),
+      statusColors: getPendingStatusColors(item),
       canRetry:
         actionablePendingItem?.id === item.id &&
         canRetryPendingItem(actionablePendingItem),
-      canDismiss: canDismissPendingItem(item),
+      canDismiss:
+        actionablePendingItem?.id === item.id &&
+        canDismissPendingItem(actionablePendingItem),
       isHeadOfLine:
         !queueHeadBlocksFinancialWrites &&
         oldestPendingFinancialWrite?.id === item.id,
@@ -682,52 +777,113 @@ export default function Transactions() {
 
         {(pendingFinancialWrites.length > 0 || hiddenPendingCount > 0) && (
           <View
-            className="mb-4 rounded-2xl border px-4 py-3 flex-row items-center justify-between"
+            className="mb-4 rounded-2xl border px-4 py-3"
             style={{
               backgroundColor: "#eff6ff",
               borderColor: "#93c5fd",
             }}
           >
+            <View className="flex-row items-start justify-between gap-3">
+              <View className="flex-1 pr-3">
+                <Text
+                  className="text-sm font-semibold"
+                  style={{ color: "#1d4ed8" }}
+                >
+                  {pendingFinancialWrites.length + hiddenPendingCount} waiting to
+                  sync
+                </Text>
+                {queueHeadBlockerMessage ? (
+                  <Text className="mt-1 text-xs" style={{ color: "#1e40af" }}>
+                    {queueHeadBlockerMessage}
+                  </Text>
+                ) : null}
+              </View>
+              {canRetryPendingItem(actionablePendingItem) && (
+                <TouchableOpacity
+                  onPress={handleRetryOldestPending}
+                  className="rounded-lg px-3 py-1.5"
+                  style={{ backgroundColor: "#1d4ed8" }}
+                >
+                  <Text className="text-xs font-semibold text-white">
+                    Retry
+                  </Text>
+                </TouchableOpacity>
+              )}
+              {canDismissPendingItem(actionablePendingItem) && (
+                <TouchableOpacity
+                  onPress={() => handleDismissItem(actionablePendingItem!)}
+                  className="rounded-lg px-3 py-1.5"
+                  style={{ backgroundColor: "#fee2e2" }}
+                >
+                  <Text
+                    className="text-xs font-semibold"
+                    style={{ color: "#b91c1c" }}
+                  >
+                    Remove
+                  </Text>
+                </TouchableOpacity>
+              )}
+              {isBlockedPendingItem(actionablePendingItem) && (
+                <TouchableOpacity
+                  onPress={handleSignInAgainToContinue}
+                  className="rounded-lg px-3 py-1.5"
+                  style={{ backgroundColor: "#1d4ed8" }}
+                >
+                  <Text className="text-xs font-semibold text-white">
+                    Sign in
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        )}
+
+        {showQueueDiagnostics && queueHeadItem && (
+          <View
+            className="mb-4 rounded-2xl border px-4 py-3"
+            style={{ backgroundColor: "#FEF3C7", borderColor: "#F59E0B" }}
+          >
             <Text
               className="text-sm font-semibold"
-              style={{ color: "#1d4ed8" }}
+              style={{ color: "#92400E" }}
             >
-              {pendingFinancialWrites.length + hiddenPendingCount} pending
+              Sync stalled
             </Text>
-            {canRetryPendingItem(actionablePendingItem) && (
-              <TouchableOpacity
-                onPress={handleRetryOldestPending}
-                className="rounded-lg px-3 py-1.5"
-                style={{ backgroundColor: "#1d4ed8" }}
-              >
-                <Text className="text-xs font-semibold text-white">Retry</Text>
-              </TouchableOpacity>
-            )}
-            {canDismissPendingItem(actionablePendingItem) && (
-              <TouchableOpacity
-                onPress={() => handleDismissItem(actionablePendingItem!)}
-                className="rounded-lg px-3 py-1.5"
-                style={{ backgroundColor: "#fee2e2" }}
-              >
-                <Text
-                  className="text-xs font-semibold"
-                  style={{ color: "#b91c1c" }}
-                >
-                  Remove
+            <View className="mt-2 gap-1">
+              <Text className="text-xs" style={{ color: "#92400E" }}>
+                {getQueueEntityLabel(queueHeadItem)} ·{" "}
+                {getTechnicalQueueStatusLabel(queueHeadItem.status)}
+                {queueHeadItem.lastHttpStatus
+                  ? ` · HTTP ${queueHeadItem.lastHttpStatus}`
+                  : ""}
+              </Text>
+              {queueHeadItem.lastError ? (
+                <Text className="text-xs" style={{ color: "#B45309" }}>
+                  {queueHeadItem.lastError}
                 </Text>
-              </TouchableOpacity>
-            )}
-            {isBlockedPendingItem(actionablePendingItem) && (
-              <TouchableOpacity
-                onPress={handleSignInAgainToContinue}
-                className="rounded-lg px-3 py-1.5"
-                style={{ backgroundColor: "#1d4ed8" }}
-              >
-                <Text className="text-xs font-semibold text-white">
-                  Sign in
-                </Text>
-              </TouchableOpacity>
-            )}
+              ) : null}
+            </View>
+
+            {latestSyncError ? (
+              <Text className="mt-2 text-xs" style={{ color: "#B45309" }}>
+                Log: {getQueueEntityLabel(latestSyncError)}{" "}
+                {getTechnicalQueueStatusLabel(latestSyncError.status)}
+                {latestSyncError.httpStatus
+                  ? ` (${latestSyncError.httpStatus})`
+                  : ""}
+                {` · ${latestSyncError.message}`}
+              </Text>
+            ) : null}
+
+            {latestSyncHistoryItem ? (
+              <Text className="mt-2 text-xs" style={{ color: "#B45309" }}>
+                Last sync: {getQueueEntityLabel(latestSyncHistoryItem)} on{" "}
+                {formatDate(latestSyncHistoryItem.archivedAt, "short")}
+                {latestSyncHistoryItem.serverResponseSummary
+                  ? ` · ${latestSyncHistoryItem.serverResponseSummary}`
+                  : ""}
+              </Text>
+            ) : null}
           </View>
         )}
 
@@ -959,8 +1115,14 @@ export default function Transactions() {
                           {getTypeLabel(row.displayType)}
                         </Text>
                       </View>
-                      <View className="self-start bg-blue-100 px-2 py-0.5 rounded mt-1">
-                        <Text className="text-xs font-medium text-blue-700">
+                      <View
+                        className="self-start px-2 py-0.5 rounded mt-1"
+                        style={{ backgroundColor: row.statusColors.bg }}
+                      >
+                        <Text
+                          className="text-xs font-medium"
+                          style={{ color: row.statusColors.text }}
+                        >
                           {row.statusLabel}
                         </Text>
                       </View>

@@ -608,8 +608,8 @@ export function useAddCommissionScreen() {
           createCommissionsBulk(commissionsData),
         ).unwrap();
 
-        // createCommissionsBulk returns Commission[], count the successes
-        totalCreated = Array.isArray(createResult) ? createResult.length : 0;
+        totalCreated = createResult.totalCreated;
+        totalFailed += createResult.totalFailed;
       }
 
       // Clear draft entries after successful submission
@@ -624,9 +624,11 @@ export function useAddCommissionScreen() {
       if (totalUpdated > 0) operations.push(`${totalUpdated} updated`);
 
       if (totalFailed > 0) {
+        const successSummary =
+          operations.length > 0 ? `${operations.join(", ")}. ` : "";
         return {
           success: true,
-          message: `${operations.join(", ")}. ${totalFailed} failed.`,
+          message: `${successSummary}${totalFailed} failed.`,
         };
       } else {
         return {

@@ -4,7 +4,8 @@ import { Calendar, Pencil, Plus, Repeat, Trash2, X } from "lucide-react";
 import { API_ENDPOINTS } from "@/config/api";
 import { secureApiRequest } from "@/services/secureApi";
 import { selectEffectiveCompanyId } from "@/store/slices/authSlice";
-import { useAppSelector } from "@/store/hooks";
+import { fetchExpenseCategories } from "@/store/slices/expenseCategoriesSlice";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
   buildTypedQueryString,
   mapApiRequest,
@@ -15,10 +16,7 @@ import {
   type RecurringExpenseStatus,
   type RecurringExpenseUpdate,
 } from "@/types";
-import {
-  EXPENSE_CATEGORIES,
-  EXPENSE_FUNDING_SOURCES,
-} from "@/hooks/screens/useExpensesScreen";
+import { EXPENSE_FUNDING_SOURCES } from "@/hooks/screens/useExpensesScreen";
 import { useToast } from "@/components/Toast.web";
 import { formatAmountInput, parseAmountInput } from "@/utils/formatters";
 import "@/styles/web.css";
@@ -127,7 +125,11 @@ const createInitialForm = (): RecurringFormState => ({
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function RecurringExpensesWeb() {
+  const dispatch = useAppDispatch();
   const companyId = useAppSelector(selectEffectiveCompanyId);
+  const expenseCategories = useAppSelector(
+    (state) => state.expenseCategories.items,
+  );
   const { showToast } = useToast();
 
   const [items, setItems] = useState<RecurringExpense[]>([]);
@@ -168,6 +170,12 @@ export default function RecurringExpensesWeb() {
   }, [loadItems]);
 
   useEffect(() => {
+    if (companyId) {
+      void dispatch(fetchExpenseCategories({ companyId }));
+    }
+  }, [companyId, dispatch]);
+
+  useEffect(() => {
     if (!companyId) setItems([]);
   }, [companyId]);
 
@@ -189,6 +197,13 @@ export default function RecurringExpensesWeb() {
     () => [...items].sort((a, b) => a.name.localeCompare(b.name)),
     [items],
   );
+  const expenseCategoryNames = useMemo(() => {
+    const names = new Set(expenseCategories.map((category) => category.name));
+    if (form.category) {
+      names.add(form.category);
+    }
+    return Array.from(names).sort((left, right) => left.localeCompare(right));
+  }, [expenseCategories, form.category]);
 
   // ── Modal helpers ────────────────────────────────────────────────────────────
   const openCreateModal = () => {
@@ -807,7 +822,7 @@ export default function RecurringExpensesWeb() {
                     className="form-select"
                   >
                     <option value="">No category</option>
-                    {EXPENSE_CATEGORIES.map((cat) => (
+                    {expenseCategoryNames.map((cat) => (
                       <option key={cat} value={cat}>
                         {cat}
                       </option>

@@ -107,7 +107,7 @@ export function useClerkUserSync() {
     } else if (!isSignedIn) {
       syncedClerkIdRef.current = null;
       if (backendUser) {
-        dispatch(clearLocalAuth());
+        dispatch(clearLocalAuth({ preserveSyncQueue: true }));
       }
     }
   }, [

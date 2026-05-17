@@ -126,7 +126,7 @@ export function useClerkUserSync() {
     } else if (!isSignedIn) {
       // User signed out, clear local auth data and reset ref
       if (backendUser) {
-        dispatch(clearLocalAuth());
+        dispatch(clearLocalAuth({ preserveSyncQueue: true }));
       }
       syncedClerkIdRef.current = null;
     }

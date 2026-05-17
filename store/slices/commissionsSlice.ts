@@ -4,6 +4,7 @@ import type {
   CommissionCreate,
   CommissionUpdate,
   CommissionFilters,
+  BulkCommissionCreateResponse,
   BulkCommissionUpdate,
   BulkCommissionUpdateResponse,
   DraftCommissionEntry,
@@ -153,27 +154,21 @@ export const createCommission = createAsyncThunk<
 });
 
 export const createCommissionsBulk = createAsyncThunk<
-  Commission[],
+  BulkCommissionCreateResponse,
   CommissionCreate[],
   { rejectValue: string }
 >("commissions/createBulk", async (data, { rejectWithValue }) => {
   try {
-    const response = await apiRequest<
-      Commission[] | { commissions: Commission[] }
-    >(API_ENDPOINTS.commissions.bulk, {
-      method: "POST",
-      body: JSON.stringify({ commissions: mapApiRequest(data) }),
-    }, 60_000);
+    const response = await apiRequest<BulkCommissionCreateResponse>(
+      API_ENDPOINTS.commissions.bulk,
+      {
+        method: "POST",
+        body: JSON.stringify({ commissions: mapApiRequest(data) }),
+      },
+      60_000,
+    );
 
-    // Backend may return array directly or wrapped in { commissions: [] }
-    if (Array.isArray(response)) {
-      return response;
-    } else if (response && Array.isArray(response.commissions)) {
-      return response.commissions;
-    } else {
-      console.error("[CommissionsSlice] Invalid response structure:", response);
-      throw new Error("Invalid response from server");
-    }
+    return response;
   } catch (error) {
     console.error("[CommissionsSlice] Bulk create error:", error);
     return rejectWithValue(
@@ -369,12 +364,13 @@ const commissionsSlice = createSlice({
       })
       .addCase(createCommissionsBulk.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.items = [...action.payload, ...state.items];
-        const bulkTotal = action.payload.reduce(
+        state.items = [...action.payload.created, ...state.items];
+        const bulkTotal = action.payload.created.reduce(
           (sum, commission) => sum + Number(commission.amount),
           0,
         );
         state.totalAmount += bulkTotal;
+        state.error = null;
       })
       .addCase(createCommissionsBulk.rejected, (state, action) => {
         state.isLoading = false;

@@ -1,7 +1,11 @@
 /**
  * Commission types matching backend models/commissions.py
  */
-import type { BaseModel, BulkUpdateOperationResponse } from "./base";
+import type {
+  BaseModel,
+  BulkOperationResponse,
+  BulkUpdateOperationResponse,
+} from "./base";
 import type {
   ShiftEnum,
   SourceEnum,
@@ -121,6 +125,17 @@ export interface BulkCommissionUpdateResponse {
   totalSubmitted: number;
   totalUpdated: number;
   totalFailed: number;
+}
+
+export interface BulkCommissionCreateFailure {
+  index: number;
+  accountId: number;
+  error: string;
+}
+
+export interface BulkCommissionCreateResponse
+  extends BulkOperationResponse<Commission, BulkCommissionCreateFailure> {
+  message: string;
 }
 
 /**

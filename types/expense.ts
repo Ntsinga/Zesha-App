@@ -134,12 +134,3 @@ export interface RecurringExpenseFilters {
   companyId?: number;
   activeOnly?: boolean;
 }
-
-/**
- * Expense category for UI
- */
-export interface ExpenseCategory {
-  id: string;
-  name: string;
-  icon?: string;
-}

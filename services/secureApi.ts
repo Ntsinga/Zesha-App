@@ -6,6 +6,7 @@
  */
 
 import { API_BASE_URL, API_HEADERS, buildQueryString } from "../config/api";
+import { addApiBreadcrumb } from "../config/sentry";
 
 // Token getter function - will be set by the auth provider
 let getAuthToken: (() => Promise<string | null>) | null = null;
@@ -226,14 +227,17 @@ export async function secureApiRequest<T>(
           : typeof detail === "string"
             ? detail
             : JSON.stringify(detail);
+        addApiBreadcrumb(method, endpoint, response.status);
         throw new ApiError(message, response.status);
       }
 
       // Handle 204 No Content
       if (response.status === 204) {
+        addApiBreadcrumb(method, endpoint, 204);
         return undefined as T;
       }
 
+      addApiBreadcrumb(method, endpoint, response.status);
       return await response.json();
     } catch (error) {
       // Handle AbortController timeout

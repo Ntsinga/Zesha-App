@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useRef, useEffect } from "react";
-import ReactDOM from "react-dom";
+import { createPortal } from "react-dom";
 import { useUser } from "@clerk/clerk-react";
 import { useAuth } from "@clerk/clerk-react";
 import { useRouter } from "expo-router";
@@ -185,7 +185,7 @@ export default function TopBarWeb() {
             {/* Dropdown rendered via portal to escape overflow:hidden ancestors */}
             {dropdownOpen &&
               typeof document !== "undefined" &&
-              ReactDOM.createPortal(
+              createPortal(
                 <div
                   ref={dropdownRef}
                   style={{

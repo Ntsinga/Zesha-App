@@ -198,12 +198,19 @@ export const completeMyAgencyOnboarding = createAsyncThunk(
 );
 
 // Clear local auth data (used when Clerk signs out)
-export const clearLocalAuth = createAsyncThunk("auth/clearLocal", async () => {
-  await deleteSecureItem(CLERK_USER_ID_KEY);
-  await deleteSecureItem(USER_KEY);
-  await deleteSecureItem(VIEWING_AGENCY_ID_KEY);
-  await deleteSecureItem(VIEWING_AGENCY_NAME_KEY);
-});
+export interface ClearLocalAuthOptions {
+  preserveSyncQueue?: boolean;
+}
+
+export const clearLocalAuth = createAsyncThunk(
+  "auth/clearLocal",
+  async (_options?: ClearLocalAuthOptions) => {
+    await deleteSecureItem(CLERK_USER_ID_KEY);
+    await deleteSecureItem(USER_KEY);
+    await deleteSecureItem(VIEWING_AGENCY_ID_KEY);
+    await deleteSecureItem(VIEWING_AGENCY_NAME_KEY);
+  },
+);
 
 // Slice
 const authSlice = createSlice({

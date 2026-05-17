@@ -4,6 +4,7 @@
 export default ({ config }) => {
   return {
     ...config,
+    plugins: [...(config.plugins || []), "@sentry/react-native"],
     extra: {
       ...config.extra,
       // Note: AI extraction is now handled by the backend

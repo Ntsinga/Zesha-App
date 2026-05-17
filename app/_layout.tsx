@@ -8,17 +8,32 @@ import * as SplashScreen from "expo-splash-screen";
 import ErrorBoundary from "../components/ErrorBoundary";
 import OfflineBanner from "../components/OfflineBanner";
 import { store, persistor } from "../store";
-import { useAppDispatch } from "../store/hooks";
+import { useAppDispatch, useAppSelector } from "../store/hooks";
 import { initializeAuth } from "../store/slices/authSlice";
 import { ClerkProvider, useAuth, useUser } from "@clerk/clerk-expo";
 import { tokenCache } from "@clerk/clerk-expo/token-cache";
-import { useRouter, useSegments, useLocalSearchParams } from "expo-router";
+import {
+  useRouter,
+  useSegments,
+  useLocalSearchParams,
+  usePathname,
+  useNavigationContainerRef,
+} from "expo-router";
 import { View } from "react-native";
 import { useClerkUserSync } from "../hooks/useClerkUserSync";
 import AnimatedSplash from "../components/AnimatedSplash";
 import { initializeSecureApi } from "../services/secureApi";
 import { startSyncEngine, stopSyncEngine } from "../services/syncEngine";
 import { useNetworkStatus, NetworkContext } from "../hooks/useNetworkStatus";
+import {
+  initSentry,
+  registerSentryNavigationContainer,
+  setCurrentRouteContext,
+  setCurrentUserContext,
+  Sentry,
+} from "../config/sentry";
+
+initSentry();
 
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
@@ -30,10 +45,20 @@ function AppContent() {
   const { user } = useUser();
   const router = useRouter();
   const segments = useSegments();
+  const pathname = usePathname();
   const params = useLocalSearchParams();
+  const navigationContainerRef = useNavigationContainerRef();
   const [isSecureApiReady, setIsSecureApiReady] = useState(false);
   const initialNavDoneRef = React.useRef(false);
   const [initialNavDone, setInitialNavDone] = useState(false);
+
+  useEffect(() => {
+    registerSentryNavigationContainer(navigationContainerRef);
+  }, [navigationContainerRef]);
+
+  useEffect(() => {
+    setCurrentRouteContext(pathname);
+  }, [pathname]);
 
   // Initialize secure API with Clerk token getter FIRST
   useEffect(() => {
@@ -56,7 +81,28 @@ function AppContent() {
   }, [isSecureApiReady, isSignedIn]);
 
   // Sync Clerk user with backend (only after secure API is ready)
-  const { isSyncing } = useClerkUserSync();
+  const { isSyncing, backendUser, clerkUser } = useClerkUserSync();
+  const cachedUser = useAppSelector((state) => state.auth.user);
+
+  useEffect(() => {
+    const effectiveUser = backendUser ?? cachedUser;
+    setCurrentUserContext(
+      effectiveUser
+        ? {
+            id: effectiveUser.id,
+            clerkUserId: effectiveUser.clerkUserId,
+            email: effectiveUser.email,
+            role: effectiveUser.role,
+            companyId: effectiveUser.companyId,
+          }
+        : clerkUser
+          ? {
+              clerkUserId: clerkUser.id,
+              email: clerkUser.primaryEmailAddress?.emailAddress ?? null,
+            }
+          : null,
+    );
+  }, [backendUser, cachedUser, clerkUser]);
 
   useEffect(() => {
     // Initialize auth state on app load
@@ -181,7 +227,7 @@ function AppContent() {
   );
 }
 
-export default function RootLayoutNav() {
+function RootLayoutNav() {
   const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!;
   const networkStatus = useNetworkStatus();
 
@@ -211,3 +257,5 @@ export default function RootLayoutNav() {
     </ClerkProvider>
   );
 }
+
+export default Sentry.wrap(RootLayoutNav);
