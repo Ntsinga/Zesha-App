@@ -11,7 +11,7 @@ import {
   REGISTER,
 } from "redux-persist";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import authReducer from "./slices/authSlice";
+import authReducer, { clearLocalAuth } from "./slices/authSlice";
 import dashboardReducer from "./slices/dashboardSlice";
 import transactionsReducer from "./slices/transactionsSlice";
 import expensesReducer from "./slices/expensesSlice";
@@ -48,17 +48,29 @@ const appReducer = combineReducers({
 });
 
 /**
- * Root reducer that resets ALL slice state on logout.
- * Each slice receives `undefined` → returns its own initialState,
- * then the clearLocalAuth.fulfilled action also fires in authSlice's
- * extraReducers to clean up auth-specific fields.
+ * Root reducer that resets slice state on local auth clear.
+ * Re-authentication flows can opt into preserving the offline sync queue,
+ * while full logout still resets everything.
  */
 const rootReducer: typeof appReducer = (
   state: Parameters<typeof appReducer>[0],
   action: Parameters<typeof appReducer>[1],
 ) => {
-  if (action.type === "auth/clearLocal/fulfilled") {
-    return appReducer(undefined, action);
+  if (clearLocalAuth.fulfilled.match(action)) {
+    const resetState = appReducer(undefined, action);
+    const preservedSyncQueue =
+      action.meta.arg?.preserveSyncQueue === true
+        ? state?.syncQueue
+        : undefined;
+
+    if (preservedSyncQueue !== undefined) {
+      return {
+        ...resetState,
+        syncQueue: preservedSyncQueue,
+      };
+    }
+
+    return resetState;
   }
   return appReducer(state, action);
 };

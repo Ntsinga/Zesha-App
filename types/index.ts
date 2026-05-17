@@ -99,6 +99,8 @@ export {
   type CommissionFilters,
   type CommissionBreakdown,
   type CommissionItemUpdate,
+  type BulkCommissionCreateFailure,
+  type BulkCommissionCreateResponse,
   type BulkCommissionUpdate,
   type BulkCommissionUpdateResponse,
   type ExpectedCommission,

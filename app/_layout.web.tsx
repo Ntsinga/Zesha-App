@@ -12,10 +12,19 @@ import {
   selectNeedsAgencyOnboarding,
 } from "../store/slices/authSlice";
 import { ClerkProvider, useAuth, useUser } from "@clerk/clerk-react";
-import { useRouter } from "expo-router";
+import { useRouter, usePathname, useNavigationContainerRef } from "expo-router";
 import { useClerkUserSync } from "../hooks/useClerkUserSync.web";
 import { initializeSecureApi } from "../services/secureApi";
 import AnimatedSplash from "../components/AnimatedSplash";
+import {
+  initSentry,
+  registerSentryNavigationContainer,
+  setCurrentRouteContext,
+  setCurrentUserContext,
+  Sentry,
+} from "../config/sentry";
+
+initSentry();
 
 // Inner component that uses Redux hooks
 function AppContent() {
@@ -23,11 +32,22 @@ function AppContent() {
   const { isSignedIn, isLoaded, getToken } = useAuth();
   const { user } = useUser();
   const router = useRouter();
+  const pathname = usePathname();
+  const navigationContainerRef = useNavigationContainerRef();
   const [isSecureApiReady, setIsSecureApiReady] = useState(false);
   // Track whether the user has been signed in this session using a ref so it
   // updates synchronously during render — no effect delay, no race condition.
   const wasSignedInRef = useRef(false);
   if (isSignedIn === true) wasSignedInRef.current = true;
+
+  useEffect(() => {
+    registerSentryNavigationContainer(navigationContainerRef);
+  }, [navigationContainerRef]);
+
+  useEffect(() => {
+    setCurrentRouteContext(pathname);
+  }, [pathname]);
+
   // If mounting while already on an auth page (e.g. after sign-out hard redirect),
   // mark splash as done so it doesn't replay when navigating into the app.
   // On a true first visit (landing at "/"), animatedSplashDone starts false and splash plays normally.
@@ -69,6 +89,26 @@ function AppContent() {
   const effectiveNeedsOnboarding =
     needsAgencyOnboarding ||
     (isInvitedAgencyAdmin && !(syncedUser ?? cachedUser)?.companyId);
+
+  useEffect(() => {
+    const effectiveUser = syncedUser ?? cachedUser;
+    setCurrentUserContext(
+      effectiveUser
+        ? {
+            id: effectiveUser.id,
+            clerkUserId: effectiveUser.clerkUserId,
+            email: effectiveUser.email,
+            role: effectiveUser.role,
+            companyId: effectiveUser.companyId,
+          }
+        : user
+          ? {
+              clerkUserId: user.id,
+              email: user.primaryEmailAddress?.emailAddress ?? null,
+            }
+          : null,
+    );
+  }, [syncedUser, cachedUser, user]);
 
   useEffect(() => {
     // Initialize auth state on app load (reads from localStorage cache)
@@ -258,7 +298,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
 });
 
-export default function RootLayoutWeb() {
+function RootLayoutWeb() {
   const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!;
 
   if (!publishableKey) {
@@ -277,3 +317,5 @@ export default function RootLayoutWeb() {
     </ClerkProvider>
   );
 }
+
+export default Sentry.wrap(RootLayoutWeb);
