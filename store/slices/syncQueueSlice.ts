@@ -153,7 +153,7 @@ export interface SyncQueueState {
   lastSyncedAt: string | null;
 }
 
-const initialState: SyncQueueState = {
+export const initialSyncQueueState: SyncQueueState = {
   items: [],
   recentHistory: [],
   deadLetters: [],
@@ -161,6 +161,21 @@ const initialState: SyncQueueState = {
   isSyncing: false,
   lastSyncedAt: null,
 };
+
+export function normalizeSyncQueueState(
+  state?: Partial<SyncQueueState> | null,
+): SyncQueueState {
+  return {
+    ...initialSyncQueueState,
+    ...state,
+    items: state?.items ?? initialSyncQueueState.items,
+    recentHistory: state?.recentHistory ?? initialSyncQueueState.recentHistory,
+    deadLetters: state?.deadLetters ?? initialSyncQueueState.deadLetters,
+    errorLog: state?.errorLog ?? initialSyncQueueState.errorLog,
+    isSyncing: state?.isSyncing ?? initialSyncQueueState.isSyncing,
+    lastSyncedAt: state?.lastSyncedAt ?? initialSyncQueueState.lastSyncedAt,
+  };
+}
 
 /** Generate a simple unique ID */
 function generateId(): string {
@@ -201,7 +216,7 @@ function pushErrorLogEntry(
 
 const syncQueueSlice = createSlice({
   name: "syncQueue",
-  initialState,
+  initialState: initialSyncQueueState,
   reducers: {
     /** Add a new item to the sync queue */
     addToQueue(state, action: PayloadAction<AddToQueuePayload>) {
@@ -327,7 +342,9 @@ const syncQueueSlice = createSlice({
       state,
       action: PayloadAction<DeadLetterQueueItemPayload>,
     ) {
-      const itemIndex = state.items.findIndex((i) => i.id === action.payload.id);
+      const itemIndex = state.items.findIndex(
+        (i) => i.id === action.payload.id,
+      );
       if (itemIndex === -1) {
         return;
       }
@@ -434,36 +451,48 @@ export const {
 
 export default syncQueueSlice.reducer;
 
+const getQueueItems = (state: { syncQueue: SyncQueueState }) =>
+  state.syncQueue.items ?? initialSyncQueueState.items;
+
+const getDeadLetters = (state: { syncQueue: SyncQueueState }) =>
+  state.syncQueue.deadLetters ?? initialSyncQueueState.deadLetters;
+
+const getRecentHistory = (state: { syncQueue: SyncQueueState }) =>
+  state.syncQueue.recentHistory ?? initialSyncQueueState.recentHistory;
+
+const getErrorLog = (state: { syncQueue: SyncQueueState }) =>
+  state.syncQueue.errorLog ?? initialSyncQueueState.errorLog;
+
 // Selectors
 export const selectPendingCount = (state: { syncQueue: SyncQueueState }) =>
-  state.syncQueue.items.filter((i) => i.status === "pending").length;
+  getQueueItems(state).filter((i) => i.status === "pending").length;
 
 export const selectFailedCount = (state: { syncQueue: SyncQueueState }) =>
-  state.syncQueue.items.filter((i) => i.status === "failed").length;
+  getQueueItems(state).filter((i) => i.status === "failed").length;
 
 export const selectAwaitingConfirmationCount = (state: {
   syncQueue: SyncQueueState;
 }) =>
-  state.syncQueue.items.filter((i) => i.status === "awaiting_confirmation")
+  getQueueItems(state).filter((i) => i.status === "awaiting_confirmation")
     .length;
 
 export const selectBlockedCount = (state: { syncQueue: SyncQueueState }) =>
-  state.syncQueue.items.filter((i) => i.status === "blocked").length;
+  getQueueItems(state).filter((i) => i.status === "blocked").length;
 
 export const selectNeedsAttentionCount = (state: {
   syncQueue: SyncQueueState;
 }) =>
-  state.syncQueue.items.filter(
+  getQueueItems(state).filter(
     (i) =>
       i.status === "awaiting_confirmation" ||
       i.status === "failed" ||
       i.status === "blocked",
-  ).length + state.syncQueue.deadLetters.length;
+  ).length + getDeadLetters(state).length;
 
 export const selectOutstandingSyncCount = (state: {
   syncQueue: SyncQueueState;
 }) =>
-  state.syncQueue.items.filter(
+  getQueueItems(state).filter(
     (i) =>
       i.status === "pending" ||
       i.status === "syncing" ||
@@ -472,27 +501,27 @@ export const selectOutstandingSyncCount = (state: {
   ).length;
 
 export const selectTotalQueueCount = (state: { syncQueue: SyncQueueState }) =>
-  state.syncQueue.items.length;
+  getQueueItems(state).length;
 
 export const selectIsSyncing = (state: { syncQueue: SyncQueueState }) =>
   state.syncQueue.isSyncing;
 
 export const selectNextPendingItem = (state: { syncQueue: SyncQueueState }) =>
-  state.syncQueue.items.find(
+  getQueueItems(state).find(
     (i) => i.status === "pending" || i.status === "failed",
   ) ?? null;
 
 export const selectQueueItems = (state: { syncQueue: SyncQueueState }) =>
-  state.syncQueue.items;
+  getQueueItems(state);
 
 export const selectSyncErrorLog = (state: { syncQueue: SyncQueueState }) =>
-  state.syncQueue.errorLog;
+  getErrorLog(state);
 
 export const selectRecentSyncHistory = (state: { syncQueue: SyncQueueState }) =>
-  state.syncQueue.recentHistory;
+  getRecentHistory(state);
 
 export const selectDeadLetterItems = (state: { syncQueue: SyncQueueState }) =>
-  state.syncQueue.deadLetters;
+  getDeadLetters(state);
 
 export const selectDeadLetterCount = (state: { syncQueue: SyncQueueState }) =>
-  state.syncQueue.deadLetters.length;
+  getDeadLetters(state).length;
