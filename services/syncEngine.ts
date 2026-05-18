@@ -14,12 +14,14 @@ import { store } from "@/store";
 import {
   archiveSyncedItem,
   appendErrorLog,
+  deadLetterQueueItem,
   markSyncing,
   markQueueOutcome,
   recoverSyncingItems,
   setSyncing,
   setLastSyncedAt,
   type QueueItem,
+  type SyncEntityType,
   type SyncQueueItemStatus,
 } from "@/store/slices/syncQueueSlice";
 import { secureApiRequest, isSecureApiInitialized } from "@/services/secureApi";
@@ -37,9 +39,18 @@ const RECOVERY_POLL_MS = 30_000;
 
 // Transient HTTP status codes worth retrying
 const RETRY_STATUS_CODES = new Set([408, 429, 500, 502, 503, 504]);
+const DEAD_LETTER_ENTITY_TYPES = new Set<SyncEntityType>([
+  "balance",
+  "balanceBulk",
+  "commission",
+  "commissionBulk",
+  "cashCount",
+  "cashCountBulk",
+]);
 
 type ProcessItemResult =
   | "synced"
+  | "dead_lettered"
   | "retryable_failure"
   | "failed"
   | "blocked"
@@ -223,6 +234,26 @@ function canAutoRetryFailedItem(item: QueueItem): boolean {
   );
 }
 
+function isDeadLetterEligibleItem(item: QueueItem): boolean {
+  return DEAD_LETTER_ENTITY_TYPES.has(item.entityType);
+}
+
+function shouldDeadLetterFailedItem(
+  item: QueueItem,
+  status: number,
+  isRetryable: boolean,
+  canRetry: boolean,
+): boolean {
+  const isDeterministicClientFailure =
+    status >= 400 && status < 500 && status !== 401 && status !== 403;
+  const exhaustedRetryBudget = isRetryable && !canRetry;
+
+  return (
+    isDeadLetterEligibleItem(item) &&
+    (isDeterministicClientFailure || exhaustedRetryBudget)
+  );
+}
+
 function isInFlightIdempotentConflict(
   status: number,
   errorMessage: string,
@@ -363,6 +394,39 @@ async function processItem(item: QueueItem): Promise<ProcessItemResult> {
     // Check if we should retry
     const isRetryable = RETRY_STATUS_CODES.has(status);
     const canRetry = item.retryCount < MAX_RETRIES - 1; // -1 because markFailed increments
+
+    if (shouldDeadLetterFailedItem(item, status, isRetryable, canRetry)) {
+      const reason =
+        isRetryable && !canRetry
+          ? `Removed from automatic sync after ${item.retryCount + 1} failed attempts: ${errorMessage}`
+          : `Removed from automatic sync after the server rejected it (HTTP ${status}): ${errorMessage}`;
+
+      dispatch(
+        deadLetterQueueItem({
+          id: item.id,
+          reason,
+          httpStatus: status,
+        }),
+      );
+      addSyncBreadcrumb("Item moved to dead letter", {
+        id: item.id,
+        entityType: item.entityType,
+        status,
+        retryCount: item.retryCount + 1,
+      });
+      captureSyncStall({
+        entityType: item.entityType,
+        endpoint: item.endpoint,
+        method: item.method,
+        status: "dead_letter",
+        httpStatus: status,
+        error: reason,
+        retryCount: item.retryCount + 1,
+        queueItemId: item.id,
+        idempotencyKey: item.idempotencyKey,
+      });
+      return "dead_lettered";
+    }
 
     if (isRetryable && canRetry) {
       dispatch(

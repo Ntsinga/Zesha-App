@@ -11,19 +11,17 @@
       "resizeMode": "contain",
       "backgroundColor": "#520610"
     },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.teleba.agentbanking"
+      "bundleIdentifier": "io.teleba"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#9A0E1F"
       },
-      "package": "com.teleba.agentbanking"
+      "package": "io.teleba"
     },
     "web": {
       "bundler": "metro",

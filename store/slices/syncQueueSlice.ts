@@ -10,6 +10,7 @@ import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 const MAX_RECENT_HISTORY = 50;
 const MAX_ERROR_LOG = 100;
+const MAX_DEAD_LETTER_ITEMS = 50;
 
 // Supported entity types for offline writes
 export type SyncEntityType =
@@ -79,6 +80,12 @@ export interface SyncHistoryItem extends Omit<QueueItem, "status"> {
   archivedAt: string;
 }
 
+export interface SyncDeadLetterItem extends Omit<QueueItem, "status"> {
+  status: "dead_letter";
+  deadLetteredAt: string;
+  deadLetterReason: string;
+}
+
 export interface SyncErrorLogEntry {
   id: string;
   queueItemId: string;
@@ -125,9 +132,20 @@ interface AppendErrorLogPayload {
   httpStatus?: number;
 }
 
+interface DeadLetterQueueItemPayload {
+  id: string;
+  reason: string;
+  httpStatus?: number;
+}
+
+interface PruneDeadLettersPayload {
+  cutoffIso: string;
+}
+
 export interface SyncQueueState {
   items: QueueItem[];
   recentHistory: SyncHistoryItem[];
+  deadLetters: SyncDeadLetterItem[];
   errorLog: SyncErrorLogEntry[];
   /** Whether the sync engine is currently processing */
   isSyncing: boolean;
@@ -138,6 +156,7 @@ export interface SyncQueueState {
 const initialState: SyncQueueState = {
   items: [],
   recentHistory: [],
+  deadLetters: [],
   errorLog: [],
   isSyncing: false,
   lastSyncedAt: null,
@@ -303,6 +322,60 @@ const syncQueueSlice = createSlice({
       );
     },
 
+    /** Remove a definitively failed non-critical item from the active queue */
+    deadLetterQueueItem(
+      state,
+      action: PayloadAction<DeadLetterQueueItemPayload>,
+    ) {
+      const itemIndex = state.items.findIndex((i) => i.id === action.payload.id);
+      if (itemIndex === -1) {
+        return;
+      }
+
+      const deadLetteredAt = new Date().toISOString();
+      const item = state.items[itemIndex];
+      const deadLetterItem: SyncDeadLetterItem = {
+        ...item,
+        retryCount: item.retryCount + 1,
+        status: "dead_letter",
+        failureAt: deadLetteredAt,
+        lastError: action.payload.reason,
+        lastHttpStatus: action.payload.httpStatus ?? item.lastHttpStatus,
+        deadLetteredAt,
+        deadLetterReason: action.payload.reason,
+      };
+
+      pushErrorLogEntry(
+        state,
+        item,
+        action.payload.reason,
+        "failed",
+        action.payload.httpStatus ?? item.lastHttpStatus,
+      );
+
+      state.items.splice(itemIndex, 1);
+      state.deadLetters.unshift(deadLetterItem);
+      state.deadLetters = state.deadLetters.slice(0, MAX_DEAD_LETTER_ITEMS);
+    },
+
+    dismissDeadLetterItem(state, action: PayloadAction<string>) {
+      state.deadLetters = state.deadLetters.filter(
+        (item) => item.id !== action.payload,
+      );
+    },
+
+    pruneDeadLetters(state, action: PayloadAction<PruneDeadLettersPayload>) {
+      const cutoff = Date.parse(action.payload.cutoffIso);
+      if (Number.isNaN(cutoff)) {
+        return;
+      }
+
+      state.deadLetters = state.deadLetters.filter((item) => {
+        const deadLetteredAt = Date.parse(item.deadLetteredAt);
+        return Number.isNaN(deadLetteredAt) || deadLetteredAt >= cutoff;
+      });
+    },
+
     /** Set syncing flag */
     setSyncing(state, action: PayloadAction<boolean>) {
       state.isSyncing = action.payload;
@@ -332,6 +405,7 @@ const syncQueueSlice = createSlice({
     clearQueue(state) {
       state.items = [];
       state.recentHistory = [];
+      state.deadLetters = [];
       state.errorLog = [];
       state.isSyncing = false;
       state.lastSyncedAt = null;
@@ -347,6 +421,9 @@ export const {
   resetToPending,
   recoverSyncingItems,
   appendErrorLog,
+  deadLetterQueueItem,
+  dismissDeadLetterItem,
+  pruneDeadLetters,
   setSyncing,
   setLastSyncedAt,
   clearFailedItems,
@@ -381,7 +458,7 @@ export const selectNeedsAttentionCount = (state: {
       i.status === "awaiting_confirmation" ||
       i.status === "failed" ||
       i.status === "blocked",
-  ).length;
+  ).length + state.syncQueue.deadLetters.length;
 
 export const selectOutstandingSyncCount = (state: {
   syncQueue: SyncQueueState;
@@ -413,3 +490,9 @@ export const selectSyncErrorLog = (state: { syncQueue: SyncQueueState }) =>
 
 export const selectRecentSyncHistory = (state: { syncQueue: SyncQueueState }) =>
   state.syncQueue.recentHistory;
+
+export const selectDeadLetterItems = (state: { syncQueue: SyncQueueState }) =>
+  state.syncQueue.deadLetters;
+
+export const selectDeadLetterCount = (state: { syncQueue: SyncQueueState }) =>
+  state.syncQueue.deadLetters.length;
