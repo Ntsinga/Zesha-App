@@ -4,6 +4,12 @@
 
 Zesha is a React Native/Expo application with web support for financial reconciliation and balance tracking. It uses a FastAPI backend with PostgreSQL.
 
+## Issue Learning Workflow
+
+- Before making changes for a bug, regression, outage, or unexpected frontend behavior, read `ERROR_LOG.md` and review lessons from relevant past incidents.
+- Every time a problem is discovered, document it in `ERROR_LOG.md` with the symptoms, root cause, solution implemented, validation performed, and lessons learned.
+- After fixing an issue, update `ERROR_LOG.md` so the lessons from that incident can be used to avoid repeating the same mistake.
+
 ## Architecture
 
 ### Frontend Stack
@@ -315,7 +321,9 @@ utils/                # Utility functions
 4. Fix every issue found
 5. Re-run error checks and re-review the fixes
 6. Repeat steps 3–5 until there are zero errors and no remaining issues
-7. Only confirm successful completion after the cycle is clean
+7. Read the relevant lessons in `ERROR_LOG.md` again and confirm the final change does not repeat a previously documented mistake
+8. If the task involved a bug, regression, outage, misconfiguration, or unexpected behavior, add or update the matching entry in `ERROR_LOG.md` before confirming completion
+9. Only confirm successful completion after the cycle is clean
 
 **Common pitfall**: Running only the TypeScript error checker is NOT sufficient. TypeScript cannot catch runtime logic bugs like `Number("1000.") === 1000` causing a controlled input to swallow a trailing decimal point. Always do the manual logic review in step 3.
 
