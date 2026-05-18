@@ -28,6 +28,8 @@ import {
 import {
   resetToPending,
   dismissQueueItem,
+  dismissDeadLetterItem,
+  pruneDeadLetters,
   type QueueItem,
 } from "../../store/slices/syncQueueSlice";
 import { API_ENDPOINTS } from "../../config/api";
@@ -57,6 +59,7 @@ const FINANCIAL_QUEUE_ENTITY_TYPES = new Set([
   "capitalInjection",
   "cashCapitalInjection",
 ]);
+const DEAD_LETTER_NOTICE_MAX_MINUTES = 10;
 
 type PendingDisplayType =
   | "DEPOSIT"
@@ -426,6 +429,7 @@ export default function Transactions() {
     (state) => state.transactions,
   );
   const queueItems = useAppSelector((state) => state.syncQueue.items);
+  const deadLetters = useAppSelector((state) => state.syncQueue.deadLetters);
   const recentSyncHistory = useAppSelector(
     (state) => state.syncQueue.recentHistory,
   );
@@ -480,14 +484,58 @@ export default function Transactions() {
     queueHeadBlocksFinancialWrites && queueHeadItem
       ? `Transactions are ${getPendingStatusLabel(queueHeadItem).toLowerCase()} behind an earlier ${getQueueEntityLabel(queueHeadItem)}.${queueHeadItem.lastError ? ` Last error: ${queueHeadItem.lastError}.` : ""} ${getQueueHeadActionHint(queueHeadItem)}`
       : null;
+  const latestDeadLetterItem = deadLetters[0] ?? null;
   const latestSyncHistoryItem = recentSyncHistory[0] ?? null;
   const latestSyncError = syncErrorLog[0] ?? null;
   const showQueueDiagnostics =
     queueHeadItem !== null && isStalledPendingItem(queueHeadItem);
+  const seenDeadLetterIdsRef = useRef<Set<string>>(
+    new Set(deadLetters.map((item) => item.id)),
+  );
 
   useEffect(() => {
     dispatch(fetchAccounts({}));
   }, [dispatch]);
+
+  useEffect(() => {
+    const pruneExpiredDeadLetters = () => {
+      const cutoffIso = new Date(
+        Date.now() - DEAD_LETTER_NOTICE_MAX_MINUTES * 60 * 1000,
+      ).toISOString();
+      dispatch(pruneDeadLetters({ cutoffIso }));
+    };
+
+    pruneExpiredDeadLetters();
+    const intervalId = setInterval(pruneExpiredDeadLetters, 60 * 1000);
+
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (!latestDeadLetterItem) {
+      return;
+    }
+
+    if (seenDeadLetterIdsRef.current.has(latestDeadLetterItem.id)) {
+      return;
+    }
+
+    seenDeadLetterIdsRef.current.add(latestDeadLetterItem.id);
+    Alert.alert(
+      "Queued item removed",
+      `A queued ${getQueueEntityLabel(latestDeadLetterItem)} was removed from automatic sync so later items can continue. ${latestDeadLetterItem.deadLetterReason}`,
+    );
+  }, [latestDeadLetterItem]);
+
+  const handleDismissDeadLetter = useCallback(() => {
+    if (!latestDeadLetterItem) {
+      return;
+    }
+
+    dispatch(dismissDeadLetterItem(latestDeadLetterItem.id));
+  }, [dispatch, latestDeadLetterItem]);
 
   // Re-fetch transactions after sync activity settles (debounced) so a large
   // queue flushing over a restored network only triggers one fetch, not one
@@ -789,8 +837,8 @@ export default function Transactions() {
                   className="text-sm font-semibold"
                   style={{ color: "#1d4ed8" }}
                 >
-                  {pendingFinancialWrites.length + hiddenPendingCount} waiting to
-                  sync
+                  {pendingFinancialWrites.length + hiddenPendingCount} waiting
+                  to sync
                 </Text>
                 {queueHeadBlockerMessage ? (
                   <Text className="mt-1 text-xs" style={{ color: "#1e40af" }}>
@@ -886,6 +934,55 @@ export default function Transactions() {
             ) : null}
           </View>
         )}
+
+        {latestDeadLetterItem ? (
+          <View
+            className="mb-4 rounded-2xl border px-4 py-3"
+            style={{ backgroundColor: "#FEF2F2", borderColor: "#FCA5A5" }}
+          >
+            <View className="flex-row items-start justify-between gap-3">
+              <Text
+                className="flex-1 text-sm font-semibold"
+                style={{ color: "#991B1B" }}
+              >
+                Queued item removed from sync
+              </Text>
+              <TouchableOpacity
+                onPress={handleDismissDeadLetter}
+                className="rounded-lg px-3 py-1.5"
+                style={{ backgroundColor: "#FEE2E2" }}
+              >
+                <Text
+                  className="text-xs font-semibold"
+                  style={{ color: "#B91C1C" }}
+                >
+                  Dismiss
+                </Text>
+              </TouchableOpacity>
+            </View>
+            <View className="mt-2 gap-1">
+              <Text className="text-xs" style={{ color: "#991B1B" }}>
+                {getQueueEntityLabel(latestDeadLetterItem)}
+                {latestDeadLetterItem.lastHttpStatus
+                  ? ` · HTTP ${latestDeadLetterItem.lastHttpStatus}`
+                  : ""}
+                {` · ${formatDate(latestDeadLetterItem.deadLetteredAt, "short")}`}
+              </Text>
+              <Text className="text-xs" style={{ color: "#B91C1C" }}>
+                {latestDeadLetterItem.deadLetterReason}
+              </Text>
+              <Text className="text-xs" style={{ color: "#B91C1C" }}>
+                This notice clears in {DEAD_LETTER_NOTICE_MAX_MINUTES} minutes.
+              </Text>
+              {deadLetters.length > 1 ? (
+                <Text className="text-xs" style={{ color: "#B91C1C" }}>
+                  {deadLetters.length - 1} more item
+                  {deadLetters.length - 1 !== 1 ? "s" : ""} also removed.
+                </Text>
+              ) : null}
+            </View>
+          </View>
+        ) : null}
 
         {/* Filter row */}
         <View className="flex-row justify-between items-center mb-3">
