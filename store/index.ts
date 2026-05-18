@@ -3,6 +3,8 @@ import { Platform } from "react-native";
 import {
   persistStore,
   persistReducer,
+  createTransform,
+  type PersistConfig,
   FLUSH,
   REHYDRATE,
   PAUSE,
@@ -23,10 +25,20 @@ import companyInfoReducer from "./slices/companyInfoSlice";
 import cashCountReducer from "./slices/cashCountSlice";
 import accountsReducer from "./slices/accountsSlice";
 import usersReducer from "./slices/usersSlice";
-import syncQueueReducer from "./slices/syncQueueSlice";
+import syncQueueReducer, {
+  normalizeSyncQueueState,
+  type SyncQueueState,
+} from "./slices/syncQueueSlice";
 import expectedCommissionsReducer from "./slices/expectedCommissionsSlice";
 import commissionSchedulesReducer from "./slices/commissionSchedulesSlice";
 import expenseCategoriesReducer from "./slices/expenseCategoriesSlice";
+
+const syncQueueTransform = createTransform(
+  (inboundState: SyncQueueState) => inboundState,
+  (outboundState: Partial<SyncQueueState> | undefined) =>
+    normalizeSyncQueueState(outboundState),
+  { whitelist: ["syncQueue"] },
+);
 
 const appReducer = combineReducers({
   auth: authReducer,
@@ -47,6 +59,8 @@ const appReducer = combineReducers({
   expenseCategories: expenseCategoriesReducer,
 });
 
+type AppState = ReturnType<typeof appReducer>;
+
 /**
  * Root reducer that resets slice state on local auth clear.
  * Re-authentication flows can opt into preserving the offline sync queue,
@@ -60,7 +74,7 @@ const rootReducer: typeof appReducer = (
     const resetState = appReducer(undefined, action);
     const preservedSyncQueue =
       action.meta.arg?.preserveSyncQueue === true
-        ? state?.syncQueue
+        ? normalizeSyncQueueState(state?.syncQueue)
         : undefined;
 
     if (preservedSyncQueue !== undefined) {
@@ -76,9 +90,10 @@ const rootReducer: typeof appReducer = (
 };
 
 // Persist config — only on mobile (web uses its own storage via authSlice)
-const persistConfig = {
+const persistConfig: PersistConfig<AppState> = {
   key: "root",
   storage: AsyncStorage,
+  transforms: [syncQueueTransform],
   // Persist data slices for offline access (auth uses SecureStore separately)
   whitelist: [
     "balances",
@@ -97,7 +112,7 @@ const persistConfig = {
 const maybePersistedReducer =
   Platform.OS === "web"
     ? rootReducer
-    : persistReducer(persistConfig, rootReducer);
+    : persistReducer<AppState>(persistConfig, rootReducer);
 
 export const store = configureStore({
   reducer: maybePersistedReducer as typeof rootReducer,
