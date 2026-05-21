@@ -24,6 +24,24 @@ Write what happened, why it happened, what changed, how it was verified, and wha
 
 ---
 
+### 2026-05-21 - Sync 422 diagnostics hid the missing transaction field
+
+- Status: Resolved
+- Area: Sync / Networking
+- Symptoms: Offline transaction sync stalled on `POST /transactions/create` with HTTP 422. The queue UI and Sentry only showed `Field required`, which made it impossible to tell which request field was missing. The item was marked `failed` after a single attempt and blocked later queued items.
+- Root cause: The backend already returned structured FastAPI validation details with `loc`, `msg`, and `type`, but `secureApiRequest` flattened array errors down to `msg` only. That discarded the field path, so both the in-app queue diagnostics and Sentry lost the actionable part of the 422.
+- Solution implemented:
+  - Updated `secureApiRequest` to format validation errors as `body.field_name: message` instead of only `message`.
+  - Stored the raw validation detail on `ApiError` for richer downstream diagnostics.
+  - Added the flattened sync error text to Sentry `syncItem` context so replay events retain the field-level failure detail.
+  - Added a sanitized `requestPayload` Sentry context for sync stalls so failed offline mutations expose the outgoing body, body size, and local image count without logging base64 image blobs.
+- Validation: TypeScript error check passed for the touched frontend file. Reviewed the backend validation handler and confirmed it already returns `loc`, so the missing detail was lost only in the frontend formatter.
+- Lessons learned:
+  - For FastAPI 422s, never discard `loc`; `msg` alone is too generic to debug queue failures.
+  - Queue-head failures need field-level diagnostics because a single deterministic 4xx blocks later items by design.
+  - A pending row can look valid in the UI while still hiding the exact malformed field, so preserve server validation structure in logs.
+  - Capture request payloads at the sync boundary instead of enabling global request-body logging on the server; that keeps diagnostics targeted and avoids broad PII exposure.
+
 ### 2026-05-20 - Blocked sync items never retried after re-authentication
 
 - Status: Resolved

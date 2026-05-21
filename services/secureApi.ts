@@ -30,13 +30,62 @@ export function isSecureApiInitialized(): boolean {
 export class ApiError extends Error {
   status: number;
   code?: string;
+  details?: unknown;
 
-  constructor(message: string, status: number, code?: string) {
+  constructor(message: string, status: number, code?: string, details?: unknown) {
     super(message);
     this.name = "ApiError";
     this.status = status;
     this.code = code;
+    this.details = details;
   }
+}
+
+function formatValidationLocation(loc?: unknown): string | null {
+  if (!Array.isArray(loc) || loc.length === 0) {
+    return null;
+  }
+
+  const parts = loc.filter((part): part is string | number => {
+    return typeof part === "string" || typeof part === "number";
+  });
+
+  if (parts.length === 0) {
+    return null;
+  }
+
+  return parts.join(".");
+}
+
+function formatApiErrorMessage(detail: unknown): string {
+  if (Array.isArray(detail)) {
+    return detail
+      .map((entry) => {
+        if (entry && typeof entry === "object") {
+          const validationEntry = entry as {
+            msg?: string;
+            loc?: unknown;
+            message?: string;
+          };
+          const location = formatValidationLocation(validationEntry.loc);
+          const message =
+            validationEntry.msg ??
+            validationEntry.message ??
+            JSON.stringify(entry);
+
+          return location ? `${location}: ${message}` : message;
+        }
+
+        return typeof entry === "string" ? entry : JSON.stringify(entry);
+      })
+      .join("; ");
+  }
+
+  if (typeof detail === "string") {
+    return detail;
+  }
+
+  return JSON.stringify(detail);
 }
 
 /**
@@ -194,17 +243,13 @@ export async function secureApiRequest<T>(
           .catch(() => ({ detail: `HTTP ${response.status}` }));
         const retryDetail =
           errorData.detail ?? errorData.message ?? `HTTP ${response.status}`;
-        const retryMessage = Array.isArray(retryDetail)
-          ? retryDetail
-              .map(
-                (e: { msg?: string; message?: string }) =>
-                  e.msg ?? e.message ?? JSON.stringify(e),
-              )
-              .join("; ")
-          : typeof retryDetail === "string"
-            ? retryDetail
-            : JSON.stringify(retryDetail);
-        lastError = new ApiError(retryMessage, response.status, "TRANSIENT");
+        const retryMessage = formatApiErrorMessage(retryDetail);
+        lastError = new ApiError(
+          retryMessage,
+          response.status,
+          "TRANSIENT",
+          retryDetail,
+        );
         await retryDelay(getRetryDelay(attempt));
         continue;
       }
@@ -217,18 +262,9 @@ export async function secureApiRequest<T>(
         // Flatten it to a readable string instead of letting it become "[object Object]".
         const detail =
           errorData.detail ?? errorData.message ?? `HTTP ${response.status}`;
-        const message = Array.isArray(detail)
-          ? detail
-              .map(
-                (e: { msg?: string; loc?: string[]; message?: string }) =>
-                  e.msg ?? e.message ?? JSON.stringify(e),
-              )
-              .join("; ")
-          : typeof detail === "string"
-            ? detail
-            : JSON.stringify(detail);
+        const message = formatApiErrorMessage(detail);
         addApiBreadcrumb(method, endpoint, response.status);
-        throw new ApiError(message, response.status);
+        throw new ApiError(message, response.status, undefined, detail);
       }
 
       // Handle 204 No Content

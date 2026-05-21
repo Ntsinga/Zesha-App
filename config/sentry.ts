@@ -141,6 +141,7 @@ export function captureSyncStall(context: {
   retryCount: number;
   queueItemId: string;
   idempotencyKey?: string;
+  requestPayload?: Record<string, unknown> | null;
 }): void {
   Sentry.withScope((scope) => {
     scope.setTag("sync.entityType", context.entityType);
@@ -152,7 +153,11 @@ export function captureSyncStall(context: {
       endpoint: context.endpoint,
       retryCount: context.retryCount,
       idempotencyKey: context.idempotencyKey,
+      error: context.error,
     });
+    if (context.requestPayload) {
+      scope.setContext("requestPayload", context.requestPayload);
+    }
     scope.setLevel("error");
     Sentry.captureMessage(
       `Sync stalled: ${context.entityType} ${context.status} (HTTP ${context.httpStatus})`,

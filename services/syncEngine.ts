@@ -219,6 +219,75 @@ function hasReplayKey(item: QueueItem): boolean {
   );
 }
 
+const REDACTED_PAYLOAD_KEYS = new Set(["image_data", "images"]);
+const MAX_DIAGNOSTIC_STRING_LENGTH = 160;
+
+function sanitizePayloadValueForDiagnostics(
+  value: unknown,
+  key?: string,
+): unknown {
+  if (key && REDACTED_PAYLOAD_KEYS.has(key)) {
+    if (Array.isArray(value)) {
+      return `[redacted ${value.length} item(s)]`;
+    }
+
+    if (typeof value === "string") {
+      return `[redacted ${value.length} chars]`;
+    }
+
+    return "[redacted]";
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((entry) => sanitizePayloadValueForDiagnostics(entry));
+  }
+
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value).map(([entryKey, entryValue]) => [
+        entryKey,
+        sanitizePayloadValueForDiagnostics(entryValue, entryKey),
+      ]),
+    );
+  }
+
+  if (typeof value === "string" && value.length > MAX_DIAGNOSTIC_STRING_LENGTH) {
+    return `${value.slice(0, MAX_DIAGNOSTIC_STRING_LENGTH)}...`;
+  }
+
+  return value;
+}
+
+function buildRequestPayloadContext(
+  payload: Record<string, unknown> | null,
+  localImageUris?: string[],
+): Record<string, unknown> | null {
+  if (!payload && (!localImageUris || localImageUris.length === 0)) {
+    return null;
+  }
+
+  const context: Record<string, unknown> = {};
+
+  if (payload) {
+    context.body = sanitizePayloadValueForDiagnostics(payload) as Record<
+      string,
+      unknown
+    >;
+
+    try {
+      context.bodySize = JSON.stringify(payload).length;
+    } catch {
+      // Ignore serialization failures in diagnostics.
+    }
+  }
+
+  if (localImageUris && localImageUris.length > 0) {
+    context.localImageCount = localImageUris.length;
+  }
+
+  return context;
+}
+
 function isOnlineState(
   state: Pick<NetInfoState, "isConnected" | "isInternetReachable">,
 ): boolean {
@@ -282,13 +351,13 @@ function hasRecoverableQueueHead(): boolean {
 
 async function processItem(item: QueueItem): Promise<ProcessItemResult> {
   const dispatch = store.dispatch;
+  let finalPayload = injectIdempotencyKey(item.payload, item.idempotencyKey);
 
   // Mark item as syncing
   dispatch(markSyncing(item.id));
 
   try {
     // 1. Resolve local images if any
-    let finalPayload = injectIdempotencyKey(item.payload, item.idempotencyKey);
     if (item.localImageUris && item.localImageUris.length > 0) {
       const imageMap = await resolveLocalImages(item.localImageUris);
       finalPayload = injectImagesIntoPayload(
@@ -342,6 +411,10 @@ async function processItem(item: QueueItem): Promise<ProcessItemResult> {
       error && typeof error === "object" && "status" in error
         ? (error as { status: number }).status
         : 0;
+    const requestPayload = buildRequestPayloadContext(
+      finalPayload,
+      item.localImageUris,
+    );
 
     // Don't retry auth errors — user needs to re-authenticate
     if (status === 401 || status === 403) {
@@ -363,6 +436,7 @@ async function processItem(item: QueueItem): Promise<ProcessItemResult> {
         retryCount: item.retryCount,
         queueItemId: item.id,
         idempotencyKey: item.idempotencyKey,
+        requestPayload,
       });
       return "blocked";
     }
@@ -424,6 +498,7 @@ async function processItem(item: QueueItem): Promise<ProcessItemResult> {
         retryCount: item.retryCount + 1,
         queueItemId: item.id,
         idempotencyKey: item.idempotencyKey,
+        requestPayload,
       });
       return "dead_lettered";
     }
@@ -460,6 +535,7 @@ async function processItem(item: QueueItem): Promise<ProcessItemResult> {
         retryCount: item.retryCount + 1,
         queueItemId: item.id,
         idempotencyKey: item.idempotencyKey,
+        requestPayload,
       });
       return "failed";
     }
