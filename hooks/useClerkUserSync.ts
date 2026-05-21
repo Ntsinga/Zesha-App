@@ -2,7 +2,9 @@ import { useEffect, useCallback, useRef } from "react";
 import { useUser, useAuth } from "@clerk/clerk-expo";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import { syncUserWithBackend, clearLocalAuth } from "../store/slices/authSlice";
+import { resetBlockedItems } from "../store/slices/syncQueueSlice";
 import { isSecureApiInitialized } from "../services/secureApi";
+import { triggerSync } from "../services/syncEngine";
 import type { UserSyncRequest, RoleEnum } from "@/types";
 
 /**
@@ -80,7 +82,13 @@ export function useClerkUserSync() {
     // Only sync if we have required data
     if (syncData.email && syncData.clerkUserId) {
       try {
-        await dispatch(syncUserWithBackend(syncData));
+        const result = await dispatch(syncUserWithBackend(syncData));
+        if (syncUserWithBackend.fulfilled.match(result)) {
+          // Re-auth succeeded — unblock any items that were stalled by a 401
+          // so the sync engine picks them up on the next pass.
+          dispatch(resetBlockedItems());
+          void triggerSync();
+        }
       } catch (err) {
         console.error("[UserSync] Sync error:", err);
       } finally {

@@ -418,6 +418,19 @@ const syncQueueSlice = createSlice({
       state.recentHistory = [];
     },
 
+    /**
+     * Reset all blocked items back to pending.
+     * Should be dispatched after successful re-authentication so items
+     * blocked by a 401 are retried with the fresh session.
+     */
+    resetBlockedItems(state) {
+      state.items.forEach((item) => {
+        if (item.status === "blocked") {
+          item.status = "pending";
+        }
+      });
+    },
+
     /** Clear entire queue (e.g., on logout) */
     clearQueue(state) {
       state.items = [];
@@ -436,6 +449,7 @@ export const {
   archiveSyncedItem,
   markQueueOutcome,
   resetToPending,
+  resetBlockedItems,
   recoverSyncingItems,
   appendErrorLog,
   deadLetterQueueItem,

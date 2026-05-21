@@ -22,6 +22,25 @@ Before starting work on a bug or incident, review the lessons in relevant past e
 Use short, concrete bullets.
 Write what happened, why it happened, what changed, how it was verified, and what the team should remember next time.
 
+---
+
+### 2026-05-20 - Blocked sync items never retried after re-authentication
+
+- Status: Resolved
+- Area: Sync / Auth
+- Symptoms: Sentry event `Sync stalled: transaction blocked (HTTP 401)` for route `/transactions`. After the user signed back in, the queued transaction was still not synced. Sentry tag `sync.status: blocked`.
+- Root cause: `processItem` in `syncEngine.ts` marks items `"blocked"` on 401/403. `isProcessableItem` excludes `"blocked"` status, so blocked items are never retried. There was no code to reset blocked items to `"pending"` after a successful re-authentication — the `useClerkUserSync` hook called `syncUserWithBackend` but did nothing with its result.
+- Solution implemented:
+  - Added `resetBlockedItems` reducer to `syncQueueSlice` that sets all `"blocked"` items back to `"pending"`.
+  - In `useClerkUserSync.ts`, after `dispatch(syncUserWithBackend(...))`, checked for `fulfilled` and dispatched `resetBlockedItems()` + called `triggerSync()` so the sync engine immediately processes the recovered items.
+- Validation: No TypeScript errors. Logic reviewed — `triggerSync` is a no-op if already processing or offline, so it is safe to call eagerly.
+- Lessons learned:
+  - Any time a queue item transitions to a terminal-like status (`"blocked"`, `"failed"`), there must be a recovery path that is triggered by the event that resolves the underlying cause (re-auth, manual retry, etc.).
+  - Always check what happens to the sync queue _after_ the fix event (sign-in), not just during the failure.
+  - `syncUserWithBackend` succeeding is the signal that auth is restored — couple queue unblocking to that, not to connectivity events.
+
+---
+
 ### Example
 
 - Status: Resolved
