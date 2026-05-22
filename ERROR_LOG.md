@@ -24,6 +24,23 @@ Write what happened, why it happened, what changed, how it was verified, and wha
 
 ---
 
+### 2026-05-22 - Blocked sync queue stayed stalled when auth recovered without a backend resync
+
+- Status: Resolved
+- Area: Sync / Auth
+- Symptoms: Sentry still reported `Sync stalled: transaction blocked (HTTP 401)` on the mobile transactions screen after the user signed in again. The offline queue remained blocked even though a recovery path had already been added for re-authentication.
+- Root cause: The earlier recovery only dispatched `resetBlockedItems()` after `syncUserWithBackend` fulfilled. In some re-auth flows, Clerk auth became valid again while the existing backend user already matched the same Clerk user, so `useClerkUserSync` skipped `syncUserWithBackend` entirely. That left blocked queue items in `blocked` forever because no recovery action fired in the already-synced path.
+- Solution implemented:
+  - Added a shared `resumeBlockedQueue` path in the native and web Clerk sync hooks.
+  - Kept the existing unblock-on-success behavior after `syncUserWithBackend` fulfills.
+  - Delayed updating `syncedClerkIdRef` until `syncUserWithBackend` actually fulfills, so a transient backend sync failure does not suppress later retry attempts for the same Clerk user.
+  - Added recovery for the case where auth becomes available again and the backend user is already synced for the same Clerk user, so blocked items are reset to `pending` and `triggerSync()` runs immediately.
+- Validation: TypeScript error checks passed for the updated native and web Clerk sync hooks. Reviewed the restored-auth control flow to confirm recovery now runs both after a fresh backend sync and after an already-synced session becomes available again.
+- Lessons learned:
+  - Do not couple queue recovery only to the backend sync thunk when auth state can also be restored from cached user state.
+  - Any re-auth recovery must cover both "freshly resynced" and "already restored" authenticated states.
+  - Do not mark a Clerk user as synced before the backend sync thunk succeeds, or a rejected sync can permanently short-circuit future retries.
+
 ### 2026-05-21 - Sync 422 diagnostics hid the missing transaction field
 
 - Status: Resolved

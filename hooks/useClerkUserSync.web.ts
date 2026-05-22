@@ -2,7 +2,9 @@ import { useEffect, useCallback, useRef } from "react";
 import { useUser, useAuth } from "@clerk/clerk-react";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import { syncUserWithBackend, clearLocalAuth } from "../store/slices/authSlice";
+import { resetBlockedItems } from "../store/slices/syncQueueSlice";
 import { isSecureApiInitialized } from "../services/secureApi";
+import { triggerSync } from "../services/syncEngine";
 import type { UserSyncRequest, RoleEnum } from "@/types";
 
 /**
@@ -23,12 +25,20 @@ export function useClerkUserSync() {
   const syncedClerkIdRef = useRef<string | null>(null);
   // Ref to prevent multiple sync attempts
   const syncInProgressRef = useRef<boolean>(false);
+  // Tracks when auth becomes available again so blocked items can resume even
+  // if the backend user was already restored from local state.
+  const previousSignedInRef = useRef<boolean | null>(null);
 
   const {
     user: backendUser,
     isSyncing,
     error,
   } = useAppSelector((state) => state.auth);
+
+  const resumeBlockedQueue = useCallback(() => {
+    dispatch(resetBlockedItems());
+    void triggerSync();
+  }, [dispatch]);
 
   const syncUser = useCallback(async () => {
     if (!clerkUser) {
@@ -40,8 +50,6 @@ export function useClerkUserSync() {
       return;
     }
 
-    // Mark this clerk user as synced to prevent duplicate syncs
-    syncedClerkIdRef.current = clerkUser.id;
     syncInProgressRef.current = true;
 
     // Extract companyId and role from Clerk metadata (set during invite)
@@ -75,7 +83,11 @@ export function useClerkUserSync() {
     // Only sync if we have required data
     if (syncData.email && syncData.clerkUserId) {
       try {
-        await dispatch(syncUserWithBackend(syncData));
+        const result = await dispatch(syncUserWithBackend(syncData));
+        if (syncUserWithBackend.fulfilled.match(result)) {
+          syncedClerkIdRef.current = clerkUser.id;
+          resumeBlockedQueue();
+        }
       } catch (err) {
         console.error("[UserSync Web] Sync failed:", err);
       } finally {
@@ -84,15 +96,25 @@ export function useClerkUserSync() {
     } else {
       syncInProgressRef.current = false;
     }
-  }, [clerkUser, dispatch]);
+  }, [clerkUser, dispatch, resumeBlockedQueue]);
 
   useEffect(() => {
     if (!isAuthLoaded || !isUserLoaded) return;
     if (!isSecureApiInitialized()) return;
 
+    const authBecameAvailable = isSignedIn && previousSignedInRef.current !== true;
+
     if (isSignedIn && clerkUser) {
       // Skip if already synced
-      if (syncedClerkIdRef.current === clerkUser.id) return;
+      if (syncedClerkIdRef.current === clerkUser.id) {
+        if (
+          authBecameAvailable &&
+          backendUser?.clerkUserId === clerkUser.id
+        ) {
+          resumeBlockedQueue();
+        }
+        return;
+      }
       if (isSyncing) return;
 
       // Sync if no backend user or different clerk user
@@ -103,6 +125,9 @@ export function useClerkUserSync() {
         syncUser();
       } else {
         syncedClerkIdRef.current = clerkUser.id;
+        if (authBecameAvailable) {
+          resumeBlockedQueue();
+        }
       }
     } else if (!isSignedIn) {
       syncedClerkIdRef.current = null;
@@ -118,8 +143,17 @@ export function useClerkUserSync() {
     backendUser?.clerkUserId,
     isSyncing,
     syncUser,
+    resumeBlockedQueue,
     dispatch,
   ]);
+
+  useEffect(() => {
+    if (!isAuthLoaded) {
+      return;
+    }
+
+    previousSignedInRef.current = isSignedIn;
+  }, [isAuthLoaded, isSignedIn]);
 
   // Clear synced ref when user changes
   useEffect(() => {
