@@ -246,8 +246,10 @@ export const addCommissionRule = createAsyncThunk<
       if (!companyId) return rejectWithValue("No companyId found.");
 
       // Pre-check: reject before API call if an active rule already exists
+      const selectedSchedule = getState().commissionSchedules.selectedSchedule;
       const duplicate =
-        getState().commissionSchedules.selectedSchedule?.rules.some(
+        selectedSchedule?.id === scheduleId &&
+        selectedSchedule.rules.some(
           (r) =>
             r.isActive &&
             r.transactionType === data.transactionType &&
@@ -289,10 +291,11 @@ export const reviseCommissionRule = createAsyncThunk<
 
       // Inject immutable transactionType/transactionSubtype from state — backend
       // enforces these cannot change during revision.
+      const selectedSchedule = getState().commissionSchedules.selectedSchedule;
       const existingRule =
-        getState().commissionSchedules.selectedSchedule?.rules.find(
-          (r) => r.id === ruleId,
-        );
+        selectedSchedule?.id === scheduleId
+          ? selectedSchedule.rules.find((r) => r.id === ruleId)
+          : undefined;
       if (!existingRule) {
         return rejectWithValue(
           "Rule not found — load the schedule detail before revising.",
@@ -310,6 +313,50 @@ export const reviseCommissionRule = createAsyncThunk<
 
       return await apiRequest<CommissionRule>(
         `${API_ENDPOINTS.commissionSchedules.reviseRule(scheduleId, ruleId)}?company_id=${companyId}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(mapApiRequest(fullPayload)),
+        },
+      );
+    } catch (error) {
+      return rejectWithValue(
+        error instanceof Error ? error.message : "Failed to revise rule",
+      );
+    }
+  },
+);
+
+export const reviseCommissionTemplateRule = createAsyncThunk<
+  CommissionRule,
+  { scheduleId: number; ruleId: number; data: CommissionRuleRevise },
+  { state: RootState; rejectValue: string }
+>(
+  "commissionSchedules/reviseTemplateRule",
+  async ({ scheduleId, ruleId, data }, { getState, rejectWithValue }) => {
+    try {
+      const selectedSchedule = getState().commissionSchedules.selectedSchedule;
+      const existingRule =
+        selectedSchedule?.id === scheduleId
+          ? selectedSchedule.rules.find((r) => r.id === ruleId)
+          : undefined;
+      if (!existingRule) {
+        return rejectWithValue(
+          "Rule not found — load the schedule detail before revising.",
+        );
+      }
+      if (!existingRule.isActive) {
+        return rejectWithValue("Cannot revise an already-inactive rule.");
+      }
+
+      const fullPayload = {
+        ...data,
+        transactionType: existingRule.transactionType,
+        transactionSubtype: existingRule.transactionSubtype,
+      };
+
+      return await apiRequest<CommissionRule>(
+        API_ENDPOINTS.commissionSchedules.reviseRule(scheduleId, ruleId),
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -399,8 +446,10 @@ export const addCommissionTemplateRule = createAsyncThunk<
   "commissionSchedules/addTemplateRule",
   async ({ scheduleId, data }, { getState, rejectWithValue }) => {
     try {
+      const selectedSchedule = getState().commissionSchedules.selectedSchedule;
       const duplicate =
-        getState().commissionSchedules.selectedSchedule?.rules.some(
+        selectedSchedule?.id === scheduleId &&
+        selectedSchedule.rules.some(
           (r) =>
             r.isActive &&
             r.transactionType === data.transactionType &&
@@ -628,6 +677,25 @@ const commissionSchedulesSlice = createSlice({
         state.selectedSchedule.rules.push(action.payload);
       })
       .addCase(reviseCommissionRule.rejected, (state, action) => {
+        state.error = action.payload ?? "Failed to revise rule";
+      });
+
+    builder
+      .addCase(reviseCommissionTemplateRule.fulfilled, (state, action) => {
+        if (!state.selectedSchedule) return;
+        const { ruleId } = action.meta.arg;
+        const oldIdx = state.selectedSchedule.rules.findIndex(
+          (r) => r.id === ruleId,
+        );
+        if (oldIdx !== -1) {
+          state.selectedSchedule.rules[oldIdx] = {
+            ...state.selectedSchedule.rules[oldIdx],
+            isActive: false,
+          };
+        }
+        state.selectedSchedule.rules.push(action.payload);
+      })
+      .addCase(reviseCommissionTemplateRule.rejected, (state, action) => {
         state.error = action.payload ?? "Failed to revise rule";
       });
 

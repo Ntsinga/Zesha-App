@@ -25,6 +25,8 @@ import {
   createCommissionTemplate,
   addCommissionRule,
   addCommissionTemplateRule,
+  reviseCommissionRule,
+  reviseCommissionTemplateRule,
   deactivateCommissionRule,
   deactivateCommissionTemplateRule,
   replaceCommissionTiers,
@@ -89,9 +91,8 @@ export function useAccountDetailScreen(accountId: number, isTemplate = false) {
       state.accounts.selectedAccount
     );
   });
-  const isAccountLoading = useAppSelector(
-    (state: RootState) =>
-      isTemplate ? state.accountTemplates.isLoading : state.accounts.isLoading,
+  const isAccountLoading = useAppSelector((state: RootState) =>
+    isTemplate ? state.accountTemplates.isLoading : state.accounts.isLoading,
   );
 
   // ── Commission schedule data ───────────────────────────────────────────────
@@ -320,6 +321,7 @@ export function useAccountDetailScreen(accountId: number, isTemplate = false) {
     }
     setIsCreatingSchedule(true);
     setCreateScheduleError(null);
+    dispatch(clearSelectedSchedule());
     try {
       // 1) Create the schedule
       let createResult: CommissionScheduleDetail | { id: number };
@@ -471,6 +473,15 @@ export function useAccountDetailScreen(accountId: number, isTemplate = false) {
 
     isSubmittingRef.current = true;
     setIsSubmitting(true);
+    const existingActiveRule =
+      schedule.id === (account?.commissionScheduleId ?? null)
+        ? schedule.rules.find(
+            (rule) =>
+              rule.isActive &&
+              rule.transactionType === ruleTransactionType &&
+              rule.transactionSubtype === ruleTransactionSubtype,
+          )
+        : undefined;
     const rulePayload = {
       scheduleId: schedule.id,
       data: {
@@ -483,20 +494,43 @@ export function useAccountDetailScreen(accountId: number, isTemplate = false) {
         tiers: tiersPayload,
       },
     };
-    const result = await dispatch(
-      isTemplate
-        ? addCommissionTemplateRule(rulePayload)
-        : addCommissionRule(rulePayload),
-    );
+    let result;
+    if (existingActiveRule) {
+      if (isTemplate) {
+        result = await dispatch(
+          reviseCommissionTemplateRule({
+            scheduleId: schedule.id,
+            ruleId: existingActiveRule.id,
+            data: rulePayload.data,
+          }),
+        );
+      } else {
+        result = await dispatch(
+          reviseCommissionRule({
+            scheduleId: schedule.id,
+            ruleId: existingActiveRule.id,
+            data: rulePayload.data,
+          }),
+        );
+      }
+    } else if (isTemplate) {
+      result = await dispatch(addCommissionTemplateRule(rulePayload));
+    } else {
+      result = await dispatch(addCommissionRule(rulePayload));
+    }
     isSubmittingRef.current = false;
     setIsSubmitting(false);
-    const ok = isTemplate
-      ? addCommissionTemplateRule.fulfilled.match(result)
-      : addCommissionRule.fulfilled.match(result);
+    const ok = existingActiveRule
+      ? isTemplate
+        ? reviseCommissionTemplateRule.fulfilled.match(result)
+        : reviseCommissionRule.fulfilled.match(result)
+      : isTemplate
+        ? addCommissionTemplateRule.fulfilled.match(result)
+        : addCommissionRule.fulfilled.match(result);
     if (ok) {
       setIsAddRuleOpen(false);
       setAddRuleError(null);
-      showMsg("success", "Rule added.");
+      showMsg("success", existingActiveRule ? "Rule revised." : "Rule added.");
     } else {
       setAddRuleError((result.payload as string) ?? "Failed to add rule.");
     }

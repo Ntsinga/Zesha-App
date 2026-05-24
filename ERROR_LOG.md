@@ -24,6 +24,26 @@ Write what happened, why it happened, what changed, how it was verified, and wha
 
 ---
 
+### 2026-05-24 - Template rule editor treated slot changes as duplicate adds
+
+- Status: Resolved
+- Area: UI / State
+- Symptoms: Editing a commission template rule from the account detail screen failed with `An active rule already exists for this (transaction_type, transaction_subtype)` even when the user intended to replace the existing withdraw or deposit rule with a new structure. In some cases the same conflict also appeared right after creating and linking a genuinely new schedule.
+- Root cause: The rule editor always dispatched the add-rule thunk. The backend correctly allows only one active rule per `(transaction_type, transaction_subtype)` within a schedule and expects the existing slot to be revised instead. Company schedules already had a revise thunk, but template schedules did not, so the template path dead-ended on the duplicate-rule guard. Separately, the duplicate pre-check trusted `selectedSchedule` in Redux even when it was stale and no longer matched the account's currently linked schedule, so a newly created schedule could inherit a false duplicate conflict from previously selected state.
+- Solution implemented:
+  - Added `reviseCommissionTemplateRule` to the commission schedule slice.
+  - Updated the account detail rule form to detect an existing active rule for the selected transaction slot.
+  - Automatically dispatch the revise thunk instead of the add thunk when the user is replacing an existing active rule.
+  - Scoped duplicate/revise checks to the currently linked schedule ID instead of any stale `selectedSchedule` state.
+  - Cleared stale selected schedule detail when creating and linking a brand-new schedule.
+  - Return a success message of `Rule revised.` so the UI reflects what actually happened.
+- Validation: Ran `npm exec -- tsc --noEmit` successfully and checked diagnostics on the touched frontend files.
+- Lessons learned:
+  - The UI should model the backend invariant of one active rule per transaction slot instead of surfacing the raw duplicate-rule conflict to the user.
+  - Template and company schedule paths need the same mutation surface; missing one side creates confusing parity bugs.
+  - If a form can represent both create and replace semantics, detect the existing slot locally and choose the correct mutation before making the API call.
+  - Any duplicate pre-check in Redux must be scoped to the exact schedule currently being edited, not whichever schedule detail was last selected.
+
 ### 2026-05-24 - Account template slice split left stale selectors and template typing
 
 - Status: Resolved
