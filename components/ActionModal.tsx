@@ -502,6 +502,8 @@ export const AddTransactionForm: React.FC<AddTransactionFormProps> = ({
               "VOICE_BUNDLE",
               "DATA_BUNDLE",
               "BILL_PAYMENT",
+              "SCHOOL_FEES",
+              "TAX_PAYMENT",
             ] as (TransactionSubtypeEnum | null)[]
           ).map((val) => {
             const label =
@@ -515,7 +517,11 @@ export const AddTransactionForm: React.FC<AddTransactionFormProps> = ({
                       ? "Voice Bundle"
                       : val === "DATA_BUNDLE"
                         ? "Data Bundle"
-                        : "Bill Payment";
+                        : val === "BILL_PAYMENT"
+                          ? "Bill Payment"
+                          : val === "SCHOOL_FEES"
+                            ? "School Fees"
+                            : "Tax Payment";
             return (
               <TouchableOpacity
                 key={val ?? "standard"}
