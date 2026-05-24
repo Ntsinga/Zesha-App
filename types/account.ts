@@ -24,9 +24,27 @@ export interface Account extends BaseModel {
   isActive: boolean;
   companyId: number | null;
   isTemplate: boolean;
+  accountTemplateId?: number | null;
   initialBalance?: number | null;
   currentBalance?: number | null;
   commissionModel?: CommissionModelEnum;
+  commissionScheduleId?: number | null;
+  commissionSchedule?: AccountScheduleSummary | null;
+}
+
+/**
+ * Account template entity - matches backend AccountTemplate model
+ */
+export interface AccountTemplate extends BaseModel {
+  name: string;
+  description: string | null;
+  accountType: AccountTypeEnum;
+  isActive: boolean;
+  companyId: null;
+  isTemplate: true;
+  commissionModel?: CommissionModelEnum;
+  initialBalance?: number | null;
+  currentBalance?: number | null;
   commissionScheduleId?: number | null;
   commissionSchedule?: AccountScheduleSummary | null;
 }

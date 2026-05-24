@@ -24,6 +24,7 @@ import reconciliationsReducer from "./slices/reconciliationsSlice";
 import companyInfoReducer from "./slices/companyInfoSlice";
 import cashCountReducer from "./slices/cashCountSlice";
 import accountsReducer from "./slices/accountsSlice";
+import accountTemplatesReducer from "./slices/accountTemplatesSlice";
 import usersReducer from "./slices/usersSlice";
 import syncQueueReducer, {
   normalizeSyncQueueState,
@@ -52,6 +53,7 @@ const appReducer = combineReducers({
   companyInfo: companyInfoReducer,
   cashCount: cashCountReducer,
   accounts: accountsReducer,
+  accountTemplates: accountTemplatesReducer,
   users: usersReducer,
   syncQueue: syncQueueReducer,
   expectedCommissions: expectedCommissionsReducer,

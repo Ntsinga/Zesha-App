@@ -7,10 +7,12 @@ import {
 } from "@/store/slices/companyInfoSlice";
 import {
   fetchAccounts,
-  fetchAccountTemplates,
-  inheritAccountTemplate,
   createAccountsBulk,
 } from "@/store/slices/accountsSlice";
+import {
+  fetchAccountTemplates,
+  inheritAccountTemplate,
+} from "@/store/slices/accountTemplatesSlice";
 import {
   fetchUserByClerkId,
   completeMyAgencyOnboarding,
@@ -57,11 +59,12 @@ export default function AgencySetupWeb() {
   );
   const {
     items: existingAccounts,
-    templates,
-    isTemplatesLoading,
     isLoading: isAccountsSaving,
     error: accountsError,
   } = useAppSelector((state) => state.accounts);
+  const { templates, isLoading: isTemplatesLoading } = useAppSelector(
+    (state) => state.accountTemplates,
+  );
 
   const [step, setStep] = useState<1 | 2>(1);
 

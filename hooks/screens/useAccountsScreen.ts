@@ -5,14 +5,17 @@ import {
   createAccount,
   updateAccount,
   deleteAccount,
+} from "../../store/slices/accountsSlice";
+import {
   fetchAccountTemplates,
   inheritAccountTemplate,
-} from "../../store/slices/accountsSlice";
+} from "../../store/slices/accountTemplatesSlice";
 import { fetchCommissionSchedules } from "../../store/slices/commissionSchedulesSlice";
 import { selectEffectiveCompanyId } from "../../store/slices/authSlice";
 import type { AppDispatch, RootState } from "../../store";
 import type {
   Account,
+  AccountTemplate,
   AccountTypeEnum,
   CommissionModelEnum,
 } from "../../types";
@@ -25,8 +28,11 @@ export const ACCOUNT_TYPES: { value: AccountTypeEnum; label: string }[] = [
 export function useAccountsScreen() {
   const dispatch = useDispatch<AppDispatch>();
   const companyId = useSelector(selectEffectiveCompanyId);
-  const { items: accounts, isLoading, templates, isTemplatesLoading } = useSelector(
+  const { items: accounts, isLoading } = useSelector(
     (state: RootState) => state.accounts,
+  );
+  const { templates, isLoading: isTemplatesLoading } = useSelector(
+    (state: RootState) => state.accountTemplates,
   );
   const { items: commissionSchedules } = useSelector(
     (state: RootState) => state.commissionSchedules,
@@ -137,7 +143,7 @@ export function useAccountsScreen() {
 
   // Inherit a template — creates a company account linked to the template's schedule
   const handleInheritTemplate = async (
-    template: Account,
+    template: AccountTemplate,
     overrideName?: string,
   ): Promise<{ success: boolean; message: string }> => {
     if (!companyId) {

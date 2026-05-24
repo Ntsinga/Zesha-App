@@ -67,6 +67,7 @@ export {
 // ============= Account Types =============
 export {
   type Account,
+  type AccountTemplate,
   type AccountCreate,
   type AccountUpdate,
   type AccountFilters,

@@ -24,6 +24,23 @@ Write what happened, why it happened, what changed, how it was verified, and wha
 
 ---
 
+### 2026-05-24 - Account template slice split left stale selectors and template typing
+
+- Status: Resolved
+- Area: UI / State
+- Symptoms: The frontend refactor that split template logic out of `accountsSlice` left the app in an inconsistent state. Template consumers still read from `state.accounts`, the new reducer was not registered in the store, and the web accounts screen typed the inherit source as `Account`, causing the TypeScript build to fail.
+- Root cause: The slice separation landed in stages, but the follow-up rewiring across store registration, screen hooks, and the inheritance UI was incomplete. That left selectors and imports pointed at the old slice boundary, and one inheritance path still used the company-account type instead of `AccountTemplate`.
+- Solution implemented:
+  - Added `accountTemplates` to the Redux store.
+  - Moved template imports and selectors in the account hooks and onboarding flow to `accountTemplatesSlice`.
+  - Kept inherited company accounts syncing back into `accountsSlice` via the `inheritAccountTemplate.fulfilled` case.
+  - Updated the web accounts screen so the selected inheritance source is typed as `AccountTemplate`.
+- Validation: Ran `npm exec -- tsc --noEmit` successfully and checked diagnostics on all touched frontend files with the error tool.
+- Lessons learned:
+  - When splitting a Redux domain, finish the store registration and all consumer rewires before treating the first slice extraction as complete.
+  - Template entities and company accounts may look structurally similar, but the UI state that carries them across slice boundaries needs explicit types.
+  - A quick grep for old selectors after a slice move is a cheap way to catch stale state paths before they become follow-up breakages.
+
 ### 2026-05-22 - Blocked sync queue stayed stalled when auth recovered without a backend resync
 
 - Status: Resolved

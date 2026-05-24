@@ -4,7 +4,6 @@ import type {
   AccountCreate,
   AccountUpdate,
   AccountFilters,
-  AccountTemplateCreate,
   BulkAccountCreate,
   BulkAccountResponse,
 } from "@/types";
@@ -12,14 +11,13 @@ import { mapApiResponse, mapApiRequest, buildTypedQueryString } from "@/types";
 import { API_ENDPOINTS } from "@/config/api";
 import { secureApiRequest } from "@/services/secureApi";
 import { enterAgency, exitAgency } from "./authSlice";
+import { inheritAccountTemplate } from "./accountTemplatesSlice";
 import { isDeviceOffline } from "@/utils/offlineCheck";
 import type { RootState } from "../index";
 
 // Types
 export interface AccountsState {
   items: Account[];
-  templates: Account[];
-  isTemplatesLoading: boolean;
   selectedAccount: Account | null;
   isLoading: boolean;
   error: string | null;
@@ -29,8 +27,6 @@ export interface AccountsState {
 
 const initialState: AccountsState = {
   items: [],
-  templates: [],
-  isTemplatesLoading: false,
   selectedAccount: null,
   isLoading: false,
   error: null,
@@ -164,26 +160,6 @@ export const updateAccount = createAsyncThunk<
   }
 });
 
-export const updateAccountTemplate = createAsyncThunk<
-  Account,
-  { id: number; data: AccountUpdate },
-  { rejectValue: string }
->("accounts/updateTemplate", async ({ id, data }, { rejectWithValue }) => {
-  try {
-    return await apiRequest<Account>(
-      API_ENDPOINTS.accounts.updateTemplate(id),
-      {
-        method: "PATCH",
-        body: JSON.stringify(mapApiRequest(data)),
-      },
-    );
-  } catch (error) {
-    return rejectWithValue(
-      error instanceof Error ? error.message : "Failed to update template",
-    );
-  }
-});
-
 export const deleteAccount = createAsyncThunk<
   number,
   number,
@@ -261,66 +237,6 @@ export const activateAccount = createAsyncThunk<
     );
   }
 });
-
-export const fetchAccountTemplates = createAsyncThunk<
-  Account[],
-  void,
-  { rejectValue: string }
->("accounts/fetchTemplates", async (_, { rejectWithValue }) => {
-  try {
-    return await apiRequest<Account[]>(API_ENDPOINTS.accounts.listTemplates);
-  } catch (error) {
-    return rejectWithValue(
-      error instanceof Error
-        ? error.message
-        : "Failed to fetch account templates",
-    );
-  }
-});
-
-export const createAccountTemplate = createAsyncThunk<
-  Account,
-  AccountTemplateCreate,
-  { rejectValue: string }
->("accounts/createTemplate", async (data, { rejectWithValue }) => {
-  try {
-    return await apiRequest<Account>(API_ENDPOINTS.accounts.createTemplate, {
-      method: "POST",
-      body: JSON.stringify(mapApiRequest(data)),
-    });
-  } catch (error) {
-    return rejectWithValue(
-      error instanceof Error
-        ? error.message
-        : "Failed to create account template",
-    );
-  }
-});
-
-export const inheritAccountTemplate = createAsyncThunk<
-  Account,
-  { templateId: number; name: string; companyId: number },
-  { rejectValue: string }
->(
-  "accounts/inheritTemplate",
-  async ({ templateId, name, companyId }, { rejectWithValue }) => {
-    try {
-      return await apiRequest<Account>(
-        API_ENDPOINTS.accounts.inheritTemplate(templateId),
-        {
-          method: "POST",
-          body: JSON.stringify(mapApiRequest({ name, companyId })),
-        },
-      );
-    } catch (error) {
-      return rejectWithValue(
-        error instanceof Error
-          ? error.message
-          : "Failed to inherit account template",
-      );
-    }
-  },
-);
 
 // Slice
 const accountsSlice = createSlice({
@@ -412,23 +328,6 @@ const accountsSlice = createSlice({
         state.error = action.payload as string;
       });
 
-    // Update template
-    builder
-      .addCase(updateAccountTemplate.fulfilled, (state, action) => {
-        const index = state.templates.findIndex(
-          (item) => item.id === action.payload.id,
-        );
-        if (index !== -1) {
-          state.templates[index] = action.payload;
-        }
-        if (state.selectedAccount?.id === action.payload.id) {
-          state.selectedAccount = action.payload;
-        }
-      })
-      .addCase(updateAccountTemplate.rejected, (state, action) => {
-        state.error = action.payload as string;
-      });
-
     // Delete
     builder
       .addCase(deleteAccount.fulfilled, (state, action) => {
@@ -498,24 +397,6 @@ const accountsSlice = createSlice({
       .addCase(exitAgency, (state) => {
         state.lastFetched = null;
       });
-
-    // Fetch templates
-    builder
-      .addCase(fetchAccountTemplates.pending, (state) => {
-        state.isTemplatesLoading = true;
-      })
-      .addCase(fetchAccountTemplates.fulfilled, (state, action) => {
-        state.isTemplatesLoading = false;
-        state.templates = action.payload;
-      })
-      .addCase(fetchAccountTemplates.rejected, (state) => {
-        state.isTemplatesLoading = false;
-      });
-
-    // Create template
-    builder.addCase(createAccountTemplate.fulfilled, (state, action) => {
-      state.templates.unshift(action.payload);
-    });
 
     // Inherit template — adds to company items list
     builder.addCase(inheritAccountTemplate.fulfilled, (state, action) => {

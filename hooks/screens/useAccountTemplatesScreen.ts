@@ -3,11 +3,10 @@ import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import {
   fetchAccountTemplates,
   createAccountTemplate,
-} from "../../store/slices/accountsSlice";
+} from "../../store/slices/accountTemplatesSlice";
 import { fetchCommissionTemplates } from "../../store/slices/commissionSchedulesSlice";
 import type { RootState } from "../../store";
 import type {
-  Account,
   AccountTemplateCreate,
   AccountTypeEnum,
   CommissionModelEnum,
@@ -19,7 +18,11 @@ export function useAccountTemplatesScreen() {
   const dispatch = useAppDispatch();
 
   const { templates, isTemplatesLoading, error } = useAppSelector(
-    (state: RootState) => state.accounts
+    (state: RootState) => ({
+      templates: state.accountTemplates.templates,
+      isTemplatesLoading: state.accountTemplates.isLoading,
+      error: state.accountTemplates.error,
+    })
   );
 
   const { templates: scheduleTemplates, isTemplatesLoading: isSchedulesLoading } =

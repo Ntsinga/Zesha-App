@@ -10,9 +10,13 @@ import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import {
   fetchAccountById,
   updateAccount,
-  updateAccountTemplate,
   fetchAccounts,
 } from "../../store/slices/accountsSlice";
+import {
+  clearSelectedTemplate,
+  fetchAccountTemplateById,
+  updateAccountTemplate,
+} from "../../store/slices/accountTemplatesSlice";
 import {
   fetchCommissionSchedules,
   fetchCommissionScheduleDetail,
@@ -76,8 +80,8 @@ export function useAccountDetailScreen(accountId: number, isTemplate = false) {
   const account = useAppSelector((state: RootState) => {
     if (isTemplate) {
       return (
-        state.accounts.templates.find((a) => a.id === accountId) ??
-        state.accounts.selectedAccount
+        state.accountTemplates.templates.find((a) => a.id === accountId) ??
+        state.accountTemplates.selectedTemplate
       );
     }
     return (
@@ -86,7 +90,8 @@ export function useAccountDetailScreen(accountId: number, isTemplate = false) {
     );
   });
   const isAccountLoading = useAppSelector(
-    (state: RootState) => state.accounts.isLoading,
+    (state: RootState) =>
+      isTemplate ? state.accountTemplates.isLoading : state.accounts.isLoading,
   );
 
   // ── Commission schedule data ───────────────────────────────────────────────
@@ -110,17 +115,24 @@ export function useAccountDetailScreen(accountId: number, isTemplate = false) {
 
   // ── Load data on mount ─────────────────────────────────────────────────────
   useEffect(() => {
-    // Templates have no company_id so GET /accounts/{id} would 422 — the
-    // account is already in state.accounts.templates from the list page.
-    if (!isTemplate) {
-      dispatch(fetchAccountById(accountId));
-    }
     if (isTemplate) {
+      dispatch(fetchAccountTemplateById(accountId));
       dispatch(fetchCommissionTemplates());
     } else if (companyId) {
+      dispatch(fetchAccountById(accountId));
       dispatch(fetchCommissionSchedules({ companyId }));
+    } else if (!isTemplate) {
+      dispatch(fetchAccountById(accountId));
     }
   }, [dispatch, accountId, companyId, isTemplate]);
+
+  useEffect(() => {
+    return () => {
+      if (isTemplate) {
+        dispatch(clearSelectedTemplate());
+      }
+    };
+  }, [dispatch, isTemplate]);
 
   // Load/clear schedule detail when account's commissionScheduleId changes
   const prevScheduleIdRef = useRef<number | null | undefined>(undefined);
@@ -236,16 +248,19 @@ export function useAccountDetailScreen(accountId: number, isTemplate = false) {
     scheduleId: number | null,
   ): Promise<void> => {
     if (!isTemplate && !companyId) return;
-    const updateAction = isTemplate
-      ? updateAccountTemplate({
-          id: accountId,
-          data: { commissionScheduleId: scheduleId },
-        })
-      : updateAccount({
-          id: accountId,
-          data: { commissionScheduleId: scheduleId, companyId: companyId! },
-        });
-    const result = await dispatch(updateAction);
+    const result = isTemplate
+      ? await dispatch(
+          updateAccountTemplate({
+            id: accountId,
+            data: { commissionScheduleId: scheduleId },
+          }),
+        )
+      : await dispatch(
+          updateAccount({
+            id: accountId,
+            data: { commissionScheduleId: scheduleId, companyId: companyId! },
+          }),
+        );
     const fulfilled = isTemplate
       ? updateAccountTemplate.fulfilled.match(result)
       : updateAccount.fulfilled.match(result);

@@ -32,6 +32,7 @@ import { useAppSelector } from "../../store/hooks";
 import { selectUserRole } from "../../store/slices/authSlice";
 import type {
   Account,
+  AccountTemplate,
   AccountTypeEnum,
   CommissionModelEnum,
   CommissionRule,
@@ -1433,7 +1434,7 @@ export default function Accounts() {
 
   // Name used when inheriting a template (user can override)
   const [inheritName, setInheritName] = useState("");
-  const [inheritingTemplate, setInheritingTemplate] = useState<Account | null>(
+  const [inheritingTemplate, setInheritingTemplate] = useState<AccountTemplate | null>(
     null,
   );
 
