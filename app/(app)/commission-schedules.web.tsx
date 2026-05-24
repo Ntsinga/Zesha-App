@@ -194,6 +194,17 @@ interface RuleGroupRowProps {
   onDeactivate: (id: number) => void;
   onEditTiers: (rule: CommissionRule) => void;
   isSubmitting: boolean;
+  editingRuleId: number | null;
+  editTiers: TierFormEntry[];
+  onAddEditTier: () => void;
+  onRemoveEditTier: (id: string) => void;
+  onChangeEditTier: (
+    id: string,
+    field: keyof Omit<TierFormEntry, "id">,
+    value: string,
+  ) => void;
+  onSaveEditTiers: () => void;
+  onCancelEditTiers: () => void;
 }
 
 function RuleGroupRow({
@@ -204,6 +215,13 @@ function RuleGroupRow({
   onDeactivate,
   onEditTiers,
   isSubmitting,
+  editingRuleId,
+  editTiers,
+  onAddEditTier,
+  onRemoveEditTier,
+  onChangeEditTier,
+  onSaveEditTiers,
+  onCancelEditTiers,
 }: RuleGroupRowProps) {
   const activeCount = rules.filter((r) => r.isActive).length;
   const Icon = isExpanded ? ChevronDown : ChevronRight;
@@ -405,18 +423,20 @@ function RuleGroupRow({
                   )}
                 </div>
                 <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-                  {rule.ruleType === "TIERED_FLAT" && rule.isActive && (
-                    <button
-                      className="btn-secondary btn-sm"
-                      onClick={() => onEditTiers(rule)}
-                      disabled={isSubmitting}
-                      title="Edit tiers"
-                    >
-                      <Layers size={13} />
-                      Tiers
-                    </button>
-                  )}
-                  {rule.isActive && (
+                  {rule.ruleType === "TIERED_FLAT" &&
+                    rule.isActive &&
+                    rule.id !== editingRuleId && (
+                      <button
+                        className="btn-secondary btn-sm"
+                        onClick={() => onEditTiers(rule)}
+                        disabled={isSubmitting}
+                        title="Edit tiers"
+                      >
+                        <Layers size={13} />
+                        Tiers
+                      </button>
+                    )}
+                  {rule.isActive && rule.id !== editingRuleId && (
                     <button
                       className="btn-secondary btn-sm"
                       onClick={() => onDeactivate(rule.id)}
@@ -433,40 +453,100 @@ function RuleGroupRow({
                 </div>
               </div>
 
-              {/* Tier table */}
-              {rule.ruleType === "TIERED_FLAT" && rule.tiers.length > 0 && (
-                <div style={{ marginTop: 10, overflowX: "auto" }}>
-                  <table className="data-table" style={{ fontSize: 12 }}>
-                    <thead>
-                      <tr>
-                        <th>Min</th>
-                        <th>Max</th>
-                        <th>Customer Charge</th>
-                        <th>Agent Commission</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {[...rule.tiers]
-                        .sort((a, b) => a.sortOrder - b.sortOrder)
-                        .map((tier) => (
-                          <tr key={tier.id}>
-                            <td>{formatAmount(tier.minAmount)}</td>
-                            <td>
-                              {tier.maxAmount != null
-                                ? formatAmount(tier.maxAmount)
-                                : "∞"}
-                            </td>
-                            <td>
-                              {tier.customerChargeAmount != null
-                                ? formatAmount(tier.customerChargeAmount)
-                                : "—"}
-                            </td>
-                            <td>{formatAmount(tier.agentCommissionAmount)}</td>
-                          </tr>
-                        ))}
-                    </tbody>
-                  </table>
+              {/* Inline tier editor or read-only tier table */}
+              {rule.id === editingRuleId ? (
+                <div style={{ marginTop: 12 }}>
+                  <p
+                    style={{
+                      fontSize: 12,
+                      color: "var(--color-text-secondary)",
+                      margin: "0 0 12px",
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    Updating tiers will{" "}
+                    <strong>replace all existing tiers</strong> for this rule.
+                  </p>
+                  {editTiers.map((tier, i) => (
+                    <TierRow
+                      key={tier.id}
+                      tier={tier}
+                      index={i}
+                      canRemove={editTiers.length > 1}
+                      onChange={onChangeEditTier}
+                      onRemove={onRemoveEditTier}
+                    />
+                  ))}
+                  <button
+                    type="button"
+                    className="btn-secondary btn-sm"
+                    onClick={onAddEditTier}
+                    style={{ marginBottom: 12 }}
+                  >
+                    <Plus size={12} />
+                    Add Tier
+                  </button>
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: 8,
+                      justifyContent: "flex-end",
+                    }}
+                  >
+                    <button
+                      className="btn-secondary btn-sm"
+                      onClick={onCancelEditTiers}
+                      disabled={isSubmitting}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      className="btn-primary btn-sm"
+                      onClick={onSaveEditTiers}
+                      disabled={isSubmitting}
+                    >
+                      {isSubmitting ? "Saving…" : "Save Tiers"}
+                    </button>
+                  </div>
                 </div>
+              ) : (
+                rule.ruleType === "TIERED_FLAT" &&
+                rule.tiers.length > 0 && (
+                  <div style={{ marginTop: 10, overflowX: "auto" }}>
+                    <table className="data-table" style={{ fontSize: 12 }}>
+                      <thead>
+                        <tr>
+                          <th>Min</th>
+                          <th>Max</th>
+                          <th>Customer Charge</th>
+                          <th>Agent Commission</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {[...rule.tiers]
+                          .sort((a, b) => a.sortOrder - b.sortOrder)
+                          .map((tier) => (
+                            <tr key={tier.id}>
+                              <td>{formatAmount(tier.minAmount)}</td>
+                              <td>
+                                {tier.maxAmount != null
+                                  ? formatAmount(tier.maxAmount)
+                                  : "∞"}
+                              </td>
+                              <td>
+                                {tier.customerChargeAmount != null
+                                  ? formatAmount(tier.customerChargeAmount)
+                                  : "—"}
+                              </td>
+                              <td>
+                                {formatAmount(tier.agentCommissionAmount)}
+                              </td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )
               )}
             </div>
           ))}
@@ -933,6 +1013,17 @@ export default function CommissionSchedulesPage() {
                               onDeactivate={handleDeactivateRule}
                               onEditTiers={openEditTiers}
                               isSubmitting={isSubmitting}
+                              editingRuleId={ruleForTiers?.id ?? null}
+                              editTiers={editTiers}
+                              onAddEditTier={() => addTierRow(setEditTiers)}
+                              onRemoveEditTier={(id) =>
+                                removeTierRow(setEditTiers, id)
+                              }
+                              onChangeEditTier={(id, field, value) =>
+                                updateTierField(setEditTiers, id, field, value)
+                              }
+                              onSaveEditTiers={handleReplaceTiers}
+                              onCancelEditTiers={closeEditTiers}
                             />
                           );
                         })}
@@ -1610,32 +1701,17 @@ export default function CommissionSchedulesPage() {
               {/* TIERED_FLAT fields */}
               {ruleType === "TIERED_FLAT" && (
                 <div>
-                  <div
+                  <label
                     style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
+                      fontSize: 13,
+                      fontWeight: 500,
+                      color: "var(--color-text)",
+                      display: "block",
                       marginBottom: 10,
                     }}
                   >
-                    <label
-                      style={{
-                        fontSize: 13,
-                        fontWeight: 500,
-                        color: "var(--color-text)",
-                      }}
-                    >
-                      Tiers *
-                    </label>
-                    <button
-                      type="button"
-                      className="btn-secondary btn-sm"
-                      onClick={() => addTierRow(setRuleTiers)}
-                    >
-                      <Plus size={12} />
-                      Add Tier
-                    </button>
-                  </div>
+                    Tiers *
+                  </label>
                   {ruleTiers.map((tier, i) => (
                     <TierRow
                       key={tier.id}
@@ -1648,6 +1724,15 @@ export default function CommissionSchedulesPage() {
                       onRemove={(id) => removeTierRow(setRuleTiers, id)}
                     />
                   ))}
+                  <button
+                    type="button"
+                    className="btn-secondary btn-sm"
+                    onClick={() => addTierRow(setRuleTiers)}
+                    style={{ marginTop: 4 }}
+                  >
+                    <Plus size={12} />
+                    Add Tier
+                  </button>
                 </div>
               )}
             </div>
@@ -1665,86 +1750,6 @@ export default function CommissionSchedulesPage() {
                 disabled={isSubmitting}
               >
                 {isSubmitting ? "Saving…" : "Add Rule"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Edit Tiers modal */}
-      {isEditTiersOpen && ruleForTiers && (
-        <div
-          className="modal-overlay"
-          style={{ background: "rgba(0,0,0,0.4)" }}
-          onClick={closeEditTiers}
-        >
-          <div
-            className="modal-content"
-            style={{ maxWidth: 560 }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="modal-header">
-              <h2>Edit Tiers</h2>
-              <button className="modal-close" onClick={closeEditTiers}>
-                <X size={18} />
-              </button>
-            </div>
-            <div className="modal-form">
-              <p
-                style={{
-                  fontSize: 13,
-                  color: "var(--color-text-secondary)",
-                  marginBottom: 16,
-                  lineHeight: 1.6,
-                }}
-              >
-                Updating tiers will <strong>replace all existing tiers</strong>{" "}
-                for this rule. The tiers are sorted in order from lowest to
-                highest transaction amount.
-              </p>
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "flex-end",
-                  marginBottom: 10,
-                }}
-              >
-                <button
-                  type="button"
-                  className="btn-secondary btn-sm"
-                  onClick={() => addTierRow(setEditTiers)}
-                >
-                  <Plus size={12} />
-                  Add Tier
-                </button>
-              </div>
-              {editTiers.map((tier, i) => (
-                <TierRow
-                  key={tier.id}
-                  tier={tier}
-                  index={i}
-                  canRemove={editTiers.length > 1}
-                  onChange={(id, field, value) =>
-                    updateTierField(setEditTiers, id, field, value)
-                  }
-                  onRemove={(id) => removeTierRow(setEditTiers, id)}
-                />
-              ))}
-            </div>
-            <div className="modal-footer">
-              <button
-                className="btn-secondary"
-                onClick={closeEditTiers}
-                disabled={isSubmitting}
-              >
-                Cancel
-              </button>
-              <button
-                className="btn-primary"
-                onClick={handleReplaceTiers}
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? "Saving…" : "Save Tiers"}
               </button>
             </div>
           </div>
