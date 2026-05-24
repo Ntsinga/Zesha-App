@@ -8222,3 +8222,10 @@ body {
   visibility: visible;
   opacity: 1;
 }
+
+/* Add Tier button - right-aligned, turns red on press */
+.btn-add-tier:active {
+  background: var(--color-danger) !important;
+  color: white !important;
+  border-color: var(--color-danger) !important;
+}

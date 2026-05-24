@@ -58,7 +58,9 @@ export type TransactionSubtypeEnum =
   | "AIRTIME"
   | "VOICE_BUNDLE"
   | "DATA_BUNDLE"
-  | "BILL_PAYMENT";
+  | "BILL_PAYMENT"
+  | "SCHOOL_FEES"
+  | "TAX_PAYMENT";
 
 // Commission rule calculation type
 export type CommissionRuleTypeEnum = "PERCENTAGE" | "TIERED_FLAT";

@@ -477,15 +477,16 @@ function RuleGroupRow({
                       onRemove={onRemoveEditTier}
                     />
                   ))}
-                  <button
-                    type="button"
-                    className="btn-secondary btn-sm"
-                    onClick={onAddEditTier}
-                    style={{ marginBottom: 12 }}
-                  >
-                    <Plus size={12} />
-                    Add Tier
-                  </button>
+                  <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+                    <button
+                      type="button"
+                      className="btn-secondary btn-sm btn-add-tier"
+                      onClick={onAddEditTier}
+                    >
+                      <Plus size={12} />
+                      Add Tier
+                    </button>
+                  </div>
                   <div
                     style={{
                       display: "flex",
@@ -1630,6 +1631,12 @@ export default function CommissionSchedulesPage() {
                   >
                     <option value="">None</option>
                     <option value="AGENT_TO_AGENT">Agent to Agent</option>
+                    <option value="AIRTIME">Airtime</option>
+                    <option value="VOICE_BUNDLE">Voice Bundle</option>
+                    <option value="DATA_BUNDLE">Data Bundle</option>
+                    <option value="BILL_PAYMENT">Bill Payment</option>
+                    <option value="SCHOOL_FEES">School Fees</option>
+                    <option value="TAX_PAYMENT">Tax Payment</option>
                   </select>
                 </div>
               </div>
@@ -1724,15 +1731,16 @@ export default function CommissionSchedulesPage() {
                       onRemove={(id) => removeTierRow(setRuleTiers, id)}
                     />
                   ))}
-                  <button
-                    type="button"
-                    className="btn-secondary btn-sm"
-                    onClick={() => addTierRow(setRuleTiers)}
-                    style={{ marginTop: 4 }}
-                  >
-                    <Plus size={12} />
-                    Add Tier
-                  </button>
+                  <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 4 }}>
+                    <button
+                      type="button"
+                      className="btn-secondary btn-sm btn-add-tier"
+                      onClick={() => addTierRow(setRuleTiers)}
+                    >
+                      <Plus size={12} />
+                      Add Tier
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

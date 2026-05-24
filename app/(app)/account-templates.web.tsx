@@ -30,6 +30,7 @@ import type {
   CommissionModelEnum,
   CommissionRule,
   CommissionRuleTypeEnum,
+  TransactionSubtypeEnum,
   TransactionTypeEnum,
 } from "../../types";
 import "../../styles/web.css";
@@ -490,15 +491,22 @@ function RuleGroupRow({
                       onRemove={onRemoveEditTier}
                     />
                   ))}
-                  <button
-                    type="button"
-                    className="btn-secondary btn-sm"
-                    onClick={onAddEditTier}
-                    style={{ marginBottom: 12 }}
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "flex-end",
+                      marginBottom: 12,
+                    }}
                   >
-                    <Plus size={13} />
-                    Add Tier
-                  </button>
+                    <button
+                      type="button"
+                      className="btn-secondary btn-sm btn-add-tier"
+                      onClick={onAddEditTier}
+                    >
+                      <Plus size={13} />
+                      Add Tier
+                    </button>
+                  </div>
                   <div
                     style={{
                       display: "flex",
@@ -1035,28 +1043,50 @@ function TemplateDetailView({
                         </select>
                       </div>
                       <div className="form-group">
-                        <label className="form-label">Rule Type</label>
-                        <div className="type-buttons">
-                          {(
-                            [
-                              "PERCENTAGE",
-                              "TIERED_FLAT",
-                            ] as CommissionRuleTypeEnum[]
-                          ).map((rt) => (
-                            <button
-                              key={rt}
-                              className={`type-button ${d.ruleType === rt ? "selected" : ""}`}
-                              onClick={() => d.setRuleType(rt)}
-                            >
-                              {rt === "PERCENTAGE" ? (
-                                <DollarSign size={14} />
-                              ) : (
-                                <Layers size={14} />
-                              )}
-                              {RULE_TYPE_LABELS[rt]}
-                            </button>
-                          ))}
-                        </div>
+                        <label className="form-label">Subtype (optional)</label>
+                        <select
+                          className="form-input"
+                          value={d.ruleTransactionSubtype ?? ""}
+                          onChange={(e) =>
+                            d.setRuleTransactionSubtype(
+                              (e.target.value as TransactionSubtypeEnum) ||
+                                null,
+                            )
+                          }
+                        >
+                          <option value="">None</option>
+                          <option value="AGENT_TO_AGENT">Agent to Agent</option>
+                          <option value="AIRTIME">Airtime</option>
+                          <option value="VOICE_BUNDLE">Voice Bundle</option>
+                          <option value="DATA_BUNDLE">Data Bundle</option>
+                          <option value="BILL_PAYMENT">Bill Payment</option>
+                          <option value="SCHOOL_FEES">School Fees</option>
+                          <option value="TAX_PAYMENT">Tax Payment</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Rule Type</label>
+                      <div className="type-buttons">
+                        {(
+                          [
+                            "PERCENTAGE",
+                            "TIERED_FLAT",
+                          ] as CommissionRuleTypeEnum[]
+                        ).map((rt) => (
+                          <button
+                            key={rt}
+                            className={`type-button ${d.ruleType === rt ? "selected" : ""}`}
+                            onClick={() => d.setRuleType(rt)}
+                          >
+                            {rt === "PERCENTAGE" ? (
+                              <DollarSign size={14} />
+                            ) : (
+                              <Layers size={14} />
+                            )}
+                            {RULE_TYPE_LABELS[rt]}
+                          </button>
+                        ))}
                       </div>
                     </div>
                     {d.ruleType === "PERCENTAGE" && (
@@ -1135,15 +1165,22 @@ function TemplateDetailView({
                             }
                           />
                         ))}
-                        <button
-                          className="btn-secondary btn-sm"
-                          type="button"
-                          onClick={() => d.addTierRow(d.setRuleTiers)}
-                          style={{ marginTop: 4 }}
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "flex-end",
+                            marginTop: 4,
+                          }}
                         >
-                          <Plus size={13} />
-                          Add Tier
-                        </button>
+                          <button
+                            className="btn-secondary btn-sm btn-add-tier"
+                            type="button"
+                            onClick={() => d.addTierRow(d.setRuleTiers)}
+                          >
+                            <Plus size={13} />
+                            Add Tier
+                          </button>
+                        </div>
                       </div>
                     )}
                     {d.addRuleError && (
