@@ -32,7 +32,7 @@ export interface CommissionTierCreate {
 
 export interface CommissionRule extends BaseModel {
   scheduleId: number;
-  companyId: number;
+  companyId: number | null;
   transactionType: TransactionTypeEnum;
   transactionSubtype: TransactionSubtypeEnum | null;
   ruleType: CommissionRuleTypeEnum;

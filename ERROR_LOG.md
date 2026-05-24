@@ -24,6 +24,22 @@ Write what happened, why it happened, what changed, how it was verified, and wha
 
 ---
 
+### 2026-05-24 - Agency account schedule UI hid template schedules and misresolved detail
+
+- Status: Resolved
+- Area: UI / State
+- Symptoms: Agency admins could only assign company-owned commission schedules from the account screens even though the backend allowed system template schedules too. Accounts already linked to a template schedule also risked loading commission detail through the company-only fetch path.
+- Root cause: Agency account hooks and web selectors only loaded `commissionSchedules.items`, which excludes system templates. The detail loader also assumed company ownership on the first fetch attempt instead of supporting the backend's template route.
+- Solution implemented:
+  - Load commission template schedules alongside company schedules in agency account flows.
+  - Combine both schedule lists for agency account selectors and display labels.
+  - Make schedule detail fetching fall back to the template endpoint when the company-scoped lookup does not own the schedule.
+  - Update shared commission rule typing so template rules can carry `companyId = null` safely in frontend state.
+- Validation: Ran `npm exec -- tsc --noEmit` successfully and checked diagnostics on the touched frontend files.
+- Lessons learned:
+  - If the backend allows system templates in tenant flows, the frontend options list and detail fetch path must both model that mixed ownership case.
+  - Company schedule summaries and template schedule details are different data shapes, so mixed-source selectors need an explicit resolution strategy.
+
 ### 2026-05-24 - Template rule editor treated slot changes as duplicate adds
 
 - Status: Resolved

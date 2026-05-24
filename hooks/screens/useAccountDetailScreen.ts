@@ -106,12 +106,16 @@ export function useAccountDetailScreen(accountId: number, isTemplate = false) {
   const allSchedules = useAppSelector((state: RootState) =>
     isTemplate
       ? state.commissionSchedules.templates
-      : state.commissionSchedules.items,
+      : [
+          ...state.commissionSchedules.items,
+          ...state.commissionSchedules.templates,
+        ],
   );
   const isSchedulesLoading = useAppSelector((state: RootState) =>
     isTemplate
       ? state.commissionSchedules.isTemplatesLoading
-      : state.commissionSchedules.isLoading,
+      : state.commissionSchedules.isLoading ||
+          state.commissionSchedules.isTemplatesLoading,
   );
 
   // ── Load data on mount ─────────────────────────────────────────────────────
@@ -122,8 +126,10 @@ export function useAccountDetailScreen(accountId: number, isTemplate = false) {
     } else if (companyId) {
       dispatch(fetchAccountById(accountId));
       dispatch(fetchCommissionSchedules({ companyId }));
+      dispatch(fetchCommissionTemplates());
     } else if (!isTemplate) {
       dispatch(fetchAccountById(accountId));
+      dispatch(fetchCommissionTemplates());
     }
   }, [dispatch, accountId, companyId, isTemplate]);
 
@@ -140,25 +146,22 @@ export function useAccountDetailScreen(accountId: number, isTemplate = false) {
   useEffect(() => {
     if (account === null || account === undefined) return;
     const sid = account.commissionScheduleId ?? null;
+    if (!sid) {
+      prevScheduleIdRef.current = null;
+      dispatch(clearSelectedSchedule());
+      return;
+    }
+
+    const found = allSchedules.find((s) => s.id === sid);
+    if (found && "rules" in found) {
+      prevScheduleIdRef.current = sid;
+      dispatch(setSelectedSchedule(found as CommissionScheduleDetail));
+      return;
+    }
+
     if (sid === prevScheduleIdRef.current) return;
     prevScheduleIdRef.current = sid;
-    if (sid) {
-      if (isTemplate) {
-        // For templates, find the schedule from the already-loaded templates list
-        // (template schedules have company_id = null, fetchCommissionScheduleDetail would fail)
-        const found = allSchedules.find((s) => s.id === sid);
-        if (found && "rules" in found) {
-          dispatch(setSelectedSchedule(found as CommissionScheduleDetail));
-        } else {
-          // Not yet loaded — fetch it (will work once backend accepts no company_id)
-          dispatch(fetchCommissionScheduleDetail(sid));
-        }
-      } else {
-        dispatch(fetchCommissionScheduleDetail(sid));
-      }
-    } else {
-      dispatch(clearSelectedSchedule());
-    }
+    dispatch(fetchCommissionScheduleDetail(sid));
   }, [
     dispatch,
     account?.commissionScheduleId,

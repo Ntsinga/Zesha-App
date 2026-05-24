@@ -15,6 +15,7 @@ import type {
 import { mapApiResponse, mapApiRequest, buildTypedQueryString } from "@/types";
 import { API_ENDPOINTS } from "@/config/api";
 import { secureApiRequest } from "@/services/secureApi";
+import { ApiError } from "@/services/secureApi";
 import type { RootState } from "../index";
 
 export interface CommissionSchedulesState {
@@ -86,10 +87,20 @@ export const fetchCommissionScheduleDetail = createAsyncThunk<
   async (id, { getState, rejectWithValue }) => {
     try {
       const companyId = getCompanyId(getState());
-      if (!companyId) return rejectWithValue("No companyId found.");
+      if (companyId) {
+        try {
+          return await apiRequest<CommissionScheduleDetail>(
+            `${API_ENDPOINTS.commissionSchedules.get(id)}?company_id=${companyId}`,
+          );
+        } catch (error) {
+          if (!(error instanceof ApiError) || error.status !== 404) {
+            throw error;
+          }
+        }
+      }
 
       return await apiRequest<CommissionScheduleDetail>(
-        `${API_ENDPOINTS.commissionSchedules.get(id)}?company_id=${companyId}`,
+        API_ENDPOINTS.commissionSchedules.get(id),
       );
     } catch (error) {
       return rejectWithValue(

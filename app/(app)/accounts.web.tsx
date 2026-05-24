@@ -1010,7 +1010,7 @@ function AccountDetailView({
                           .filter((s) => s.isActive)
                           .map((s) => (
                             <option key={s.id} value={s.id}>
-                              {s.name}
+                              {s.name}{s.isTemplate ? " (Template)" : ""}
                             </option>
                           ))}
                       </select>
@@ -2180,7 +2180,7 @@ export default function Accounts() {
                             .filter((s) => s.isActive)
                             .map((s) => (
                               <option key={s.id} value={s.id}>
-                                {s.name}
+                                {s.name}{s.isTemplate ? " (Template)" : ""}
                               </option>
                             ))}
                         </select>

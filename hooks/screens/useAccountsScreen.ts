@@ -10,7 +10,10 @@ import {
   fetchAccountTemplates,
   inheritAccountTemplate,
 } from "../../store/slices/accountTemplatesSlice";
-import { fetchCommissionSchedules } from "../../store/slices/commissionSchedulesSlice";
+import {
+  fetchCommissionSchedules,
+  fetchCommissionTemplates,
+} from "../../store/slices/commissionSchedulesSlice";
 import { selectEffectiveCompanyId } from "../../store/slices/authSlice";
 import type { AppDispatch, RootState } from "../../store";
 import type {
@@ -34,9 +37,13 @@ export function useAccountsScreen() {
   const { templates, isLoading: isTemplatesLoading } = useSelector(
     (state: RootState) => state.accountTemplates,
   );
-  const { items: commissionSchedules } = useSelector(
+  const { items: companyCommissionSchedules, templates: templateCommissionSchedules } = useSelector(
     (state: RootState) => state.commissionSchedules,
   );
+  const commissionSchedules = [
+    ...companyCommissionSchedules,
+    ...templateCommissionSchedules,
+  ];
 
   const [refreshing, setRefreshing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -85,6 +92,7 @@ export function useAccountsScreen() {
     if (companyId) {
       dispatch(fetchCommissionSchedules({ companyId }));
     }
+    dispatch(fetchCommissionTemplates());
   }, [dispatch, companyId]);
 
   // Load templates on mount for the template flow
