@@ -162,6 +162,11 @@ export function useReconciliationScreen({
   const isFinalized = reconciliation?.isFinalized || false;
   const isApproved = reconciliation?.approvalStatus === "APPROVED" || false;
   const isRejected = reconciliation?.approvalStatus === "REJECTED" || false;
+  const captureStartedAt = reconciliation?.captureStartedAt ?? null;
+  const firstCalculatedAt = reconciliation?.firstCalculatedAt ?? null;
+  const timeToCalculateSeconds = reconciliation?.timeToCalculateSeconds ?? null;
+  const calculationTimingMode =
+    reconciliation?.calculationTimingMode ?? "unavailable";
 
   // --- Balance validation computed values ---
   const { hasDiscrepancies, discrepancyCount, totalDiscrepancyAmount } =
@@ -468,6 +473,10 @@ export function useReconciliationScreen({
     isFinalized,
     isApproved,
     isRejected,
+    captureStartedAt,
+    firstCalculatedAt,
+    timeToCalculateSeconds,
+    calculationTimingMode,
 
     // Balance validation
     balanceValidation,

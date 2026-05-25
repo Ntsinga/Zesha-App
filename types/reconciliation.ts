@@ -14,10 +14,19 @@ import type { Commission } from "./commission";
 import type { CashCount } from "./cashCount";
 import type { Transaction } from "./transaction";
 
+export type ReconciliationTimingMode = "exact" | "derived" | "unavailable";
+
+interface ReconciliationTimingFields {
+  captureStartedAt?: string | null;
+  firstCalculatedAt?: string | null;
+  timeToCalculateSeconds?: number | null;
+  calculationTimingMode?: ReconciliationTimingMode;
+}
+
 /**
  * Reconciliation history entry - simplified view for lists
  */
-export interface ReconciliationHistory {
+export interface ReconciliationHistory extends ReconciliationTimingFields {
   id: number;
   date: string;
   shift: ShiftEnum;
@@ -46,7 +55,7 @@ export interface ReconciliationHistory {
  * Full reconciliation detail with related records
  */
 export interface ReconciliationDetail {
-  reconciliation: ReconciliationHistory;
+  reconciliation: Reconciliation;
   balances: Balance[];
   commissions: Commission[];
   cashCounts: CashCount[];
@@ -56,7 +65,7 @@ export interface ReconciliationDetail {
 /**
  * Full reconciliation entity - matches backend Reconciliations model
  */
-export interface Reconciliation extends BaseModel {
+export interface Reconciliation extends BaseModel, ReconciliationTimingFields {
   date: string;
   shift: ShiftEnum;
   subtype: ReconciliationSubtypeEnum;

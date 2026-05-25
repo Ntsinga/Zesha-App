@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { useReconciliationScreen } from "../../hooks/screens/useReconciliationScreen";
 import type { ReconciliationSubtypeEnum, ShiftEnum } from "../../types";
+import { formatDateTime } from "../../utils/formatters";
 import "../../styles/web.css";
 
 export default function BalanceDetailWeb() {
@@ -70,6 +71,9 @@ export default function BalanceDetailWeb() {
     isFinalized,
     isApproved,
     isRejected,
+    captureStartedAt,
+    firstCalculatedAt,
+    timeToCalculateSeconds,
     handleCalculate,
     handleFinalize,
     handleApprove,
@@ -92,6 +96,30 @@ export default function BalanceDetailWeb() {
   const { showToast } = useToast();
   const isOpening = subtype === "OPENING";
   const varianceLabel = variance > 0 ? "Excess" : "Loss";
+  const formatDuration = (seconds: number | null) => {
+    if (seconds == null || seconds < 0) return "Unavailable";
+    if (seconds < 60) return `${seconds}s`;
+
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m`;
+
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+    if (hours < 24) {
+      return remainingMinutes > 0
+        ? `${hours}h ${remainingMinutes}m`
+        : `${hours}h`;
+    }
+
+    const days = Math.floor(hours / 24);
+    const remainingHours = hours % 24;
+    return remainingHours > 0 ? `${days}d ${remainingHours}h` : `${days}d`;
+  };
+  const timingTooltip =
+    captureStartedAt && firstCalculatedAt
+      ? `Capture started ${formatDateTime(captureStartedAt)} | First calculated ${formatDateTime(firstCalculatedAt)}`
+      : undefined;
+  const timingDisplayValue = formatDuration(timeToCalculateSeconds);
 
   const getValidationDescription = (validation?: {
     calculatedBalance: number;
@@ -181,6 +209,38 @@ export default function BalanceDetailWeb() {
               {isOpening ? "Opening" : "Closing"}
             </span>
           </div>
+        </div>
+        <div className="header-right">
+          {timingDisplayValue !== "Unavailable" && (
+            <div className="header-timing" title={timingTooltip}>
+              <span className="header-timing-label">
+                <Clock size={9} />
+                Time to Calculate
+              </span>
+              <span className="header-timing-value">{timingDisplayValue}</span>
+            </div>
+          )}
+
+          {isFinalized && canReview && !isApproved && !isRejected && (
+            <>
+              <button
+                onClick={handleApprove}
+                disabled={isFinalizing}
+                className="header-action-btn approve"
+              >
+                <Check size={12} />
+                {isFinalizing ? "Approving..." : "Approve"}
+              </button>
+              <button
+                onClick={handleReject}
+                disabled={isFinalizing}
+                className="header-action-btn reject"
+              >
+                <XCircle size={12} />
+                {isFinalizing ? "Processing..." : "Reject"}
+              </button>
+            </>
+          )}
         </div>
       </header>
 
@@ -293,29 +353,6 @@ export default function BalanceDetailWeb() {
                     </div>
                   </div>
                 </div>
-              </>
-            )}
-
-            {/* Supervisor actions — after metrics */}
-            {isFinalized && canReview && !isApproved && !isRejected && (
-              <>
-                <div className="gt-strip-metric-divider" />
-                <button
-                  onClick={handleApprove}
-                  disabled={isFinalizing}
-                  className="gt-strip-action-btn approve"
-                >
-                  <Check size={14} />
-                  {isFinalizing ? "Approving..." : "Approve"}
-                </button>
-                <button
-                  onClick={handleReject}
-                  disabled={isFinalizing}
-                  className="gt-strip-action-btn reject"
-                >
-                  <XCircle size={14} />
-                  {isFinalizing ? "Processing..." : "Reject"}
-                </button>
               </>
             )}
 
