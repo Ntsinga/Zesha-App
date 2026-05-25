@@ -1577,6 +1577,25 @@ body {
   border-color: #f87171;
 }
 
+.header-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.header-status-badge.approved {
+  background: #dcfce7;
+  color: #15803d;
+}
+.header-status-badge.rejected {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
 .shift-toggle {
   display: flex;
   background: var(--color-bg);

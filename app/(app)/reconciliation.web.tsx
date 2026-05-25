@@ -221,6 +221,18 @@ export default function BalanceDetailWeb() {
             </div>
           )}
 
+          {isApproved && (
+            <span className="header-status-badge approved">
+              <Check size={11} />
+              Approved
+            </span>
+          )}
+          {isRejected && (
+            <span className="header-status-badge rejected">
+              <XCircle size={11} />
+              Rejected
+            </span>
+          )}
           {isFinalized && canReview && !isApproved && !isRejected && (
             <>
               <button
@@ -356,49 +368,7 @@ export default function BalanceDetailWeb() {
               </>
             )}
 
-            {/* Approval status badge */}
-            {isApproved && (
-              <>
-                <div className="gt-strip-metric-divider" />
-                <span
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 4,
-                    padding: "2px 9px",
-                    borderRadius: 4,
-                    fontSize: 11,
-                    fontWeight: 600,
-                    background: "#dcfce7",
-                    color: "#15803d",
-                  }}
-                >
-                  <Check size={11} />
-                  Approved
-                </span>
-              </>
-            )}
-            {isRejected && (
-              <>
-                <div className="gt-strip-metric-divider" />
-                <span
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 4,
-                    padding: "2px 9px",
-                    borderRadius: 4,
-                    fontSize: 11,
-                    fontWeight: 600,
-                    background: "#fee2e2",
-                    color: "#991b1b",
-                  }}
-                >
-                  <XCircle size={11} />
-                  Rejected
-                </span>
-              </>
-            )}
+
           </div>
         </div>
 

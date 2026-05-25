@@ -35,50 +35,6 @@ export default function AuthBrandPanel({
       <div className="auth-top-leak" />
       <div className="auth-center-glow" />
 
-      {/* Signal arcs — bottom right */}
-      <div className="auth-signal-arcs">
-        <svg
-          width="110"
-          height="100"
-          viewBox="0 0 140 120"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <defs>
-            <filter id="ag">
-              <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="b" />
-              <feMerge>
-                <feMergeNode in="b" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
-          </defs>
-          <g filter="url(#ag)">
-            <circle cx="8" cy="78" r="9" fill="#FFD700" />
-            <path
-              d="M20,62 Q54,24 92,10"
-              stroke="#FFD700"
-              strokeWidth="10"
-              strokeLinecap="round"
-            />
-            <path
-              d="M20,80 Q66,30 118,12"
-              stroke="#FFD700"
-              strokeWidth="8"
-              strokeLinecap="round"
-              opacity="0.65"
-            />
-            <path
-              d="M20,100 Q80,40 138,16"
-              stroke="#FFD700"
-              strokeWidth="6"
-              strokeLinecap="round"
-              opacity="0.35"
-            />
-          </g>
-        </svg>
-      </div>
-
       {/* Vignette overlay */}
       <div className="auth-vignette" />
 
