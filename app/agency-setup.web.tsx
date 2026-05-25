@@ -25,6 +25,7 @@ import type {
   CommissionModelEnum,
 } from "@/types";
 import { CURRENCIES } from "@/hooks/screens/useSettingsScreen";
+import { formatAmountInput, parseAmountInput } from "@/utils/formatters";
 import {
   Building2,
   CheckCircle2,
@@ -593,19 +594,20 @@ export default function AgencySetupWeb() {
                   <div className="form-group">
                     <label className="form-label">Total Working Capital</label>
                     <input
-                      type="number"
+                      type="text"
+                      inputMode="numeric"
                       value={workingCapitalInput}
                       onChange={(e) => {
-                        const nextValue = e.target.value;
-                        setWorkingCapitalInput(nextValue);
+                        const raw = parseAmountInput(e.target.value);
+                        if (raw === null) return;
+                        setWorkingCapitalInput(formatAmountInput(raw));
                         handleCompanyFieldChange(
                           "totalWorkingCapital",
-                          nextValue === "" ? 0 : Number(nextValue),
+                          raw === "" || raw === "." ? 0 : Number(raw),
                         );
                       }}
                       className="form-input"
-                      min="0"
-                      placeholder="3000000"
+                      placeholder="3,000,000"
                     />
                   </div>
                 </div>
@@ -789,16 +791,6 @@ export default function AgencySetupWeb() {
                                     >
                                       {template.accountType}
                                     </span>
-                                    {template.commissionSchedule?.name && (
-                                      <span
-                                        style={{
-                                          fontSize: 12,
-                                          color: "var(--color-text-secondary)",
-                                        }}
-                                      >
-                                        {template.commissionSchedule.name}
-                                      </span>
-                                    )}
                                   </div>
                                   {template.description && (
                                     <div

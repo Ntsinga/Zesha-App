@@ -235,8 +235,13 @@ function AppContent() {
       return;
     }
 
-    // Fully authenticated - redirect away from auth pages
-    if (isAuthPage && !isOnSetPassword) {
+    // Fully authenticated - redirect away from auth pages.
+    // Guard with user data so we don't redirect to "/" before knowing whether
+    // the user needs agency onboarding (prevents a brief flash of the app view
+    // while effectiveNeedsOnboarding is still false because backend sync hasn't
+    // returned yet).
+    const hasUserData = !!(syncedUser ?? cachedUser);
+    if (isAuthPage && !isOnSetPassword && hasUserData) {
       router.replace("/");
     }
   }, [

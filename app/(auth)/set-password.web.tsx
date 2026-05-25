@@ -208,9 +208,18 @@ export default function SetPasswordWeb() {
 
         setSuccess(true);
 
-        // Use window.location for a clean redirect that avoids router race conditions
+        // Use window.location for a clean redirect that avoids router race conditions.
+        // Check Clerk metadata so invited agency admins go directly to onboarding
+        // instead of "/" (prevents a flash of the app view before the routing
+        // effect can redirect them to /agency-setup).
         setTimeout(() => {
-          window.location.href = "/";
+          const meta = user.publicMetadata as
+            | { role?: string; invitation_type?: string }
+            | undefined;
+          const isAgencyInvite =
+            meta?.role === "Administrator" &&
+            meta?.invitation_type === "agency_setup";
+          window.location.href = isAgencyInvite ? "/agency-setup" : "/";
         }, 1500);
       }
     } catch (err: any) {
