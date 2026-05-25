@@ -10,6 +10,9 @@ import { addApiBreadcrumb } from "../config/sentry";
 
 // Token getter function - will be set by the auth provider
 let getAuthToken: (() => Promise<string | null>) | null = null;
+let authRecoveryHandler: ((error: ApiError) => void | Promise<void>) | null =
+  null;
+const MAX_TOKEN_RETRIEVAL_ATTEMPTS = 2;
 
 /**
  * Initialize the secure API client with a token getter function.
@@ -17,6 +20,12 @@ let getAuthToken: (() => Promise<string | null>) | null = null;
  */
 export function initializeSecureApi(tokenGetter: () => Promise<string | null>) {
   getAuthToken = tokenGetter;
+}
+
+export function registerAuthRecoveryHandler(
+  handler: ((error: ApiError) => void | Promise<void>) | null,
+): void {
+  authRecoveryHandler = handler;
 }
 
 /**
@@ -39,6 +48,34 @@ export class ApiError extends Error {
     this.code = code;
     this.details = details;
   }
+}
+
+function buildMissingAuthError(details?: unknown): ApiError {
+  return new ApiError(
+    "Session expired.",
+    401,
+    "AUTH_TOKEN_UNAVAILABLE",
+    details,
+  );
+}
+
+function buildAuthNotInitializedError(details?: unknown): ApiError {
+  return new ApiError(
+    "Authentication is still initializing.",
+    0,
+    "AUTH_NOT_INITIALIZED",
+    details,
+  );
+}
+
+function notifyAuthRecovery(error: ApiError): void {
+  if (!authRecoveryHandler) {
+    return;
+  }
+
+  Promise.resolve(authRecoveryHandler(error)).catch((handlerError) => {
+    console.error("[SecureApi] Auth recovery handler failed:", handlerError);
+  });
 }
 
 function formatValidationLocation(loc?: unknown): string | null {
@@ -98,21 +135,37 @@ async function getAuthHeaders(): Promise<Record<string, string>> {
         "[SecureApi] Token getter not initialized - requests will be unauthenticated",
       );
     }
-    return {};
+    throw buildAuthNotInitializedError("Token getter not initialized");
   }
 
-  try {
-    const token = await getAuthToken();
-    if (token) {
-      return { Authorization: `Bearer ${token}` };
+  let lastTokenError: unknown = null;
+
+  for (let attempt = 0; attempt < MAX_TOKEN_RETRIEVAL_ATTEMPTS; attempt++) {
+    try {
+      const token = await getAuthToken();
+      if (token) {
+        return { Authorization: `Bearer ${token}` };
+      }
+
+      lastTokenError = "Token getter returned no token";
+    } catch (error) {
+      lastTokenError = error;
+
+      if (__DEV__) {
+        console.error("[SecureApi] Failed to get auth token:", error);
+      }
     }
-  } catch (error) {
-    if (__DEV__) {
-      console.error("[SecureApi] Failed to get auth token:", error);
+
+    if (attempt < MAX_TOKEN_RETRIEVAL_ATTEMPTS - 1) {
+      continue;
     }
   }
 
-  return {};
+  throw buildMissingAuthError(
+    lastTokenError instanceof Error
+      ? lastTokenError.message
+      : lastTokenError ?? "Token retrieval failed",
+  );
 }
 
 function buildRequestHeaders(
@@ -157,13 +210,29 @@ export async function secureRequest(
   const url = urlOrEndpoint.startsWith("http")
     ? urlOrEndpoint
     : `${API_BASE_URL.replace(/\/$/, "")}${urlOrEndpoint}`;
-  const authHeaders = await getAuthHeaders();
-  const headers = buildRequestHeaders(options, authHeaders);
+  try {
+    const authHeaders = await getAuthHeaders();
+    const headers = buildRequestHeaders(options, authHeaders);
+    const response = await fetch(url, {
+      ...options,
+      headers,
+    });
 
-  return fetch(url, {
-    ...options,
-    headers,
-  });
+    if (response.status === 401) {
+      notifyAuthRecovery(new ApiError("Session expired.", 401, "UNAUTHORIZED"));
+    }
+
+    return response;
+  } catch (error) {
+    if (
+      error instanceof ApiError &&
+      error.code === "AUTH_TOKEN_UNAVAILABLE"
+    ) {
+      notifyAuthRecovery(error);
+    }
+
+    throw error;
+  }
 }
 
 // Transient HTTP status codes that are worth retrying
@@ -202,11 +271,11 @@ export async function secureApiRequest<T>(
   const isMutating = MUTATING_METHODS.has(method);
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-    const authHeaders = await getAuthHeaders();
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
+      const authHeaders = await getAuthHeaders();
       const headers = buildRequestHeaders(options, authHeaders);
       const response = await fetch(url, {
         ...options,
@@ -217,7 +286,7 @@ export async function secureApiRequest<T>(
       // Handle authentication errors — not retryable
       if (response.status === 401) {
         throw new ApiError(
-          "Authentication required. Please sign in again.",
+          "Session expired.",
           401,
           "UNAUTHORIZED",
         );
@@ -294,7 +363,18 @@ export async function secureApiRequest<T>(
 
       if (error instanceof ApiError) {
         // Don't retry auth errors or non-transient errors
-        if (error.code === "UNAUTHORIZED" || error.code === "FORBIDDEN") {
+        if (
+          error.code === "UNAUTHORIZED" ||
+          error.code === "FORBIDDEN" ||
+          error.code === "AUTH_NOT_INITIALIZED" ||
+          error.code === "AUTH_TOKEN_UNAVAILABLE"
+        ) {
+          if (
+            error.code === "UNAUTHORIZED" ||
+            error.code === "AUTH_TOKEN_UNAVAILABLE"
+          ) {
+            notifyAuthRecovery(error);
+          }
           throw error;
         }
         // Retry transient errors

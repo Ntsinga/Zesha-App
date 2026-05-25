@@ -8,13 +8,17 @@ import ErrorBoundary from "../components/ErrorBoundary";
 import { store } from "../store";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import {
+  clearLocalAuth,
   initializeAuth,
   selectNeedsAgencyOnboarding,
 } from "../store/slices/authSlice";
 import { ClerkProvider, useAuth, useUser } from "@clerk/clerk-react";
 import { useRouter, usePathname, useNavigationContainerRef } from "expo-router";
 import { useClerkUserSync } from "../hooks/useClerkUserSync.web";
-import { initializeSecureApi } from "../services/secureApi";
+import {
+  initializeSecureApi,
+  registerAuthRecoveryHandler,
+} from "../services/secureApi";
 import AnimatedSplash from "../components/AnimatedSplash";
 import {
   initSentry,
@@ -29,12 +33,13 @@ initSentry();
 // Inner component that uses Redux hooks
 function AppContent() {
   const dispatch = useAppDispatch();
-  const { isSignedIn, isLoaded, getToken } = useAuth();
+  const { isSignedIn, isLoaded, getToken, signOut } = useAuth();
   const { user } = useUser();
   const router = useRouter();
   const pathname = usePathname();
   const navigationContainerRef = useNavigationContainerRef();
   const [isSecureApiReady, setIsSecureApiReady] = useState(false);
+  const authRecoveryInProgressRef = useRef(false);
   // Track whether the user has been signed in this session using a ref so it
   // updates synchronously during render — no effect delay, no race condition.
   const wasSignedInRef = useRef(false);
@@ -70,6 +75,32 @@ function AppContent() {
       setIsSecureApiReady(true);
     }
   }, [isLoaded, getToken]);
+
+  useEffect(() => {
+    registerAuthRecoveryHandler(async () => {
+      if (!isLoaded || authRecoveryInProgressRef.current) {
+        return;
+      }
+
+      authRecoveryInProgressRef.current = true;
+
+      try {
+        await dispatch(clearLocalAuth({ preserveSyncQueue: true }));
+        if (isSignedIn) {
+          await signOut();
+        }
+      } catch (error) {
+        console.error("[AuthRecovery Web] Failed to redirect after session expiry:", error);
+      } finally {
+        window.location.replace("/sign-in");
+      }
+    });
+
+    return () => {
+      registerAuthRecoveryHandler(null);
+      authRecoveryInProgressRef.current = false;
+    };
+  }, [dispatch, isLoaded, isSignedIn, signOut]);
 
   // Sync Clerk user with backend (only after secure API is ready)
   const { isSyncing, backendUser: syncedUser } = useClerkUserSync();

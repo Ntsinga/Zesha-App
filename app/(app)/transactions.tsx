@@ -1,6 +1,4 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { useAuth } from "@clerk/clerk-expo";
-import { useRouter } from "expo-router";
 import {
   View,
   Text,
@@ -36,7 +34,6 @@ import { API_ENDPOINTS } from "../../config/api";
 import { fetchAccounts } from "../../store/slices/accountsSlice";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { triggerSync } from "../../services/syncEngine";
-import { clearLocalAuth } from "../../store/slices/authSlice";
 import { formatDate } from "../../utils/formatters";
 import { useCurrencyFormatter } from "../../hooks/useCurrency";
 import { generateIdempotencyKey } from "../../utils/idempotency";
@@ -328,7 +325,9 @@ function getTechnicalQueueStatusLabel(status: string): string {
 
 function getQueueHeadActionHint(item: QueueItem): string {
   if (isBlockedPendingItem(item)) {
-    return "Sign in again to continue syncing.";
+    return item.lastHttpStatus === 401
+      ? "Session expired. Redirecting."
+      : "This item is blocked by an authorization error.";
   }
 
   if (canDismissPendingItem(item)) {
@@ -399,9 +398,7 @@ function getAmountPrefix(type: string): string {
 }
 
 export default function Transactions() {
-  const router = useRouter();
   const dispatch = useAppDispatch();
-  const { signOut } = useAuth();
   const { formatCurrency } = useCurrencyFormatter();
   const insets = useSafeAreaInsets();
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -635,38 +632,6 @@ export default function Transactions() {
     [dispatch],
   );
 
-  const handleSignInAgainToContinue = useCallback(() => {
-    if (!isBlockedPendingItem(actionablePendingItem)) {
-      return;
-    }
-
-    Alert.alert(
-      "Sign In Again",
-      "Your session needs to be refreshed before pending transactions can continue syncing.",
-      [
-        {
-          text: "Cancel",
-          style: "cancel",
-        },
-        {
-          text: "Sign In Again",
-          onPress: async () => {
-            try {
-              await dispatch(clearLocalAuth({ preserveSyncQueue: true }));
-              await signOut();
-              router.replace("/(auth)/sign-in");
-            } catch {
-              Alert.alert(
-                "Error",
-                "Couldn't start sign-in again. Please try once more.",
-              );
-            }
-          },
-        },
-      ],
-    );
-  }, [actionablePendingItem, dispatch, router, signOut]);
-
   const handleCreateCapitalInjection = useCallback(async () => {
     if (!injectionForm.amount) return;
     const companyId = currentCompanyId;
@@ -868,17 +833,6 @@ export default function Transactions() {
                     style={{ color: "#b91c1c" }}
                   >
                     Remove
-                  </Text>
-                </TouchableOpacity>
-              )}
-              {isBlockedPendingItem(actionablePendingItem) && (
-                <TouchableOpacity
-                  onPress={handleSignInAgainToContinue}
-                  className="rounded-lg px-3 py-1.5"
-                  style={{ backgroundColor: "#1d4ed8" }}
-                >
-                  <Text className="text-xs font-semibold text-white">
-                    Sign in
                   </Text>
                 </TouchableOpacity>
               )}
@@ -1266,21 +1220,6 @@ export default function Transactions() {
                           </Text>
                         </TouchableOpacity>
                       )}
-                      {row.isHeadOfLine &&
-                        isBlockedPendingItem(actionablePendingItem) && (
-                          <TouchableOpacity
-                            onPress={handleSignInAgainToContinue}
-                            className="mt-2 px-2 py-1 rounded"
-                            style={{ backgroundColor: "#DBEAFE" }}
-                          >
-                            <Text
-                              className="text-xs font-medium"
-                              style={{ color: "#1D4ED8" }}
-                            >
-                              Sign in again
-                            </Text>
-                          </TouchableOpacity>
-                        )}
                     </View>
                   </View>
                 );

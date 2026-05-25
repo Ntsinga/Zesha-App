@@ -335,6 +335,10 @@ function isInFlightIdempotentConflict(
   );
 }
 
+function isAuthFailure(status: number): boolean {
+  return status === 401 || status === 403;
+}
+
 function isProcessableItem(item: QueueItem): boolean {
   return (
     item.status === "pending" ||
@@ -416,13 +420,16 @@ async function processItem(item: QueueItem): Promise<ProcessItemResult> {
       item.localImageUris,
     );
 
-    // Don't retry auth errors — user needs to re-authenticate
-    if (status === 401 || status === 403) {
+    // Don't retry auth errors.
+    if (isAuthFailure(status)) {
       dispatch(
         markQueueOutcome({
           id: item.id,
           status: "blocked",
-          error: `Auth error (${status}): ${errorMessage}`,
+          error:
+            status === 401
+              ? "Session expired."
+              : "You no longer have permission to complete this sync item.",
           httpStatus: status,
         }),
       );

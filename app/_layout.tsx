@@ -9,7 +9,7 @@ import ErrorBoundary from "../components/ErrorBoundary";
 import OfflineBanner from "../components/OfflineBanner";
 import { store, persistor } from "../store";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
-import { initializeAuth } from "../store/slices/authSlice";
+import { clearLocalAuth, initializeAuth } from "../store/slices/authSlice";
 import { ClerkProvider, useAuth, useUser } from "@clerk/clerk-expo";
 import { tokenCache } from "@clerk/clerk-expo/token-cache";
 import {
@@ -22,7 +22,10 @@ import {
 import { View } from "react-native";
 import { useClerkUserSync } from "../hooks/useClerkUserSync";
 import AnimatedSplash from "../components/AnimatedSplash";
-import { initializeSecureApi } from "../services/secureApi";
+import {
+  initializeSecureApi,
+  registerAuthRecoveryHandler,
+} from "../services/secureApi";
 import { startSyncEngine, stopSyncEngine } from "../services/syncEngine";
 import { useNetworkStatus, NetworkContext } from "../hooks/useNetworkStatus";
 import {
@@ -41,7 +44,7 @@ SplashScreen.preventAutoHideAsync();
 // Inner component that uses Redux hooks
 function AppContent() {
   const dispatch = useAppDispatch();
-  const { isSignedIn, isLoaded, getToken } = useAuth();
+  const { isSignedIn, isLoaded, getToken, signOut } = useAuth();
   const { user } = useUser();
   const router = useRouter();
   const segments = useSegments();
@@ -50,6 +53,7 @@ function AppContent() {
   const navigationContainerRef = useNavigationContainerRef();
   const [isSecureApiReady, setIsSecureApiReady] = useState(false);
   const initialNavDoneRef = React.useRef(false);
+  const authRecoveryInProgressRef = React.useRef(false);
   const [initialNavDone, setInitialNavDone] = useState(false);
 
   useEffect(() => {
@@ -83,6 +87,31 @@ function AppContent() {
   // Sync Clerk user with backend (only after secure API is ready)
   const { isSyncing, backendUser, clerkUser } = useClerkUserSync();
   const cachedUser = useAppSelector((state) => state.auth.user);
+  useEffect(() => {
+    registerAuthRecoveryHandler(async () => {
+      if (!isLoaded || authRecoveryInProgressRef.current) {
+        return;
+      }
+
+      authRecoveryInProgressRef.current = true;
+
+      try {
+        await dispatch(clearLocalAuth({ preserveSyncQueue: true }));
+        if (isSignedIn) {
+          await signOut();
+        }
+      } catch (error) {
+        console.error("[AuthRecovery] Failed to redirect after session expiry:", error);
+      } finally {
+        router.replace("/(auth)/sign-in");
+      }
+    });
+
+    return () => {
+      registerAuthRecoveryHandler(null);
+      authRecoveryInProgressRef.current = false;
+    };
+  }, [dispatch, isLoaded, isSignedIn, router, signOut]);
 
   useEffect(() => {
     const effectiveUser = backendUser ?? cachedUser;

@@ -24,6 +24,23 @@ Write what happened, why it happened, what changed, how it was verified, and wha
 
 ---
 
+### 2026-05-25 - Sync engine could send secure requests without a bearer token
+
+- Status: Resolved
+- Area: Sync / Auth
+- Symptoms: A queued transaction on the mobile transactions screen stalled with `header.authorization: Field required` and surfaced as a failed transaction instead of an auth recovery path. The UI looked signed in, but the sync request reached the backend without an `Authorization` header.
+- Root cause: `initializeSecureApi(getToken)` only registered Clerk's token getter, and `isSecureApiInitialized()` only checked whether that getter existed. `secureApiRequest` and `secureRequest` still sent requests when `getToken()` returned `null` or token retrieval failed, so the client crossed the network boundary without a bearer token. The sync engine then only saw the backend's response and could at best reclassify it after the fact.
+- Solution implemented:
+  - Changed `secureApiRequest` and `secureRequest` to fail closed instead of sending tokenless requests.
+  - Added one immediate retry when Clerk token retrieval returns `null` or throws, so a brief token-fetch wobble does not immediately force sign-out.
+  - Introduced a global auth recovery handler in `services/secureApi.ts` so any `401` or `AUTH_TOKEN_UNAVAILABLE` from the secure API layer routes through the same sign-out and redirect flow, not just sync-queue failures.
+  - Removed the manual transaction-screen sign-in actions so expired sessions redirect automatically instead of asking the user what to do.
+- Validation: Re-read the edited auth client, native root layout, web root layout, and sync engine control flow and ran diagnostics on those files with no errors.
+- Lessons learned:
+  - "Secure API initialized" is not the same as "a usable bearer token exists for this request".
+  - Authenticated clients should fail closed at the request boundary; they should never silently downgrade to unauthenticated network calls.
+  - Queue recovery logic should classify auth failures, but session-expiry recovery should live at the shared API boundary so foreground requests and queued requests behave the same way.
+
 ### 2026-05-24 - Agency account schedule UI hid template schedules and misresolved detail
 
 - Status: Resolved
