@@ -35,6 +35,7 @@ export default function AgenciesScreen() {
   const {
     items: agencies,
     isLoading,
+    lastFetched,
     error,
   } = useAppSelector((state) => state.companyInfo);
   const { isInviting, inviteSuccess, inviteError, lastInvitedEmail } =
@@ -175,7 +176,7 @@ export default function AgenciesScreen() {
         <div className="header-left">
           <h1 className="header-title">Agencies</h1>
           <span className="header-date">
-            {isLoading
+            {isLoading || (lastFetched === null && !error)
               ? "Loading…"
               : `${agencies.length} ${agencies.length === 1 ? "agency" : "agencies"}`}
           </span>
@@ -200,7 +201,7 @@ export default function AgenciesScreen() {
       <div className="dashboard-content">
         {error && <div className="alert alert-error">{error}</div>}
 
-        {isLoading ? (
+        {isLoading || (lastFetched === null && !error) ? (
           <div className="loading-container" style={{ minHeight: "40vh" }}>
             <RefreshCw size={28} className="spin text-primary" />
             <p>Loading agencies…</p>
