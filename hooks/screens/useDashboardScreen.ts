@@ -136,12 +136,8 @@ export function useDashboardScreen() {
   useEffect(() => {
     if (!effectiveCompanyId || !hasCoreDashboardData) return;
     const { startDate, endDate } = chartRange;
-    dispatch(
-      fetchCommissionTotals({ startDate, endDate, shift: currentShift }),
-    );
-    dispatch(
-      fetchCommissionBreakdown({ startDate, endDate, shift: currentShift }),
-    );
+    dispatch(fetchCommissionTotals({ startDate, endDate }));
+    dispatch(fetchCommissionBreakdown({ startDate, endDate }));
     dispatch(
       fetchTransactionAnalytics({
         companyId: effectiveCompanyId,
@@ -196,12 +192,8 @@ export function useDashboardScreen() {
           limit: 500,
         }),
       );
-      dispatch(
-        fetchCommissionTotals({ startDate, endDate, shift: currentShift }),
-      );
-      dispatch(
-        fetchCommissionBreakdown({ startDate, endDate, shift: currentShift }),
-      );
+      dispatch(fetchCommissionTotals({ startDate, endDate }));
+      dispatch(fetchCommissionBreakdown({ startDate, endDate }));
       dispatch(
         fetchTransactionAnalytics({
           companyId: effectiveCompanyId,
@@ -229,7 +221,6 @@ export function useDashboardScreen() {
     effectiveCompanyId,
     today,
     chartPeriod,
-    currentShift,
     chartRange,
   ]);
 

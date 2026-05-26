@@ -24,6 +24,20 @@ Write what happened, why it happened, what changed, how it was verified, and wha
 
 ---
 
+### 2026-05-26 - Dashboard commission donut hid all but the current shift
+
+- Status: Resolved
+- Area: UI / State
+- Symptoms: The dashboard commission donut and total could drop to a single account even when the same dashboard showed many transactions across several accounts for the selected day. Browser network traces showed `/expected-commissions/breakdown` returning only one account because the request included `shift=PM`.
+- Root cause: `useDashboardScreen` sent `currentShift` to the expected-commission totals and breakdown endpoints, but the dashboard UI presents "Today", "Last 7 Days", and similar whole-period filters and does not expose an AM/PM selector. The commission widgets were therefore filtered to the current shift while the adjacent transaction widgets were not.
+- Solution implemented:
+  - Removed the implicit shift filter from dashboard commission totals and breakdown requests.
+  - Kept the dashboard commission charts aligned with the selected date range instead of the current clock shift.
+- Validation: Confirmed the dashboard hook no longer appends `shift` to the commission aggregate requests and ran diagnostics on the edited frontend file with no errors.
+- Lessons learned:
+  - If a dashboard card represents a whole selected period, its backend query must not apply a hidden narrower filter.
+  - Network traces are the fastest way to distinguish "wrong aggregation" from "wrong filter" when chart totals look inconsistent.
+
 ### 2026-05-25 - Sync engine could send secure requests without a bearer token
 
 - Status: Resolved
