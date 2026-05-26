@@ -157,7 +157,6 @@ export function useDashboardScreen() {
     dispatch,
     effectiveCompanyId,
     chartPeriod,
-    currentShift,
     chartRange,
     hasCoreDashboardData,
   ]);
@@ -216,13 +215,7 @@ export function useDashboardScreen() {
       );
     }
     setRefreshing(false);
-  }, [
-    dispatch,
-    effectiveCompanyId,
-    today,
-    chartPeriod,
-    chartRange,
-  ]);
+  }, [dispatch, effectiveCompanyId, today, chartPeriod, chartRange]);
 
   // Shift change handler
   const handleShiftChange = useCallback(
