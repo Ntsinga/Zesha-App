@@ -33,7 +33,7 @@ Write what happened, why it happened, what changed, how it was verified, and wha
 - Solution implemented:
   - Switched the native auth gate to derive auth-page status from `usePathname()` for sign-in, sign-up, welcome, forgot-password, and set-password routes.
   - Used that pathname-based auth-page guard to suppress self-redirects back to sign-in and only redirect signed-in users away from auth pages when appropriate.
-- Validation: Pending focused diagnostics/typecheck after the layout change.
+- Validation: Ran editor diagnostics on the edited native layout with no errors and `npm exec -- tsc --noEmit` in `Zesha-App` completed cleanly after the redirect-guard change.
 - Lessons learned:
   - Route-group metadata is not a robust sole source of truth for redirect guards on auth screens.
   - Redirect effects should always guard against targeting the route that is already active.

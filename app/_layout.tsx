@@ -145,9 +145,9 @@ function AppContent() {
   // on every render, so using `segments` directly in useEffect deps causes the effect
   // to fire every render. Booleans have value equality and are safe as deps.
   const inAuthGroup = segments[0] === "(auth)";
-  const isOnSetPassword = (segments as string[])[1] === "set-password";
-  const isOnWelcome = (segments as string[])[1] === "welcome";
-  const isOnSignUp = (segments as string[])[1] === "sign-up";
+  const isOnSetPassword = pathname.includes("/set-password");
+  const isOnWelcome = pathname.includes("/welcome");
+  const isOnSignUp = pathname.includes("/sign-up");
   const isOnSignIn = pathname.includes("/sign-in");
   const isOnForgotPassword = pathname.includes("/forgot-password");
   const isOnAuthPage =
