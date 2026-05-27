@@ -101,7 +101,10 @@ function AppContent() {
           await signOut();
         }
       } catch (error) {
-        console.error("[AuthRecovery] Failed to redirect after session expiry:", error);
+        console.error(
+          "[AuthRecovery] Failed to redirect after session expiry:",
+          error,
+        );
       } finally {
         router.replace("/(auth)/sign-in");
       }
@@ -145,6 +148,15 @@ function AppContent() {
   const isOnSetPassword = (segments as string[])[1] === "set-password";
   const isOnWelcome = (segments as string[])[1] === "welcome";
   const isOnSignUp = (segments as string[])[1] === "sign-up";
+  const isOnSignIn = pathname.includes("/sign-in");
+  const isOnForgotPassword = pathname.includes("/forgot-password");
+  const isOnAuthPage =
+    isOnSignIn ||
+    isOnSignUp ||
+    isOnWelcome ||
+    isOnSetPassword ||
+    isOnForgotPassword ||
+    inAuthGroup;
   const hasInviteTicket = !!params.__clerk_ticket;
   const inviteTicket = params.__clerk_ticket as string | undefined;
 
@@ -165,8 +177,8 @@ function AppContent() {
       return;
     }
 
-    // Allow unauthenticated access to welcome, sign-up, and set-password for invite flow
-    if (!isSignedIn && (isOnWelcome || isOnSignUp || isOnSetPassword)) {
+    // Allow unauthenticated access to auth screens for invite and recovery flows.
+    if (!isSignedIn && isOnAuthPage) {
       if (!initialNavDoneRef.current) {
         initialNavDoneRef.current = true;
         setInitialNavDone(true);
@@ -187,10 +199,15 @@ function AppContent() {
       return;
     }
 
-    if (!isSignedIn && !inAuthGroup) {
+    if (!isSignedIn && !isOnAuthPage) {
       // Redirect to sign-in if not authenticated and not in auth group
       router.replace("/(auth)/sign-in");
-    } else if (isSignedIn && user?.passwordEnabled && inAuthGroup) {
+    } else if (
+      isSignedIn &&
+      user?.passwordEnabled &&
+      isOnAuthPage &&
+      !isOnSetPassword
+    ) {
       // Redirect to app if authenticated with password and in auth group
       router.replace("/(app)");
     }
@@ -205,9 +222,12 @@ function AppContent() {
     isLoaded,
     user?.passwordEnabled,
     inAuthGroup,
+    isOnAuthPage,
     isOnSetPassword,
     isOnWelcome,
     isOnSignUp,
+    isOnSignIn,
+    isOnForgotPassword,
     hasInviteTicket,
     inviteTicket,
     // router is a stable singleton from useRouter() — must NOT be in deps;

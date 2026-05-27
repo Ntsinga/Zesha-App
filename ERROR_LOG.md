@@ -24,6 +24,20 @@ Write what happened, why it happened, what changed, how it was verified, and wha
 
 ---
 
+### 2026-05-27 - Native auth layout could loop redirects on the sign-in screen
+
+- Status: Resolved
+- Area: Navigation / Auth
+- Symptoms: Production Android sessions could hit `Maximum update depth exceeded` on the sign-in route. Sentry stacks pointed into React Navigation store updates during mount, consistent with repeated navigation state updates.
+- Root cause: The native root layout decided whether the user was already on an auth screen primarily from `useSegments()`. On sign-in and related auth routes, that detection was not defensive enough, so the auth gate could repeatedly call `router.replace("/(auth)/sign-in")` or bounce away from auth pages during route-state churn, creating a navigation update loop.
+- Solution implemented:
+  - Switched the native auth gate to derive auth-page status from `usePathname()` for sign-in, sign-up, welcome, forgot-password, and set-password routes.
+  - Used that pathname-based auth-page guard to suppress self-redirects back to sign-in and only redirect signed-in users away from auth pages when appropriate.
+- Validation: Pending focused diagnostics/typecheck after the layout change.
+- Lessons learned:
+  - Route-group metadata is not a robust sole source of truth for redirect guards on auth screens.
+  - Redirect effects should always guard against targeting the route that is already active.
+
 ### 2026-05-26 - Dashboard commission donut hid all but the current shift
 
 - Status: Resolved
