@@ -24,9 +24,27 @@ Write what happened, why it happened, what changed, how it was verified, and wha
 
 ---
 
-### 2026-05-27 - Native auth layout could loop redirects on the sign-in screen
+### 2026-05-29 - Auth recovery handler re-entered loop on sign-in (dist:6 regression)
 
 - Status: Resolved
+- Area: Navigation / Auth
+- Symptoms: `Maximum update depth exceeded` on `/sign-in` in production (dist:6), reproducible on low-end Android devices (itel P10004L). Sentry stack pointed into `@react-navigation/core/useSyncState.js` `batchUpdates` during `commitHookEffectListMount` — a layout-effect update loop triggered on sign-in screen mount.
+- Root cause: Two compounding bugs in the `registerAuthRecoveryHandler` effect in the native root layout:
+  1. `router` was included in the effect deps. Because `router` (from `useRouter()`) changes reference on every navigation state change, the effect cleanup ran on every navigation event — resetting `authRecoveryInProgressRef.current = false` and defeating the re-entry guard.
+  2. The `finally` block called `router.replace("/(auth)/sign-in")` unconditionally, even when already on the sign-in page. That navigation event changed the `router` reference, triggering cleanup (bug 1), allowing the next 401 from a stale sync-queue request to retrigger the handler and fire another replace — creating the loop.
+- Solution implemented:
+  - Added a `pathnameRef` (updated on every render via a dep-less `useEffect`) so the handler can read the current pathname without capturing a stale closure.
+  - Guarded the `finally` block: `router.replace("/(auth)/sign-in")` is now skipped when `pathnameRef.current` already contains an auth-page path.
+  - Removed `router` from the `registerAuthRecoveryHandler` effect deps, consistent with the existing comment on the auth navigation effect, so cleanup no longer resets the guard on every navigation event.
+- Validation: No TypeScript errors on the edited file.
+- Lessons learned:
+  - Any `useEffect` that registers a callback containing a `router.replace` call must NOT include `router` in its deps — the reference changes on every navigation event, causing cleanup and guard-reset churn.
+  - `router.replace(X)` called from screen X still fires a navigation event in Expo Router. Always guard navigation calls with a pathname check to avoid self-replace loops.
+  - Re-entry guards (`useRef` flags) are only effective if the effect cleanup that resets them is scoped to meaningful dep changes (not stable-but-changing refs like `router`).
+
+### 2026-05-27 - Native auth layout could loop redirects on the sign-in screen
+
+- Status: Resolved (partial — regression introduced in dist:6, see entry above)
 - Area: Navigation / Auth
 - Symptoms: Production Android sessions could hit `Maximum update depth exceeded` on the sign-in route. Sentry stacks pointed into React Navigation store updates during mount, consistent with repeated navigation state updates.
 - Root cause: The native root layout decided whether the user was already on an auth screen primarily from `useSegments()`. On sign-in and related auth routes, that detection was not defensive enough, so the auth gate could repeatedly call `router.replace("/(auth)/sign-in")` or bounce away from auth pages during route-state churn, creating a navigation update loop.

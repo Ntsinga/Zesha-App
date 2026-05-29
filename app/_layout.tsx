@@ -1,5 +1,5 @@
 import "../global.css";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Stack } from "expo-router";
 import { Provider } from "react-redux";
 import { PersistGate } from "redux-persist/integration/react";
@@ -87,6 +87,14 @@ function AppContent() {
   // Sync Clerk user with backend (only after secure API is ready)
   const { isSyncing, backendUser, clerkUser } = useClerkUserSync();
   const cachedUser = useAppSelector((state) => state.auth.user);
+
+  // Keep a live ref to the current pathname so the auth recovery handler can
+  // check it without capturing a stale closure value.
+  const pathnameRef = useRef(pathname);
+  useEffect(() => {
+    pathnameRef.current = pathname;
+  });
+
   useEffect(() => {
     registerAuthRecoveryHandler(async () => {
       if (!isLoaded || authRecoveryInProgressRef.current) {
@@ -106,7 +114,20 @@ function AppContent() {
           error,
         );
       } finally {
-        router.replace("/(auth)/sign-in");
+        // Only redirect when not already on an auth page. Calling
+        // router.replace("/(auth)/sign-in") from the sign-in page fires a
+        // navigation event that can cause React Navigation's update-depth loop
+        // on mount, especially on low-end devices.
+        const currentPath = pathnameRef.current;
+        const alreadyOnAuthPage =
+          currentPath.includes("/sign-in") ||
+          currentPath.includes("/sign-up") ||
+          currentPath.includes("/welcome") ||
+          currentPath.includes("/forgot-password") ||
+          currentPath.includes("/set-password");
+        if (!alreadyOnAuthPage) {
+          router.replace("/(auth)/sign-in");
+        }
       }
     });
 
@@ -114,7 +135,11 @@ function AppContent() {
       registerAuthRecoveryHandler(null);
       authRecoveryInProgressRef.current = false;
     };
-  }, [dispatch, isLoaded, isSignedIn, router, signOut]);
+    // router is a stable singleton — do NOT add it to deps. It changes reference
+    // on every navigation state change, so including it would cause the cleanup to
+    // run (and reset authRecoveryInProgressRef) on every navigation event, allowing
+    // the handler to fire multiple times in rapid succession and re-enter the loop.
+  }, [dispatch, isLoaded, isSignedIn, signOut]);
 
   useEffect(() => {
     const effectiveUser = backendUser ?? cachedUser;
