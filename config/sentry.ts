@@ -1,10 +1,12 @@
 import * as Sentry from "@sentry/react-native";
+import { Platform } from "react-native";
 
 const SENTRY_DSN = process.env.EXPO_PUBLIC_SENTRY_DSN;
 const sentryNavigationIntegration = Sentry.reactNavigationIntegration({
   enableTimeToInitialDisplay: true,
   ignoreEmptyBackNavigationTransactions: true,
 });
+const enableMobileReplay = Platform.OS !== "android";
 
 export function initSentry(): void {
   if (!SENTRY_DSN) {
@@ -14,6 +16,14 @@ export function initSentry(): void {
     return;
   }
 
+  const integrations: NonNullable<
+    Parameters<typeof Sentry.init>[0]["integrations"]
+  > = [sentryNavigationIntegration, Sentry.feedbackIntegration()];
+
+  if (enableMobileReplay) {
+    integrations.push(Sentry.mobileReplayIntegration());
+  }
+
   Sentry.init({
     dsn: SENTRY_DSN,
     debug: __DEV__,
@@ -21,13 +31,9 @@ export function initSentry(): void {
     sendDefaultPii: true,
     tracesSampleRate: __DEV__ ? 1.0 : 0.2,
     enableLogs: true,
-    replaysSessionSampleRate: 0.1,
-    replaysOnErrorSampleRate: 1.0,
-    integrations: [
-      sentryNavigationIntegration,
-      Sentry.mobileReplayIntegration(),
-      Sentry.feedbackIntegration(),
-    ],
+    replaysSessionSampleRate: enableMobileReplay ? 0.1 : 0,
+    replaysOnErrorSampleRate: enableMobileReplay ? 1.0 : 0,
+    integrations,
     beforeSend(event) {
       // Strip PII from breadcrumbs in production
       if (!__DEV__ && event.breadcrumbs) {
@@ -99,13 +105,15 @@ export function setCurrentRouteContext(pathname: string): void {
   });
 }
 
-export function setCurrentUserContext(user: {
-  id?: string | number | null;
-  clerkUserId?: string | null;
-  email?: string | null;
-  role?: string | null;
-  companyId?: number | null;
-} | null): void {
+export function setCurrentUserContext(
+  user: {
+    id?: string | number | null;
+    clerkUserId?: string | null;
+    email?: string | null;
+    role?: string | null;
+    companyId?: number | null;
+  } | null,
+): void {
   if (!user) {
     Sentry.setUser(null);
     Sentry.setContext("auth", null);
@@ -113,7 +121,7 @@ export function setCurrentUserContext(user: {
   }
 
   Sentry.setUser({
-    id: user.id != null ? String(user.id) : user.clerkUserId ?? undefined,
+    id: user.id != null ? String(user.id) : (user.clerkUserId ?? undefined),
     email: user.email ?? undefined,
   });
   Sentry.setTag("user.role", user.role ?? "unknown");

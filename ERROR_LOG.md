@@ -24,6 +24,21 @@ Write what happened, why it happened, what changed, how it was verified, and wha
 
 ---
 
+### 2026-05-30 - Android Sentry mobile replay could ANR on foreground resume
+
+- Status: Resolved
+- Area: Build / Navigation
+- Symptoms: Production Android sessions on low-end devices (itel P10004L, dist:6) could hit an `ApplicationNotResponding` fatal shortly after returning to the app from the background on `/transactions`. The stack never entered app screen code; it blocked on the main thread inside `io.sentry.android.replay.ReplayIntegration.resumeInternal` and `AndroidConnectionStatusProvider.getConnectionStatus` during lifecycle foreground start.
+- Root cause: `config/sentry.ts` enabled `Sentry.mobileReplayIntegration()` unconditionally for native Android. On low-end Android devices, Sentry's replay resume path could block the main thread while reacquiring its connection-status cache lock during app foreground lifecycle events, causing an ANR before the transactions screen could resume normally.
+- Solution implemented:
+  - Disabled Sentry mobile replay on Android by gating `Sentry.mobileReplayIntegration()` behind `Platform.OS !== "android"`.
+  - Set Android replay sampling to `0` so the native replay lifecycle path is not activated on Android while leaving navigation tracing, feedback, and non-replay crash reporting intact.
+- Validation: `get_errors` reported no errors in `config/sentry.ts`, `npm exec -- tsc --noEmit` completed cleanly in `Zesha-App`, and the final `config/sentry.ts` readback confirmed Android now skips the replay integration and replay sample rates.
+- Lessons learned:
+  - If an ANR stack is entirely inside Sentry/SDK lifecycle code, treat the observability integration as a likely root cause before debugging screen components.
+  - Mobile replay is optional; on low-end Android devices it is not worth keeping enabled if it risks blocking app foreground resume.
+  - Route tags on an ANR can reflect the last active screen even when the freeze happens in process-lifecycle startup code, so stack ownership matters more than the route label.
+
 ### 2026-05-29 - Auth recovery handler re-entered loop on sign-in (dist:6 regression)
 
 - Status: Resolved
