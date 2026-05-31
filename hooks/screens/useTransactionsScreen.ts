@@ -68,6 +68,42 @@ function isStatementRowOverlapBlocked(
   );
 }
 
+/**
+ * Infer the best pre-selected designation for a REVIEW row based on the
+ * parser's classification hints. Returns KEEP_REVIEW when the hints are
+ * insufficient to make a confident suggestion.
+ */
+function suggestDesignationForRow(
+  row: StatementParsedRow,
+): StatementReviewDesignation {
+  const {
+    mappedTransactionType,
+    mappedTransactionSubtype,
+    mappedFloatDirection,
+  } = row;
+
+  if (mappedTransactionType === "FLOAT_PURCHASE") {
+    if (mappedFloatDirection === "IN") return "FLOAT_PURCHASE_IN";
+    if (mappedFloatDirection === "OUT") return "FLOAT_PURCHASE_OUT";
+    return "KEEP_REVIEW";
+  }
+
+  if (mappedTransactionType === "DEPOSIT") {
+    if (mappedTransactionSubtype === "AIRTIME") return "AIRTIME_DEPOSIT";
+    if (mappedTransactionSubtype === "VOICE_BUNDLE")
+      return "VOICE_BUNDLE_DEPOSIT";
+    if (mappedTransactionSubtype === "DATA_BUNDLE")
+      return "DATA_BUNDLE_DEPOSIT";
+    if (mappedTransactionSubtype === "BILL_PAYMENT")
+      return "BILL_PAYMENT_DEPOSIT";
+    return "REGULAR_DEPOSIT";
+  }
+
+  if (mappedTransactionType === "WITHDRAW") return "REGULAR_WITHDRAW";
+
+  return "KEEP_REVIEW";
+}
+
 function getLocalDateString(): string {
   const date = new Date();
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
@@ -564,8 +600,7 @@ export function useTransactionsScreen() {
     }
 
     const requestKey =
-      transactionRequestKeyRef.current ??
-      generateIdempotencyKey("txn-screen");
+      transactionRequestKeyRef.current ?? generateIdempotencyKey("txn-screen");
 
     const data: TransactionCreate = {
       companyId,
@@ -870,7 +905,21 @@ export function useTransactionsScreen() {
   }, [dispatch, clearSubmitError]);
 
   useEffect(() => {
-    setStatementReviewDesignations({});
+    if (!statementPreview) {
+      setStatementReviewDesignations({});
+      return;
+    }
+    const autoDesignations: Record<string, StatementReviewDesignation> = {};
+    for (const row of statementPreview.rows) {
+      if (row.decision !== "REVIEW") continue;
+      const suggested = suggestDesignationForRow(row);
+      if (suggested !== "KEEP_REVIEW") {
+        autoDesignations[
+          getStatementRowKey(row.rowIndex, row.providerReference)
+        ] = suggested;
+      }
+    }
+    setStatementReviewDesignations(autoDesignations);
   }, [statementPreview?.metadata.filename]);
 
   const statementReviewOverrides = useMemo<StatementReviewOverride[]>(() => {

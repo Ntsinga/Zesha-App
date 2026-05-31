@@ -179,6 +179,7 @@ export interface StatementParsedRow {
   decision: StatementDecision;
   mappedTransactionType?: TransactionTypeEnum | null;
   mappedTransactionSubtype?: TransactionSubtypeEnum | null;
+  mappedFloatDirection?: StatementFloatDirection | null;
   reason: string;
   candidate?: StatementTransactionCandidate | null;
   rawText?: string | null;

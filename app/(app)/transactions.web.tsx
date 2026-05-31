@@ -197,6 +197,13 @@ export default function TransactionsWeb() {
       }
 
       const typeLabel = getTransactionTypeLabel(row.mappedTransactionType);
+
+      if (row.mappedTransactionType === "FLOAT_PURCHASE") {
+        if (row.mappedFloatDirection === "IN") return `${typeLabel} · IN`;
+        if (row.mappedFloatDirection === "OUT") return `${typeLabel} · OUT`;
+        return typeLabel;
+      }
+
       const subtypeLabel = getMappedSubtypeLabel(row.mappedTransactionSubtype);
       return subtypeLabel ? `${typeLabel} · ${subtypeLabel}` : typeLabel;
     },
