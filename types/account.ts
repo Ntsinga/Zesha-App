@@ -20,6 +20,7 @@ export interface AccountScheduleSummary {
 export interface Account extends BaseModel {
   name: string;
   description: string | null;
+  registeredNames?: string[] | null;
   accountType: AccountTypeEnum;
   isActive: boolean;
   companyId: number | null;
@@ -55,6 +56,7 @@ export interface AccountTemplate extends BaseModel {
 export interface AccountCreate {
   name: string;
   description?: string;
+  registeredNames?: string[];
   accountType: AccountTypeEnum;
   isActive?: boolean;
   companyId: number;
@@ -80,6 +82,7 @@ export interface AccountTemplateCreate {
 export interface AccountUpdate {
   name?: string;
   description?: string;
+  registeredNames?: string[] | null;
   accountType?: AccountTypeEnum;
   isActive?: boolean;
   companyId?: number;
