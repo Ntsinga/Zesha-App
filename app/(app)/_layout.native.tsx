@@ -1,11 +1,6 @@
 import React, { useEffect } from "react";
-import {
-  View,
-  StyleSheet,
-  StatusBar,
-  Text,
-  TouchableOpacity,
-} from "react-native";
+import { View, StyleSheet, Text, TouchableOpacity } from "react-native";
+import { StatusBar } from "expo-status-bar";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { Stack, useRouter, usePathname } from "expo-router";
@@ -51,7 +46,7 @@ export default function AppLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <StatusBar barStyle="dark-content" backgroundColor="#f5f1ea" />
+      <StatusBar style="dark" />
       <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
         {/* Agency Viewing Banner - only for superadmins */}
         {isSuperAdmin && isViewingAgency && (

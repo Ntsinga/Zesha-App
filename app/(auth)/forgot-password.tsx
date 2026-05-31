@@ -5,12 +5,12 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  StatusBar,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
+import { StatusBar } from "expo-status-bar";
 import { useAuth, useSignIn } from "@clerk/clerk-expo";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -366,7 +366,7 @@ export default function ForgotPasswordPage() {
 
   return (
     <View className="flex-1">
-      <StatusBar barStyle="light-content" />
+      <StatusBar style="light" />
 
       <LinearGradient
         colors={["#8e0c1a", "#6b0714", "#3a050c"]}

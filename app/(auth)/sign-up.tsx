@@ -9,8 +9,8 @@ import {
   Alert,
   ActivityIndicator,
   ScrollView,
-  StatusBar,
 } from "react-native";
+import { StatusBar } from "expo-status-bar";
 import { useSignUp, useOAuth } from "@clerk/clerk-expo";
 import { useRouter, Link, useLocalSearchParams } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
@@ -194,7 +194,7 @@ export default function SignUpPage() {
   if (pendingVerification) {
     return (
       <View className="flex-1">
-        <StatusBar barStyle="light-content" />
+        <StatusBar style="light" />
 
         {/* Red Gradient Header */}
         <LinearGradient
@@ -296,7 +296,7 @@ export default function SignUpPage() {
   // Main Sign Up Screen
   return (
     <View className="flex-1">
-      <StatusBar barStyle="light-content" />
+      <StatusBar style="light" />
 
       {/* Red Gradient Header */}
       <LinearGradient

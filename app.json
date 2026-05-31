@@ -21,7 +21,8 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#9A0E1F"
       },
-      "package": "io.teleba"
+      "package": "io.teleba",
+      "edgeToEdgeEnabled": true
     },
     "web": {
       "bundler": "metro",
@@ -30,6 +31,7 @@
     },
     "plugins": [
       "expo-router",
+      "react-native-edge-to-edge",
       [
         "@sentry/react-native/expo",
         {

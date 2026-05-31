@@ -9,8 +9,8 @@ import {
   Alert,
   ActivityIndicator,
   ScrollView,
-  StatusBar,
 } from "react-native";
+import { StatusBar } from "expo-status-bar";
 import { useUser, useSignUp } from "@clerk/clerk-expo";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -273,7 +273,7 @@ export default function SetPasswordPage() {
 
   return (
     <LinearGradient colors={["#0F172A", "#1E293B"]} style={{ flex: 1 }}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar style="light" />
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}

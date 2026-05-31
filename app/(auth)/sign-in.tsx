@@ -9,8 +9,8 @@ import {
   Alert,
   ActivityIndicator,
   ScrollView,
-  StatusBar,
 } from "react-native";
+import { StatusBar } from "expo-status-bar";
 import { useSignIn } from "@clerk/clerk-expo";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -128,7 +128,7 @@ export default function SignInPage() {
 
   return (
     <View className="flex-1">
-      <StatusBar barStyle="light-content" />
+      <StatusBar style="light" />
 
       {/* Red Gradient Header — matches sidebar */}
       <LinearGradient
