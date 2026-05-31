@@ -176,6 +176,7 @@ export function useAccountDetailScreen(accountId: number, isTemplate = false) {
   const [commissionModel, setCommissionModel] =
     useState<CommissionModelEnum>("EXPECTED_ONLY");
   const [isActive, setIsActive] = useState(true);
+  const [registeredNames, setRegisteredNames] = useState<string[]>([]);
   const [isSavingAccount, setIsSavingAccount] = useState(false);
   const [accountError, setAccountError] = useState<string | null>(null);
 
@@ -188,6 +189,10 @@ export function useAccountDetailScreen(accountId: number, isTemplate = false) {
       setAccountType(account.accountType);
       setCommissionModel(account.commissionModel ?? "EXPECTED_ONLY");
       setIsActive(account.isActive);
+      setRegisteredNames(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ((account as any).registeredNames as string[] | null | undefined) ?? [],
+      );
     }
   }, [account]);
 
@@ -221,6 +226,7 @@ export function useAccountDetailScreen(accountId: number, isTemplate = false) {
               commissionModel,
               isActive,
               companyId: companyId!,
+              registeredNames: registeredNames.length > 0 ? registeredNames : null,
             },
           }),
         ).unwrap();
@@ -675,6 +681,8 @@ export function useAccountDetailScreen(accountId: number, isTemplate = false) {
     setCommissionModel,
     isActive,
     setIsActive,
+    registeredNames,
+    setRegisteredNames,
     isSavingAccount,
     accountError,
     handleSaveAccount,

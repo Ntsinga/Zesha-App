@@ -71,6 +71,7 @@ export function useAccountsScreen() {
   >(null);
   const [commissionModel, setCommissionModel] =
     useState<CommissionModelEnum>("EXPECTED_ONLY");
+  const [registeredNames, setRegisteredNames] = useState<string[]>([]);
 
   // Auto-sync commission model when account type changes
   const handleSetAccountType = (type: AccountTypeEnum) => {
@@ -113,6 +114,7 @@ export function useAccountsScreen() {
     setInitialBalance("");
     setCommissionScheduleId(null);
     setCommissionModel("EXPECTED_ONLY");
+    setRegisteredNames([]);
     setEditingAccount(null);
     setShowTypeDropdown(false);
     setCreationMode(null);
@@ -132,6 +134,7 @@ export function useAccountsScreen() {
     setIsActive(account.isActive);
     setCommissionScheduleId(account.commissionScheduleId ?? null);
     setCommissionModel(account.commissionModel ?? "EXPECTED_ONLY");
+    setRegisteredNames(account.registeredNames ?? []);
     setIsModalOpen(true);
   };
 
@@ -153,6 +156,7 @@ export function useAccountsScreen() {
   const handleInheritTemplate = async (
     template: AccountTemplate,
     overrideName?: string,
+    inheritRegisteredNames?: string[],
   ): Promise<{ success: boolean; message: string }> => {
     if (!companyId) {
       return { success: false, message: "Company not found. Please log in again." };
@@ -164,7 +168,12 @@ export function useAccountsScreen() {
     setIsSubmitting(true);
     try {
       await dispatch(
-        inheritAccountTemplate({ templateId: template.id, name: accountName, companyId }),
+        inheritAccountTemplate({
+          templateId: template.id,
+          name: accountName,
+          companyId,
+          ...(inheritRegisteredNames?.length ? { registeredNames: inheritRegisteredNames } : {}),
+        }),
       ).unwrap();
       await dispatch(fetchAccounts({ forceRefresh: true })).unwrap();
       closeModal();
@@ -215,6 +224,7 @@ export function useAccountsScreen() {
               companyId: companyId,
               commissionScheduleId: commissionScheduleId ?? undefined,
               commissionModel,
+              registeredNames: registeredNames.length > 0 ? registeredNames : null,
             },
           }),
         ).unwrap();
@@ -235,6 +245,7 @@ export function useAccountsScreen() {
               : {}),
             commissionScheduleId: commissionScheduleId ?? undefined,
             commissionModel,
+            ...(registeredNames.length > 0 ? { registeredNames } : {}),
           }),
         ).unwrap();
 
@@ -363,6 +374,8 @@ export function useAccountsScreen() {
     setCommissionScheduleId,
     commissionModel,
     setCommissionModel,
+    registeredNames,
+    setRegisteredNames,
 
     // Commission schedule options (for web selector)
     commissionSchedules,

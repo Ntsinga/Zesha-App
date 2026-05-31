@@ -309,22 +309,32 @@ utils/                # Utility functions
 
 ### After Completing Tasks
 
+> **NON-NEGOTIABLE**: This review-fix cycle is mandatory after EVERY task, no matter how small. Do not skip, abbreviate, or defer any step. If any step in these instructions was not followed during the task, immediately run `npx tsc --noEmit` on the full project and read every changed file before confirming completion.
+
 **ALWAYS follow this review-fix cycle after completing any task:**
 
-1. Use the error checking tool to verify no TypeScript/compilation errors
-2. **Read the actual changed code** — use `read_file` on every modified file to inspect what was written. Do not rely on memory of what you intended to write.
+1. **Run `npx tsc --noEmit` on the full project** — not just the changed files. Capture all output and read every error line. Do not assume no errors exist.
+2. **Read the actual changed code** — use `read_file` on every modified file. Do not rely on memory of what you intended to write.
 3. Review each file for:
    - Logic bugs (e.g. type mismatches — storing a string-in-progress like `"1000."` into a `number` field)
    - Missing edge cases (empty string, `"."`, `NaN`, `null`, `undefined`, `0` as falsy)
+   - JSX structure bugs (sibling elements in `.map()` without a single parent, missing keys, etc.)
    - State management issues in controlled inputs (intermediate typing state lost on re-render)
    - Security issues (unvalidated input reaching API, XSS, etc.)
 4. Fix every issue found
-5. Re-run error checks and re-review the fixes
+5. **Re-run `npx tsc --noEmit` and re-read the fixed code** — confirm zero errors before proceeding
 6. Repeat steps 3–5 until there are zero errors and no remaining issues
 7. Read the relevant lessons in `ERROR_LOG.md` again and confirm the final change does not repeat a previously documented mistake
 8. If the task involved a bug, regression, outage, misconfiguration, or unexpected behavior, add or update the matching entry in `ERROR_LOG.md` before confirming completion
 9. Only confirm successful completion after the cycle is clean
 
-**Common pitfall**: Running only the TypeScript error checker is NOT sufficient. TypeScript cannot catch runtime logic bugs like `Number("1000.") === 1000` causing a controlled input to swallow a trailing decimal point. Always do the manual logic review in step 3.
+**If any instruction in this file was skipped during the task** — stop, acknowledge it explicitly, then:
+1. Identify exactly which instruction was skipped and why it was easy to miss or bypass.
+2. Strengthen that specific instruction in this file — make it harder to skip by adding emphasis, a concrete example of the failure it prevents, or an explicit trigger condition.
+3. Only respond to the user after both the fix and the instruction improvement are done.
+
+**Common pitfalls**:
+- Running `get_errors` on individual files is NOT the same as `npx tsc --noEmit` on the full project. Cross-file type errors (e.g. JSX siblings in `.map()`, union type property mismatches) only surface in a full compilation pass.
+- Running only the TypeScript error checker is NOT sufficient. TypeScript cannot catch runtime logic bugs like `Number("1000.") === 1000` causing a controlled input to swallow a trailing decimal point. Always do the manual logic review in step 3.
 
 This ensures code quality and prevents broken deployments.

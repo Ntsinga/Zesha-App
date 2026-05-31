@@ -40,6 +40,7 @@ type TemplateInstance = {
   instanceId: string;
   templateId: number;
   name: string;
+  registeredNames: string[];
 };
 
 type CustomAccountDraft = {
@@ -48,7 +49,86 @@ type CustomAccountDraft = {
   description: string;
   accountType: AccountTypeEnum;
   commissionModel: CommissionModelEnum;
+  registeredNames: string[];
 };
+
+// ─── RegisteredNamesInput ──────────────────────────────────────────────────
+
+function RegisteredNamesInput({
+  value,
+  onChange,
+}: {
+  value: string[];
+  onChange: (v: string[]) => void;
+}) {
+  const [draft, setDraft] = useState("");
+  const add = () => {
+    const trimmed = draft.trim().toUpperCase();
+    if (!trimmed || value.includes(trimmed)) return;
+    onChange([...value, trimmed]);
+    setDraft("");
+  };
+  return (
+    <div className="form-group" style={{ marginBottom: 0 }}>
+      <label className="form-label">Registered Names</label>
+      <div style={{ display: "flex", gap: 8 }}>
+        <input
+          type="text"
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              add();
+            }
+          }}
+          className="form-input"
+          placeholder="e.g. MTN MOBILE MONEY"
+          style={{ flex: 1, margin: 0 }}
+        />
+        <button
+          type="button"
+          className="btn-secondary"
+          style={{ flexShrink: 0 }}
+          onClick={add}
+          disabled={!draft.trim()}
+        >
+          Add
+        </button>
+      </div>
+      {value.length > 0 && (
+        <div
+          style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}
+        >
+          {value.map((n) => (
+            <button
+              key={n}
+              type="button"
+              onClick={() => onChange(value.filter((x) => x !== n))}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 5,
+                border: "1px solid var(--color-border)",
+                background: "var(--color-bg-card)",
+                borderRadius: 999,
+                padding: "3px 10px",
+                fontSize: 12,
+                cursor: "pointer",
+              }}
+            >
+              {n}
+              <span style={{ fontSize: 14, lineHeight: 1 }}>×</span>
+            </button>
+          ))}
+        </div>
+      )}
+      <span className="form-hint" style={{ fontSize: 11 }}>
+        Names that appear in statements for this account during import
+      </span>
+    </div>
+  );
+}
 
 export default function AgencySetupWeb() {
   const router = useRouter();
@@ -235,6 +315,7 @@ export default function AgencySetupWeb() {
         instanceId: `${templateId}-${Date.now()}`,
         templateId,
         name: numberedName,
+        registeredNames: [],
       },
     ]);
   };
@@ -243,6 +324,19 @@ export default function AgencySetupWeb() {
     setTemplateInstances((prev) =>
       prev.map((inst) =>
         inst.instanceId === instanceId ? { ...inst, name } : inst,
+      ),
+    );
+  };
+
+  const updateTemplateInstanceRegisteredNames = (
+    instanceId: string,
+    names: string[],
+  ) => {
+    setTemplateInstances((prev) =>
+      prev.map((inst) =>
+        inst.instanceId === instanceId
+          ? { ...inst, registeredNames: names }
+          : inst,
       ),
     );
   };
@@ -262,6 +356,7 @@ export default function AgencySetupWeb() {
         description: "",
         accountType: "TELECOM",
         commissionModel: "EXPECTED_ONLY",
+        registeredNames: [],
       },
     ]);
   };
@@ -274,6 +369,19 @@ export default function AgencySetupWeb() {
     setCustomAccounts((prev) =>
       prev.map((account) =>
         account.id === id ? { ...account, [field]: value } : account,
+      ),
+    );
+  };
+
+  const updateCustomAccountRegisteredNames = (
+    id: string,
+    names: string[],
+  ) => {
+    setCustomAccounts((prev) =>
+      prev.map((account) =>
+        account.id === id
+          ? { ...account, registeredNames: names }
+          : account,
       ),
     );
   };
@@ -303,6 +411,7 @@ export default function AgencySetupWeb() {
     const selectedTemplates = templateInstances.map((inst) => ({
       templateId: inst.templateId,
       name: inst.name.trim(),
+      registeredNames: inst.registeredNames,
     }));
 
     const invalidTemplate = selectedTemplates.find(
@@ -336,6 +445,9 @@ export default function AgencySetupWeb() {
           templateId: template.templateId,
           name: template.name,
           companyId: effectiveCompanyId,
+          ...(template.registeredNames?.length
+            ? { registeredNames: template.registeredNames }
+            : {}),
         }),
       );
 
@@ -357,6 +469,9 @@ export default function AgencySetupWeb() {
         companyId: effectiveCompanyId,
         isActive: true,
         initialBalance: 0,
+        ...(account.registeredNames?.length
+          ? { registeredNames: account.registeredNames }
+          : {}),
       }));
 
       const result = await dispatch(createAccountsBulk({ accounts: payload }));
@@ -840,8 +955,8 @@ export default function AgencySetupWeb() {
                                       key={inst.instanceId}
                                       style={{
                                         display: "flex",
-                                        alignItems: "center",
-                                        gap: 10,
+                                        flexDirection: "column",
+                                        gap: 8,
                                         background: "var(--color-bg-card)",
                                         border:
                                           "1px solid var(--color-border-light)",
@@ -849,41 +964,58 @@ export default function AgencySetupWeb() {
                                         padding: "8px 10px",
                                       }}
                                     >
-                                      <span
+                                      <div
                                         style={{
-                                          fontSize: 12,
-                                          color: "var(--color-text-secondary)",
-                                          whiteSpace: "nowrap",
-                                          minWidth: 20,
+                                          display: "flex",
+                                          alignItems: "center",
+                                          gap: 10,
                                         }}
                                       >
-                                        #{idx + 1}
-                                      </span>
-                                      <input
-                                        type="text"
-                                        value={inst.name}
-                                        onChange={(e) =>
-                                          updateTemplateInstanceName(
+                                        <span
+                                          style={{
+                                            fontSize: 12,
+                                            color: "var(--color-text-secondary)",
+                                            whiteSpace: "nowrap",
+                                            minWidth: 20,
+                                          }}
+                                        >
+                                          #{idx + 1}
+                                        </span>
+                                        <input
+                                          type="text"
+                                          value={inst.name}
+                                          onChange={(e) =>
+                                            updateTemplateInstanceName(
+                                              inst.instanceId,
+                                              e.target.value,
+                                            )
+                                          }
+                                          className="form-input"
+                                          placeholder="Account name"
+                                          style={{ flex: 1, margin: 0 }}
+                                        />
+                                        <button
+                                          type="button"
+                                          className="btn-icon"
+                                          onClick={() =>
+                                            removeTemplateInstance(
+                                              inst.instanceId,
+                                            )
+                                          }
+                                          title="Remove"
+                                        >
+                                          <Trash2 size={15} />
+                                        </button>
+                                      </div>
+                                      <RegisteredNamesInput
+                                        value={inst.registeredNames}
+                                        onChange={(names) =>
+                                          updateTemplateInstanceRegisteredNames(
                                             inst.instanceId,
-                                            e.target.value,
+                                            names,
                                           )
                                         }
-                                        className="form-input"
-                                        placeholder="Account name"
-                                        style={{ flex: 1, margin: 0 }}
                                       />
-                                      <button
-                                        type="button"
-                                        className="btn-icon"
-                                        onClick={() =>
-                                          removeTemplateInstance(
-                                            inst.instanceId,
-                                          )
-                                        }
-                                        title="Remove"
-                                      >
-                                        <Trash2 size={15} />
-                                      </button>
                                     </div>
                                   ))}
                                 </div>
@@ -1038,6 +1170,20 @@ export default function AgencySetupWeb() {
                                 }
                                 className="form-input"
                                 placeholder="Optional description"
+                              />
+                            </div>
+                            <div
+                              className="form-group"
+                              style={{ gridColumn: "1 / -1" }}
+                            >
+                              <RegisteredNamesInput
+                                value={account.registeredNames}
+                                onChange={(names) =>
+                                  updateCustomAccountRegisteredNames(
+                                    account.id,
+                                    names,
+                                  )
+                                }
                               />
                             </div>
                           </div>

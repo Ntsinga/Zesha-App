@@ -60,7 +60,9 @@ export const fetchAccountTemplateById = createAsyncThunk<
     );
   } catch (error) {
     return rejectWithValue(
-      error instanceof Error ? error.message : "Failed to fetch account template",
+      error instanceof Error
+        ? error.message
+        : "Failed to fetch account template",
     );
   }
 });
@@ -109,17 +111,31 @@ export const updateAccountTemplate = createAsyncThunk<
 
 export const inheritAccountTemplate = createAsyncThunk<
   Account,
-  { templateId: number; name: string; companyId: number },
+  {
+    templateId: number;
+    name: string;
+    companyId: number;
+    registeredNames?: string[];
+  },
   { rejectValue: string }
 >(
   "accountTemplates/inherit",
-  async ({ templateId, name, companyId }, { rejectWithValue }) => {
+  async (
+    { templateId, name, companyId, registeredNames },
+    { rejectWithValue },
+  ) => {
     try {
       return await apiRequest<Account>(
         API_ENDPOINTS.accounts.inheritTemplate(templateId),
         {
           method: "POST",
-          body: JSON.stringify(mapApiRequest({ name, companyId })),
+          body: JSON.stringify(
+            mapApiRequest({
+              name,
+              companyId,
+              ...(registeredNames?.length ? { registeredNames } : {}),
+            }),
+          ),
         },
       );
     } catch (error) {

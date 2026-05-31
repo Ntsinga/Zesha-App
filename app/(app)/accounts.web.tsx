@@ -65,6 +65,84 @@ function formatAmount(value: number | null | undefined): string {
   return amountFormatter.format(value);
 }
 
+// ─── RegisteredNamesInput ──────────────────────────────────────────────────
+
+function RegisteredNamesInput({
+  value,
+  onChange,
+}: {
+  value: string[];
+  onChange: (v: string[]) => void;
+}) {
+  const [draft, setDraft] = useState("");
+  const add = () => {
+    const trimmed = draft.trim().toUpperCase();
+    if (!trimmed || value.includes(trimmed)) return;
+    onChange([...value, trimmed]);
+    setDraft("");
+  };
+  return (
+    <div className="form-group">
+      <label className="form-label">Registered Names</label>
+      <div style={{ display: "flex", gap: 8 }}>
+        <input
+          type="text"
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              add();
+            }
+          }}
+          className="form-input"
+          placeholder="e.g. MTN MOBILE MONEY"
+          style={{ flex: 1 }}
+        />
+        <button
+          type="button"
+          className="btn-secondary"
+          style={{ flexShrink: 0 }}
+          onClick={add}
+          disabled={!draft.trim()}
+        >
+          Add
+        </button>
+      </div>
+      {value.length > 0 && (
+        <div
+          style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}
+        >
+          {value.map((n) => (
+            <button
+              key={n}
+              type="button"
+              onClick={() => onChange(value.filter((x) => x !== n))}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 5,
+                border: "1px solid var(--color-border)",
+                background: "var(--color-bg-card)",
+                borderRadius: 999,
+                padding: "3px 10px",
+                fontSize: 12,
+                cursor: "pointer",
+              }}
+            >
+              {n}
+              <span style={{ fontSize: 14, lineHeight: 1 }}>×</span>
+            </button>
+          ))}
+        </div>
+      )}
+      <span className="form-hint">
+        Names that appear in statements for this account during import
+      </span>
+    </div>
+  );
+}
+
 // ─── TierRow ───────────────────────────────────────────────────────────────
 
 interface TierRowProps {
@@ -734,6 +812,11 @@ function AccountDetailView({
                   </div>
                 </div>
 
+                <RegisteredNamesInput
+                  value={d.registeredNames}
+                  onChange={d.setRegisteredNames}
+                />
+
                 <div style={{ display: "flex", justifyContent: "flex-end" }}>
                   <button
                     className="btn-primary"
@@ -1398,6 +1481,8 @@ export default function Accounts() {
     setCommissionScheduleId,
     commissionModel,
     setCommissionModel,
+    registeredNames,
+    setRegisteredNames,
     commissionSchedules,
     creationMode,
     setCreationMode,
@@ -1452,7 +1537,11 @@ export default function Accounts() {
 
   const onInheritTemplate = async () => {
     if (!inheritingTemplate) return;
-    const result = await handleInheritTemplate(inheritingTemplate, inheritName);
+    const result = await handleInheritTemplate(
+      inheritingTemplate,
+      inheritName,
+      registeredNames,
+    );
     setMessage({
       type: result.success ? "success" : "error",
       text: result.message,
@@ -1906,6 +1995,12 @@ export default function Accounts() {
                               className="form-input"
                               autoFocus
                             />
+                            <div style={{ marginTop: 12 }}>
+                              <RegisteredNamesInput
+                                value={registeredNames}
+                                onChange={setRegisteredNames}
+                              />
+                            </div>
                           </div>
                         )}
                       </div>
@@ -2203,6 +2298,11 @@ export default function Accounts() {
                       </span>
                     </div>
                   </div>
+
+                  <RegisteredNamesInput
+                    value={registeredNames}
+                    onChange={setRegisteredNames}
+                  />
                 </div>
 
                 <div className="modal-footer">
