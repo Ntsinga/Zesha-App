@@ -68,8 +68,6 @@ export default function TransactionsWeb() {
     topTransactionAccount,
     showAddTransaction,
     setShowAddTransaction,
-    showFloatPurchase,
-    setShowFloatPurchase,
     showCapitalInjection,
     setShowCapitalInjection,
     showStatementImport,
@@ -395,26 +393,6 @@ export default function TransactionsWeb() {
           >
             <Wallet size={16} />
             Capital Injection
-          </button>
-          <button
-            onClick={() => setShowFloatPurchase(true)}
-            className="btn-secondary"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-              padding: "8px 14px",
-              borderRadius: "8px",
-              fontSize: "13px",
-              fontWeight: 500,
-              border: "1px solid #e2e8f0",
-              background: "#f1f5f9",
-              color: "#475569",
-              cursor: "pointer",
-            }}
-          >
-            <ArrowLeftRight size={16} />
-            Float Purchase
           </button>
           <button
             onClick={() => setShowStatementImport(true)}
@@ -2074,7 +2052,11 @@ export default function TransactionsWeb() {
             style={{ maxWidth: "480px" }}
           >
             <div className="modal-header">
-              <h2>Add Transaction</h2>
+              <h2>
+                {transactionForm.transactionType === "FLOAT"
+                  ? "Float Purchase"
+                  : "Add Transaction"}
+              </h2>
               <button
                 onClick={() => {
                   setShowAddTransaction(false);
@@ -2089,7 +2071,11 @@ export default function TransactionsWeb() {
             <form
               onSubmit={(e) => {
                 e.preventDefault();
-                handleCreateTransaction();
+                if (transactionForm.transactionType === "FLOAT") {
+                  handleCreateFloatPurchase();
+                } else {
+                  handleCreateTransaction();
+                }
               }}
               className="modal-form"
             >
@@ -2168,145 +2154,377 @@ export default function TransactionsWeb() {
                     <ArrowUpRight size={16} />
                     Withdraw
                   </button>
-                </div>
-              </div>
-
-              {/* Deposit Subtype — only for deposits */}
-              {transactionForm.transactionType === "DEPOSIT" && (
-                <div className="form-group">
-                  <label className="form-label">
-                    Deposit Subtype{" "}
-                    <span style={{ fontWeight: 400, color: "#94a3b8" }}>
-                      (optional)
-                    </span>
-                  </label>
-                  <select
-                    value={transactionForm.transactionSubtype ?? ""}
-                    onChange={(e) =>
+                  <button
+                    type="button"
+                    onClick={() =>
                       setTransactionForm((prev) => ({
                         ...prev,
-                        transactionSubtype: e.target.value
-                          ? (e.target.value as TransactionSubtypeEnum)
-                          : null,
+                        transactionType: "FLOAT",
+                        transactionSubtype: null,
                       }))
                     }
-                    className="form-input"
-                  >
-                    <option value="">Standard deposit</option>
-                    <option value="AGENT_TO_AGENT">Agent-to-Agent</option>
-                    <option value="AIRTIME">Airtime</option>
-                    <option value="VOICE_BUNDLE">Voice Bundle</option>
-                    <option value="DATA_BUNDLE">Data Bundle</option>
-                    <option value="BILL_PAYMENT">Bill Payment</option>
-                  </select>
-                </div>
-              )}
-
-              {/* Account */}
-              <div className="form-group">
-                <label className="form-label">Account</label>
-                <select
-                  value={transactionForm.accountId ?? ""}
-                  onChange={(e) =>
-                    setTransactionForm((prev) => ({
-                      ...prev,
-                      accountId: e.target.value ? Number(e.target.value) : null,
-                    }))
-                  }
-                  className="form-input"
-                  required
-                >
-                  <option value="">Select account...</option>
-                  {accounts.map((a) => (
-                    <option key={a.id} value={a.id}>
-                      {a.name} ({a.accountType})
-                      {a.currentBalance != null
-                        ? ` — Bal: ${formatCurrency(a.currentBalance)}`
-                        : ""}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Amount */}
-              <div className="form-group">
-                <label className="form-label">Amount</label>
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  value={formatAmountInput(transactionForm.amount)}
-                  onChange={(e) => {
-                    const clean = parseAmountInput(e.target.value);
-                    if (clean !== null)
-                      setTransactionForm((prev) => ({
-                        ...prev,
-                        amount: clean,
-                      }));
-                  }}
-                  className="form-input"
-                  placeholder="0.00"
-                  required
-                />
-                {transactionCommissionPreview && (
-                  <div
                     style={{
-                      marginTop: "6px",
-                      padding: "8px 12px",
-                      borderRadius: "6px",
-                      background: "rgba(139,92,246,0.08)",
-                      border: "1px solid rgba(139,92,246,0.2)",
-                      fontSize: "13px",
-                      color: "#7c3aed",
+                      flex: 1,
+                      padding: "10px",
+                      borderRadius: "8px",
+                      border:
+                        transactionForm.transactionType === "FLOAT"
+                          ? "2px solid #3b82f6"
+                          : "1px solid #e2e8f0",
+                      background:
+                        transactionForm.transactionType === "FLOAT"
+                          ? "rgba(59,130,246,0.1)"
+                          : "#f1f5f9",
+                      color:
+                        transactionForm.transactionType === "FLOAT"
+                          ? "#3b82f6"
+                          : "#475569",
+                      cursor: "pointer",
+                      fontWeight: 500,
                       display: "flex",
-                      justifyContent: "space-between",
                       alignItems: "center",
+                      justifyContent: "center",
+                      gap: "6px",
                     }}
                   >
-                    <span>
-                      Commission ({transactionCommissionPreview.rate}%)
-                    </span>
-                    <span style={{ fontWeight: 600 }}>
-                      {formatCurrency(transactionCommissionPreview.amount)}
-                    </span>
+                    <ArrowLeftRight size={16} />
+                    Float
+                  </button>
+                </div>
+              </div>
+
+              {/* ---- Float Purchase fields ---- */}
+              {transactionForm.transactionType === "FLOAT" ? (
+                <>
+                  {/* Float Source */}
+                  <div className="form-group">
+                    <label className="form-label">Float Source</label>
+                    <select
+                      value={floatPurchaseForm.floatSource ?? "INTERNAL"}
+                      onChange={(e) =>
+                        setFloatPurchaseForm((prev) => ({
+                          ...prev,
+                          floatSource:
+                            e.target.value === "INTERNAL"
+                              ? null
+                              : (e.target.value as "AGENT" | "BANK"),
+                          sourceAccountId:
+                            e.target.value !== "INTERNAL"
+                              ? null
+                              : prev.sourceAccountId,
+                        }))
+                      }
+                      className="form-input"
+                    >
+                      <option value="AGENT">Agent (external top-up)</option>
+                      <option value="BANK">Bank (external top-up)</option>
+                      <option value="INTERNAL">
+                        Internal transfer (between accounts)
+                      </option>
+                    </select>
                   </div>
-                )}
-              </div>
 
-              {/* Reference */}
-              <div className="form-group">
-                <label className="form-label">Reference (optional)</label>
-                <input
-                  type="text"
-                  value={transactionForm.reference}
-                  onChange={(e) =>
-                    setTransactionForm((prev) => ({
-                      ...prev,
-                      reference: e.target.value,
-                    }))
-                  }
-                  className="form-input"
-                  placeholder="e.g. receipt number, voucher..."
-                />
-              </div>
+                  {/* Source Account — only for internal transfers */}
+                  {!floatPurchaseForm.floatSource && (
+                    <div className="form-group">
+                      <label className="form-label">
+                        Source Account (debit)
+                      </label>
+                      <select
+                        value={floatPurchaseForm.sourceAccountId ?? ""}
+                        onChange={(e) =>
+                          setFloatPurchaseForm((prev) => ({
+                            ...prev,
+                            sourceAccountId: e.target.value
+                              ? Number(e.target.value)
+                              : null,
+                          }))
+                        }
+                        className="form-input"
+                        required
+                      >
+                        <option value="">Select source account...</option>
+                        {accounts.map((a) => (
+                          <option
+                            key={a.id}
+                            value={a.id}
+                            disabled={
+                              a.id === floatPurchaseForm.destinationAccountId
+                            }
+                          >
+                            {a.name} ({a.accountType})
+                            {a.currentBalance != null
+                              ? ` — Bal: ${formatCurrency(a.currentBalance)}`
+                              : ""}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
 
-              {/* Notes */}
-              <div className="form-group">
-                <label className="form-label">Notes (optional)</label>
-                <textarea
-                  value={transactionForm.notes}
-                  onChange={(e) =>
-                    setTransactionForm((prev) => ({
-                      ...prev,
-                      notes: e.target.value,
-                    }))
-                  }
-                  className="form-input"
-                  rows={2}
-                  placeholder="Additional details..."
-                />
-              </div>
+                  {/* Destination Account */}
+                  <div className="form-group">
+                    <label className="form-label">
+                      Destination Account (credit)
+                    </label>
+                    <select
+                      value={floatPurchaseForm.destinationAccountId ?? ""}
+                      onChange={(e) =>
+                        setFloatPurchaseForm((prev) => ({
+                          ...prev,
+                          destinationAccountId: e.target.value
+                            ? Number(e.target.value)
+                            : null,
+                        }))
+                      }
+                      className="form-input"
+                      required
+                    >
+                      <option value="">Select destination account...</option>
+                      {accounts.map((a) => (
+                        <option
+                          key={a.id}
+                          value={a.id}
+                          disabled={
+                            !floatPurchaseForm.floatSource &&
+                            a.id === floatPurchaseForm.sourceAccountId
+                          }
+                        >
+                          {a.name} ({a.accountType})
+                          {a.currentBalance != null
+                            ? ` — Bal: ${formatCurrency(a.currentBalance)}`
+                            : ""}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-              {/* Submit */}
+                  {/* Amount */}
+                  <div className="form-group">
+                    <label className="form-label">Amount</label>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      value={formatAmountInput(floatPurchaseForm.amount)}
+                      onChange={(e) => {
+                        const clean = parseAmountInput(e.target.value);
+                        if (clean !== null)
+                          setFloatPurchaseForm((prev) => ({
+                            ...prev,
+                            amount: clean,
+                          }));
+                      }}
+                      className="form-input"
+                      placeholder="0.00"
+                      required
+                    />
+                  </div>
+
+                  {/* Reference */}
+                  <div className="form-group">
+                    <label className="form-label">Reference (optional)</label>
+                    <input
+                      type="text"
+                      value={floatPurchaseForm.reference}
+                      onChange={(e) =>
+                        setFloatPurchaseForm((prev) => ({
+                          ...prev,
+                          reference: e.target.value,
+                        }))
+                      }
+                      className="form-input"
+                      placeholder="e.g. float voucher number..."
+                    />
+                  </div>
+
+                  {/* Notes */}
+                  <div className="form-group">
+                    <label className="form-label">Notes (optional)</label>
+                    <textarea
+                      value={floatPurchaseForm.notes}
+                      onChange={(e) =>
+                        setFloatPurchaseForm((prev) => ({
+                          ...prev,
+                          notes: e.target.value,
+                        }))
+                      }
+                      className="form-input"
+                      rows={2}
+                      placeholder="Additional details..."
+                    />
+                  </div>
+
+                  {/* Confirmation toggle */}
+                  <div className="form-group">
+                    <label
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
+                        cursor: "pointer",
+                        fontSize: "13px",
+                        color: "#94a3b8",
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={!floatPurchaseForm.isConfirmed}
+                        onChange={(e) =>
+                          setFloatPurchaseForm((prev) => ({
+                            ...prev,
+                            isConfirmed: !e.target.checked,
+                          }))
+                        }
+                      />
+                      Mark as pending confirmation (destination top-up not yet
+                      verified)
+                    </label>
+                  </div>
+                </>
+              ) : (
+                <>
+                  {/* ---- Deposit / Withdraw fields ---- */}
+
+                  {/* Deposit Subtype — only for deposits */}
+                  {transactionForm.transactionType === "DEPOSIT" && (
+                    <div className="form-group">
+                      <label className="form-label">
+                        Deposit Subtype{" "}
+                        <span style={{ fontWeight: 400, color: "#94a3b8" }}>
+                          (optional)
+                        </span>
+                      </label>
+                      <select
+                        value={transactionForm.transactionSubtype ?? ""}
+                        onChange={(e) =>
+                          setTransactionForm((prev) => ({
+                            ...prev,
+                            transactionSubtype: e.target.value
+                              ? (e.target.value as TransactionSubtypeEnum)
+                              : null,
+                          }))
+                        }
+                        className="form-input"
+                      >
+                        <option value="">Standard deposit</option>
+                        <option value="AGENT_TO_AGENT">Agent-to-Agent</option>
+                        <option value="AIRTIME">Airtime</option>
+                        <option value="VOICE_BUNDLE">Voice Bundle</option>
+                        <option value="DATA_BUNDLE">Data Bundle</option>
+                        <option value="BILL_PAYMENT">Bill Payment</option>
+                      </select>
+                    </div>
+                  )}
+
+                  {/* Account */}
+                  <div className="form-group">
+                    <label className="form-label">Account</label>
+                    <select
+                      value={transactionForm.accountId ?? ""}
+                      onChange={(e) =>
+                        setTransactionForm((prev) => ({
+                          ...prev,
+                          accountId: e.target.value
+                            ? Number(e.target.value)
+                            : null,
+                        }))
+                      }
+                      className="form-input"
+                      required
+                    >
+                      <option value="">Select account...</option>
+                      {accounts.map((a) => (
+                        <option key={a.id} value={a.id}>
+                          {a.name} ({a.accountType})
+                          {a.currentBalance != null
+                            ? ` — Bal: ${formatCurrency(a.currentBalance)}`
+                            : ""}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Amount */}
+                  <div className="form-group">
+                    <label className="form-label">Amount</label>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      value={formatAmountInput(transactionForm.amount)}
+                      onChange={(e) => {
+                        const clean = parseAmountInput(e.target.value);
+                        if (clean !== null)
+                          setTransactionForm((prev) => ({
+                            ...prev,
+                            amount: clean,
+                          }));
+                      }}
+                      className="form-input"
+                      placeholder="0.00"
+                      required
+                    />
+                    {transactionCommissionPreview && (
+                      <div
+                        style={{
+                          marginTop: "6px",
+                          padding: "8px 12px",
+                          borderRadius: "6px",
+                          background: "rgba(139,92,246,0.08)",
+                          border: "1px solid rgba(139,92,246,0.2)",
+                          fontSize: "13px",
+                          color: "#7c3aed",
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                        }}
+                      >
+                        <span>
+                          Commission ({transactionCommissionPreview.rate}%)
+                        </span>
+                        <span style={{ fontWeight: 600 }}>
+                          {formatCurrency(transactionCommissionPreview.amount)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Reference */}
+                  <div className="form-group">
+                    <label className="form-label">Reference (optional)</label>
+                    <input
+                      type="text"
+                      value={transactionForm.reference}
+                      onChange={(e) =>
+                        setTransactionForm((prev) => ({
+                          ...prev,
+                          reference: e.target.value,
+                        }))
+                      }
+                      className="form-input"
+                      placeholder="e.g. receipt number, voucher..."
+                    />
+                  </div>
+
+                  {/* Notes */}
+                  <div className="form-group">
+                    <label className="form-label">Notes (optional)</label>
+                    <textarea
+                      value={transactionForm.notes}
+                      onChange={(e) =>
+                        setTransactionForm((prev) => ({
+                          ...prev,
+                          notes: e.target.value,
+                        }))
+                      }
+                      className="form-input"
+                      rows={2}
+                      placeholder="Additional details..."
+                    />
+                  </div>
+                </>
+              )}
+
+              {/* Submit error */}
               {submitError && (
                 <div
                   style={{
@@ -2348,331 +2566,46 @@ export default function TransactionsWeb() {
                 >
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  disabled={
-                    isCreating ||
-                    !transactionForm.accountId ||
-                    !transactionForm.amount
-                  }
-                  className="btn-submit"
-                  style={{
-                    background:
-                      transactionForm.transactionType === "DEPOSIT"
-                        ? "#22c55e"
-                        : "#ef4444",
-                  }}
-                >
-                  {isCreating
-                    ? "Creating..."
-                    : `Create ${transactionForm.transactionType === "DEPOSIT" ? "Deposit" : "Withdrawal"}`}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* ============= Float Purchase Modal ============= */}
-      {showFloatPurchase && (
-        <div
-          className="modal-overlay"
-          onClick={() => {
-            setShowFloatPurchase(false);
-            clearSubmitError();
-          }}
-        >
-          <div
-            className="modal-content"
-            onClick={(e) => e.stopPropagation()}
-            style={{ maxWidth: "480px" }}
-          >
-            <div className="modal-header">
-              <h2>Float Purchase</h2>
-              <button
-                onClick={() => {
-                  setShowFloatPurchase(false);
-                  clearSubmitError();
-                }}
-                className="modal-close"
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            {/* Info Banner */}
-            <div
-              style={{
-                background: "rgba(59,130,246,0.1)",
-                border: "1px solid rgba(59,130,246,0.3)",
-                borderRadius: "8px",
-                padding: "12px",
-                marginBottom: "16px",
-                display: "flex",
-                alignItems: "flex-start",
-                gap: "8px",
-                color: "#93c5fd",
-                fontSize: "13px",
-              }}
-            >
-              <ArrowLeftRight
-                size={16}
-                style={{ marginTop: "2px", flexShrink: 0 }}
-              />
-              <span>
-                This will debit the source account and credit the destination
-                account with the same amount, creating a linked pair of
-                transactions.
-              </span>
-            </div>
-
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                handleCreateFloatPurchase();
-              }}
-              className="modal-form"
-            >
-              {/* Float Source */}
-              <div className="form-group">
-                <label className="form-label">Float Source</label>
-                <select
-                  value={floatPurchaseForm.floatSource ?? "INTERNAL"}
-                  onChange={(e) =>
-                    setFloatPurchaseForm((prev) => ({
-                      ...prev,
-                      floatSource:
-                        e.target.value === "INTERNAL"
-                          ? null
-                          : (e.target.value as "AGENT" | "BANK"),
-                      // Clear source account when switching to external
-                      sourceAccountId:
-                        e.target.value !== "INTERNAL"
-                          ? null
-                          : prev.sourceAccountId,
-                    }))
-                  }
-                  className="form-input"
-                >
-                  <option value="AGENT">Agent (external top-up)</option>
-                  <option value="BANK">Bank (external top-up)</option>
-                  <option value="INTERNAL">
-                    Internal transfer (between accounts)
-                  </option>
-                </select>
-              </div>
-
-              {/* Source Account — only for internal transfers */}
-              {!floatPurchaseForm.floatSource && (
-                <div className="form-group">
-                  <label className="form-label">Source Account (debit)</label>
-                  <select
-                    value={floatPurchaseForm.sourceAccountId ?? ""}
-                    onChange={(e) =>
-                      setFloatPurchaseForm((prev) => ({
-                        ...prev,
-                        sourceAccountId: e.target.value
-                          ? Number(e.target.value)
-                          : null,
-                      }))
+                {transactionForm.transactionType === "FLOAT" ? (
+                  <button
+                    type="submit"
+                    disabled={
+                      isCreating ||
+                      !floatPurchaseForm.destinationAccountId ||
+                      !floatPurchaseForm.amount ||
+                      (!floatPurchaseForm.floatSource &&
+                        !floatPurchaseForm.sourceAccountId)
                     }
-                    className="form-input"
-                    required
+                    className="btn-submit"
+                    style={{ background: "#3b82f6" }}
                   >
-                    <option value="">Select source account...</option>
-                    {accounts.map((a) => (
-                      <option
-                        key={a.id}
-                        value={a.id}
-                        disabled={
-                          a.id === floatPurchaseForm.destinationAccountId
-                        }
-                      >
-                        {a.name} ({a.accountType})
-                        {a.currentBalance != null
-                          ? ` — Bal: ${formatCurrency(a.currentBalance)}`
-                          : ""}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              {/* Destination Account */}
-              <div className="form-group">
-                <label className="form-label">
-                  Destination Account (credit)
-                </label>
-                <select
-                  value={floatPurchaseForm.destinationAccountId ?? ""}
-                  onChange={(e) =>
-                    setFloatPurchaseForm((prev) => ({
-                      ...prev,
-                      destinationAccountId: e.target.value
-                        ? Number(e.target.value)
-                        : null,
-                    }))
-                  }
-                  className="form-input"
-                  required
-                >
-                  <option value="">Select destination account...</option>
-                  {accounts.map((a) => (
-                    <option
-                      key={a.id}
-                      value={a.id}
-                      disabled={
-                        !floatPurchaseForm.floatSource &&
-                        a.id === floatPurchaseForm.sourceAccountId
-                      }
-                    >
-                      {a.name} ({a.accountType})
-                      {a.currentBalance != null
-                        ? ` — Bal: ${formatCurrency(a.currentBalance)}`
-                        : ""}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Amount */}
-              <div className="form-group">
-                <label className="form-label">Amount</label>
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  value={formatAmountInput(floatPurchaseForm.amount)}
-                  onChange={(e) => {
-                    const clean = parseAmountInput(e.target.value);
-                    if (clean !== null)
-                      setFloatPurchaseForm((prev) => ({
-                        ...prev,
-                        amount: clean,
-                      }));
-                  }}
-                  className="form-input"
-                  placeholder="0.00"
-                  required
-                />
-              </div>
-
-              {/* Reference */}
-              <div className="form-group">
-                <label className="form-label">Reference (optional)</label>
-                <input
-                  type="text"
-                  value={floatPurchaseForm.reference}
-                  onChange={(e) =>
-                    setFloatPurchaseForm((prev) => ({
-                      ...prev,
-                      reference: e.target.value,
-                    }))
-                  }
-                  className="form-input"
-                  placeholder="e.g. float voucher number..."
-                />
-              </div>
-
-              {/* Notes */}
-              <div className="form-group">
-                <label className="form-label">Notes (optional)</label>
-                <textarea
-                  value={floatPurchaseForm.notes}
-                  onChange={(e) =>
-                    setFloatPurchaseForm((prev) => ({
-                      ...prev,
-                      notes: e.target.value,
-                    }))
-                  }
-                  className="form-input"
-                  rows={2}
-                  placeholder="Additional details..."
-                />
-              </div>
-
-              {/* Confirmation toggle */}
-              <div className="form-group">
-                <label
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "8px",
-                    cursor: "pointer",
-                    fontSize: "13px",
-                    color: "#94a3b8",
-                  }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={!floatPurchaseForm.isConfirmed}
-                    onChange={(e) =>
-                      setFloatPurchaseForm((prev) => ({
-                        ...prev,
-                        isConfirmed: !e.target.checked,
-                      }))
+                    {isCreating ? "Processing..." : "Execute Float Purchase"}
+                  </button>
+                ) : (
+                  <button
+                    type="submit"
+                    disabled={
+                      isCreating ||
+                      !transactionForm.accountId ||
+                      !transactionForm.amount
                     }
-                  />
-                  Mark as pending confirmation (destination top-up not yet
-                  verified)
-                </label>
-              </div>
-
-              {/* Submit */}
-              {submitError && (
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "flex-start",
-                    gap: "10px",
-                    background: "rgba(239,68,68,0.08)",
-                    border: "1px solid rgba(239,68,68,0.25)",
-                    borderLeft: "3px solid #ef4444",
-                    borderRadius: "8px",
-                    padding: "12px 14px",
-                    marginBottom: "14px",
-                  }}
-                >
-                  <AlertTriangle
-                    size={16}
-                    color="#ef4444"
-                    style={{ flexShrink: 0, marginTop: "1px" }}
-                  />
-                  <span
+                    className="btn-submit"
                     style={{
-                      color: "#f87171",
-                      fontSize: "13px",
-                      lineHeight: "1.5",
+                      background:
+                        transactionForm.transactionType === "DEPOSIT"
+                          ? "#22c55e"
+                          : "#ef4444",
                     }}
                   >
-                    {submitError}
-                  </span>
-                </div>
-              )}
-              <div className="form-actions">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowFloatPurchase(false);
-                    clearSubmitError();
-                  }}
-                  className="btn-cancel"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={
-                    isCreating ||
-                    !floatPurchaseForm.destinationAccountId ||
-                    !floatPurchaseForm.amount ||
-                    (!floatPurchaseForm.floatSource &&
-                      !floatPurchaseForm.sourceAccountId)
-                  }
-                  className="btn-submit"
-                  style={{ background: "#3b82f6" }}
-                >
-                  {isCreating ? "Processing..." : "Execute Float Purchase"}
-                </button>
+                    {isCreating
+                      ? "Creating..."
+                      : `Create ${
+                          transactionForm.transactionType === "DEPOSIT"
+                            ? "Deposit"
+                            : "Withdrawal"
+                        }`}
+                  </button>
+                )}
               </div>
             </form>
           </div>

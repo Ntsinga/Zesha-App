@@ -113,7 +113,7 @@ function getLocalDateString(): string {
 
 export interface TransactionFormState {
   accountId: number | null;
-  transactionType: "DEPOSIT" | "WITHDRAW";
+  transactionType: "DEPOSIT" | "WITHDRAW" | "FLOAT";
   transactionSubtype: TransactionSubtypeEnum | null;
   amount: string;
   reference: string;
@@ -188,7 +188,6 @@ export function useTransactionsScreen() {
 
   // ---- Modal state ----
   const [showAddTransaction, setShowAddTransaction] = useState(false);
-  const [showFloatPurchase, setShowFloatPurchase] = useState(false);
   const [showCapitalInjection, setShowCapitalInjection] = useState(false);
   const [showStatementImport, setShowStatementImport] = useState(false);
   const [showReverseConfirm, setShowReverseConfirm] = useState(false);
@@ -451,14 +450,9 @@ export function useTransactionsScreen() {
   useEffect(() => {
     if (!showAddTransaction) {
       transactionRequestKeyRef.current = null;
-    }
-  }, [showAddTransaction]);
-
-  useEffect(() => {
-    if (!showFloatPurchase) {
       floatPurchaseRequestKeyRef.current = null;
     }
-  }, [showFloatPurchase]);
+  }, [showAddTransaction]);
 
   useEffect(() => {
     if (!showCapitalInjection) {
@@ -595,7 +589,12 @@ export function useTransactionsScreen() {
   // ---- Handlers ----
 
   const handleCreateTransaction = useCallback(async () => {
-    if (!transactionForm.accountId || !transactionForm.amount || !companyId) {
+    if (
+      !transactionForm.accountId ||
+      !transactionForm.amount ||
+      !companyId ||
+      transactionForm.transactionType === "FLOAT"
+    ) {
       return;
     }
 
@@ -702,7 +701,7 @@ export function useTransactionsScreen() {
           payload: data,
         });
         floatPurchaseRequestKeyRef.current = null;
-        setShowFloatPurchase(false);
+        setShowAddTransaction(false);
         setFloatPurchaseForm(initialFloatPurchaseForm);
         Alert.alert(
           "Queued offline",
@@ -713,7 +712,7 @@ export function useTransactionsScreen() {
 
       await dispatch(createFloatPurchase(data)).unwrap();
       floatPurchaseRequestKeyRef.current = null;
-      setShowFloatPurchase(false);
+      setShowAddTransaction(false);
       setFloatPurchaseForm(initialFloatPurchaseForm);
       refreshCurrentRange();
     } catch (err) {
@@ -1157,8 +1156,6 @@ export function useTransactionsScreen() {
     // Modal state
     showAddTransaction,
     setShowAddTransaction,
-    showFloatPurchase,
-    setShowFloatPurchase,
     showCapitalInjection,
     setShowCapitalInjection,
     showStatementImport,
