@@ -228,10 +228,10 @@ export default function DashboardWeb() {
             Outflow
             {capitalPendingExpenses > 0 &&
               displayCapital > 0 &&
-              capitalPendingExpenses / displayCapital > 0.3 && (
+              capitalPendingExpenses / (displayCapital + capitalPendingExpenses) > 0.3 && (
                 <span className="gt-strip-expense-badge">
                   {Math.round(
-                    (capitalPendingExpenses / displayCapital) * 100,
+                    (capitalPendingExpenses / (displayCapital + capitalPendingExpenses)) * 100,
                   )}
                   % of capital
                 </span>
