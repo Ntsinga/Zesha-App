@@ -225,7 +225,7 @@ export default function DashboardWeb() {
           <span className="gt-strip-group-label gt-strip-grp-available">Available</span>
           <span className="gt-strip-group-label gt-strip-grp-performance">Performance</span>
           <span className="gt-strip-group-label gt-strip-grp-outflow">
-            Outflow
+            Drawings / Capital Used
             {capitalPendingExpenses > 0 &&
               displayCapital > 0 &&
               capitalPendingExpenses / (displayCapital + capitalPendingExpenses) > 0.3 && (
@@ -256,7 +256,7 @@ export default function DashboardWeb() {
             className="gt-strip-metric-label gt-strip-cell-unr-lbl"
             style={{ display: "inline-flex", alignItems: "center", gap: 3 }}
           >
-            Unreimbursed
+            Total
             <span className="tooltip-wrap">
               <Info size={11} style={{ color: "var(--color-text-muted)" }} />
               <span className="tooltip-box">

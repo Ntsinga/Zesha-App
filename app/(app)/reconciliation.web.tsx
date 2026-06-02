@@ -306,6 +306,9 @@ export default function BalanceDetailWeb() {
             </div>
           </div>
 
+          {/* Separator between left block and metric groups */}
+          <div className="gt-strip-metric-divider" />
+
           {/* Right: metric groups — mirrors dashboard GT strip */}
           <div className="gt-strip-metrics">
             {/* Group: Available */}
@@ -367,8 +370,6 @@ export default function BalanceDetailWeb() {
                 </div>
               </>
             )}
-
-
           </div>
         </div>
 
