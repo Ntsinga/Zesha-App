@@ -184,6 +184,8 @@ export {
   type CapitalInjectionCreate,
   type CashCapitalInjectionCreate,
   type CashCapitalInjectionResult,
+  type TransactionExportRow,
+  type TransactionExportResponse,
   type StatementProvider,
   type StatementDecision,
   type StatementReviewDesignation,

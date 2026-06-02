@@ -4,6 +4,7 @@ import { Alert } from "react-native";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import {
   fetchTransactions,
+  fetchTransactionExport,
   fetchTransactionAnalytics,
   createTransaction,
   createFloatPurchase,
@@ -48,6 +49,7 @@ import type {
   StatementReviewDesignation,
   StatementReviewOverride,
   StatementOverlapStatus,
+  TransactionExportResponse,
 } from "../../types/transaction";
 
 function getStatementRowKey(
@@ -220,6 +222,7 @@ export function useTransactionsScreen() {
     statementImportResult,
     isLoading,
     isCreating,
+    isExporting,
     isPreviewingStatement,
     isImportingStatement,
     error,
@@ -550,6 +553,26 @@ export function useTransactionsScreen() {
       ...(filterShift !== "ALL" ? { shift: filterShift } : {}),
     };
   }, [companyId, filterDateFrom, filterDateTo, filterAccountId, filterShift]);
+
+  const buildExportFilters = useCallback(() => {
+    if (!companyId) return null;
+
+    return {
+      companyId,
+      startDate: filterDateFrom,
+      endDate: `${filterDateTo}T23:59:59`,
+      ...(filterType !== "ALL" ? { transactionType: filterType } : {}),
+      ...(filterShift !== "ALL" ? { shift: filterShift } : {}),
+      ...(filterAccountId ? { accountId: filterAccountId } : {}),
+    };
+  }, [
+    companyId,
+    filterDateFrom,
+    filterDateTo,
+    filterType,
+    filterShift,
+    filterAccountId,
+  ]);
 
   const refreshCurrentRange = useCallback(() => {
     const transactionFilters = buildTransactionFilters();
@@ -1090,6 +1113,18 @@ export function useTransactionsScreen() {
     dispatch(clearFilters());
   }, [dispatch]);
 
+  const handleFetchTransactionExport = useCallback(async () => {
+    const exportFilters = buildExportFilters();
+
+    if (!exportFilters) {
+      throw new Error("No companyId found. Please log in again.");
+    }
+
+    return await dispatch(
+      fetchTransactionExport(exportFilters),
+    ).unwrap() as TransactionExportResponse;
+  }, [dispatch, buildExportFilters]);
+
   // ---- Formatting helpers ----
   const getTransactionTypeLabel = useCallback(
     (type: TransactionTypeEnum): string => {
@@ -1139,6 +1174,7 @@ export function useTransactionsScreen() {
     // Loading states
     isLoading,
     isCreating,
+    isExporting,
     error,
 
     // Filters
@@ -1206,6 +1242,7 @@ export function useTransactionsScreen() {
     handleRefresh,
     handleClearError,
     handleResetFilters,
+    handleFetchTransactionExport,
 
     // Formatters
     formatCurrency,

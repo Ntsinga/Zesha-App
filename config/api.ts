@@ -200,6 +200,7 @@ export const API_ENDPOINTS = {
     accountStatement: (accountId: number) =>
       `/transactions/account/${accountId}/statement`,
     companyStatement: "/transactions/statement",
+    export: "/transactions/export",
     analyticsSummary: "/transactions/analytics/summary",
     analyticsDaily: "/transactions/analytics/daily",
     verifyBalance: (accountId: number) =>

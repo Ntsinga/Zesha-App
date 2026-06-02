@@ -25,11 +25,16 @@ import {
 } from "lucide-react";
 import { useTransactionsScreen } from "../../hooks/screens/useTransactionsScreen";
 import { formatAmountInput, parseAmountInput } from "../../utils/formatters";
+import {
+  downloadTransactionsCsv,
+  downloadTransactionsXlsx,
+} from "../../utils/transactionExport.web";
 import type { TransactionTypeEnum, TransactionSubtypeEnum } from "../../types";
 import type {
   StatementParsedRow,
   StatementOverlapStatus,
   StatementReviewDesignation,
+  TransactionExportRow,
 } from "../../types/transaction";
 import "../../styles/web.css";
 
@@ -54,6 +59,7 @@ export default function TransactionsWeb() {
     transactionCommissionPreview,
     isLoading,
     isCreating,
+    isExporting,
     error,
     filterType,
     setFilterType,
@@ -106,6 +112,7 @@ export default function TransactionsWeb() {
     handleRefresh,
     handleClearError,
     handleResetFilters,
+    handleFetchTransactionExport,
     submitError,
     clearSubmitError,
     isPreviewingStatement,
@@ -149,6 +156,150 @@ export default function TransactionsWeb() {
         return r.decision === statementRowFilter;
       }),
     [statementPreview, statementRowFilter],
+  );
+
+  const getTransactionSubtypeLabel = React.useCallback(
+    (subtype?: TransactionSubtypeEnum | null) => {
+      switch (subtype) {
+        case "AIRTIME":
+          return "Airtime";
+        case "VOICE_BUNDLE":
+          return "Voice Bundle";
+        case "DATA_BUNDLE":
+          return "Data Bundle";
+        case "BILL_PAYMENT":
+          return "Bill Payment";
+        case "AGENT_TO_AGENT":
+          return "Agent to Agent";
+        default:
+          return null;
+      }
+    },
+    [],
+  );
+
+  const getExportTypeValue = React.useCallback(
+    (txn: TransactionExportRow) => {
+      const typeLabel = getTransactionTypeLabel(txn.transactionType);
+
+      if (txn.transactionType === "FLOAT_PURCHASE") {
+        const floatLabel =
+          txn.floatSource === "AGENT"
+            ? "Agent Top-up"
+            : txn.floatSource === "BANK"
+              ? "Bank Top-up"
+              : txn.floatDirection === "OUT"
+                ? "Internal · Out"
+                : "Internal · In";
+        return `${typeLabel} - ${floatLabel}`;
+      }
+
+      const subtypeLabel = getTransactionSubtypeLabel(txn.transactionSubtype);
+      return subtypeLabel ? `${typeLabel} - ${subtypeLabel}` : typeLabel;
+    },
+    [getTransactionSubtypeLabel, getTransactionTypeLabel],
+  );
+
+  const exportColumns = React.useMemo(
+    () => [
+      { key: "dateTime", label: "Date/Time" },
+      { key: "type", label: "Type" },
+      { key: "account", label: "Account" },
+      { key: "shift", label: "Shift" },
+      { key: "amount", label: "Amount" },
+      { key: "commission", label: "Commission" },
+      { key: "balanceAfter", label: "Balance After" },
+      { key: "reference", label: "Reference" },
+      { key: "notes", label: "Notes" },
+      { key: "balanceBefore", label: "Balance Before" },
+      {
+        key: "totalFloatAfter",
+        label: "Total Float After Transaction",
+      },
+      {
+        key: "totalCashAfter",
+        label: "Total Cash After Transaction",
+      },
+    ],
+    [],
+  );
+
+  const buildExportFilename = React.useCallback(
+    (format: "csv" | "xlsx") => {
+      const rangePart =
+        filterDateFrom === filterDateTo
+          ? filterDateFrom
+          : `${filterDateFrom}_to_${filterDateTo}`;
+      const typePart =
+        filterType === "ALL" ? "" : `_${filterType.toLowerCase()}`;
+      const shiftPart =
+        filterShift === "ALL" ? "" : `_${filterShift.toLowerCase()}`;
+      const accountPart =
+        filterAccountId === null ? "" : `_account_${filterAccountId}`;
+
+      return `transactions_${rangePart}${typePart}${shiftPart}${accountPart}.${format}`;
+    },
+    [filterAccountId, filterDateFrom, filterDateTo, filterShift, filterType],
+  );
+
+  const handleExport = React.useCallback(
+    async (format: "csv" | "xlsx") => {
+      try {
+        const exportData = await handleFetchTransactionExport();
+
+        if (exportData.rows.length === 0) {
+          window.alert("No transactions matched the current export filters.");
+          return;
+        }
+
+        const exportRows = exportData.rows.map((txn) => ({
+          dateTime: formatDateTime(txn.transactionTime),
+          type: getExportTypeValue(txn),
+          account: txn.account?.name || `Account #${txn.accountId}`,
+          shift: txn.shift,
+          amount:
+            txn.transactionType === "DEPOSIT" ||
+            txn.transactionType === "CAPITAL_INJECTION"
+              ? `+${formatCurrency(txn.amount)}`
+              : txn.transactionType === "WITHDRAW"
+                ? `-${formatCurrency(txn.amount)}`
+                : formatCurrency(txn.amount),
+          commission: txn.expectedCommission
+            ? formatCurrency(txn.expectedCommission.commissionAmount)
+            : "-",
+          balanceAfter: formatCurrency(txn.balanceAfter),
+          reference: txn.reference || "-",
+          notes: txn.notes || "-",
+          balanceBefore: formatCurrency(txn.balanceBefore),
+          totalFloatAfter: formatCurrency(txn.totalFloatAfter),
+          totalCashAfter: formatCurrency(txn.totalCashAfter),
+        }));
+
+        const filename = buildExportFilename(format);
+        if (format === "csv") {
+          downloadTransactionsCsv(filename, exportColumns, exportRows);
+          return;
+        }
+
+        downloadTransactionsXlsx(filename, exportColumns, exportRows);
+      } catch (err) {
+        const message =
+          typeof err === "string"
+            ? err
+            : err instanceof Error
+              ? err.message
+              : "Failed to export transactions.";
+        window.alert(message);
+      }
+    },
+    [
+      buildExportFilename,
+      exportColumns,
+      formatCurrency,
+      formatDateTime,
+      getExportTypeValue,
+      handleFetchTransactionExport,
+    ],
   );
 
   const importStep = statementImportResult ? 3 : statementPreview ? 2 : 1;
@@ -374,6 +525,50 @@ export default function TransactionsWeb() {
           </span>
         </div>
         <div className="header-right" style={{ gap: "8px", display: "flex" }}>
+          <button
+            onClick={() => void handleExport("csv")}
+            className="btn-secondary"
+            disabled={isExporting}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              padding: "8px 14px",
+              borderRadius: "8px",
+              fontSize: "13px",
+              fontWeight: 500,
+              border: "1px solid #bfdbfe",
+              background: "rgba(59,130,246,0.08)",
+              color: "#1d4ed8",
+              cursor: isExporting ? "not-allowed" : "pointer",
+              opacity: isExporting ? 0.65 : 1,
+            }}
+          >
+            <FileText size={16} />
+            {isExporting ? "Exporting..." : "Export CSV"}
+          </button>
+          <button
+            onClick={() => void handleExport("xlsx")}
+            className="btn-secondary"
+            disabled={isExporting}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              padding: "8px 14px",
+              borderRadius: "8px",
+              fontSize: "13px",
+              fontWeight: 500,
+              border: "1px solid #bbf7d0",
+              background: "rgba(34,197,94,0.08)",
+              color: "#15803d",
+              cursor: isExporting ? "not-allowed" : "pointer",
+              opacity: isExporting ? 0.65 : 1,
+            }}
+          >
+            <ArrowDown size={16} />
+            {isExporting ? "Exporting..." : "Export Excel"}
+          </button>
           <button
             onClick={() => setShowCapitalInjection(true)}
             className="btn-secondary"

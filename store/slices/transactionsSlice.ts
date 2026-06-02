@@ -27,6 +27,7 @@ import type {
   StatementImportHistoryParams,
   StatementProvider,
   StatementReviewOverride,
+  TransactionExportResponse,
 } from "@/types/transaction";
 import { mapApiResponse, mapApiRequest, buildTypedQueryString } from "@/types";
 import { API_ENDPOINTS } from "@/config/api";
@@ -50,6 +51,7 @@ export interface TransactionsState {
   selectedStatementImportBatch: StatementImportBatchDetail | null;
   isLoading: boolean;
   isCreating: boolean;
+  isExporting: boolean;
   isPreviewingStatement: boolean;
   isImportingStatement: boolean;
   isLoadingStatementImportHistory: boolean;
@@ -72,6 +74,7 @@ const initialState: TransactionsState = {
   selectedStatementImportBatch: null,
   isLoading: false,
   isCreating: false,
+  isExporting: false,
   isPreviewingStatement: false,
   isImportingStatement: false,
   isLoadingStatementImportHistory: false,
@@ -139,6 +142,42 @@ export const fetchTransactions = createAsyncThunk<
     } catch (error) {
       return rejectWithValue(
         error instanceof Error ? error.message : "Failed to fetch transactions",
+      );
+    }
+  },
+);
+
+/**
+ * Fetch export-ready transactions with per-row running totals.
+ */
+export const fetchTransactionExport = createAsyncThunk<
+  TransactionExportResponse,
+  TransactionFilters | undefined,
+  { state: RootState; rejectValue: string }
+>(
+  "transactions/fetchExport",
+  async (filters = {}, { getState, rejectWithValue }) => {
+    try {
+      const state = getState();
+      const companyId =
+        state.auth.viewingAgencyId || state.auth.user?.companyId;
+
+      if (!companyId) {
+        return rejectWithValue("No companyId found. Please log in again.");
+      }
+
+      const offline = await isDeviceOffline();
+      if (offline) {
+        return rejectWithValue("You're offline. Export requires a server connection.");
+      }
+
+      const query = buildTypedQueryString({ ...filters, companyId });
+      return await apiRequest<TransactionExportResponse>(
+        `${API_ENDPOINTS.transactions.export}${query}`,
+      );
+    } catch (error) {
+      return rejectWithValue(
+        error instanceof Error ? error.message : "Failed to export transactions",
       );
     }
   },
@@ -807,6 +846,20 @@ const transactionsSlice = createSlice({
       })
       .addCase(createTransaction.rejected, (state, action) => {
         state.isCreating = false;
+        state.error = action.payload as string;
+      });
+
+    // ---- Export ----
+    builder
+      .addCase(fetchTransactionExport.pending, (state) => {
+        state.isExporting = true;
+        state.error = null;
+      })
+      .addCase(fetchTransactionExport.fulfilled, (state) => {
+        state.isExporting = false;
+      })
+      .addCase(fetchTransactionExport.rejected, (state, action) => {
+        state.isExporting = false;
         state.error = action.payload as string;
       });
 

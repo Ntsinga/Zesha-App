@@ -120,6 +120,31 @@ export interface CashCapitalInjectionResult {
   message: string;
 }
 
+/**
+ * Export row for transaction downloads.
+ */
+export interface TransactionExportRow extends Transaction {
+  balanceBefore: number;
+  totalFloatAfter: number;
+  totalCashAfter: number;
+}
+
+/**
+ * Transaction export response.
+ */
+export interface TransactionExportResponse {
+  companyId: number;
+  period: {
+    startDate?: string | null;
+    endDate?: string | null;
+    shift?: ShiftEnum | null;
+    accountId?: number | null;
+    transactionType?: TransactionTypeEnum | null;
+  };
+  totalRows: number;
+  rows: TransactionExportRow[];
+}
+
 export type StatementProvider = "MTN" | "AIRTEL";
 
 export type StatementDecision = "READY" | "REVIEW" | "SKIP";
