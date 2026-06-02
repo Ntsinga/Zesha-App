@@ -19,9 +19,11 @@ import {
   CheckCircle,
   FileText,
   ChevronRight,
+  ChevronDown,
   ArrowDown,
   ArrowUp,
   ShieldX,
+  Download,
 } from "lucide-react";
 import { useTransactionsScreen } from "../../hooks/screens/useTransactionsScreen";
 import { formatAmountInput, parseAmountInput } from "../../utils/formatters";
@@ -129,7 +131,24 @@ export default function TransactionsWeb() {
 
   // ---- Statement import local state ----
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const exportMenuRef = React.useRef<HTMLDivElement>(null);
+  const [showExportMenu, setShowExportMenu] = React.useState(false);
   const [dragOver, setDragOver] = React.useState(false);
+
+  // Close export dropdown on outside click
+  React.useEffect(() => {
+    if (!showExportMenu) return;
+    function handleOutsideClick(e: MouseEvent) {
+      if (
+        exportMenuRef.current &&
+        !exportMenuRef.current.contains(e.target as Node)
+      ) {
+        setShowExportMenu(false);
+      }
+    }
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, [showExportMenu]);
   const [statementRowFilter, setStatementRowFilter] = React.useState<
     "ALL" | "READY" | "REVIEW" | "SKIP" | "BLOCKED"
   >("ALL");
@@ -525,50 +544,111 @@ export default function TransactionsWeb() {
           </span>
         </div>
         <div className="header-right" style={{ gap: "8px", display: "flex" }}>
-          <button
-            onClick={() => void handleExport("csv")}
-            className="btn-secondary"
-            disabled={isExporting}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-              padding: "8px 14px",
-              borderRadius: "8px",
-              fontSize: "13px",
-              fontWeight: 500,
-              border: "1px solid #bfdbfe",
-              background: "rgba(59,130,246,0.08)",
-              color: "#1d4ed8",
-              cursor: isExporting ? "not-allowed" : "pointer",
-              opacity: isExporting ? 0.65 : 1,
-            }}
-          >
-            <FileText size={16} />
-            {isExporting ? "Exporting..." : "Export CSV"}
-          </button>
-          <button
-            onClick={() => void handleExport("xlsx")}
-            className="btn-secondary"
-            disabled={isExporting}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-              padding: "8px 14px",
-              borderRadius: "8px",
-              fontSize: "13px",
-              fontWeight: 500,
-              border: "1px solid #bbf7d0",
-              background: "rgba(34,197,94,0.08)",
-              color: "#15803d",
-              cursor: isExporting ? "not-allowed" : "pointer",
-              opacity: isExporting ? 0.65 : 1,
-            }}
-          >
-            <ArrowDown size={16} />
-            {isExporting ? "Exporting..." : "Export Excel"}
-          </button>
+          <div ref={exportMenuRef} style={{ position: "relative" }}>
+            <button
+              onClick={() => setShowExportMenu((v) => !v)}
+              className="btn-secondary"
+              disabled={isExporting}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                padding: "8px 14px",
+                borderRadius: "8px",
+                fontSize: "13px",
+                fontWeight: 500,
+                border: "1px solid #bfdbfe",
+                background: "rgba(59,130,246,0.08)",
+                color: "#1d4ed8",
+                cursor: isExporting ? "not-allowed" : "pointer",
+                opacity: isExporting ? 0.65 : 1,
+              }}
+            >
+              <Download size={16} />
+              {isExporting ? "Exporting..." : "Export"}
+              <ChevronDown size={14} style={{ marginLeft: 2 }} />
+            </button>
+            {showExportMenu && !isExporting && (
+              <div
+                style={{
+                  position: "absolute",
+                  top: "calc(100% + 4px)",
+                  right: 0,
+                  zIndex: 50,
+                  background: "#fff",
+                  border: "1px solid #e2e8f0",
+                  borderRadius: "8px",
+                  boxShadow: "0 4px 16px rgba(0,0,0,0.10)",
+                  minWidth: "148px",
+                  overflow: "hidden",
+                }}
+              >
+                <button
+                  onClick={() => {
+                    setShowExportMenu(false);
+                    void handleExport("csv");
+                  }}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    width: "100%",
+                    padding: "9px 14px",
+                    background: "none",
+                    border: "none",
+                    fontSize: "13px",
+                    fontWeight: 500,
+                    color: "#334155",
+                    cursor: "pointer",
+                    textAlign: "left",
+                  }}
+                  onMouseEnter={(e) =>
+                    ((e.currentTarget as HTMLButtonElement).style.background =
+                      "#f1f5f9")
+                  }
+                  onMouseLeave={(e) =>
+                    ((e.currentTarget as HTMLButtonElement).style.background =
+                      "none")
+                  }
+                >
+                  <FileText size={14} />
+                  CSV
+                </button>
+                <button
+                  onClick={() => {
+                    setShowExportMenu(false);
+                    void handleExport("xlsx");
+                  }}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    width: "100%",
+                    padding: "9px 14px",
+                    background: "none",
+                    border: "none",
+                    borderTop: "1px solid #f1f5f9",
+                    fontSize: "13px",
+                    fontWeight: 500,
+                    color: "#334155",
+                    cursor: "pointer",
+                    textAlign: "left",
+                  }}
+                  onMouseEnter={(e) =>
+                    ((e.currentTarget as HTMLButtonElement).style.background =
+                      "#f1f5f9")
+                  }
+                  onMouseLeave={(e) =>
+                    ((e.currentTarget as HTMLButtonElement).style.background =
+                      "none")
+                  }
+                >
+                  <Download size={14} />
+                  Excel
+                </button>
+              </div>
+            )}
+          </div>
           <button
             onClick={() => setShowCapitalInjection(true)}
             className="btn-secondary"
