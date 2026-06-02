@@ -241,7 +241,7 @@ const MUTATING_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 const MAX_RETRIES = 3;
 const BASE_RETRY_DELAY_MS = 500;
 const MAX_RETRY_DELAY_MS = 5_000;
-const REQUEST_TIMEOUT_MS = 10_000;
+const REQUEST_TIMEOUT_MS = 15_000;
 
 /** Calculate delay with exponential backoff + jitter */
 function getRetryDelay(attempt: number): number {
