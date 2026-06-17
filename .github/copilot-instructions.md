@@ -6,9 +6,17 @@ Zesha is a React Native/Expo application with web support for financial reconcil
 
 ## Issue Learning Workflow
 
-- Before making changes for a bug, regression, outage, or unexpected frontend behavior, read `ERROR_LOG.md` and review lessons from relevant past incidents.
-- Every time a problem is discovered, document it in `ERROR_LOG.md` with the symptoms, root cause, solution implemented, validation performed, and lessons learned.
-- After fixing an issue, update `ERROR_LOG.md` so the lessons from that incident can be used to avoid repeating the same mistake.
+- Before making changes for a bug, regression, outage, unexpected frontend behavior, or any task where execution failures could affect the result, read `ERROR_LOG.md` and review lessons from relevant past incidents.
+- Use `ERROR_LOG.md` as the single chronological incident log for both product issues and task-execution failures. Do not create a separate failure log unless the user explicitly asks for one; a unified log is easier to mine later for harnesses because product regressions, tooling failures, validation misses, and asset-pipeline mistakes often interact.
+- Every time a meaningful problem is discovered, document it in `ERROR_LOG.md` with the symptoms, root cause, solution implemented, validation performed, and lessons learned.
+- Log task-execution failures even if the final user-facing result is fixed. This includes failed commands, broken generated assets, wrong file paths, stale cache issues, file locks, incorrect assumptions, validation gaps, accidental temporary files in shipping locations, or any tool/process failure that changed how the task had to be completed.
+- Classify each new entry clearly in the `Area` field, using values such as `UI`, `State`, `Auth`, `Networking`, `Sync`, `Navigation`, `Build`, `Deployment`, `Assets`, `Tooling`, `Validation`, or `Task Execution` as appropriate.
+- After fixing an issue or recovering from a task-execution failure, update `ERROR_LOG.md` so the lessons from that incident can be used to avoid repeating the same mistake.
+- **After any logo/icon design improvement** (new polish technique, depth tuning, contamination rule change, lettermark quality fix), update `.github/agents/logo-designer.agent.md` with the lesson so the Logo Designer agent can reproduce the quality in future sessions. Do not skip this step — it is as mandatory as updating `ERROR_LOG.md` for bugs.
+
+## External Assets
+
+- When the user provides an external asset path outside the workspace and moving or copying it into the repo would make the task easier or more reproducible, ask for permission and then move or copy it into the relevant project asset folder before processing it.
 
 ## Architecture
 

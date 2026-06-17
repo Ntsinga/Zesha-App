@@ -265,7 +265,7 @@ export default function AnimatedSplash({ onFinish }: AnimatedSplashProps) {
             ]}
           />
           <Image
-            source={require("../assets/icon.png")}
+            source={require("../assets/splash-icon.png")}
             style={styles.iconImage}
             resizeMode="contain"
           />
@@ -375,31 +375,30 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    gap: 28,
+    gap: 22,
   },
   iconBox: {
-    width: 140,
-    height: 140,
+    width: 220,
+    height: 220,
     alignItems: "center",
     justifyContent: "center",
   },
   iconHalo: {
     position: "absolute",
-    width: 180,
-    height: 180,
-    borderRadius: 90,
-    backgroundColor: "rgba(255,215,0,0.15)",
+    width: 270,
+    height: 270,
+    borderRadius: 135,
+    backgroundColor: "rgba(255,215,0,0.12)",
   },
   iconImage: {
-    width: 140,
-    height: 140,
-    borderRadius: 32,
+    width: 220,
+    height: 220,
     ...Platform.select({
       ios: {
         shadowColor: "#000",
-        shadowOffset: { width: 0, height: 18 },
+        shadowOffset: { width: 0, height: 20 },
         shadowOpacity: 0.45,
-        shadowRadius: 36,
+        shadowRadius: 40,
       },
       android: { elevation: 12 },
     }),

@@ -37,6 +37,16 @@ import {
 } from "../../store/slices/authSlice";
 import TopBarWeb from "../../components/TopBar.web";
 import { ToastProvider } from "../../components/Toast.web";
+import appIconSource from "../../assets/icon.png";
+
+const getImageUrl = (img: unknown): string => {
+  if (typeof img === "string") return img;
+  if (img && typeof img === "object" && "default" in img)
+    return (img as { default: string }).default;
+  if (img && typeof img === "object" && "uri" in img)
+    return (img as { uri: string }).uri;
+  return "";
+};
 
 interface NavItem {
   href: string;
@@ -51,6 +61,7 @@ interface NavItem {
 export default function AppLayoutWeb() {
   const router = useRouter();
   const pathname = usePathname();
+  const appIconUrl = getImageUrl(appIconSource);
   const { signOut } = useAuth();
   const { user: clerkUser, isLoaded: isClerkUserLoaded } = useUser();
   const dispatch = useAppDispatch();
@@ -311,11 +322,11 @@ export default function AppLayoutWeb() {
             <div className="mobile-menu-brand">
               <div className="mobile-menu-logo">
                 <img
-                  src="/teleba_icon_final.png"
+                  src={appIconUrl}
                   alt="Teleba"
-                  width={36}
-                  height={36}
-                  style={{ borderRadius: 8, display: "block" }}
+                  width={42}
+                  height={42}
+                  style={{ borderRadius: 9, display: "block" }}
                 />
               </div>
               <div>
@@ -371,11 +382,11 @@ export default function AppLayoutWeb() {
             <div className="sidebar-brand">
               <div className="sidebar-logo">
                 <img
-                  src="/teleba_icon_final.png"
+                  src={appIconUrl}
                   alt="Teleba"
-                  width={38}
-                  height={38}
-                  style={{ borderRadius: 8, display: "block" }}
+                  width={44}
+                  height={44}
+                  style={{ borderRadius: 10, display: "block" }}
                 />
               </div>
               {!isSidebarCollapsed && (
@@ -457,11 +468,11 @@ export default function AppLayoutWeb() {
             <div className="mobile-header-brand">
               <div className="mobile-header-logo">
                 <img
-                  src="/teleba_icon_final.png"
+                  src={appIconUrl}
                   alt="Teleba"
-                  width={32}
-                  height={32}
-                  style={{ borderRadius: 7, display: "block" }}
+                  width={36}
+                  height={36}
+                  style={{ borderRadius: 8, display: "block" }}
                 />
               </div>
               <span className="mobile-header-title">Teleba</span>

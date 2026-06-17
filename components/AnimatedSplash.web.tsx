@@ -1,4 +1,14 @@
 import React, { useEffect, useState } from "react";
+import splashIconSource from "../assets/splash-icon.png";
+
+const getImageUrl = (img: unknown): string => {
+  if (typeof img === "string") return img;
+  if (img && typeof img === "object" && "default" in img)
+    return (img as { default: string }).default;
+  if (img && typeof img === "object" && "uri" in img)
+    return (img as { uri: string }).uri;
+  return "";
+};
 
 interface AnimatedSplashProps {
   onFinish: () => void;
@@ -6,6 +16,7 @@ interface AnimatedSplashProps {
 
 export default function AnimatedSplash({ onFinish }: AnimatedSplashProps) {
   const [fading, setFading] = useState(false);
+  const splashIconUrl = getImageUrl(splashIconSource);
 
   useEffect(() => {
     const fadeTimer = setTimeout(() => setFading(true), 3800);
@@ -93,11 +104,7 @@ export default function AnimatedSplash({ onFinish }: AnimatedSplashProps) {
         {/* Icon */}
         <div className="tel-iconDrop" style={styles.iconBox}>
           <div className="tel-halo" style={styles.iconHalo} />
-          <img
-            src="/icon.png"
-            alt="Teleba"
-            style={styles.iconImg}
-          />
+          <img src={splashIconUrl} alt="Teleba" style={styles.iconImg} />
         </div>
 
         {/* Brand name */}
@@ -257,31 +264,31 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
-    gap: 28,
+    gap: 22,
   },
   iconBox: {
     position: "relative",
-    width: 140,
-    height: 140,
+    width: 220,
+    height: 220,
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
   },
   iconHalo: {
     position: "absolute",
-    width: 180,
-    height: 180,
+    width: 270,
+    height: 270,
     top: "50%",
     left: "50%",
     background:
-      "radial-gradient(circle, rgba(255,215,0,0.18) 0%, transparent 70%)",
+      "radial-gradient(circle, rgba(255,215,0,0.14) 0%, transparent 70%)",
     borderRadius: "50%",
   },
   iconImg: {
-    width: 140,
-    height: 140,
-    borderRadius: 32,
-    filter: "drop-shadow(0 18px 36px rgba(0,0,0,0.45))",
+    width: 220,
+    height: 220,
+    objectFit: "contain",
+    filter: "drop-shadow(0 20px 40px rgba(0,0,0,0.45))",
     position: "relative",
     zIndex: 1,
   },
