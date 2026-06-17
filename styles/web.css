@@ -366,10 +366,10 @@ body {
 }
 
 .sidebar-title {
-  color: #b8860b;
+  color: #daaf3e;
   font-size: 20px;
   font-weight: 700;
-  text-shadow: 0 1px 6px rgba(184, 134, 11, 0.3);
+  text-shadow: 0 1px 6px rgba(218, 175, 62, 0.3);
 }
 
 .sidebar-subtitle {
@@ -6467,7 +6467,7 @@ body {
 .mobile-header-title {
   font-size: 18px;
   font-weight: 700;
-  color: #b8860b;
+  color: #daaf3e;
 }
 
 .hamburger-btn {
@@ -6568,8 +6568,8 @@ body {
 .mobile-menu-title {
   font-size: 20px;
   font-weight: 700;
-  color: #b8860b;
-  text-shadow: 0 1px 6px rgba(184, 134, 11, 0.3);
+  color: #daaf3e;
+  text-shadow: 0 1px 6px rgba(218, 175, 62, 0.3);
 }
 
 .mobile-menu-subtitle {
