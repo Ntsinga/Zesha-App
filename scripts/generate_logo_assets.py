@@ -269,33 +269,19 @@ def repair_alpha_scratches(foreground: Image.Image) -> tuple[Image.Image, int, i
 
 
 def polish_lettermark(foreground: Image.Image) -> Image.Image:
-    """Apply the approved gold gradient to the extracted lettermark mask."""
+    """Apply flat solid gold to the extracted lettermark mask."""
     rgba = foreground.convert("RGBA")
     width, height = rgba.size
     pixels = rgba.load()
 
-    gold_base = (218, 175, 62, 255)
-    gold_highlight = (252, 221, 112, 255)
-    gold_shadow = (176, 109, 31, 255)
-    gold_deep = (122, 68, 16, 255)
+    gold = (218, 175, 62, 255)
 
     for y in range(height):
-        vertical = y / max(height - 1, 1)
         for x in range(width):
             _, _, _, a = pixels[x, y]
             if a == 0:
                 continue
-            horizontal = x / max(width - 1, 1)
-            highlight_distance = ((horizontal - 0.30) ** 2 + (vertical - 0.18) ** 2) ** 0.5
-            highlight = max(0.0, 1.0 - highlight_distance / 0.72) ** 2.1 * 0.78
-            upper_sheen = max(0.0, 1.0 - (horizontal * 0.44 + vertical * 1.18)) * 0.34
-            lower_depth = max(0.0, horizontal * 0.24 + vertical * 0.62 - 0.18)
-            right_edge_depth = max(0.0, horizontal - 0.54) * 0.28
-
-            color = blend_color(gold_base, gold_highlight, min(0.82, highlight + upper_sheen))
-            color = blend_color(color, gold_shadow, min(0.58, lower_depth + right_edge_depth))
-            color = blend_color(color, gold_deep, max(0.0, vertical - 0.82) * 0.34)
-            pixels[x, y] = (color[0], color[1], color[2], a)
+            pixels[x, y] = (gold[0], gold[1], gold[2], a)
 
     return rgba
 
@@ -579,12 +565,23 @@ def main() -> None:
 
     clean_canvas = Image.new("RGBA", source.size, (0, 0, 0, 0))
     clean_canvas.alpha_composite(clean_foreground, (bounds[0], bounds[1]))
+
+    # Adaptive icon: scale down to fit Android's 66% safe zone
+    adaptive_canvas = Image.new("RGBA", (CANVAS_SIZE, CANVAS_SIZE), (0, 0, 0, 0))
+    adaptive_scale = 0.62  # keep lettermark within the safe zone
+    adaptive_w = round(clean_foreground.width * adaptive_scale)
+    adaptive_h = round(clean_foreground.height * adaptive_scale)
+    adaptive_foreground = clean_foreground.resize((adaptive_w, adaptive_h), Image.Resampling.LANCZOS)
+    adaptive_x = (CANVAS_SIZE - adaptive_w) // 2
+    adaptive_y = (CANVAS_SIZE - adaptive_h) // 2
+    adaptive_canvas.alpha_composite(adaptive_foreground, (adaptive_x, adaptive_y))
+
     rich_favicon, resized_foreground, rich_surface_before, rich_surface_after, rich_surface_largest, rich_surface_bounds = compose_rich_favicon(clean_foreground)
     padded_logo = compose_padded_logo(clean_canvas)
     flat_favicon_1024 = compose_flat_favicon_source(clean_foreground)
 
     direct_outputs = [
-        (ZESHA / "assets" / "adaptive-icon.png", clean_canvas),
+        (ZESHA / "assets" / "adaptive-icon.png", adaptive_canvas),
         (ZESHA / "assets" / "icon.png", padded_logo),
         (ZESHA / "assets" / "splash-icon.png", clean_canvas),
         (ZESHA / "public" / "logo-mark.png", padded_logo),
