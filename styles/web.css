@@ -355,20 +355,14 @@ body {
 }
 
 .sidebar-logo {
-  width: 54px;
-  height: 54px;
+  width: 44px;
+  height: 44px;
   border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
   flex-shrink: 0;
-  background: rgba(184, 134, 11, 0.06);
-  border: 1.5px solid rgba(184, 134, 11, 0.5);
-  box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.06) inset,
-    0 8px 20px rgba(0, 0, 0, 0.18),
-    0 0 12px rgba(184, 134, 11, 0.15);
 }
 
 .sidebar-title {
@@ -6461,18 +6455,13 @@ body {
 }
 
 .mobile-header-logo {
-  width: 44px;
-  height: 44px;
-  background: rgba(255, 215, 0, 0.08);
-  border: 1.5px solid rgba(184, 134, 11, 0.45);
-  border-radius: 10px;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #b8860b;
-  box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.75) inset,
-    0 6px 16px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
 }
 
 .mobile-header-title {
@@ -6567,18 +6556,13 @@ body {
 }
 
 .mobile-menu-logo {
-  width: 52px;
-  height: 52px;
-  background: rgba(184, 134, 11, 0.06);
-  border: 1.5px solid rgba(184, 134, 11, 0.5);
-  border-radius: 12px;
+  width: 42px;
+  height: 42px;
+  border-radius: 9px;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.06) inset,
-    0 8px 20px rgba(0, 0, 0, 0.18),
-    0 0 12px rgba(184, 134, 11, 0.15);
+  overflow: hidden;
 }
 
 .mobile-menu-title {
