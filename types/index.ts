@@ -176,6 +176,15 @@ export {
   type LiveCapitalSnapshot,
 } from "./company";
 
+// ============= Audit Log Types =============
+export {
+  type AuditActorSnapshot,
+  type AuditFieldChange,
+  type AuditLogEntry,
+  type AuditLogFilters,
+  type AuditLogListResponse,
+} from "./auditLog";
+
 // ============= Transaction Types =============
 export {
   type Transaction as TransactionRecord,

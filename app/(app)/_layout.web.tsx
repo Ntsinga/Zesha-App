@@ -26,6 +26,7 @@ import {
   Layers as _Layers,
   LayoutTemplate,
   Landmark,
+  Shield,
 } from "lucide-react";
 import { useAppSelector, useAppDispatch } from "../../store/hooks";
 import {
@@ -248,10 +249,18 @@ export default function AppLayoutWeb() {
       label: "Accounts",
       icon: <Landmark size={20} />,
     },
+    {
+      href: "/audit-logs",
+      label: "Audit Logs",
+      icon: <Shield size={20} />,
+    },
   ];
 
-  // Items hidden from Agents
-  const agentHiddenRoutes = new Set(["/accounts"]);
+  // Items hidden from Agents and Agent Supervisors
+  const agentHiddenRoutes = new Set(["/accounts", "/audit-logs"]);
+
+  // Routes restricted to Administrator and Super Administrator only
+  const adminOnlyRoutes = new Set(["/audit-logs"]);
 
   // Determine which nav items to show based on user role and viewing state
   // Superadmin NOT viewing agency = only see Manage Agencies
@@ -260,7 +269,9 @@ export default function AppLayoutWeb() {
   const baseAgencyNavItems =
     effectiveRole === "Agent"
       ? agencyNavItems.filter((item) => !agentHiddenRoutes.has(item.href))
-      : agencyNavItems;
+      : effectiveRole === "Agent Supervisor"
+        ? agencyNavItems.filter((item) => !adminOnlyRoutes.has(item.href))
+        : agencyNavItems;
 
   const navItems: NavItem[] =
     isSuperAdmin && !isViewingAgency ? superAdminNavItems : baseAgencyNavItems;

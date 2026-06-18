@@ -159,6 +159,10 @@ export const API_ENDPOINTS = {
     liveSnapshot: (id: number) => `/company-info/${id}/live-snapshot`,
   },
 
+  auditLogs: {
+    list: "/audit-logs/",
+  },
+
   // Accounts
   accounts: {
     list: "/accounts/",

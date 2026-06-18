@@ -26,6 +26,7 @@ import cashCountReducer from "./slices/cashCountSlice";
 import accountsReducer from "./slices/accountsSlice";
 import accountTemplatesReducer from "./slices/accountTemplatesSlice";
 import usersReducer from "./slices/usersSlice";
+import auditLogsReducer from "./slices/auditLogsSlice";
 import syncQueueReducer, {
   normalizeSyncQueueState,
   type SyncQueueState,
@@ -55,6 +56,7 @@ const appReducer = combineReducers({
   accounts: accountsReducer,
   accountTemplates: accountTemplatesReducer,
   users: usersReducer,
+  auditLogs: auditLogsReducer,
   syncQueue: syncQueueReducer,
   expectedCommissions: expectedCommissionsReducer,
   commissionSchedules: commissionSchedulesReducer,
@@ -106,6 +108,7 @@ const persistConfig: PersistConfig<AppState> = {
     "accounts",
     "companyInfo",
     "dashboard",
+    "auditLogs",
     "syncQueue",
   ],
 };
