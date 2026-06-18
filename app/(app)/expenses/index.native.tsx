@@ -15,7 +15,6 @@ import {
   Plus,
   Trash2,
   X,
-  Calendar,
   DollarSign,
   Tag,
   FileText,
@@ -52,7 +51,6 @@ export default function Expenses() {
     name,
     amount,
     description,
-    expenseDate,
     category,
     fundingSource,
     selectedMonth,
@@ -66,7 +64,6 @@ export default function Expenses() {
     setName,
     setAmount,
     setDescription,
-    setExpenseDate,
     setCategory,
     setFundingSource,
     setDeleteConfirmId,
@@ -81,6 +78,7 @@ export default function Expenses() {
     formatCurrency,
     fundingSources,
     categories,
+    isExpenseEditable,
   } = useExpensesScreen();
 
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
@@ -456,9 +454,9 @@ export default function Expenses() {
               <TouchableOpacity
                 key={expense.id}
                 onPress={() =>
-                  expense.status === "PENDING" && openEditModal(expense)
+                  isExpenseEditable(expense) && openEditModal(expense)
                 }
-                activeOpacity={expense.status === "PENDING" ? 0.6 : 1}
+                activeOpacity={isExpenseEditable(expense) ? 0.6 : 1}
                 className="flex-row items-center py-4 border-b border-gray-100"
               >
                 <View className="mr-3">
@@ -524,7 +522,7 @@ export default function Expenses() {
                   -{formatCurrency(expense.amount)}
                 </Text>
                 {expense.fundingSource === "CAPITAL" &&
-                  expense.status === "PENDING" && (
+                  isExpenseEditable(expense) && (
                     <TouchableOpacity
                       onPress={() => setClearConfirmId(expense.id)}
                       className="p-2 mr-1"
@@ -711,20 +709,6 @@ export default function Expenses() {
                   ))}
                 </View>
               )}
-            </View>
-
-            {/* Date Input */}
-            <View className="mb-4">
-              <Text className="text-gray-700 font-semibold mb-2">Date</Text>
-              <View className="flex-row items-center bg-gray-50 rounded-xl px-4 py-3 border border-gray-200">
-                <Calendar color="#6B7280" size={20} />
-                <TextInput
-                  value={expenseDate}
-                  onChangeText={setExpenseDate}
-                  placeholder="YYYY-MM-DD"
-                  className="flex-1 ml-2 text-gray-800"
-                />
-              </View>
             </View>
 
             {/* Description Input */}

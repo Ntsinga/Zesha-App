@@ -37,7 +37,6 @@ export interface ExpenseCreate {
   name: string;
   amount: number;
   description?: string;
-  expenseDate: string;
   category?: string;
   fundingSource: ExpenseFundingSource;
 }
@@ -49,7 +48,6 @@ export interface ExpenseUpdate {
   name?: string;
   amount?: number;
   description?: string;
-  expenseDate?: string;
   category?: string;
   fundingSource?: ExpenseFundingSource;
 }

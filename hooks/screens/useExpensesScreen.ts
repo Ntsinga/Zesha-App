@@ -45,7 +45,12 @@ const getMonthRange = (monthValue: string): { start: string; end: string } => {
   return { start, end };
 };
 
-const normalizeDateInput = (value: string): string => value.slice(0, 10);
+function isCurrentOrFutureMonth(dateStr: string): boolean {
+  const now = new Date();
+  const d = new Date(dateStr);
+  return d.getFullYear() > now.getFullYear() ||
+    (d.getFullYear() === now.getFullYear() && d.getMonth() >= now.getMonth());
+}
 
 export function useExpensesScreen() {
   const dispatch = useDispatch<AppDispatch>();
@@ -70,9 +75,6 @@ export function useExpensesScreen() {
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
-  const [expenseDate, setExpenseDate] = useState(
-    new Date().toISOString().split("T")[0],
-  );
   const [category, setCategory] = useState("");
   const [fundingSource, setFundingSource] =
     useState<ExpenseFundingSource>("CAPITAL");
@@ -124,7 +126,6 @@ export function useExpensesScreen() {
     setName("");
     setAmount("");
     setDescription("");
-    setExpenseDate(new Date().toISOString().split("T")[0]);
     setCategory("");
     setFundingSource("CAPITAL");
     setEditingExpense(null);
@@ -140,7 +141,6 @@ export function useExpensesScreen() {
     setName(expense.name);
     setAmount(expense.amount.toString());
     setDescription(expense.description || "");
-    setExpenseDate(normalizeDateInput(expense.expenseDate));
     setCategory(expense.category || "");
     setFundingSource(expense.fundingSource);
     setIsModalOpen(true);
@@ -204,7 +204,6 @@ export function useExpensesScreen() {
             name: name.trim(),
             amount: amountNum,
             description: description.trim() || undefined,
-            expenseDate,
             category: category || undefined,
             fundingSource,
           },
@@ -228,7 +227,6 @@ export function useExpensesScreen() {
               name: name.trim(),
               amount: amountNum,
               description: description.trim() || undefined,
-              expenseDate,
               category: category || undefined,
               fundingSource,
             },
@@ -241,7 +239,6 @@ export function useExpensesScreen() {
             name: name.trim(),
             amount: amountNum,
             description: description.trim() || undefined,
-            expenseDate,
             category: category || undefined,
             fundingSource,
           }),
@@ -263,7 +260,6 @@ export function useExpensesScreen() {
     description,
     dispatch,
     editingExpense,
-    expenseDate,
     fundingSource,
     isConnected,
     name,
@@ -450,6 +446,12 @@ export function useExpensesScreen() {
     [expenses],
   );
 
+  const isExpenseEditable = useCallback(
+    (expense: Expense) =>
+      expense.status === "PENDING" && isCurrentOrFutureMonth(expense.expenseDate),
+    [],
+  );
+
   const totalCount = expenses.length;
 
   return {
@@ -463,7 +465,6 @@ export function useExpensesScreen() {
     name,
     amount,
     description,
-    expenseDate,
     category,
     fundingSource,
 
@@ -497,7 +498,6 @@ export function useExpensesScreen() {
     setName,
     setAmount,
     setDescription,
-    setExpenseDate,
     setCategory,
     setFundingSource,
     setDeleteConfirmId,
@@ -512,6 +512,7 @@ export function useExpensesScreen() {
     handleClear,
     addCategory,
     removeCategory,
+    isExpenseEditable,
 
     formatCurrency,
   };

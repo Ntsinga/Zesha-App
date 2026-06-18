@@ -68,7 +68,6 @@ export default function ExpensesIndexWeb() {
     name,
     amount,
     description,
-    expenseDate,
     category,
     fundingSource,
     selectedMonth,
@@ -92,7 +91,6 @@ export default function ExpensesIndexWeb() {
     setName,
     setAmount,
     setDescription,
-    setExpenseDate,
     setCategory,
     setFundingSource,
     setDeleteConfirmId,
@@ -106,6 +104,7 @@ export default function ExpensesIndexWeb() {
     addCategory,
     removeCategory,
     categories,
+    isExpenseEditable,
     formatCurrency,
   } = useExpensesScreen();
 
@@ -569,7 +568,7 @@ export default function ExpensesIndexWeb() {
             ) : (
               expenses.map((expense) => {
                 const isCapital = expense.fundingSource === "CAPITAL";
-                const isEditable = expense.status === "PENDING";
+                const isEditable = isExpenseEditable(expense);
                 return (
                   <tr
                     key={expense.id}
@@ -851,15 +850,6 @@ export default function ExpensesIndexWeb() {
                     placeholder="0.00"
                     className="form-input"
                     required
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Date</label>
-                  <input
-                    type="date"
-                    value={expenseDate}
-                    onChange={(e) => setExpenseDate(e.target.value)}
-                    className="form-input"
                   />
                 </div>
               </div>
