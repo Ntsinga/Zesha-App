@@ -423,9 +423,11 @@ export default function Transactions() {
   });
   const [isSubmittingInjection, setIsSubmittingInjection] = useState(false);
   const capitalInjectionRequestKeyRef = useRef<string | null>(null);
-  const { items: transactions, isLoading, analytics } = useAppSelector(
-    (state) => state.transactions,
-  );
+  const {
+    items: transactions,
+    isLoading,
+    analytics,
+  } = useAppSelector((state) => state.transactions);
   const queueItems = useAppSelector((state) => state.syncQueue.items);
   const deadLetters = useAppSelector((state) => state.syncQueue.deadLetters);
   const recentSyncHistory = useAppSelector(
@@ -559,18 +561,7 @@ export default function Transactions() {
         }),
       );
       if (currentCompanyId) {
-        dispatch(
-          fetchTransactionAnalytics({
-            companyId: currentCompanyId,
-            transactionType:
-              filterType !== "ALL"
-                ? (filterType as TransactionTypeEnum)
-                : undefined,
-            shift:
-              filterShift !== "ALL" ? (filterShift as ShiftEnum) : undefined,
-            accountId: filterAccountId,
-          }),
-        );
+        dispatch(fetchTransactionAnalytics(buildAnalyticsFilters()));
       }
     }, 1500);
 
@@ -604,7 +595,8 @@ export default function Transactions() {
 
   useEffect(() => {
     dispatch(fetchTransactions(buildFilters()));
-    if (currentCompanyId) dispatch(fetchTransactionAnalytics(buildAnalyticsFilters()));
+    if (currentCompanyId)
+      dispatch(fetchTransactionAnalytics(buildAnalyticsFilters()));
   }, [dispatch, filterType, filterShift, filterAccountId, currentCompanyId]);
 
   useEffect(() => {
@@ -1270,7 +1262,8 @@ export default function Transactions() {
                           {tx.account?.name || `Acct #${tx.accountId}`}
                         </Text>
                         <Text className="text-xs text-gray-400">
-                          {formatTransactionTime(tx.transactionTime)} · {tx.shift}
+                          {formatTransactionTime(tx.transactionTime)} ·{" "}
+                          {tx.shift}
                         </Text>
                       </View>
                       {tx.reference ? (
