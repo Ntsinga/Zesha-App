@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
   View,
   Text,
@@ -33,8 +33,14 @@ export default function SignInPage() {
   // re-presses Sign In — Clerk already auto-sent the code on the first attempt.
   const [secondFactorPrepared, setSecondFactorPrepared] = useState(false);
 
+  // Ref-based guard: prevents double-tap from firing multiple Clerk calls
+  // before React re-renders with disabled={true}. Fixes Android
+  // IndexOutOfBoundsException in ReactViewGroup.getChildDrawingOrder()
+  // caused by rapid re-renders on low-end devices.
+  const submittingRef = useRef(false);
+
   const onSignInPress = async () => {
-    if (!isLoaded) return;
+    if (!isLoaded || submittingRef.current) return;
 
     if (!emailOrPhone.trim()) {
       Alert.alert(
@@ -66,6 +72,7 @@ export default function SignInPage() {
       return;
     }
 
+    submittingRef.current = true;
     setLoading(true);
     try {
       const signInAttempt = await signIn.create({
@@ -97,6 +104,7 @@ export default function SignInPage() {
       Alert.alert("Error", err.errors?.[0]?.message || "Sign in failed");
     } finally {
       setLoading(false);
+      submittingRef.current = false;
     }
   };
 
@@ -105,7 +113,9 @@ export default function SignInPage() {
       Alert.alert("Error", "Please enter the verification code");
       return;
     }
+    if (submittingRef.current) return;
 
+    submittingRef.current = true;
     setLoading(true);
     try {
       const signInAttempt = await signIn.attemptSecondFactor({
@@ -123,6 +133,7 @@ export default function SignInPage() {
       Alert.alert("Error", err.errors?.[0]?.message || "Verification failed");
     } finally {
       setLoading(false);
+      submittingRef.current = false;
     }
   };
 
