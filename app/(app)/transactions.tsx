@@ -589,13 +589,18 @@ export default function Transactions() {
     limit: 50,
   });
 
-  const buildAnalyticsFilters = () => ({
-    companyId: currentCompanyId!,
-    transactionType:
-      filterType !== "ALL" ? (filterType as TransactionTypeEnum) : undefined,
-    shift: filterShift !== "ALL" ? (filterShift as ShiftEnum) : undefined,
-    accountId: filterAccountId,
-  });
+  const buildAnalyticsFilters = () => {
+    const today = new Date().toISOString().split("T")[0];
+    return {
+      companyId: currentCompanyId!,
+      startDate: today,
+      endDate: today,
+      transactionType:
+        filterType !== "ALL" ? (filterType as TransactionTypeEnum) : undefined,
+      shift: filterShift !== "ALL" ? (filterShift as ShiftEnum) : undefined,
+      accountId: filterAccountId,
+    };
+  };
 
   useEffect(() => {
     dispatch(fetchTransactions(buildFilters()));
@@ -968,8 +973,8 @@ export default function Transactions() {
         <View className="flex-row justify-between items-center mb-3">
           <Text className="text-sm text-gray-500">
             {analytics && analytics.counts.total > displayedRowCount
-              ? `Showing ${displayedRowCount} of ${analytics.counts.total} transaction${analytics.counts.total !== 1 ? "s" : ""}`
-              : `${displayedRowCount} transaction${displayedRowCount !== 1 ? "s" : ""}`}
+              ? `Showing ${displayedRowCount} of ${analytics.counts.total} today`
+              : `${displayedRowCount} transaction${displayedRowCount !== 1 ? "s" : ""} today`}
             {activeFilterCount > 0
               ? ` · ${activeFilterCount} filter${activeFilterCount > 1 ? "s" : ""} active`
               : ""}
@@ -1138,32 +1143,6 @@ export default function Transactions() {
                 </Text>
               </TouchableOpacity>
             )}
-          </View>
-        )}
-
-        {analytics && (
-          <View className="flex-row gap-3 mb-4">
-            <View className="flex-1 bg-white rounded-2xl border border-gray-100 p-3 shadow-sm">
-              <Text className="text-xs text-gray-500 mb-0.5">Total</Text>
-              <Text className="text-base font-bold text-gray-800">
-                {analytics.counts.total}
-              </Text>
-              <Text className="text-xs text-gray-400">transactions</Text>
-            </View>
-            <View className="flex-1 bg-white rounded-2xl border border-gray-100 p-3 shadow-sm">
-              <Text className="text-xs text-gray-500 mb-0.5">Deposits</Text>
-              <Text className="text-base font-bold text-green-600">
-                {formatCurrency(analytics.totals.deposits)}
-              </Text>
-              <Text className="text-xs text-gray-400">{analytics.counts.deposits} txns</Text>
-            </View>
-            <View className="flex-1 bg-white rounded-2xl border border-gray-100 p-3 shadow-sm">
-              <Text className="text-xs text-gray-500 mb-0.5">Withdrawals</Text>
-              <Text className="text-base font-bold text-red-600">
-                {formatCurrency(analytics.totals.withdrawals)}
-              </Text>
-              <Text className="text-xs text-gray-400">{analytics.counts.withdrawals} txns</Text>
-            </View>
           </View>
         )}
 
