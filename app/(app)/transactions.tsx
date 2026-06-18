@@ -20,6 +20,7 @@ import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import { ActionModal, AddTransactionForm } from "../../components/ActionModal";
 import {
   fetchTransactions,
+  fetchTransactionAnalytics,
   reverseTransaction,
   invalidateTransactionsCache,
 } from "../../store/slices/transactionsSlice";
@@ -34,7 +35,7 @@ import { API_ENDPOINTS } from "../../config/api";
 import { fetchAccounts } from "../../store/slices/accountsSlice";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { triggerSync } from "../../services/syncEngine";
-import { formatDate } from "../../utils/formatters";
+import { formatDate, formatTransactionTime } from "../../utils/formatters";
 import { useCurrencyFormatter } from "../../hooks/useCurrency";
 import { generateIdempotencyKey } from "../../utils/idempotency";
 import { queueOfflineMutation } from "../../utils/offlineQueue";
@@ -422,7 +423,7 @@ export default function Transactions() {
   });
   const [isSubmittingInjection, setIsSubmittingInjection] = useState(false);
   const capitalInjectionRequestKeyRef = useRef<string | null>(null);
-  const { items: transactions, isLoading } = useAppSelector(
+  const { items: transactions, isLoading, analytics } = useAppSelector(
     (state) => state.transactions,
   );
   const queueItems = useAppSelector((state) => state.syncQueue.items);
@@ -554,8 +555,23 @@ export default function Transactions() {
               : undefined,
           shift: filterShift !== "ALL" ? (filterShift as ShiftEnum) : undefined,
           accountId: filterAccountId,
+          limit: 50,
         }),
       );
+      if (currentCompanyId) {
+        dispatch(
+          fetchTransactionAnalytics({
+            companyId: currentCompanyId,
+            transactionType:
+              filterType !== "ALL"
+                ? (filterType as TransactionTypeEnum)
+                : undefined,
+            shift:
+              filterShift !== "ALL" ? (filterShift as ShiftEnum) : undefined,
+            accountId: filterAccountId,
+          }),
+        );
+      }
     }, 1500);
 
     return () => {
@@ -570,11 +586,21 @@ export default function Transactions() {
       filterType !== "ALL" ? (filterType as TransactionTypeEnum) : undefined,
     shift: filterShift !== "ALL" ? (filterShift as ShiftEnum) : undefined,
     accountId: filterAccountId,
+    limit: 50,
+  });
+
+  const buildAnalyticsFilters = () => ({
+    companyId: currentCompanyId!,
+    transactionType:
+      filterType !== "ALL" ? (filterType as TransactionTypeEnum) : undefined,
+    shift: filterShift !== "ALL" ? (filterShift as ShiftEnum) : undefined,
+    accountId: filterAccountId,
   });
 
   useEffect(() => {
     dispatch(fetchTransactions(buildFilters()));
-  }, [dispatch, filterType, filterShift, filterAccountId]);
+    if (currentCompanyId) dispatch(fetchTransactionAnalytics(buildAnalyticsFilters()));
+  }, [dispatch, filterType, filterShift, filterAccountId, currentCompanyId]);
 
   useEffect(() => {
     capitalInjectionRequestKeyRef.current = null;
@@ -941,8 +967,9 @@ export default function Transactions() {
         {/* Filter row */}
         <View className="flex-row justify-between items-center mb-3">
           <Text className="text-sm text-gray-500">
-            {displayedRowCount} transaction
-            {displayedRowCount !== 1 ? "s" : ""}
+            {analytics && analytics.counts.total > displayedRowCount
+              ? `Showing ${displayedRowCount} of ${analytics.counts.total} transaction${analytics.counts.total !== 1 ? "s" : ""}`
+              : `${displayedRowCount} transaction${displayedRowCount !== 1 ? "s" : ""}`}
             {activeFilterCount > 0
               ? ` · ${activeFilterCount} filter${activeFilterCount > 1 ? "s" : ""} active`
               : ""}
@@ -1114,6 +1141,32 @@ export default function Transactions() {
           </View>
         )}
 
+        {analytics && (
+          <View className="flex-row gap-3 mb-4">
+            <View className="flex-1 bg-white rounded-2xl border border-gray-100 p-3 shadow-sm">
+              <Text className="text-xs text-gray-500 mb-0.5">Total</Text>
+              <Text className="text-base font-bold text-gray-800">
+                {analytics.counts.total}
+              </Text>
+              <Text className="text-xs text-gray-400">transactions</Text>
+            </View>
+            <View className="flex-1 bg-white rounded-2xl border border-gray-100 p-3 shadow-sm">
+              <Text className="text-xs text-gray-500 mb-0.5">Deposits</Text>
+              <Text className="text-base font-bold text-green-600">
+                {formatCurrency(analytics.totals.deposits)}
+              </Text>
+              <Text className="text-xs text-gray-400">{analytics.counts.deposits} txns</Text>
+            </View>
+            <View className="flex-1 bg-white rounded-2xl border border-gray-100 p-3 shadow-sm">
+              <Text className="text-xs text-gray-500 mb-0.5">Withdrawals</Text>
+              <Text className="text-base font-bold text-red-600">
+                {formatCurrency(analytics.totals.withdrawals)}
+              </Text>
+              <Text className="text-xs text-gray-400">{analytics.counts.withdrawals} txns</Text>
+            </View>
+          </View>
+        )}
+
         <View className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
           <Text className="text-lg font-bold text-brand-red mb-4">
             Recent Activity
@@ -1238,7 +1291,7 @@ export default function Transactions() {
                           {tx.account?.name || `Acct #${tx.accountId}`}
                         </Text>
                         <Text className="text-xs text-gray-400">
-                          {formatDate(tx.transactionTime, "short")} · {tx.shift}
+                          {formatTransactionTime(tx.transactionTime)} · {tx.shift}
                         </Text>
                       </View>
                       {tx.reference ? (

@@ -62,6 +62,31 @@ export function formatDate(
 }
 
 /**
+ * Format a transaction timestamp: shows time (e.g. "14:30") if today,
+ * otherwise shows short date (e.g. "6/18/26").
+ */
+export function formatTransactionTime(dateString: string): string {
+  const date = new Date(dateString);
+  const now = new Date();
+  const isToday =
+    date.getFullYear() === now.getFullYear() &&
+    date.getMonth() === now.getMonth() &&
+    date.getDate() === now.getDate();
+  if (isToday) {
+    return date.toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    });
+  }
+  return new Intl.DateTimeFormat("en-US", {
+    month: "numeric",
+    day: "numeric",
+    year: "2-digit",
+  }).format(date);
+}
+
+/**
  * Format a date+time string (e.g., "28 Feb, 14:30")
  * @param isoString - ISO date/time string
  */
