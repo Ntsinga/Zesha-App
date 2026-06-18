@@ -491,7 +491,7 @@ export default function Expenses() {
                         >
                           {expense.status === "CLEARED"
                             ? "Reimbursed"
-                            : "Unreimbursed"}
+                            : "Drawing"}
                         </Text>
                       </View>
                     )}

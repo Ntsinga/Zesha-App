@@ -241,7 +241,7 @@ export default function ExpensesIndexWeb() {
           </div>
         </div>
 
-        {/* Section 2 - Capital impact */}
+        {/* Section 2 - Drawings */}
         <div
           style={{
             flex: "1 1 200px",
@@ -257,12 +257,12 @@ export default function ExpensesIndexWeb() {
               gap: 4,
             }}
           >
-            Capital Impact
+            Drawings
             <span className="tooltip-wrap">
               <Info size={11} style={{ color: "var(--color-text-muted)" }} />
               <span className="tooltip-box">
-                Total expenses paid from working capital. Unreimbursed amounts
-                reduce your working capital balance until reimbursed.
+                Total drawings from working capital. Outstanding amounts
+                reduce your working capital balance until settled.
               </span>
             </span>
           </div>
@@ -285,7 +285,7 @@ export default function ExpensesIndexWeb() {
                 fontWeight: 600,
               }}
             >
-              {"\u26A0"} {formatCurrency(capitalPendingTotal)} unreimbursed
+              {"\u26A0"} {formatCurrency(capitalPendingTotal)} outstanding
             </div>
           )}
           {capitalTotal > 0 && capitalPendingTotal === 0 && (
@@ -522,7 +522,7 @@ export default function ExpensesIndexWeb() {
             style={{ minWidth: 150 }}
           >
             <option value="ALL">All Statuses</option>
-            <option value="PENDING">Unreimbursed</option>
+            <option value="PENDING">Drawings</option>
             <option value="CLEARED">Reimbursed</option>
           </select>
         )}
@@ -614,7 +614,7 @@ export default function ExpensesIndexWeb() {
                         >
                           {expense.status === "CLEARED"
                             ? "Reimbursed"
-                            : "Unreimbursed"}
+                            : "Drawing"}
                         </span>
                       ) : (
                         <span

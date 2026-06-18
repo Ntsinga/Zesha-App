@@ -290,7 +290,7 @@ export default function DashboardNative() {
             {capitalPendingExpenses > 0 ? (
               <View className="flex-row justify-between items-center py-1.5 border-t border-gray-100">
                 <View>
-                  <Text className="text-gray-600 text-sm">Unreimbursed</Text>
+                  <Text className="text-gray-600 text-sm">Drawings</Text>
                   <Text className="text-xs text-gray-400">
                     Capital not yet paid back
                   </Text>
