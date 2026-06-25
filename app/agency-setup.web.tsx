@@ -59,70 +59,23 @@ function RegisteredNamesInput({
   value: string[];
   onChange: (v: string[]) => void;
 }) {
-  const [draft, setDraft] = useState("");
-  const add = () => {
-    const trimmed = draft.trim().toUpperCase();
-    if (!trimmed || value.includes(trimmed)) return;
-    onChange([...value, trimmed]);
-    setDraft("");
-  };
+  const currentValue = value.length > 0 ? value[0] : "";
   return (
     <div className="form-group" style={{ marginBottom: 0 }}>
-      <label className="form-label">Registered Names</label>
-      <div style={{ display: "flex", gap: 8 }}>
-        <input
-          type="text"
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              add();
-            }
-          }}
-          className="form-input"
-          placeholder="e.g. AIRTEL UGANDA LTD"
-          style={{ flex: 1, margin: 0 }}
-        />
-        <button
-          type="button"
-          className="btn-secondary"
-          style={{ flexShrink: 0 }}
-          onClick={add}
-          disabled={!draft.trim()}
-        >
-          Add
-        </button>
-      </div>
-      {value.length > 0 && (
-        <div
-          style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}
-        >
-          {value.map((n) => (
-            <button
-              key={n}
-              type="button"
-              onClick={() => onChange(value.filter((x) => x !== n))}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 5,
-                border: "1px solid var(--color-border)",
-                background: "var(--color-bg-card)",
-                borderRadius: 999,
-                padding: "3px 10px",
-                fontSize: 12,
-                cursor: "pointer",
-              }}
-            >
-              {n}
-              <span style={{ fontSize: 14, lineHeight: 1 }}>×</span>
-            </button>
-          ))}
-        </div>
-      )}
+      <label className="form-label">Registered Name</label>
+      <input
+        type="text"
+        value={currentValue}
+        onChange={(e) => {
+          const v = e.target.value.toUpperCase();
+          onChange(v.trim() ? [v] : []);
+        }}
+        className="form-input"
+        placeholder="e.g. AIRTEL UGANDA LTD"
+        style={{ margin: 0 }}
+      />
       <span className="form-hint" style={{ fontSize: 11 }}>
-        Names that appear in statements for this account during import
+        Name that appears in statements for this account during import
       </span>
     </div>
   );
@@ -370,15 +323,10 @@ export default function AgencySetupWeb() {
     );
   };
 
-  const updateCustomAccountRegisteredNames = (
-    id: string,
-    names: string[],
-  ) => {
+  const updateCustomAccountRegisteredNames = (id: string, names: string[]) => {
     setCustomAccounts((prev) =>
       prev.map((account) =>
-        account.id === id
-          ? { ...account, registeredNames: names }
-          : account,
+        account.id === id ? { ...account, registeredNames: names } : account,
       ),
     );
   };
@@ -970,7 +918,8 @@ export default function AgencySetupWeb() {
                                         <span
                                           style={{
                                             fontSize: 12,
-                                            color: "var(--color-text-secondary)",
+                                            color:
+                                              "var(--color-text-secondary)",
                                             whiteSpace: "nowrap",
                                             minWidth: 20,
                                           }}
