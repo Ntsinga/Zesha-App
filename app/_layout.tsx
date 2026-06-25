@@ -188,17 +188,16 @@ function AppContent() {
   useEffect(() => {
     if (!isLoaded) return;
 
-    // If there's an invite ticket and not on set-password, redirect to set-password
-    // Invited users are already created in Clerk - they just need to set their password
+    // If there's an invite ticket and not on set-password, redirect to set-password.
+    // Invited users are already created in Clerk - they just need to set their password.
+    // Do NOT set initialNavDone here — the deep link target (e.g. sign-up) would flash
+    // for a frame before router.replace takes effect. Keep rendering null until the
+    // navigation lands on set-password and the effect re-fires via the normal path.
     if (hasInviteTicket && !isOnSetPassword) {
       router.replace({
         pathname: "/(auth)/set-password",
         params: { __clerk_ticket: inviteTicket! },
       });
-      if (!initialNavDoneRef.current) {
-        initialNavDoneRef.current = true;
-        setInitialNavDone(true);
-      }
       return;
     }
 

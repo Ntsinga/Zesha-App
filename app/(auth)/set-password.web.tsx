@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import { AlertCircle, Eye, EyeOff, Check } from "lucide-react";
 import "../../styles/web.css";
 import AuthBrandPanel from "../../components/AuthBrandPanel.web";
+import { store } from "../../store";
 
 /**
  * Set Password Page (Web) - For invited users to set their password
@@ -209,17 +210,14 @@ export default function SetPasswordWeb() {
         setSuccess(true);
 
         // Use window.location for a clean redirect that avoids router race conditions.
-        // Check Clerk metadata so invited agency admins go directly to onboarding
-        // instead of "/" (prevents a flash of the app view before the routing
-        // effect can redirect them to /agency-setup).
+        // Only route to /agency-setup if the user genuinely hasn't finished onboarding
+        // (check backend state, not stale Clerk metadata which is never cleared).
         setTimeout(() => {
-          const meta = user.publicMetadata as
-            | { role?: string; invitation_type?: string }
-            | undefined;
-          const isAgencyInvite =
-            meta?.role === "Administrator" &&
-            meta?.invitation_type === "agency_setup";
-          window.location.href = isAgencyInvite ? "/agency-setup" : "/";
+          const backendUser = store.getState().auth.user;
+          const genuinelyNeedsOnboarding =
+            backendUser?.role === "Administrator" &&
+            backendUser.onboardingStatus !== "COMPLETED";
+          window.location.href = genuinelyNeedsOnboarding ? "/agency-setup" : "/";
         }, 1500);
       }
     } catch (err: any) {

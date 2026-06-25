@@ -90,7 +90,10 @@ function AppContent() {
           await signOut();
         }
       } catch (error) {
-        console.error("[AuthRecovery Web] Failed to redirect after session expiry:", error);
+        console.error(
+          "[AuthRecovery Web] Failed to redirect after session expiry:",
+          error,
+        );
       } finally {
         window.location.replace("/sign-in");
       }
@@ -117,9 +120,17 @@ function AppContent() {
   const isInvitedAgencyAdmin =
     clerkMeta?.role === "Administrator" &&
     clerkMeta?.invitation_type === "agency_setup";
+  // Only use the Clerk-metadata fallback when the backend user has loaded but
+  // genuinely lacks a companyId.  When both syncedUser and cachedUser are null
+  // (e.g. during a password-reset transition), treat onboarding as unknown
+  // rather than required — the routing effect already waits for hasUserData
+  // before redirecting to "/".
+  const backendUserLoaded = !!(syncedUser ?? cachedUser);
   const effectiveNeedsOnboarding =
     needsAgencyOnboarding ||
-    (isInvitedAgencyAdmin && !(syncedUser ?? cachedUser)?.companyId);
+    (isInvitedAgencyAdmin &&
+      backendUserLoaded &&
+      !(syncedUser ?? cachedUser)?.companyId);
 
   useEffect(() => {
     const effectiveUser = syncedUser ?? cachedUser;
