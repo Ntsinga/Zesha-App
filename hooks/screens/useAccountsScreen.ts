@@ -297,6 +297,18 @@ export function useAccountsScreen() {
     setAccountToDelete(null);
   };
 
+  const toggleAccountActive = async (accountId: number) => {
+    const account = accounts.find((a) => a.id === accountId);
+    if (!account) return;
+    await dispatch(
+      updateAccount({
+        id: accountId,
+        data: { isActive: !account.isActive },
+      }),
+    ).unwrap();
+    await dispatch(fetchAccounts({ forceRefresh: true })).unwrap();
+  };
+
   // Filter accounts
   const filteredAccounts = accounts.filter((account) => {
     // Filter by type
@@ -392,5 +404,6 @@ export function useAccountsScreen() {
     confirmDelete,
     handleDelete,
     cancelDelete,
+    toggleAccountActive,
   };
 }

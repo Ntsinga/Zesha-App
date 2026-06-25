@@ -1500,6 +1500,7 @@ export default function Accounts() {
     confirmDelete,
     handleDelete,
     cancelDelete,
+    toggleAccountActive,
   } = useAccountsScreen();
 
   const { formatCurrency } = useCurrencyFormatter();
@@ -1742,13 +1743,20 @@ export default function Accounts() {
                       )}
                     </td>
                     <td>
-                      <span
-                        className={`status-badge ${
-                          account.isActive ? "passed" : "failed"
-                        }`}
+                      <label
+                        className="toggle"
+                        onClick={(e) => e.stopPropagation()}
                       >
-                        {account.isActive ? "Active" : "Inactive"}
-                      </span>
+                        <input
+                          type="checkbox"
+                          checked={account.isActive}
+                          onChange={() => toggleAccountActive(account.id)}
+                        />
+                        <span className="toggle-slider"></span>
+                        <span className="toggle-label">
+                          {account.isActive ? "Active" : "Inactive"}
+                        </span>
+                      </label>
                     </td>
                   </tr>
                 ))}
