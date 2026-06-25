@@ -120,6 +120,9 @@ export interface TransactionFormState {
   amount: string;
   reference: string;
   notes: string;
+  customerName: string;
+  phoneNumber: string;
+  accountNumber: string;
 }
 
 export interface FloatPurchaseFormState {
@@ -139,6 +142,9 @@ const initialTransactionForm: TransactionFormState = {
   amount: "",
   reference: "",
   notes: "",
+  customerName: "",
+  phoneNumber: "",
+  accountNumber: "",
 };
 
 const initialFloatPurchaseForm: FloatPurchaseFormState = {
@@ -633,6 +639,9 @@ export function useTransactionsScreen() {
       transactionTime: new Date().toISOString(),
       reference: transactionForm.reference || undefined,
       notes: transactionForm.notes || undefined,
+      customerName: transactionForm.customerName || undefined,
+      phoneNumber: transactionForm.phoneNumber || undefined,
+      accountNumber: transactionForm.accountNumber || undefined,
       idempotencyKey: requestKey,
     };
 

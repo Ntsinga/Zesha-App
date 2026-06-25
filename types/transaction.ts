@@ -38,6 +38,9 @@ export interface Transaction extends BaseModel {
   floatDirection?: FloatDirectionEnum | null;
   reference?: string | null;
   notes?: string | null;
+  customerName?: string | null;
+  phoneNumber?: string | null;
+  accountNumber?: string | null;
   isConfirmed: boolean;
   expectedCommission?: ExpectedCommissionBrief | null;
 }
@@ -58,6 +61,9 @@ export interface TransactionCreate {
   transactionTime: string;
   reference?: string | null;
   notes?: string | null;
+  customerName?: string | null;
+  phoneNumber?: string | null;
+  accountNumber?: string | null;
   idempotencyKey?: string | null;
 }
 

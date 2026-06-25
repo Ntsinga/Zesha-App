@@ -2763,6 +2763,88 @@ export default function TransactionsWeb() {
                     )}
                   </div>
 
+                  {/* Customer details — conditional on account type */}
+                  {(() => {
+                    const selectedAccount = accounts.find(
+                      (a) => a.id === transactionForm.accountId,
+                    );
+                    if (!selectedAccount) return null;
+                    const isBank = selectedAccount.accountType === "BANK";
+                    return (
+                      <>
+                        {/* Customer Name */}
+                        <div className="form-group">
+                          <label className="form-label">
+                            Customer Name{" "}
+                            <span style={{ fontWeight: 400, color: "#94a3b8" }}>
+                              (optional)
+                            </span>
+                          </label>
+                          <input
+                            type="text"
+                            value={transactionForm.customerName}
+                            onChange={(e) =>
+                              setTransactionForm((prev) => ({
+                                ...prev,
+                                customerName: e.target.value,
+                              }))
+                            }
+                            className="form-input"
+                            placeholder="e.g. John Doe"
+                          />
+                        </div>
+
+                        {/* Phone Number — always shown */}
+                        <div className="form-group">
+                          <label className="form-label">
+                            Phone Number{" "}
+                            <span style={{ fontWeight: 400, color: "#94a3b8" }}>
+                              (optional)
+                            </span>
+                          </label>
+                          <input
+                            type="text"
+                            value={transactionForm.phoneNumber}
+                            onChange={(e) =>
+                              setTransactionForm((prev) => ({
+                                ...prev,
+                                phoneNumber: e.target.value,
+                              }))
+                            }
+                            className="form-input"
+                            placeholder="e.g. 0771234567"
+                          />
+                        </div>
+
+                        {/* Account Number — only for bank accounts */}
+                        {isBank && (
+                          <div className="form-group">
+                            <label className="form-label">
+                              Account Number{" "}
+                              <span
+                                style={{ fontWeight: 400, color: "#94a3b8" }}
+                              >
+                                (optional)
+                              </span>
+                            </label>
+                            <input
+                              type="text"
+                              value={transactionForm.accountNumber}
+                              onChange={(e) =>
+                                setTransactionForm((prev) => ({
+                                  ...prev,
+                                  accountNumber: e.target.value,
+                                }))
+                              }
+                              className="form-input"
+                              placeholder="e.g. 1234567890"
+                            />
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
+
                   {/* Reference */}
                   <div className="form-group">
                     <label className="form-label">Reference (optional)</label>
