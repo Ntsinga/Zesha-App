@@ -2807,10 +2807,7 @@ export default function TransactionsWeb() {
                         {/* Phone Number — always shown */}
                         <div className="form-group">
                           <label className="form-label">
-                            Phone Number{" "}
-                            <span style={{ fontWeight: 400, color: "#94a3b8" }}>
-                              (optional)
-                            </span>
+                            Phone Number
                           </label>
                           <input
                             type="text"
@@ -2830,12 +2827,7 @@ export default function TransactionsWeb() {
                         {isBank && (
                           <div className="form-group">
                             <label className="form-label">
-                              Account Number{" "}
-                              <span
-                                style={{ fontWeight: 400, color: "#94a3b8" }}
-                              >
-                                (optional)
-                              </span>
+                              Account Number
                             </label>
                             <input
                               type="text"

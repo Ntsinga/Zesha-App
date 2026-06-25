@@ -627,6 +627,22 @@ export function useTransactionsScreen() {
       return;
     }
 
+    // Validate required customer fields based on account type
+    const selectedAccount = activeAccounts.find(
+      (a) => a.id === transactionForm.accountId,
+    );
+    if (!transactionForm.phoneNumber?.trim()) {
+      setSubmitError("Phone number is required.");
+      return;
+    }
+    if (
+      selectedAccount?.accountType === "BANK" &&
+      !transactionForm.accountNumber?.trim()
+    ) {
+      setSubmitError("Account number is required for bank transactions.");
+      return;
+    }
+
     const requestKey =
       transactionRequestKeyRef.current ?? generateIdempotencyKey("txn-screen");
 
@@ -684,7 +700,13 @@ export function useTransactionsScreen() {
       );
       dispatch(clearError());
     }
-  }, [dispatch, companyId, transactionForm, refreshCurrentRange]);
+  }, [
+    dispatch,
+    companyId,
+    transactionForm,
+    activeAccounts,
+    refreshCurrentRange,
+  ]);
 
   const handleCreateFloatPurchase = useCallback(async () => {
     if (
@@ -1129,9 +1151,9 @@ export function useTransactionsScreen() {
       throw new Error("No companyId found. Please log in again.");
     }
 
-    return await dispatch(
+    return (await dispatch(
       fetchTransactionExport(exportFilters),
-    ).unwrap() as TransactionExportResponse;
+    ).unwrap()) as TransactionExportResponse;
   }, [dispatch, buildExportFilters]);
 
   // ---- Formatting helpers ----

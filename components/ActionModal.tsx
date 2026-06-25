@@ -259,6 +259,18 @@ export const AddTransactionForm: React.FC<AddTransactionFormProps> = ({
           Alert.alert("Validation", "Please select an account.");
           return;
         }
+        if (!phoneNumber.trim()) {
+          Alert.alert("Validation", "Phone number is required.");
+          return;
+        }
+        const selectedAcc = activeAccounts.find((a) => a.id === accountId);
+        if (selectedAcc?.accountType === "BANK" && !accountNumber.trim()) {
+          Alert.alert(
+            "Validation",
+            "Account number is required for bank transactions.",
+          );
+          return;
+        }
         const payload = {
           companyId,
           accountId,
@@ -574,41 +586,47 @@ export const AddTransactionForm: React.FC<AddTransactionFormProps> = ({
       />
 
       {/* Customer details — only for deposit/withdraw */}
-      {mode !== "FLOAT" && accountId && (() => {
-        const selectedAccount = activeAccounts.find((a) => a.id === accountId);
-        if (!selectedAccount) return null;
-        const isBank = selectedAccount.accountType === "BANK";
-        return (
-          <View className="bg-gray-50 rounded-xl p-3 mb-4 border border-gray-100">
-            <Text className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Customer Details (optional)</Text>
-            <TextInput
-              className="border border-gray-200 rounded-lg px-3 py-2.5 mb-2 text-gray-800 bg-white"
-              value={customerName}
-              onChangeText={setCustomerName}
-              placeholder="Customer name"
-              placeholderTextColor="#9ca3af"
-            />
-            <TextInput
-              className="border border-gray-200 rounded-lg px-3 py-2.5 mb-2 text-gray-800 bg-white"
-              value={phoneNumber}
-              onChangeText={setPhoneNumber}
-              placeholder="Phone number"
-              placeholderTextColor="#9ca3af"
-              keyboardType="phone-pad"
-            />
-            {isBank && (
+      {mode !== "FLOAT" &&
+        accountId &&
+        (() => {
+          const selectedAccount = activeAccounts.find(
+            (a) => a.id === accountId,
+          );
+          if (!selectedAccount) return null;
+          const isBank = selectedAccount.accountType === "BANK";
+          return (
+            <View className="bg-gray-50 rounded-xl p-3 mb-4 border border-gray-100">
+              <Text className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
+                Customer Details
+              </Text>
               <TextInput
-                className="border border-gray-200 rounded-lg px-3 py-2.5 text-gray-800 bg-white"
-                value={accountNumber}
-                onChangeText={setAccountNumber}
-                placeholder="Account number"
+                className="border border-gray-200 rounded-lg px-3 py-2.5 mb-2 text-gray-800 bg-white"
+                value={customerName}
+                onChangeText={setCustomerName}
+                placeholder="Customer name (optional)"
                 placeholderTextColor="#9ca3af"
-                keyboardType="default"
               />
-            )}
-          </View>
-        );
-      })()}
+              <TextInput
+                className="border border-gray-200 rounded-lg px-3 py-2.5 mb-2 text-gray-800 bg-white"
+                value={phoneNumber}
+                onChangeText={setPhoneNumber}
+                placeholder="Phone number *"
+                placeholderTextColor="#9ca3af"
+                keyboardType="phone-pad"
+              />
+              {isBank && (
+                <TextInput
+                  className="border border-gray-200 rounded-lg px-3 py-2.5 text-gray-800 bg-white"
+                  value={accountNumber}
+                  onChangeText={setAccountNumber}
+                  placeholder="Account number *"
+                  placeholderTextColor="#9ca3af"
+                  keyboardType="default"
+                />
+              )}
+            </View>
+          );
+        })()}
 
       {/* Reference */}
       <Text className="text-sm font-medium text-gray-600 mb-1">
