@@ -171,7 +171,13 @@ export default function AppLayoutWeb() {
       pathname !== "/settings" &&
       !deepLinkCompanyId
     ) {
-      router.replace("/agencies");
+      // Use window.location as primary redirect — router.replace() can be silently
+      // ignored by Expo Router v6 during the initial navigation settling phase.
+      if (typeof window !== "undefined" && window.location.pathname !== "/agencies") {
+        window.location.replace("/agencies");
+      } else {
+        router.replace("/agencies");
+      }
     }
   }, [
     isSuperAdmin,
@@ -308,6 +314,17 @@ export default function AppLayoutWeb() {
     dispatch(exitAgency());
     router.push("/agencies");
   };
+
+  // Superadmin on a non-admin page without agency context should see nothing
+  // while the useEffect redirect to /agencies is pending (prevents Dashboard flash)
+  const shouldRedirectToAgencies =
+    isSuperAdmin &&
+    !isViewingAgency &&
+    pathname !== "/agencies" &&
+    pathname !== "/agency-form" &&
+    pathname !== "/account-templates" &&
+    pathname !== "/settings" &&
+    !deepLinkCompanyId;
 
   // Render agency-setup outside the sidebar layout (full-screen onboarding)
   if (pathname === "/agency-setup") {
@@ -502,7 +519,7 @@ export default function AppLayoutWeb() {
 
           {/* Page Content - scrollable container */}
           <div className="page-scroll-container">
-            <Slot />
+            {shouldRedirectToAgencies ? null : <Slot />}
           </div>
         </main>
 
