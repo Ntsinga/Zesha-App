@@ -679,6 +679,13 @@ export default function BalanceDetailPage() {
 
               <TouchableOpacity
                 onPress={async () => {
+                  if (variance < 0 && !notes.trim()) {
+                    Alert.alert(
+                      "Notes Required",
+                      "Please add notes explaining the loss before finalizing.",
+                    );
+                    return;
+                  }
                   const result = await handleFinalize();
                   if (result?.success && subtype === "OPENING") {
                     // OPENING finalized — navigate back so balance menu
@@ -702,22 +709,14 @@ export default function BalanceDetailPage() {
                               return;
                             }
                             if (!r?.success && r?.error) {
-                              Toast.show({
-                                type: "error",
-                                text1: "Error",
-                                text2: r.error,
-                              });
+                              Alert.alert("Error", r.error);
                             }
                           },
                         },
                       ],
                     );
                   } else if (!result?.success && result?.error) {
-                    Toast.show({
-                      type: "error",
-                      text1: "Error",
-                      text2: result.error,
-                    });
+                    Alert.alert("Error", result.error);
                   }
                 }}
                 disabled={isFinalizing}

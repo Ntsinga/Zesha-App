@@ -725,27 +725,6 @@ function AccountDetailView({
                     </select>
                   </div>
 
-                  {d.accountType === "TELECOM" && (
-                    <div
-                      className="form-group"
-                      style={{ marginBottom: 0, maxWidth: "50%" }}
-                    >
-                      <label className="form-label">Commission Model</label>
-                      <select
-                        className="form-input"
-                        value={d.commissionModel}
-                        onChange={(e) =>
-                          d.setCommissionModel(
-                            e.target.value as CommissionModelEnum,
-                          )
-                        }
-                      >
-                        <option value="CUMULATIVE">Cumulative</option>
-                        <option value="PARTIAL">Partial</option>
-                      </select>
-                    </div>
-                  )}
-
                   <div className="form-group" style={{ marginBottom: 0 }}>
                     <label className="form-label">Status</label>
                     <div className="toggle-group">
@@ -789,7 +768,7 @@ function AccountDetailView({
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "1fr 1fr 1fr",
+                  gridTemplateColumns: "1fr 1fr",
                   gap: 16,
                 }}
               >
@@ -817,20 +796,6 @@ function AccountDetailView({
                   </div>
                   <div style={{ fontWeight: 600 }}>
                     {formatCurrency(d.account?.currentBalance ?? 0)}
-                  </div>
-                </div>
-                <div>
-                  <div
-                    style={{
-                      fontSize: 12,
-                      color: "var(--color-text-muted)",
-                      marginBottom: 4,
-                    }}
-                  >
-                    Commission Model
-                  </div>
-                  <div style={{ fontWeight: 600 }}>
-                    {d.account?.commissionModel ?? "—"}
                   </div>
                 </div>
               </div>
@@ -2132,42 +2097,6 @@ export default function Accounts() {
                       ))}
                     </div>
                   </div>
-
-                  {accountType === "TELECOM" && (
-                    <div className="form-group">
-                      <label className="form-label">Commission Model</label>
-                      <div className="type-buttons">
-                        {[
-                          {
-                            value: "CUMULATIVE" as CommissionModelEnum,
-                            label: "Cumulative",
-                            hint: "Agent submits monthly running total; today = submitted − yesterday",
-                          },
-                          {
-                            value: "PARTIAL" as CommissionModelEnum,
-                            label: "Partial",
-                            hint: "Agent submits withdrawals only; deposits auto-added from expected rates",
-                          },
-                        ].map((opt) => (
-                          <button
-                            key={opt.value}
-                            className={`type-button ${commissionModel === opt.value ? "selected" : ""}`}
-                            onClick={() => setCommissionModel(opt.value)}
-                            title={opt.hint}
-                          >
-                            {opt.label}
-                          </button>
-                        ))}
-                      </div>
-                      <span className="form-hint">
-                        {commissionModel === "CUMULATIVE"
-                          ? "Agent submits a monthly running total; actual = submitted today − submitted yesterday"
-                          : commissionModel === "PARTIAL"
-                            ? "Agent submits withdrawal commissions only; deposit commissions are auto-added from expected rates"
-                            : "Select a commission model"}
-                      </span>
-                    </div>
-                  )}
 
                   {!editingAccount && (
                     <div className="form-group">

@@ -708,7 +708,22 @@ export default function BalanceDetailWeb() {
           {/* Notes Section */}
           <div className="table-card full-width">
             <div className="card-header">
-              <h3>Notes & Comments</h3>
+              <h3>Notes</h3>
+              {firstCalculatedAt && variance < 0 && !notes.trim() && (
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    color: "#dc2626",
+                    fontSize: 13,
+                    fontWeight: 500,
+                  }}
+                >
+                  <AlertTriangle size={14} />
+                  Required when there is a loss
+                </span>
+              )}
             </div>
             <textarea
               value={notes}
@@ -753,6 +768,13 @@ export default function BalanceDetailWeb() {
                 </button>
                 <button
                   onClick={async () => {
+                    if (variance < 0 && !notes.trim()) {
+                      showToast(
+                        "Notes are required when there is a loss. Please add an explanation.",
+                        "error",
+                      );
+                      return;
+                    }
                     const result = await handleFinalize();
                     if (result?.success && subtype === "OPENING") {
                       handleBack();
