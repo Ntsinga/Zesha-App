@@ -28,6 +28,10 @@ export function useClerkUserSync() {
   // Tracks whether Clerk auth has just become available so blocked queue items
   // can resume even when the backend user is already cached for the same account.
   const previousSignedInRef = useRef<boolean | null>(null);
+  // Tracks consecutive sync failures to prevent infinite retry loops when the
+  // backend is unreachable (e.g. JWKS misconfiguration, network outage).
+  const syncFailCountRef = useRef<number>(0);
+  const MAX_SYNC_RETRIES = 3;
 
   const {
     user: backendUser,
@@ -91,11 +95,15 @@ export function useClerkUserSync() {
         const result = await dispatch(syncUserWithBackend(syncData));
         if (syncUserWithBackend.fulfilled.match(result)) {
           syncedClerkIdRef.current = clerkUser.id;
+          syncFailCountRef.current = 0;
           // Re-auth succeeded — unblock any items that were stalled by a 401
           // so the sync engine picks them up on the next pass.
           resumeBlockedQueue();
+        } else {
+          syncFailCountRef.current += 1;
         }
       } catch (err) {
+        syncFailCountRef.current += 1;
         console.error("[UserSync] Sync error:", err);
       } finally {
         syncInProgressRef.current = false;
@@ -135,6 +143,12 @@ export function useClerkUserSync() {
         return;
       }
 
+      // Stop retrying after too many consecutive failures to avoid an infinite
+      // loop when the backend is unreachable.
+      if (syncFailCountRef.current >= MAX_SYNC_RETRIES) {
+        return;
+      }
+
       // Check if we need to sync
       const needsSync =
         !backendUser || backendUser.clerkUserId !== clerkUser.id;
@@ -154,6 +168,7 @@ export function useClerkUserSync() {
         dispatch(clearLocalAuth({ preserveSyncQueue: true }));
       }
       syncedClerkIdRef.current = null;
+      syncFailCountRef.current = 0;
     }
   }, [
     isSignedIn,

@@ -85,7 +85,7 @@ function AppContent() {
   }, [isSecureApiReady, isSignedIn]);
 
   // Sync Clerk user with backend (only after secure API is ready)
-  const { isSyncing, backendUser, clerkUser } = useClerkUserSync();
+  const { backendUser, clerkUser } = useClerkUserSync();
   const cachedUser = useAppSelector((state) => state.auth.user);
 
   // Keep a live ref to the current pathname so the auth recovery handler can
@@ -259,9 +259,13 @@ function AppContent() {
     // creating an infinite router.replace → re-render → re-fire loop.
   ]);
 
-  // Determine if we're on an auth page
-  const isAppReady =
-    isLoaded && isSecureApiReady && (!isSyncing || inAuthGroup);
+  // App is ready once Clerk is loaded and the secure API (token getter) is
+  // initialised.  We intentionally do NOT gate on `isSyncing` — the backend
+  // sync is a background operation and all routing decisions already fall back
+  // to Clerk metadata.  Blocking the tree on `isSyncing` causes a blank screen
+  // when the user navigates from (auth) → (app) while the first sync is in
+  // flight, and creates an infinite blank-screen loop if the sync keeps failing.
+  const isAppReady = isLoaded && isSecureApiReady;
 
   const [animatedSplashDone, setAnimatedSplashDone] = useState(false);
 

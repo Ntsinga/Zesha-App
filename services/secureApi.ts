@@ -13,6 +13,24 @@ let getAuthToken: (() => Promise<string | null>) | null = null;
 let authRecoveryHandler: ((error: ApiError) => void | Promise<void>) | null =
   null;
 const MAX_TOKEN_RETRIEVAL_ATTEMPTS = 2;
+const TOKEN_RETRIEVAL_TIMEOUT_MS = 10_000;
+
+/**
+ * Race a promise against a timeout.  Rejects with a descriptive error if
+ * the promise does not settle within `ms` milliseconds.
+ */
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(
+      () => reject(new Error(`${label} timed out after ${ms}ms`)),
+      ms,
+    );
+    promise.then(
+      (value) => { clearTimeout(timer); resolve(value); },
+      (error) => { clearTimeout(timer); reject(error); },
+    );
+  });
+}
 
 /**
  * Initialize the secure API client with a token getter function.
@@ -142,7 +160,11 @@ async function getAuthHeaders(): Promise<Record<string, string>> {
 
   for (let attempt = 0; attempt < MAX_TOKEN_RETRIEVAL_ATTEMPTS; attempt++) {
     try {
-      const token = await getAuthToken();
+      const token = await withTimeout(
+        getAuthToken(),
+        TOKEN_RETRIEVAL_TIMEOUT_MS,
+        "getAuthToken",
+      );
       if (token) {
         return { Authorization: `Bearer ${token}` };
       }

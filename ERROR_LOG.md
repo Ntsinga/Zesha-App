@@ -26,6 +26,26 @@ Log meaningful task-execution failures even if the final feature or fix succeeds
 
 ---
 
+### 2026-06-17 - Blank screen after mobile password reset (isSyncing gate + infinite retry loop)
+
+- Status: Resolved
+- Area: Auth / State / Navigation
+- Symptoms: After resetting a password on the native mobile app, the user was stuck on a blank/loading screen indefinitely and had to force-close the app. The user described seeing "a loader" — a plain spinner with no text (not the "Loading agencies..." text that appears when agency data is fetching).
+- Root cause: Two compounding issues:
+  1. **`isSyncing` gate in `isAppReady`**: The root layout (`_layout.tsx`) computed `isAppReady = isLoaded && isSecureApiReady && (!isSyncing || inAuthGroup)`. After `setActive()` fires during password reset, `useClerkUserSync` dispatches `syncUserWithBackend` → `isSyncing = true`. Simultaneously, the navigation effect fires `router.replace("/(app)")` → `inAuthGroup = false`. This makes `isAppReady = false`, causing `AppContent` to return `null` and unmount the entire Stack — the user sees a blank screen (native splash already dismissed).
+  2. **Infinite retry loop in `useClerkUserSync`**: If the sync fails (e.g., backend JWKS misconfigured after Clerk instance switch), `isSyncing` flips `false` → the effect (which depends on `isSyncing`) re-fires → `syncedClerkIdRef` is still `null` → `needsSync = true` → `syncUser()` dispatches again → `isSyncing = true`. This creates an endless cycle of blank screen → brief flash → blank screen, lasting until the user force-closes the app.
+- Solution implemented:
+  1. Removed `isSyncing` from the `isAppReady` gate: `const isAppReady = isLoaded && isSecureApiReady`. The backend sync is a background operation; all routing decisions already fall back to Clerk `publicMetadata` (role, companyId). Screens handle missing backend data gracefully with their own loading states.
+  2. Added a retry limit (`MAX_SYNC_RETRIES = 3`) to `useClerkUserSync`. A `syncFailCountRef` tracks consecutive failures. After 3 failed attempts, the hook stops retrying. The counter resets on success or sign-out (new user session).
+- Validation:
+  - `npx tsc --noEmit` passes with zero errors in changed files (`_layout.tsx`, `useClerkUserSync.ts`).
+  - Verified `isSyncing` is no longer referenced in `_layout.tsx` (cleaned up unused destructure).
+  - All routing decisions in root layout and `(app)` layout use `useEffectiveRole()` which falls back to Clerk metadata — no dependency on backend sync completing first.
+- Lessons learned:
+  - Do not gate the entire app tree render on a background network operation (`isSyncing`). If the operation fails or hangs, the user is stuck with a blank screen. Background syncs should complete in the background while the user sees a usable UI.
+  - Effect dependency loops: when a ref (`syncedClerkIdRef`) is only set on success, and the effect re-fires on the state change caused by failure (`isSyncing`), the result is an infinite retry loop. Always add explicit retry limits to effects that can fail and re-trigger themselves.
+  - A plain `ActivityIndicator` (no text) in a screen's `!authReady` gate looks identical to a blank screen from the user's perspective — always match the visual symptom to the actual rendering path (`AppContent` returning `null` vs. screen-level loading gate).
+
 ### 2026-06-16 - Thick reference lettermark extraction briefly reused source shading
 
 - Status: Resolved
