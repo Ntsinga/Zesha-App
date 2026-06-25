@@ -4,7 +4,6 @@ import { useRouter } from "expo-router";
 import { AlertCircle, Eye, EyeOff, Check } from "lucide-react";
 import "../../styles/web.css";
 import AuthBrandPanel from "../../components/AuthBrandPanel.web";
-import { store } from "../../store";
 
 /**
  * Set Password Page (Web) - For invited users to set their password
@@ -210,16 +209,10 @@ export default function SetPasswordWeb() {
         setSuccess(true);
 
         // Use window.location for a clean redirect that avoids router race conditions.
-        // Only route to /agency-setup if the user genuinely hasn't finished onboarding
-        // (check backend state, not stale Clerk metadata which is never cleared).
+        // The root layout will route to agency setup only after fresh backend sync
+        // confirms onboarding is still required.
         setTimeout(() => {
-          const backendUser = store.getState().auth.user;
-          const genuinelyNeedsOnboarding =
-            backendUser?.role === "Administrator" &&
-            backendUser.onboardingStatus !== "COMPLETED";
-          window.location.href = genuinelyNeedsOnboarding
-            ? "/agency-setup"
-            : "/";
+          window.location.href = "/";
         }, 1500);
       }
     } catch (err: any) {

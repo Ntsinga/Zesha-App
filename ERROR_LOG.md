@@ -26,6 +26,18 @@ Log meaningful task-execution failures even if the final feature or fix succeeds
 
 ---
 
+### 2026-06-25 - Password reset reused stale onboarding cache
+
+- Status: Resolved
+- Area: Auth / Navigation / State
+- Symptoms: After resetting a password on web, an existing user was still redirected to `/agency-setup` even though they had already completed agency onboarding.
+- Root cause: The web password reset branch and root routing gate trusted Redux/localStorage backend user state during the reset transition. That cached user can be stale, especially after auth/session changes, so an old `PENDING_*` onboarding status could force `/agency-setup` before `useClerkUserSync` refreshed the real backend user.
+- Solution implemented: Existing-user password reset now redirects to `/` and lets the root router decide after sync. The web root layout now routes to agency onboarding only from freshly synced backend user data; cached localStorage state is no longer enough to force onboarding.
+- Validation: Ran `npx tsc --noEmit` successfully for the full frontend project. Manually reviewed the changed routing sections in `app/_layout.web.tsx` and `app/(auth)/set-password.web.tsx`.
+- Lessons learned: Onboarding redirects must not be driven by cached user state during auth transitions. Treat cached backend user data as display/session bootstrap only; use fresh sync results for destructive or trapping redirects like onboarding gates.
+
+---
+
 ### 2026-06-17 - Blank screen after mobile password reset (isSyncing gate + infinite retry loop)
 
 - Status: Resolved

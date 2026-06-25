@@ -7,11 +7,7 @@ import { Provider } from "react-redux";
 import ErrorBoundary from "../components/ErrorBoundary";
 import { store } from "../store";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
-import {
-  clearLocalAuth,
-  initializeAuth,
-  selectNeedsAgencyOnboarding,
-} from "../store/slices/authSlice";
+import { clearLocalAuth, initializeAuth } from "../store/slices/authSlice";
 import { ClerkProvider, useAuth, useUser } from "@clerk/clerk-react";
 import { useRouter, usePathname, useNavigationContainerRef } from "expo-router";
 import { useClerkUserSync } from "../hooks/useClerkUserSync.web";
@@ -106,12 +102,11 @@ function AppContent() {
   }, [dispatch, isLoaded, isSignedIn, signOut]);
 
   // Sync Clerk user with backend (only after secure API is ready)
-  const { isSyncing, backendUser: syncedUser } = useClerkUserSync();
+  const { backendUser: syncedUser } = useClerkUserSync();
 
   // Also read the Redux auth state directly (populated by initializeAuth from cache)
   const cachedUser = useAppSelector((state) => state.auth.user);
   const isAuthInitialized = useAppSelector((state) => state.auth.isInitialized);
-  const needsAgencyOnboarding = useAppSelector(selectNeedsAgencyOnboarding);
 
   // Clerk metadata fallback — works even when backend sync is down
   const clerkMeta = user?.publicMetadata as
@@ -120,17 +115,18 @@ function AppContent() {
   const isInvitedAgencyAdmin =
     clerkMeta?.role === "Administrator" &&
     clerkMeta?.invitation_type === "agency_setup";
-  // Only use the Clerk-metadata fallback when the backend user has loaded but
-  // genuinely lacks a companyId.  When both syncedUser and cachedUser are null
-  // (e.g. during a password-reset transition), treat onboarding as unknown
-  // rather than required — the routing effect already waits for hasUserData
-  // before redirecting to "/".
-  const backendUserLoaded = !!(syncedUser ?? cachedUser);
+  // Only route to onboarding from fresh backend sync data. Cached localStorage
+  // can be stale during password-reset transitions and must not force users
+  // back to agency setup before sync refreshes the real onboarding state.
+  const syncedUserNeedsOnboarding =
+    syncedUser?.role === "Administrator" &&
+    !(syncedUser.onboardingStatus === "COMPLETED" && !!syncedUser.companyId) &&
+    (syncedUser.onboardingStatus === "PENDING_COMPANY_INFO" ||
+      syncedUser.onboardingStatus === "PENDING_ACCOUNTS" ||
+      !syncedUser.companyId);
   const effectiveNeedsOnboarding =
-    needsAgencyOnboarding ||
-    (isInvitedAgencyAdmin &&
-      backendUserLoaded &&
-      !(syncedUser ?? cachedUser)?.companyId);
+    syncedUserNeedsOnboarding ||
+    (isInvitedAgencyAdmin && !!syncedUser && !syncedUser.companyId);
 
   useEffect(() => {
     const effectiveUser = syncedUser ?? cachedUser;
