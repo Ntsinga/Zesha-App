@@ -187,9 +187,10 @@ export default function SetPasswordWeb() {
           await setActive({ session: result.createdSessionId });
           setSuccess(true);
           setTimeout(() => {
-            // Invite flow users are agency admins who need onboarding setup.
-            // Redirect directly to avoid race condition with async backend sync.
-            window.location.href = "/agency-setup";
+            // Let the root layout route from the freshly synced backend user.
+            // Normal agency invites still go to onboarding when /users/sync
+            // returns a pending onboarding_status.
+            window.location.href = "/";
           }, 1500);
         } else {
           // Maybe needs verification or other step

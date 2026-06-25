@@ -108,25 +108,14 @@ function AppContent() {
   const cachedUser = useAppSelector((state) => state.auth.user);
   const isAuthInitialized = useAppSelector((state) => state.auth.isInitialized);
 
-  // Clerk metadata fallback — works even when backend sync is down
-  const clerkMeta = user?.publicMetadata as
-    | { role?: string; invitation_type?: string; onboarding_required?: boolean }
-    | undefined;
-  const isInvitedAgencyAdmin =
-    clerkMeta?.role === "Administrator" &&
-    clerkMeta?.invitation_type === "agency_setup";
-  // Only route to onboarding from fresh backend sync data. Cached localStorage
-  // can be stale during password-reset transitions and must not force users
-  // back to agency setup before sync refreshes the real onboarding state.
+  // The backend user is the source of truth for onboarding. Clerk metadata is
+  // intentionally ignored here because invite metadata is not cleared after
+  // onboarding and can become stale.
   const syncedUserNeedsOnboarding =
     syncedUser?.role === "Administrator" &&
-    !(syncedUser.onboardingStatus === "COMPLETED" && !!syncedUser.companyId) &&
     (syncedUser.onboardingStatus === "PENDING_COMPANY_INFO" ||
-      syncedUser.onboardingStatus === "PENDING_ACCOUNTS" ||
-      !syncedUser.companyId);
-  const effectiveNeedsOnboarding =
-    syncedUserNeedsOnboarding ||
-    (isInvitedAgencyAdmin && !!syncedUser && !syncedUser.companyId);
+      syncedUser.onboardingStatus === "PENDING_ACCOUNTS");
+  const effectiveNeedsOnboarding = syncedUserNeedsOnboarding;
 
   useEffect(() => {
     const effectiveUser = syncedUser ?? cachedUser;
