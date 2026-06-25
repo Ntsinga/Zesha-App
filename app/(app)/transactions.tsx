@@ -51,6 +51,11 @@ import type { Account } from "../../types";
 type TypeFilter = "ALL" | TransactionTypeEnum;
 type ShiftFilter = "ALL" | ShiftEnum;
 
+function maskAccountNumber(acc: string): string {
+  if (acc.length <= 6) return acc;
+  return acc.slice(0, 3) + "*".repeat(acc.length - 6) + acc.slice(-3);
+}
+
 const FINANCIAL_QUEUE_ENTITY_TYPES = new Set([
   "transaction",
   "floatPurchase",
@@ -1262,8 +1267,7 @@ export default function Transactions() {
                           {tx.account?.name || `Acct #${tx.accountId}`}
                         </Text>
                         <Text className="text-xs text-gray-400">
-                          {formatTransactionTime(tx.transactionTime)} ·{" "}
-                          {tx.shift}
+                          {formatTransactionTime(tx.transactionTime)}
                         </Text>
                       </View>
                       {tx.reference ? (
@@ -1276,6 +1280,21 @@ export default function Transactions() {
                           {tx.notes}
                         </Text>
                       ) : null}
+                      {(tx.customerName ||
+                        tx.phoneNumber ||
+                        tx.accountNumber) && (
+                        <Text className="text-xs text-gray-500 mt-0.5">
+                          {[
+                            tx.customerName,
+                            tx.phoneNumber,
+                            tx.accountNumber
+                              ? maskAccountNumber(tx.accountNumber)
+                              : null,
+                          ]
+                            .filter(Boolean)
+                            .join(" · ")}
+                        </Text>
+                      )}
                       <View
                         className="self-start px-2 py-0.5 rounded mt-1"
                         style={{ backgroundColor: badgeColors.bg }}

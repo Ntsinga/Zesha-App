@@ -49,6 +49,12 @@ function isOverlapBlocked(status?: StatementOverlapStatus): boolean {
   );
 }
 
+function maskAccountNumber(acc: string | null | undefined): string {
+  if (!acc) return "-";
+  if (acc.length <= 6) return acc;
+  return acc.slice(0, 3) + "*".repeat(acc.length - 6) + acc.slice(-3);
+}
+
 /**
  * Web Transactions Screen - Full CRUD with filtering, metrics, and float purchases
  */
@@ -917,7 +923,9 @@ export default function TransactionsWeb() {
                 <th>Date/Time</th>
                 <th>Type</th>
                 <th>Account</th>
-                <th>Shift</th>
+                <th>Customer</th>
+                <th>Phone</th>
+                <th>Acc #</th>
                 <th>Amount</th>
                 <th>Commission</th>
                 <th>Balance After</th>
@@ -929,7 +937,7 @@ export default function TransactionsWeb() {
             <tbody>
               {transactions.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="empty">
+                  <td colSpan={12} className="empty">
                     <Activity size={40} />
                     <p>No transactions found</p>
                     <p style={{ fontSize: "12px", color: "#64748b" }}>
@@ -1052,8 +1060,10 @@ export default function TransactionsWeb() {
                     <td className="font-medium">
                       {txn.account?.name || `Account #${txn.accountId}`}
                     </td>
-                    <td>
-                      <span className="shift-badge">{txn.shift}</span>
+                    <td className="description">{txn.customerName || "-"}</td>
+                    <td className="description">{txn.phoneNumber || "-"}</td>
+                    <td className="description">
+                      {maskAccountNumber(txn.accountNumber)}
                     </td>
                     <td
                       className={`amount ${txn.transactionType === "DEPOSIT" || txn.transactionType === "CAPITAL_INJECTION" ? "positive" : txn.transactionType === "WITHDRAW" ? "negative" : ""}`}

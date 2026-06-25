@@ -1985,38 +1985,8 @@ body {
   font-weight: 400;
 }
 
-/* ── gt-strip responsive: wrap Drawings row below at narrow viewports ── */
+/* ── gt-strip responsive: wrap Drawings + Live below at narrow viewports ── */
 @media (max-width: 1200px) {
-  .gt-strip {
-    grid-template-columns:
-      auto
-      minmax(48px, 1fr)
-      minmax(48px, 1fr)
-      1px
-      minmax(48px, 1fr)
-      minmax(48px, 1fr)
-      1px
-      minmax(60px, 1fr)
-      minmax(48px, 1fr)
-      auto;
-    column-gap: 10px;
-    padding: 10px 14px 8px;
-  }
-  .gt-strip-amount {
-    font-size: 16px;
-  }
-  .gt-strip-metric-value {
-    font-size: 13px;
-  }
-  .gt-strip-metric-label {
-    font-size: 11px;
-  }
-  .gt-strip-group-label {
-    font-size: 8px;
-  }
-}
-
-@media (max-width: 960px) {
   .gt-strip {
     grid-template-columns:
       auto
@@ -2030,15 +2000,28 @@ body {
     row-gap: 2px;
     padding: 12px 14px;
   }
+  .gt-strip-amount {
+    font-size: 16px;
+  }
+  .gt-strip-metric-value {
+    font-size: 13px;
+  }
+  .gt-strip-metric-label {
+    font-size: 11px;
+  }
+  .gt-strip-group-label {
+    font-size: 8px;
+  }
   /* Hide divider 2 (between Performance and Drawings) — Drawings goes below */
   .gt-strip-div2 {
     display: none;
   }
-  /* Live indicator goes to end of first row area */
+  /* Live indicator moves to Drawings row */
   .gt-strip-live {
-    grid-column: 6;
-    grid-row: 1;
+    grid-column: 4 / -1;
+    grid-row: 5 / 7;
     justify-self: end;
+    align-self: center;
   }
   /* Row 1: group labels — keep Available and Performance in top section */
   .gt-strip-grp-available {

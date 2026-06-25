@@ -120,6 +120,9 @@ export const AddTransactionForm: React.FC<AddTransactionFormProps> = ({
   const [amount, setAmount] = useState("");
   const [reference, setReference] = useState("");
   const [notes, setNotes] = useState("");
+  const [customerName, setCustomerName] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [accountNumber, setAccountNumber] = useState("");
   const [shift, setShift] = useState<ShiftEnum>(() => {
     return new Date().getHours() < 12 ? "AM" : "PM";
   });
@@ -155,6 +158,9 @@ export const AddTransactionForm: React.FC<AddTransactionFormProps> = ({
     setAmount("");
     setReference("");
     setNotes("");
+    setCustomerName("");
+    setPhoneNumber("");
+    setAccountNumber("");
   };
 
   useEffect(() => {
@@ -262,6 +268,9 @@ export const AddTransactionForm: React.FC<AddTransactionFormProps> = ({
           transactionTime: new Date().toISOString(),
           reference: reference || undefined,
           notes: notes || undefined,
+          customer_name: customerName || undefined,
+          phone_number: phoneNumber || undefined,
+          account_number: accountNumber || undefined,
           idempotencyKey: requestKey,
         };
 
@@ -563,6 +572,43 @@ export const AddTransactionForm: React.FC<AddTransactionFormProps> = ({
         placeholder="0.00"
         placeholderTextColor="#9ca3af"
       />
+
+      {/* Customer details — only for deposit/withdraw */}
+      {mode !== "FLOAT" && accountId && (() => {
+        const selectedAccount = activeAccounts.find((a) => a.id === accountId);
+        if (!selectedAccount) return null;
+        const isBank = selectedAccount.accountType === "BANK";
+        return (
+          <View className="bg-gray-50 rounded-xl p-3 mb-4 border border-gray-100">
+            <Text className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Customer Details (optional)</Text>
+            <TextInput
+              className="border border-gray-200 rounded-lg px-3 py-2.5 mb-2 text-gray-800 bg-white"
+              value={customerName}
+              onChangeText={setCustomerName}
+              placeholder="Customer name"
+              placeholderTextColor="#9ca3af"
+            />
+            <TextInput
+              className="border border-gray-200 rounded-lg px-3 py-2.5 mb-2 text-gray-800 bg-white"
+              value={phoneNumber}
+              onChangeText={setPhoneNumber}
+              placeholder="Phone number"
+              placeholderTextColor="#9ca3af"
+              keyboardType="phone-pad"
+            />
+            {isBank && (
+              <TextInput
+                className="border border-gray-200 rounded-lg px-3 py-2.5 text-gray-800 bg-white"
+                value={accountNumber}
+                onChangeText={setAccountNumber}
+                placeholder="Account number"
+                placeholderTextColor="#9ca3af"
+                keyboardType="default"
+              />
+            )}
+          </View>
+        );
+      })()}
 
       {/* Reference */}
       <Text className="text-sm font-medium text-gray-600 mb-1">
