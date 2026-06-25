@@ -6289,9 +6289,9 @@ body {
 }
 
 .image-modal-overlay .modal-close {
-  position: absolute;
-  top: -50px;
-  right: 0;
+  position: fixed;
+  top: 20px;
+  right: 20px;
   background: rgba(255, 255, 255, 0.2);
   border: none;
   border-radius: var(--radius-full);
@@ -6302,10 +6302,11 @@ body {
   align-items: center;
   justify-content: center;
   transition: background 0.2s;
+  z-index: 10000;
 }
 
 .image-modal-overlay .modal-close:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.4);
 }
 
 .card-header {
