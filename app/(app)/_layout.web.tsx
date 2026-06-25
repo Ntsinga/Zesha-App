@@ -265,8 +265,8 @@ export default function AppLayoutWeb() {
   // Items hidden from Agents and Agent Supervisors
   const agentHiddenRoutes = new Set(["/accounts", "/audit-logs"]);
 
-  // Routes restricted to Administrator and Super Administrator only
-  const adminOnlyRoutes = new Set(["/audit-logs"]);
+  // Routes restricted to Super Administrator only
+  const superAdminOnlyRoutes = new Set(["/audit-logs"]);
 
   // Determine which nav items to show based on user role and viewing state
   // Superadmin NOT viewing agency = only see Manage Agencies
@@ -276,8 +276,10 @@ export default function AppLayoutWeb() {
     effectiveRole === "Agent"
       ? agencyNavItems.filter((item) => !agentHiddenRoutes.has(item.href))
       : effectiveRole === "Agent Supervisor"
-        ? agencyNavItems.filter((item) => !adminOnlyRoutes.has(item.href))
-        : agencyNavItems;
+        ? agencyNavItems.filter((item) => !superAdminOnlyRoutes.has(item.href))
+        : effectiveRole === "Administrator"
+          ? agencyNavItems.filter((item) => !superAdminOnlyRoutes.has(item.href))
+          : agencyNavItems;
 
   const navItems: NavItem[] =
     isSuperAdmin && !isViewingAgency ? superAdminNavItems : baseAgencyNavItems;

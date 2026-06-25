@@ -1985,6 +1985,145 @@ body {
   font-weight: 400;
 }
 
+/* ── gt-strip responsive: wrap Drawings row below at narrow viewports ── */
+@media (max-width: 1200px) {
+  .gt-strip {
+    grid-template-columns:
+      auto
+      minmax(48px, 1fr)
+      minmax(48px, 1fr)
+      1px
+      minmax(48px, 1fr)
+      minmax(48px, 1fr)
+      1px
+      minmax(60px, 1fr)
+      minmax(48px, 1fr)
+      auto;
+    column-gap: 10px;
+    padding: 10px 14px 8px;
+  }
+  .gt-strip-amount {
+    font-size: 16px;
+  }
+  .gt-strip-metric-value {
+    font-size: 13px;
+  }
+  .gt-strip-metric-label {
+    font-size: 11px;
+  }
+  .gt-strip-group-label {
+    font-size: 8px;
+  }
+}
+
+@media (max-width: 960px) {
+  .gt-strip {
+    grid-template-columns:
+      auto
+      minmax(44px, 1fr)
+      minmax(44px, 1fr)
+      1px
+      minmax(44px, 1fr)
+      minmax(44px, 1fr);
+    grid-template-rows: auto auto auto auto auto auto;
+    column-gap: 10px;
+    row-gap: 2px;
+    padding: 12px 14px;
+  }
+  /* Hide divider 2 (between Performance and Drawings) — Drawings goes below */
+  .gt-strip-div2 {
+    display: none;
+  }
+  /* Live indicator goes to end of first row area */
+  .gt-strip-live {
+    grid-column: 6;
+    grid-row: 1;
+    justify-self: end;
+  }
+  /* Row 1: group labels — keep Available and Performance in top section */
+  .gt-strip-grp-available {
+    grid-column: 2 / 4;
+    grid-row: 1;
+  }
+  .gt-strip-grp-performance {
+    grid-column: 5 / 7;
+    grid-row: 1;
+  }
+  /* Divider 1 stays */
+  .gt-strip-div1 {
+    grid-column: 4;
+    grid-row: 2 / 4;
+  }
+  /* TOC stays in col 1 rows 2-3 */
+  .gt-strip-toc-label-cell {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  .gt-strip-toc-val-cell {
+    grid-column: 1;
+    grid-row: 3;
+  }
+  /* Available labels/values in row 2-3 */
+  .gt-strip-cell-float-lbl {
+    grid-column: 2;
+    grid-row: 2;
+  }
+  .gt-strip-cell-cash-lbl {
+    grid-column: 3;
+    grid-row: 2;
+  }
+  .gt-strip-cell-float-val {
+    grid-column: 2;
+    grid-row: 3;
+  }
+  .gt-strip-cell-cash-val {
+    grid-column: 3;
+    grid-row: 3;
+  }
+  /* Performance labels/values in row 2-3 */
+  .gt-strip-cell-exp-lbl {
+    grid-column: 5;
+    grid-row: 2;
+  }
+  .gt-strip-cell-excess-lbl {
+    grid-column: 6;
+    grid-row: 2;
+  }
+  .gt-strip-cell-exp-val {
+    grid-column: 5;
+    grid-row: 3;
+  }
+  .gt-strip-cell-excess-val {
+    grid-column: 6;
+    grid-row: 3;
+  }
+
+  /* ── Drawings section moves to row 4-6 ── */
+  .gt-strip-grp-outflow {
+    grid-column: 1 / -1;
+    grid-row: 4;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid #e5e7eb;
+  }
+  .gt-strip-cell-unr-lbl {
+    grid-column: 1;
+    grid-row: 5;
+  }
+  .gt-strip-cell-month-lbl {
+    grid-column: 2;
+    grid-row: 5;
+  }
+  .gt-strip-cell-unr-val {
+    grid-column: 1;
+    grid-row: 6;
+  }
+  .gt-strip-cell-month-val {
+    grid-column: 2;
+    grid-row: 6;
+  }
+}
+
 /* Accounts row inside strip */
 .gt-strip-accounts {
   width: 100%;
