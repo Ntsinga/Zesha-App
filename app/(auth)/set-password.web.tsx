@@ -217,7 +217,9 @@ export default function SetPasswordWeb() {
           const genuinelyNeedsOnboarding =
             backendUser?.role === "Administrator" &&
             backendUser.onboardingStatus !== "COMPLETED";
-          window.location.href = genuinelyNeedsOnboarding ? "/agency-setup" : "/";
+          window.location.href = genuinelyNeedsOnboarding
+            ? "/agency-setup"
+            : "/";
         }, 1500);
       }
     } catch (err: any) {
