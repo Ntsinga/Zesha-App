@@ -96,7 +96,7 @@ function RegisteredNamesInput({
             }
           }}
           className="form-input"
-          placeholder="e.g. MTN MOBILE MONEY"
+          placeholder="e.g. AIRTEL UGANDA LTD"
           style={{ flex: 1 }}
         />
         <button
