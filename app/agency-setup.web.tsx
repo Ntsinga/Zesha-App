@@ -22,7 +22,6 @@ import type {
   CompanyInfoCreate,
   AccountCreate,
   AccountTypeEnum,
-  CommissionModelEnum,
 } from "@/types";
 import { CURRENCIES } from "@/hooks/screens/useSettingsScreen";
 import { formatAmountInput, parseAmountInput } from "@/utils/formatters";
@@ -48,7 +47,6 @@ type CustomAccountDraft = {
   name: string;
   description: string;
   accountType: AccountTypeEnum;
-  commissionModel: CommissionModelEnum;
   registeredNames: string[];
 };
 
@@ -355,7 +353,6 @@ export default function AgencySetupWeb() {
         name: "",
         description: "",
         accountType: "TELECOM",
-        commissionModel: "EXPECTED_ONLY",
         registeredNames: [],
       },
     ]);
@@ -465,7 +462,6 @@ export default function AgencySetupWeb() {
         name: account.name,
         description: account.description || undefined,
         accountType: account.accountType,
-        commissionModel: account.commissionModel,
         companyId: effectiveCompanyId,
         isActive: true,
         initialBalance: 0,
@@ -1129,28 +1125,6 @@ export default function AgencySetupWeb() {
                               >
                                 <option value="BANK">BANK</option>
                                 <option value="TELECOM">TELECOM</option>
-                              </select>
-                            </div>
-                            <div className="form-group">
-                              <label className="form-label">
-                                Commission Model
-                              </label>
-                              <select
-                                value={account.commissionModel}
-                                onChange={(e) =>
-                                  updateCustomAccount(
-                                    account.id,
-                                    "commissionModel",
-                                    e.target.value,
-                                  )
-                                }
-                                className="form-select"
-                              >
-                                <option value="EXPECTED_ONLY">
-                                  EXPECTED_ONLY
-                                </option>
-                                <option value="CUMULATIVE">CUMULATIVE</option>
-                                <option value="PARTIAL">PARTIAL</option>
                               </select>
                             </div>
                             <div
