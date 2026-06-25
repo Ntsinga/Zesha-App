@@ -124,15 +124,13 @@ export function useClerkUserSync() {
       return;
     }
 
-    const authBecameAvailable = isSignedIn && previousSignedInRef.current !== true;
+    const authBecameAvailable =
+      isSignedIn && previousSignedInRef.current !== true;
 
     if (isSignedIn && clerkUser) {
       // Skip if we already synced this clerk user (prevents loops)
       if (syncedClerkIdRef.current === clerkUser.id) {
-        if (
-          authBecameAvailable &&
-          backendUser?.clerkUserId === clerkUser.id
-        ) {
+        if (authBecameAvailable && backendUser?.clerkUserId === clerkUser.id) {
           resumeBlockedQueue();
         }
         return;

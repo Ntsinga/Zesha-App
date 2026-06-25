@@ -19,15 +19,25 @@ const TOKEN_RETRIEVAL_TIMEOUT_MS = 10_000;
  * Race a promise against a timeout.  Rejects with a descriptive error if
  * the promise does not settle within `ms` milliseconds.
  */
-function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+function withTimeout<T>(
+  promise: Promise<T>,
+  ms: number,
+  label: string,
+): Promise<T> {
   return new Promise<T>((resolve, reject) => {
     const timer = setTimeout(
       () => reject(new Error(`${label} timed out after ${ms}ms`)),
       ms,
     );
     promise.then(
-      (value) => { clearTimeout(timer); resolve(value); },
-      (error) => { clearTimeout(timer); reject(error); },
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        clearTimeout(timer);
+        reject(error);
+      },
     );
   });
 }
@@ -59,7 +69,12 @@ export class ApiError extends Error {
   code?: string;
   details?: unknown;
 
-  constructor(message: string, status: number, code?: string, details?: unknown) {
+  constructor(
+    message: string,
+    status: number,
+    code?: string,
+    details?: unknown,
+  ) {
     super(message);
     this.name = "ApiError";
     this.status = status;
@@ -186,7 +201,7 @@ async function getAuthHeaders(): Promise<Record<string, string>> {
   throw buildMissingAuthError(
     lastTokenError instanceof Error
       ? lastTokenError.message
-      : lastTokenError ?? "Token retrieval failed",
+      : (lastTokenError ?? "Token retrieval failed"),
   );
 }
 
@@ -246,10 +261,7 @@ export async function secureRequest(
 
     return response;
   } catch (error) {
-    if (
-      error instanceof ApiError &&
-      error.code === "AUTH_TOKEN_UNAVAILABLE"
-    ) {
+    if (error instanceof ApiError && error.code === "AUTH_TOKEN_UNAVAILABLE") {
       notifyAuthRecovery(error);
     }
 
@@ -307,11 +319,7 @@ export async function secureApiRequest<T>(
 
       // Handle authentication errors — not retryable
       if (response.status === 401) {
-        throw new ApiError(
-          "Session expired.",
-          401,
-          "UNAUTHORIZED",
-        );
+        throw new ApiError("Session expired.", 401, "UNAUTHORIZED");
       }
 
       if (response.status === 403) {
