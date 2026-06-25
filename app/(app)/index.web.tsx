@@ -222,16 +222,24 @@ export default function DashboardWeb() {
         {/* === Full-width Grand Total Strip === */}
         <div className="gt-strip">
           {/* ── Row 1: Group labels ── */}
-          <span className="gt-strip-group-label gt-strip-grp-available">Available</span>
-          <span className="gt-strip-group-label gt-strip-grp-performance">Performance</span>
+          <span className="gt-strip-group-label gt-strip-grp-available">
+            Available
+          </span>
+          <span className="gt-strip-group-label gt-strip-grp-performance">
+            Performance
+          </span>
           <span className="gt-strip-group-label gt-strip-grp-outflow">
             Drawings / Capital Used
             {capitalPendingExpenses > 0 &&
               displayCapital > 0 &&
-              capitalPendingExpenses / (displayCapital + capitalPendingExpenses) > 0.3 && (
+              capitalPendingExpenses /
+                (displayCapital + capitalPendingExpenses) >
+                0.3 && (
                 <span className="gt-strip-expense-badge">
                   {Math.round(
-                    (capitalPendingExpenses / (displayCapital + capitalPendingExpenses)) * 100,
+                    (capitalPendingExpenses /
+                      (displayCapital + capitalPendingExpenses)) *
+                      100,
                   )}
                   % of capital
                 </span>
@@ -246,9 +254,15 @@ export default function DashboardWeb() {
           <div className="gt-strip-toc-label-cell">
             <span className="gt-strip-label">Total Operating Capital</span>
           </div>
-          <span className="gt-strip-metric-label gt-strip-cell-float-lbl">Float</span>
-          <span className="gt-strip-metric-label gt-strip-cell-cash-lbl">Cash</span>
-          <span className="gt-strip-metric-label gt-strip-cell-exp-lbl">Expected</span>
+          <span className="gt-strip-metric-label gt-strip-cell-float-lbl">
+            Float
+          </span>
+          <span className="gt-strip-metric-label gt-strip-cell-cash-lbl">
+            Cash
+          </span>
+          <span className="gt-strip-metric-label gt-strip-cell-exp-lbl">
+            Expected
+          </span>
           <span className="gt-strip-metric-label gt-strip-cell-excess-lbl">
             {displayVariance > 0 ? "Excess" : "Loss"}
           </span>
@@ -260,13 +274,15 @@ export default function DashboardWeb() {
             <span className="tooltip-wrap">
               <Info size={11} style={{ color: "var(--color-text-muted)" }} />
               <span className="tooltip-box">
-                Money spent from capital that hasn't been paid back yet.
-                Until reimbursed, this amount is reducing your available
-                working capital.
+                Money spent from capital that hasn't been paid back yet. Until
+                reimbursed, this amount is reducing your available working
+                capital.
               </span>
             </span>
           </span>
-          <span className="gt-strip-metric-label gt-strip-cell-month-lbl">This Month</span>
+          <span className="gt-strip-metric-label gt-strip-cell-month-lbl">
+            This Month
+          </span>
 
           {/* ── Row 3: Values ── */}
           <div className="gt-strip-toc-val-cell">
@@ -578,6 +594,10 @@ export default function DashboardWeb() {
                       tick={{ fontSize: 11, fill: "#6b7280" }}
                       axisLine={false}
                       tickLine={false}
+                      interval={Math.max(
+                        0,
+                        Math.ceil(commissionLineData.length / 7) - 1,
+                      )}
                     />
                     <YAxis
                       tick={{ fontSize: 11, fill: "#6b7280" }}
@@ -640,6 +660,10 @@ export default function DashboardWeb() {
                       tick={{ fontSize: 11, fill: "#6b7280" }}
                       axisLine={false}
                       tickLine={false}
+                      interval={Math.max(
+                        0,
+                        Math.ceil(netEarningsTrendData.length / 7) - 1,
+                      )}
                     />
                     <YAxis
                       tick={{ fontSize: 11, fill: "#6b7280" }}
