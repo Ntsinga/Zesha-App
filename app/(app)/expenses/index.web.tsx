@@ -106,6 +106,8 @@ export default function ExpensesIndexWeb() {
     categories,
     isExpenseEditable,
     formatCurrency,
+    showAllTime,
+    setShowAllTime,
   } = useExpensesScreen();
 
   const { showToast } = useToast();
@@ -396,45 +398,90 @@ export default function ExpensesIndexWeb() {
           border: "1px solid var(--color-border)",
         }}
       >
-        {/* Month nav */}
+        {/* Time filter: All vs month */}
         <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
           <button
-            onClick={goToPrevMonth}
+            onClick={() => setShowAllTime(true)}
+            style={{
+              padding: "5px 11px",
+              borderRadius: 6,
+              border: "1px solid",
+              borderColor: showAllTime
+                ? "var(--color-primary)"
+                : "var(--color-border)",
+              background: showAllTime ? "rgba(192,21,42,0.08)" : "transparent",
+              cursor: "pointer",
+              fontSize: 12,
+              fontWeight: 600,
+              color: showAllTime
+                ? "var(--color-primary)"
+                : "var(--color-text-secondary)",
+            }}
+          >
+            All
+          </button>
+          <button
+            onClick={() => {
+              setShowAllTime(false);
+              goToPrevMonth();
+            }}
+            disabled={showAllTime}
             style={{
               background: "none",
               border: "1px solid var(--color-border)",
               borderRadius: 6,
-              cursor: "pointer",
+              cursor: showAllTime ? "default" : "pointer",
               padding: "5px 7px",
               display: "flex",
               alignItems: "center",
-              color: "var(--color-text-secondary)",
+              color: showAllTime
+                ? "var(--color-text-muted)"
+                : "var(--color-text-secondary)",
+              opacity: showAllTime ? 0.5 : 1,
             }}
           >
             <ChevronLeft size={14} />
           </button>
-          <span
+          <button
+            onClick={() => setShowAllTime(false)}
             style={{
-              fontSize: 13,
+              padding: "5px 11px",
+              borderRadius: 6,
+              border: "1px solid",
+              borderColor: !showAllTime
+                ? "var(--color-primary)"
+                : "var(--color-border)",
+              background: !showAllTime ? "rgba(192,21,42,0.08)" : "transparent",
+              cursor: "pointer",
+              fontSize: 12,
               fontWeight: 600,
-              color: "var(--color-text)",
+              color: !showAllTime
+                ? "var(--color-primary)"
+                : "var(--color-text-secondary)",
               minWidth: 120,
-              textAlign: "center",
+              textAlign: "center" as const,
             }}
           >
             {monthLabel}
-          </span>
+          </button>
           <button
-            onClick={goToNextMonth}
+            onClick={() => {
+              setShowAllTime(false);
+              goToNextMonth();
+            }}
+            disabled={showAllTime}
             style={{
               background: "none",
               border: "1px solid var(--color-border)",
               borderRadius: 6,
-              cursor: "pointer",
+              cursor: showAllTime ? "default" : "pointer",
               padding: "5px 7px",
               display: "flex",
               alignItems: "center",
-              color: "var(--color-text-secondary)",
+              color: showAllTime
+                ? "var(--color-text-muted)"
+                : "var(--color-text-secondary)",
+              opacity: showAllTime ? 0.5 : 1,
             }}
           >
             <ChevronRight size={14} />
