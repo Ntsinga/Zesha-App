@@ -243,7 +243,7 @@ export default function BalanceDetailPage() {
         <View className="bg-brand-gold rounded-2xl p-5 mb-4 shadow-md">
           <View className="flex-row justify-between items-center mb-4">
             <Text className="text-red-900/80 font-semibold text-lg">
-              Actual Closing
+              {isOpening ? "Actual Opening" : "Actual Closing"}
             </Text>
             {status === "PASSED" ? (
               <View className="flex-row items-center px-3 py-1 rounded-full bg-green-500">
@@ -327,14 +327,18 @@ export default function BalanceDetailPage() {
           )}
 
           <View className="flex-row justify-between mb-2">
-            <Text className="text-gray-600">Expected Closing</Text>
+            <Text className="text-gray-600">
+              {isOpening ? "Expected Opening" : "Expected Closing"}
+            </Text>
             <Text className="font-bold text-gray-800">
               {formatCurrency(expectedClosing)}
             </Text>
           </View>
 
           <View className="flex-row justify-between mb-2">
-            <Text className="text-gray-600">Actual Closing</Text>
+            <Text className="text-gray-600">
+              {isOpening ? "Actual Opening" : "Actual Closing"}
+            </Text>
             <Text className="font-bold text-gray-800">
               {formatCurrency(actualClosing)}
             </Text>

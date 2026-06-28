@@ -135,6 +135,7 @@ export const AddTransactionForm: React.FC<AddTransactionFormProps> = ({
     () => () => {},
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [subtypeDropdownOpen, setSubtypeDropdownOpen] = useState(false);
   const submissionKeyRef = useRef<string | null>(null);
 
   const activeAccounts = accounts.filter((a) => a.isActive);
@@ -512,61 +513,89 @@ export const AddTransactionForm: React.FC<AddTransactionFormProps> = ({
       {mode === "DEPOSIT" && (
         <>
           <Text className="text-sm font-medium text-gray-600 mb-1">
-            Deposit Subtype{" "}
-            <Text className="text-gray-400 font-normal">(optional)</Text>
+            Deposit Subtype
           </Text>
-          {(
-            [
-              null,
-              "AGENT_TO_AGENT",
-              "AIRTIME",
-              "VOICE_BUNDLE",
-              "DATA_BUNDLE",
-              "BILL_PAYMENT",
-              "SCHOOL_FEES",
-              "TAX_PAYMENT",
-            ] as (TransactionSubtypeEnum | null)[]
-          ).map((val) => {
-            const label =
-              val === null
+          <TouchableOpacity
+            onPress={() => setSubtypeDropdownOpen(!subtypeDropdownOpen)}
+            className="border border-gray-200 rounded-xl px-4 py-3 mb-2 flex-row justify-between items-center"
+          >
+            <Text
+              className={transactionSubtype ? "text-gray-800" : "text-gray-400"}
+            >
+              {transactionSubtype === null
                 ? "Standard deposit"
-                : val === "AGENT_TO_AGENT"
+                : transactionSubtype === "AGENT_TO_AGENT"
                   ? "Agent-to-Agent"
-                  : val === "AIRTIME"
+                  : transactionSubtype === "AIRTIME"
                     ? "Airtime"
-                    : val === "VOICE_BUNDLE"
+                    : transactionSubtype === "VOICE_BUNDLE"
                       ? "Voice Bundle"
-                      : val === "DATA_BUNDLE"
+                      : transactionSubtype === "DATA_BUNDLE"
                         ? "Data Bundle"
-                        : val === "BILL_PAYMENT"
+                        : transactionSubtype === "BILL_PAYMENT"
                           ? "Bill Payment"
-                          : val === "SCHOOL_FEES"
+                          : transactionSubtype === "SCHOOL_FEES"
                             ? "School Fees"
-                            : "Tax Payment";
-            return (
-              <TouchableOpacity
-                key={val ?? "standard"}
-                onPress={() => setTransactionSubtype(val)}
-                className="border rounded-xl px-4 py-3 mb-2 flex-row justify-between items-center"
-                style={{
-                  borderColor:
-                    transactionSubtype === val ? "#16a34a" : "#e5e7eb",
-                  backgroundColor:
-                    transactionSubtype === val ? "#dcfce7" : "#f9fafb",
-                }}
-              >
-                <Text
+                            : "Tax Payment"}
+            </Text>
+            <ChevronDown size={16} color="#9ca3af" />
+          </TouchableOpacity>
+          {subtypeDropdownOpen &&
+            (
+              [
+                null,
+                "AGENT_TO_AGENT",
+                "AIRTIME",
+                "VOICE_BUNDLE",
+                "DATA_BUNDLE",
+                "BILL_PAYMENT",
+                "SCHOOL_FEES",
+                "TAX_PAYMENT",
+              ] as (TransactionSubtypeEnum | null)[]
+            ).map((val) => {
+              const label =
+                val === null
+                  ? "Standard deposit"
+                  : val === "AGENT_TO_AGENT"
+                    ? "Agent-to-Agent"
+                    : val === "AIRTIME"
+                      ? "Airtime"
+                      : val === "VOICE_BUNDLE"
+                        ? "Voice Bundle"
+                        : val === "DATA_BUNDLE"
+                          ? "Data Bundle"
+                          : val === "BILL_PAYMENT"
+                            ? "Bill Payment"
+                            : val === "SCHOOL_FEES"
+                              ? "School Fees"
+                              : "Tax Payment";
+              return (
+                <TouchableOpacity
+                  key={val ?? "standard"}
+                  onPress={() => {
+                    setTransactionSubtype(val);
+                    setSubtypeDropdownOpen(false);
+                  }}
+                  className="border rounded-xl px-4 py-3 mb-2 flex-row justify-between items-center"
                   style={{
-                    color: transactionSubtype === val ? "#16a34a" : "#6b7280",
-                    fontWeight: "500",
-                    fontSize: 13,
+                    borderColor:
+                      transactionSubtype === val ? "#16a34a" : "#e5e7eb",
+                    backgroundColor:
+                      transactionSubtype === val ? "#dcfce7" : "#f9fafb",
                   }}
                 >
-                  {label}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
+                  <Text
+                    style={{
+                      color: transactionSubtype === val ? "#16a34a" : "#6b7280",
+                      fontWeight: "500",
+                      fontSize: 13,
+                    }}
+                  >
+                    {label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
           <View className="mb-2" />
         </>
       )}
@@ -595,43 +624,49 @@ export const AddTransactionForm: React.FC<AddTransactionFormProps> = ({
           if (!selectedAccount) return null;
           const isBank = selectedAccount.accountType === "BANK";
           return (
-            <View className="bg-gray-50 rounded-xl p-3 mb-4 border border-gray-100">
-              <Text className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
-                Customer Details
+            <>
+              <Text className="text-sm font-medium text-gray-600 mb-1">
+                Customer Name
               </Text>
               <TextInput
-                className="border border-gray-200 rounded-lg px-3 py-2.5 mb-2 text-gray-800 bg-white"
+                className="border border-gray-200 rounded-xl px-4 py-3 mb-4 text-gray-800"
                 value={customerName}
                 onChangeText={setCustomerName}
-                placeholder="Customer name (optional)"
+                placeholder="Customer name"
                 placeholderTextColor="#9ca3af"
               />
+              <Text className="text-sm font-medium text-gray-600 mb-1">
+                Phone Number
+              </Text>
               <TextInput
-                className="border border-gray-200 rounded-lg px-3 py-2.5 mb-2 text-gray-800 bg-white"
+                className="border border-gray-200 rounded-xl px-4 py-3 mb-4 text-gray-800"
                 value={phoneNumber}
                 onChangeText={setPhoneNumber}
-                placeholder="Phone number *"
+                placeholder="Phone number"
                 placeholderTextColor="#9ca3af"
                 keyboardType="phone-pad"
               />
               {isBank && (
-                <TextInput
-                  className="border border-gray-200 rounded-lg px-3 py-2.5 text-gray-800 bg-white"
-                  value={accountNumber}
-                  onChangeText={setAccountNumber}
-                  placeholder="Account number *"
-                  placeholderTextColor="#9ca3af"
-                  keyboardType="default"
-                />
+                <>
+                  <Text className="text-sm font-medium text-gray-600 mb-1">
+                    Account Number
+                  </Text>
+                  <TextInput
+                    className="border border-gray-200 rounded-xl px-4 py-3 mb-4 text-gray-800"
+                    value={accountNumber}
+                    onChangeText={setAccountNumber}
+                    placeholder="Account number"
+                    placeholderTextColor="#9ca3af"
+                    keyboardType="default"
+                  />
+                </>
               )}
-            </View>
+            </>
           );
         })()}
 
       {/* Reference */}
-      <Text className="text-sm font-medium text-gray-600 mb-1">
-        Reference <Text className="text-gray-400 font-normal">(optional)</Text>
-      </Text>
+      <Text className="text-sm font-medium text-gray-600 mb-1">Reference</Text>
       <TextInput
         className="border border-gray-200 rounded-xl px-4 py-3 mb-4 text-gray-800"
         value={reference}
@@ -641,9 +676,7 @@ export const AddTransactionForm: React.FC<AddTransactionFormProps> = ({
       />
 
       {/* Notes */}
-      <Text className="text-sm font-medium text-gray-600 mb-1">
-        Notes <Text className="text-gray-400 font-normal">(optional)</Text>
-      </Text>
+      <Text className="text-sm font-medium text-gray-600 mb-1">Notes</Text>
       <TextInput
         className="border border-gray-200 rounded-xl px-4 py-3 mb-6 text-gray-800"
         value={notes}

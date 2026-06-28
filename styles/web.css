@@ -1676,6 +1676,12 @@ body {
   align-items: center;
 }
 
+.gt-strip.gt-strip--flex {
+  display: flex;
+  grid-template-columns: none;
+  grid-template-rows: none;
+}
+
 .gt-strip-main {
   display: flex;
   align-items: center;

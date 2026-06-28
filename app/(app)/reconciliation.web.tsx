@@ -258,7 +258,7 @@ export default function BalanceDetailWeb() {
 
       <div className="dashboard-content">
         {/* Stats Strip — same one-row layout as the dashboard GT strip */}
-        <div className="gt-strip">
+        <div className="gt-strip gt-strip--flex">
           {/* Left: Actual Closing */}
           <div className="gt-strip-main">
             <div className="gt-strip-title-group">

@@ -2785,10 +2785,7 @@ export default function TransactionsWeb() {
                         {/* Customer Name */}
                         <div className="form-group">
                           <label className="form-label">
-                            Customer Name{" "}
-                            <span style={{ fontWeight: 400, color: "#94a3b8" }}>
-                              (optional)
-                            </span>
+                            Customer Name
                           </label>
                           <input
                             type="text"

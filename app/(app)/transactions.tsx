@@ -555,15 +555,7 @@ export default function Transactions() {
     syncFetchDebounceRef.current = setTimeout(() => {
       dispatch(invalidateTransactionsCache());
       dispatch(
-        fetchTransactions({
-          transactionType:
-            filterType !== "ALL"
-              ? (filterType as TransactionTypeEnum)
-              : undefined,
-          shift: filterShift !== "ALL" ? (filterShift as ShiftEnum) : undefined,
-          accountId: filterAccountId,
-          limit: 50,
-        }),
+        fetchTransactions(buildFilters()),
       );
       if (currentCompanyId) {
         dispatch(fetchTransactionAnalytics(buildAnalyticsFilters()));
@@ -577,13 +569,18 @@ export default function Transactions() {
     };
   }, [lastSyncedAt, dispatch, filterType, filterShift, filterAccountId]);
 
-  const buildFilters = () => ({
-    transactionType:
-      filterType !== "ALL" ? (filterType as TransactionTypeEnum) : undefined,
-    shift: filterShift !== "ALL" ? (filterShift as ShiftEnum) : undefined,
-    accountId: filterAccountId,
-    limit: 50,
-  });
+  const buildFilters = () => {
+    const today = new Date().toISOString().split("T")[0];
+    return {
+      transactionType:
+        filterType !== "ALL" ? (filterType as TransactionTypeEnum) : undefined,
+      shift: filterShift !== "ALL" ? (filterShift as ShiftEnum) : undefined,
+      accountId: filterAccountId,
+      startDate: today,
+      endDate: today + "T23:59:59",
+      limit: 500,
+    };
+  };
 
   const buildAnalyticsFilters = () => {
     const today = new Date().toISOString().split("T")[0];
