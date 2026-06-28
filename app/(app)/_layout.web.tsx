@@ -171,13 +171,7 @@ export default function AppLayoutWeb() {
       pathname !== "/settings" &&
       !deepLinkCompanyId
     ) {
-      // Use window.location as primary redirect — router.replace() can be silently
-      // ignored by Expo Router v6 during the initial navigation settling phase.
-      if (typeof window !== "undefined" && window.location.pathname !== "/agencies") {
-        window.location.replace("/agencies");
-      } else {
-        router.replace("/agencies");
-      }
+      router.replace("/agencies");
     }
   }, [
     isSuperAdmin,
@@ -314,7 +308,7 @@ export default function AppLayoutWeb() {
   // Handle exiting agency view
   const handleExitAgency = () => {
     dispatch(exitAgency());
-    router.push("/agencies");
+    router.replace("/agencies");
   };
 
   // Superadmin on a non-admin page without agency context should see nothing
