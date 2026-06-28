@@ -149,10 +149,19 @@ export default function DashboardWeb() {
   }, [commissionBreakdown, topCommissionAccounts]);
 
   // Bar chart data: period-aware from analytics
-  const transactionBarData = chartTransactionAccounts.map((entry) => ({
-    name: entry.accountName,
-    count: entry.transactionCount,
-  }));
+  const transactionBarData = chartTransactionAccounts.map((entry) => {
+    const words = entry.accountName.trim().split(/\s+/);
+    // Abbreviate to first letters when name has 3+ words (e.g. "BANK OF AFRICA" → "BOA")
+    const shortName =
+      words.length >= 3
+        ? words.map((w) => w[0]).join("").toUpperCase()
+        : entry.accountName;
+    return {
+      name: shortName,
+      fullName: entry.accountName,
+      count: entry.transactionCount,
+    };
+  });
 
   const netEarningsTotal = netEarningsTrendData.reduce(
     (sum, entry) => sum + entry.netEarnings,
@@ -557,6 +566,9 @@ export default function DashboardWeb() {
                         border: "1px solid #e5e7eb",
                         fontSize: 13,
                       }}
+                      labelFormatter={(_label, payload) =>
+                        payload?.[0]?.payload?.fullName ?? _label
+                      }
                     />
                     <Bar
                       dataKey="count"
