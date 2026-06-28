@@ -261,8 +261,8 @@ export default function ExpensesIndexWeb() {
             <span className="tooltip-wrap">
               <Info size={11} style={{ color: "var(--color-text-muted)" }} />
               <span className="tooltip-box">
-                Total drawings from working capital. Outstanding amounts
-                reduce your working capital balance until settled.
+                Total drawings from working capital. Outstanding amounts reduce
+                your working capital balance until settled.
               </span>
             </span>
           </div>
@@ -450,51 +450,23 @@ export default function ExpensesIndexWeb() {
           }}
         />
 
-        {/* Source pills */}
-        {sourcePills.map(({ value, label, total }) => {
-          const active = filterSource === value;
-          return (
-            <button
-              key={value}
-              onClick={() => {
-                setFilterSource(value);
-                if (value !== "CAPITAL" && value !== "ALL")
-                  setFilterStatus("ALL");
-              }}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 5,
-                padding: "5px 11px",
-                borderRadius: 999,
-                border: "1px solid",
-                borderColor: active
-                  ? "var(--color-primary)"
-                  : "var(--color-border)",
-                background: active ? "rgba(192,21,42,0.08)" : "transparent",
-                cursor: "pointer",
-                fontSize: 12,
-                fontWeight: 600,
-                color: active
-                  ? "var(--color-primary)"
-                  : "var(--color-text-secondary)",
-                whiteSpace: "nowrap",
-              }}
-            >
+        {/* Source dropdown */}
+        <select
+          value={filterSource}
+          onChange={(e) => {
+            const value = e.target.value as ExpenseFundingSource | "ALL";
+            setFilterSource(value);
+            if (value !== "CAPITAL" && value !== "ALL") setFilterStatus("ALL");
+          }}
+          className="filter-select"
+          style={{ minWidth: 150 }}
+        >
+          {sourcePills.map(({ value, label }) => (
+            <option key={value} value={value}>
               {label}
-              {value !== "ALL" && total > 0 && (
-                <span
-                  style={{
-                    color: active ? "var(--color-primary)" : "#94a3b8",
-                    fontWeight: 700,
-                  }}
-                >
-                  -{formatCurrency(total)}
-                </span>
-              )}
-            </button>
-          );
-        })}
+            </option>
+          ))}
+        </select>
 
         {/* Category dropdown */}
         <select
