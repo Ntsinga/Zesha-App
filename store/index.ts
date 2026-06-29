@@ -34,6 +34,7 @@ import syncQueueReducer, {
 import expectedCommissionsReducer from "./slices/expectedCommissionsSlice";
 import commissionSchedulesReducer from "./slices/commissionSchedulesSlice";
 import expenseCategoriesReducer from "./slices/expenseCategoriesSlice";
+import tellersReducer from "./slices/tellersSlice";
 
 const syncQueueTransform = createTransform(
   (inboundState: SyncQueueState) => inboundState,
@@ -61,6 +62,7 @@ const appReducer = combineReducers({
   expectedCommissions: expectedCommissionsReducer,
   commissionSchedules: commissionSchedulesReducer,
   expenseCategories: expenseCategoriesReducer,
+  tellers: tellersReducer,
 });
 
 type AppState = ReturnType<typeof appReducer>;

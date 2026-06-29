@@ -163,6 +163,23 @@ export const API_ENDPOINTS = {
     list: "/audit-logs/",
   },
 
+  // Tellers
+  tellers: {
+    list: "/tellers/",
+    create: "/tellers/",
+    get: (id: number) => `/tellers/${id}`,
+    update: (id: number) => `/tellers/${id}`,
+    delete: (id: number) => `/tellers/${id}`,
+    assignAccount: (id: number) => `/tellers/${id}/accounts`,
+    listAccountAssignments: (id: number) => `/tellers/${id}/accounts`,
+    endAccountAssignment: (tellerId: number, assignmentId: number) =>
+      `/tellers/${tellerId}/accounts/${assignmentId}/end`,
+    assignUser: (id: number) => `/tellers/${id}/users`,
+    listUserAssignments: (id: number) => `/tellers/${id}/users`,
+    endUserAssignment: (tellerId: number, assignmentId: number) =>
+      `/tellers/${tellerId}/users/${assignmentId}/end`,
+  },
+
   // Accounts
   accounts: {
     list: "/accounts/",

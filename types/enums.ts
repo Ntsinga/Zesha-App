@@ -25,7 +25,8 @@ export type RoleEnum =
   | "Super Administrator"
   | "Administrator"
   | "Agent Supervisor"
-  | "Agent";
+  | "Agent"
+  | "Teller";
 
 // Reconciliation outcome status
 export type StatusEnum = "PASSED" | "FAILED" | "FLAGGED";
@@ -74,3 +75,6 @@ export type BalanceValidationEnum =
 
 // Legacy reconciliation type (deprecated - use SourceEnum)
 export type ReconciliationTypeEnum = "WHATSAPP" | "MOBILE_APP" | "MANUAL";
+
+// Holder type for company-level unallocated assets
+export type OperatingHolderTypeEnum = "TELLER" | "HEAD_OFFICE" | "VAULT";

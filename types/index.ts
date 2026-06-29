@@ -25,6 +25,7 @@ export {
   type TransactionSubtypeEnum,
   type CommissionRuleTypeEnum,
   type FloatSourceEnum,
+  type OperatingHolderTypeEnum,
 } from "./enums";
 
 // ============= Base Types =============
@@ -184,6 +185,21 @@ export {
   type AuditLogFilters,
   type AuditLogListResponse,
 } from "./auditLog";
+
+// ============= Teller Types =============
+export {
+  type Teller,
+  type TellerCreate,
+  type TellerUpdate,
+  type TellerDetail,
+  type TellerAccountAssignmentCreate,
+  type TellerAccountAssignmentEnd,
+  type TellerAccountAssignmentRead,
+  type TellerUserAssignmentCreate,
+  type TellerUserAssignmentEnd,
+  type TellerUserAssignmentRead,
+  type TellerFilters,
+} from "./teller";
 
 // ============= Transaction Types =============
 export {

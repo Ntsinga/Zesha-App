@@ -27,6 +27,7 @@ import {
   LayoutTemplate,
   Landmark,
   Shield,
+  UsersRound,
 } from "lucide-react";
 import { useAppSelector, useAppDispatch } from "../../store/hooks";
 import {
@@ -250,6 +251,11 @@ export default function AppLayoutWeb() {
       icon: <Landmark size={20} />,
     },
     {
+      href: "/tellers",
+      label: "Tellers",
+      icon: <UsersRound size={20} />,
+    },
+    {
       href: "/audit-logs",
       label: "Audit Logs",
       icon: <Shield size={20} />,
@@ -257,7 +263,7 @@ export default function AppLayoutWeb() {
   ];
 
   // Items hidden from Agents and Agent Supervisors
-  const agentHiddenRoutes = new Set(["/accounts", "/audit-logs"]);
+  const agentHiddenRoutes = new Set(["/accounts", "/tellers", "/audit-logs"]);
 
   // Routes restricted to Super Administrator only
   const superAdminOnlyRoutes = new Set(["/audit-logs"]);
