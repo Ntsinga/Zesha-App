@@ -12,6 +12,7 @@ import {
   endUserAssignment,
   clearSelectedTeller,
 } from "@/store/slices/tellersSlice";
+import { fetchAccounts } from "@/store/slices/accountsSlice";
 import type {
   TellerCreate,
   TellerUpdate,
@@ -53,6 +54,7 @@ export function useTellersScreen() {
 
   useEffect(() => {
     void dispatch(fetchTellers({}));
+    void dispatch(fetchAccounts({}));
   }, [dispatch]);
 
   // Fetch company users for assignment dropdown
@@ -121,11 +123,37 @@ export function useTellersScreen() {
   );
 
   const handleAssignAccount = useCallback(
-    async (data: Omit<TellerAccountAssignmentCreate, "tellerId">) => {
+    async (
+      data: Omit<TellerAccountAssignmentCreate, "tellerId" | "effectiveShift"> & {
+        effectiveShift: "AM" | "PM" | "Both";
+      },
+    ) => {
       if (!selectedTellerId) return;
-      await dispatch(
-        assignAccountToTeller({ ...data, tellerId: selectedTellerId }),
-      );
+      const { effectiveShift, ...rest } = data;
+      if (effectiveShift === "Both") {
+        await dispatch(
+          assignAccountToTeller({
+            ...rest,
+            effectiveShift: "AM",
+            tellerId: selectedTellerId,
+          }),
+        );
+        await dispatch(
+          assignAccountToTeller({
+            ...rest,
+            effectiveShift: "PM",
+            tellerId: selectedTellerId,
+          }),
+        );
+      } else {
+        await dispatch(
+          assignAccountToTeller({
+            ...rest,
+            effectiveShift,
+            tellerId: selectedTellerId,
+          }),
+        );
+      }
     },
     [dispatch, selectedTellerId],
   );

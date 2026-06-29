@@ -16,7 +16,6 @@ import { useAppSelector } from "@/store/hooks";
 import { selectUserRole } from "@/store/slices/authSlice";
 import { useCurrencyFormatter } from "@/hooks/useCurrency";
 import { formatAmountInput, parseAmountInput } from "@/utils/formatters";
-import type { ShiftEnum } from "@/types";
 import "../../styles/web.css";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -63,7 +62,9 @@ export default function TellersWeb() {
   // Assign account form state
   const [assignAccountId, setAssignAccountId] = useState<number | "">("");
   const [assignAccountDate, setAssignAccountDate] = useState(todayStr());
-  const [assignAccountShift, setAssignAccountShift] = useState<ShiftEnum>("AM");
+  const [assignAccountShift, setAssignAccountShift] = useState<
+    "AM" | "PM" | "Both"
+  >("Both");
 
   // Assign user form state
   const [assignUserId, setAssignUserId] = useState<number | "">("");
@@ -617,11 +618,14 @@ export default function TellersWeb() {
                   className="form-input"
                   value={assignAccountShift}
                   onChange={(e) =>
-                    setAssignAccountShift(e.target.value as ShiftEnum)
+                    setAssignAccountShift(
+                      e.target.value as "AM" | "PM" | "Both",
+                    )
                   }
                 >
-                  <option value="AM">AM</option>
-                  <option value="PM">PM</option>
+                  <option value="Both">Both (AM &amp; PM)</option>
+                  <option value="AM">AM only</option>
+                  <option value="PM">PM only</option>
                 </select>
               </div>
             </div>
