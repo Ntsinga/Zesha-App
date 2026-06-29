@@ -269,6 +269,28 @@ export async function createUser(user: UserCreate): Promise<User> {
 
    When submitting, strip commas before parsing: `parseFloat(amount.replace(/,/g, ""))`
 
+5. **All async thunks MUST have `.rejected` handlers in `extraReducers`**
+
+   Every `createAsyncThunk` that calls the API must have a corresponding `.addCase(thunk.rejected, ...)` in the slice's `extraReducers` that stores the error message in state. Without this, backend validation errors (422, 409, etc.) are silently swallowed and the user sees nothing.
+
+   ```typescript
+   // ❌ BAD — only handles fulfilled, error is lost
+   .addCase(createEntity.fulfilled, (state, action) => {
+     state.items.push(action.payload);
+   })
+
+   // ✅ GOOD — handles both fulfilled and rejected
+   .addCase(createEntity.fulfilled, (state, action) => {
+     state.error = null;
+     state.items.push(action.payload);
+   })
+   .addCase(createEntity.rejected, (state, action) => {
+     state.error = action.payload ?? "Failed to create entity";
+   })
+   ```
+
+   Additionally, if the action is triggered from within a modal, display `error` inside that modal (since modals cover the page-level alert).
+
 ---
 
 ## Multi-Tenant Pattern
