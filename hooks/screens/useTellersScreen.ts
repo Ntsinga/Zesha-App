@@ -37,8 +37,7 @@ export function useTellersScreen() {
 
   // Form state for create
   const [newTellerName, setNewTellerName] = useState("");
-  const [newTargetCash, setNewTargetCash] = useState("");
-  const [newTargetFloat, setNewTargetFloat] = useState("");
+  const [newTargetOperatingCapital, setNewTargetOperatingCapital] = useState("");
 
   useEffect(() => {
     void dispatch(fetchTellers({}));
@@ -64,17 +63,16 @@ export function useTellersScreen() {
   const handleCreate = useCallback(async () => {
     const payload: TellerCreate = {
       name: newTellerName.trim(),
-      targetCash: parseFloat(newTargetCash.replace(/,/g, "")) || 0,
-      targetFloat: parseFloat(newTargetFloat.replace(/,/g, "")) || 0,
+      targetOperatingCapital:
+        parseFloat(newTargetOperatingCapital.replace(/,/g, "")) || 0,
     };
     const result = await dispatch(createTeller(payload));
     if (createTeller.fulfilled.match(result)) {
       setShowCreateModal(false);
       setNewTellerName("");
-      setNewTargetCash("");
-      setNewTargetFloat("");
+      setNewTargetOperatingCapital("");
     }
-  }, [dispatch, newTellerName, newTargetCash, newTargetFloat]);
+  }, [dispatch, newTellerName, newTargetOperatingCapital]);
 
   const handleUpdate = useCallback(
     async (tellerId: number, data: TellerUpdate) => {
@@ -154,10 +152,8 @@ export function useTellersScreen() {
     // Create form
     newTellerName,
     setNewTellerName,
-    newTargetCash,
-    setNewTargetCash,
-    newTargetFloat,
-    setNewTargetFloat,
+    newTargetOperatingCapital,
+    setNewTargetOperatingCapital,
     // Actions
     onRefresh,
     handleCreate,

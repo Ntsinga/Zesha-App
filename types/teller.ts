@@ -8,8 +8,7 @@ export interface Teller {
   name: string;
   code: string | null;
   isActive: boolean;
-  targetCash: number;
-  targetFloat: number;
+  targetOperatingCapital: number;
   createdAt: string | null;
   updatedAt: string | null;
 }
@@ -17,16 +16,14 @@ export interface Teller {
 export interface TellerCreate {
   companyId?: number;
   name: string;
-  targetCash?: number;
-  targetFloat?: number;
+  targetOperatingCapital?: number;
 }
 
 export interface TellerUpdate {
   name?: string;
   code?: string;
   isActive?: boolean;
-  targetCash?: number;
-  targetFloat?: number;
+  targetOperatingCapital?: number;
 }
 
 export interface TellerDetail extends Teller {

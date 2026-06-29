@@ -47,10 +47,8 @@ export default function TellersWeb() {
     setShowAssignUserModal,
     newTellerName,
     setNewTellerName,
-    newTargetCash,
-    setNewTargetCash,
-    newTargetFloat,
-    setNewTargetFloat,
+    newTargetOperatingCapital,
+    setNewTargetOperatingCapital,
     onRefresh,
     handleCreate,
     handleUpdate,
@@ -206,8 +204,7 @@ export default function TellersWeb() {
                         color: "var(--color-text-secondary)",
                       }}
                     >
-                      <span>Cash: {formatCurrency(teller.targetCash)}</span>
-                      <span>Float: {formatCurrency(teller.targetFloat)}</span>
+                      <span>Target: {formatCurrency(teller.targetOperatingCapital)}</span>
                     </div>
                     {!teller.isActive && (
                       <span
@@ -260,8 +257,8 @@ export default function TellersWeb() {
                         color: "var(--color-text-secondary)",
                       }}
                     >
-                      Cash Target: {formatCurrency(selectedTeller.targetCash)} |
-                      Float Target: {formatCurrency(selectedTeller.targetFloat)}
+                      Target Operating Capital:{" "}
+                      {formatCurrency(selectedTeller.targetOperatingCapital)}
                     </p>
                   </div>
                   {isAdmin && (
@@ -521,30 +518,16 @@ export default function TellersWeb() {
                 />
               </div>
               <div className="form-group">
-                <label className="form-label">Target Cash</label>
+                <label className="form-label">Target Operating Capital</label>
                 <input
                   className="form-input"
                   type="text"
                   inputMode="decimal"
                   placeholder="0"
-                  value={formatAmountInput(newTargetCash)}
+                  value={formatAmountInput(newTargetOperatingCapital)}
                   onChange={(e) => {
                     const parsed = parseAmountInput(e.target.value);
-                    if (parsed !== null) setNewTargetCash(parsed);
-                  }}
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Target Float</label>
-                <input
-                  className="form-input"
-                  type="text"
-                  inputMode="decimal"
-                  placeholder="0"
-                  value={formatAmountInput(newTargetFloat)}
-                  onChange={(e) => {
-                    const parsed = parseAmountInput(e.target.value);
-                    if (parsed !== null) setNewTargetFloat(parsed);
+                    if (parsed !== null) setNewTargetOperatingCapital(parsed);
                   }}
                 />
               </div>
