@@ -8,6 +8,7 @@ import {
   Check,
   CreditCard,
   UserMinus,
+  Unlink,
   Settings,
 } from "lucide-react";
 
@@ -371,7 +372,7 @@ export default function TellersWeb() {
                                         })
                                       }
                                     >
-                                      <UserMinus size={14} />
+                                      <Unlink size={14} />
                                     </button>
                                   )}
                                 </td>
