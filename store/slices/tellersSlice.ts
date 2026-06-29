@@ -313,10 +313,15 @@ const tellersSlice = createSlice({
       })
       // createTeller
       .addCase(createTeller.fulfilled, (state, action) => {
+        state.error = null;
         state.items.push(action.payload);
+      })
+      .addCase(createTeller.rejected, (state, action) => {
+        state.error = action.payload ?? "Failed to create teller";
       })
       // updateTeller
       .addCase(updateTeller.fulfilled, (state, action) => {
+        state.error = null;
         const idx = state.items.findIndex((t) => t.id === action.payload.id);
         if (idx !== -1) state.items[idx] = action.payload;
         if (state.selectedTeller?.id === action.payload.id) {
@@ -326,15 +331,23 @@ const tellersSlice = createSlice({
           };
         }
       })
+      .addCase(updateTeller.rejected, (state, action) => {
+        state.error = action.payload ?? "Failed to update teller";
+      })
       // deleteTeller
       .addCase(deleteTeller.fulfilled, (state, action) => {
+        state.error = null;
         state.items = state.items.filter((t) => t.id !== action.meta.arg);
         if (state.selectedTeller?.id === action.meta.arg) {
           state.selectedTeller = null;
         }
       })
+      .addCase(deleteTeller.rejected, (state, action) => {
+        state.error = action.payload ?? "Failed to delete teller";
+      })
       // assignAccount
       .addCase(assignAccountToTeller.fulfilled, (state, action) => {
+        state.error = null;
         if (
           state.selectedTeller &&
           state.selectedTeller.id === action.payload.tellerId
@@ -342,8 +355,12 @@ const tellersSlice = createSlice({
           state.selectedTeller.assignedAccounts.push(action.payload);
         }
       })
+      .addCase(assignAccountToTeller.rejected, (state, action) => {
+        state.error = action.payload ?? "Failed to assign account";
+      })
       // endAccountAssignment
       .addCase(endAccountAssignment.fulfilled, (state, action) => {
+        state.error = null;
         if (state.selectedTeller) {
           const idx = state.selectedTeller.assignedAccounts.findIndex(
             (a) => a.id === action.payload.id,
@@ -355,6 +372,7 @@ const tellersSlice = createSlice({
       })
       // assignUser
       .addCase(assignUserToTeller.fulfilled, (state, action) => {
+        state.error = null;
         if (
           state.selectedTeller &&
           state.selectedTeller.id === action.payload.tellerId
@@ -362,8 +380,12 @@ const tellersSlice = createSlice({
           state.selectedTeller.assignedUsers.push(action.payload);
         }
       })
+      .addCase(assignUserToTeller.rejected, (state, action) => {
+        state.error = action.payload ?? "Failed to assign user";
+      })
       // endUserAssignment
       .addCase(endUserAssignment.fulfilled, (state, action) => {
+        state.error = null;
         if (state.selectedTeller) {
           const idx = state.selectedTeller.assignedUsers.findIndex(
             (u) => u.id === action.payload.id,

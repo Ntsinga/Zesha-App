@@ -506,6 +506,11 @@ export default function TellersWeb() {
               </button>
             </div>
             <div className="modal-body">
+              {error && (
+                <div className="alert alert-error" style={{ marginBottom: 16 }}>
+                  <p>{error}</p>
+                </div>
+              )}
               <div className="form-group">
                 <label className="form-label">Name</label>
                 <input
@@ -568,6 +573,11 @@ export default function TellersWeb() {
               </button>
             </div>
             <div className="modal-body">
+              {error && (
+                <div className="alert alert-error" style={{ marginBottom: 16 }}>
+                  <p>{error}</p>
+                </div>
+              )}
               <div className="form-group">
                 <label className="form-label">Account</label>
                 <select
