@@ -37,6 +37,7 @@ export default function TellersWeb() {
     error,
     refreshing,
     accounts,
+    companyUsers,
     selectedTellerId,
     setSelectedTellerId,
     showCreateModal,
@@ -67,7 +68,9 @@ export default function TellersWeb() {
   // Assign user form state
   const [assignUserId, setAssignUserId] = useState<number | "">("");
   const [assignUserDate, setAssignUserDate] = useState(todayStr());
-  const [assignUserShift, setAssignUserShift] = useState<ShiftEnum>("AM");
+  const [assignUserShift, setAssignUserShift] = useState<"AM" | "PM" | "Both">(
+    "Both",
+  );
 
   const isAdmin = role === "Super Administrator" || role === "Administrator";
 
@@ -204,7 +207,9 @@ export default function TellersWeb() {
                         color: "var(--color-text-secondary)",
                       }}
                     >
-                      <span>Target: {formatCurrency(teller.targetOperatingCapital)}</span>
+                      <span>
+                        Target: {formatCurrency(teller.targetOperatingCapital)}
+                      </span>
                     </div>
                     {!teller.isActive && (
                       <span
@@ -666,18 +671,26 @@ export default function TellersWeb() {
             </div>
             <div className="modal-body">
               <div className="form-group">
-                <label className="form-label">User ID</label>
-                <input
+                <label className="form-label">User</label>
+                <select
                   className="form-input"
-                  type="number"
-                  placeholder="Enter user ID"
                   value={assignUserId}
                   onChange={(e) =>
                     setAssignUserId(
                       e.target.value ? Number(e.target.value) : "",
                     )
                   }
-                />
+                >
+                  <option value="">Select user...</option>
+                  {companyUsers.map((user) => (
+                    <option key={user.id} value={user.id}>
+                      {user.firstName && user.lastName
+                        ? `${user.firstName} ${user.lastName}`
+                        : user.email}{" "}
+                      ({user.role})
+                    </option>
+                  ))}
+                </select>
               </div>
               <div className="form-group">
                 <label className="form-label">Effective Date</label>
@@ -694,11 +707,12 @@ export default function TellersWeb() {
                   className="form-input"
                   value={assignUserShift}
                   onChange={(e) =>
-                    setAssignUserShift(e.target.value as ShiftEnum)
+                    setAssignUserShift(e.target.value as "AM" | "PM" | "Both")
                   }
                 >
-                  <option value="AM">AM</option>
-                  <option value="PM">PM</option>
+                  <option value="Both">Both (AM &amp; PM)</option>
+                  <option value="AM">AM only</option>
+                  <option value="PM">PM only</option>
                 </select>
               </div>
             </div>

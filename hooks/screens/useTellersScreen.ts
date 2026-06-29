@@ -19,7 +19,12 @@ import type {
   TellerAccountAssignmentEnd,
   TellerUserAssignmentCreate,
   TellerUserAssignmentEnd,
+  User,
 } from "@/types";
+import { mapApiResponse } from "@/types";
+import { secureApiRequest } from "@/services/secureApi";
+import { API_ENDPOINTS } from "@/config/api";
+import { buildTypedQueryString } from "@/types";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 
 export function useTellersScreen() {
@@ -28,6 +33,12 @@ export function useTellersScreen() {
     (state) => state.tellers,
   );
   const accounts = useAppSelector((state) => state.accounts.items);
+  const companyId = useAppSelector(
+    (state) => state.auth.viewingAgencyId ?? state.auth.user?.companyId,
+  );
+
+  // Company users for assignment dropdown
+  const [companyUsers, setCompanyUsers] = useState<User[]>([]);
 
   const [refreshing, setRefreshing] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -37,11 +48,29 @@ export function useTellersScreen() {
 
   // Form state for create
   const [newTellerName, setNewTellerName] = useState("");
-  const [newTargetOperatingCapital, setNewTargetOperatingCapital] = useState("");
+  const [newTargetOperatingCapital, setNewTargetOperatingCapital] =
+    useState("");
 
   useEffect(() => {
     void dispatch(fetchTellers({}));
   }, [dispatch]);
+
+  // Fetch company users for assignment dropdown
+  useEffect(() => {
+    if (!companyId) return;
+    const fetchUsers = async () => {
+      try {
+        const query = buildTypedQueryString({ companyId });
+        const data = await secureApiRequest<unknown>(
+          `${API_ENDPOINTS.users.list}${query}`,
+        );
+        setCompanyUsers(mapApiResponse<User[]>(data));
+      } catch {
+        // Non-critical — user can still type ID manually
+      }
+    };
+    void fetchUsers();
+  }, [companyId]);
 
   useEffect(() => {
     if (selectedTellerId) {
@@ -104,19 +133,43 @@ export function useTellersScreen() {
   const handleEndAccountAssignment = useCallback(
     async (assignmentId: number, data: TellerAccountAssignmentEnd) => {
       if (!selectedTellerId) return;
-      await dispatch(
-        endAccountAssignment({ assignmentId, data }),
-      );
+      await dispatch(endAccountAssignment({ assignmentId, data }));
     },
     [dispatch, selectedTellerId],
   );
 
   const handleAssignUser = useCallback(
-    async (data: Omit<TellerUserAssignmentCreate, "tellerId">) => {
+    async (
+      data: Omit<TellerUserAssignmentCreate, "tellerId" | "effectiveShift"> & {
+        effectiveShift: "AM" | "PM" | "Both";
+      },
+    ) => {
       if (!selectedTellerId) return;
-      await dispatch(
-        assignUserToTeller({ ...data, tellerId: selectedTellerId }),
-      );
+      const { effectiveShift, ...rest } = data;
+      if (effectiveShift === "Both") {
+        await dispatch(
+          assignUserToTeller({
+            ...rest,
+            effectiveShift: "AM",
+            tellerId: selectedTellerId,
+          }),
+        );
+        await dispatch(
+          assignUserToTeller({
+            ...rest,
+            effectiveShift: "PM",
+            tellerId: selectedTellerId,
+          }),
+        );
+      } else {
+        await dispatch(
+          assignUserToTeller({
+            ...rest,
+            effectiveShift,
+            tellerId: selectedTellerId,
+          }),
+        );
+      }
     },
     [dispatch, selectedTellerId],
   );
@@ -124,9 +177,7 @@ export function useTellersScreen() {
   const handleEndUserAssignment = useCallback(
     async (assignmentId: number, data: TellerUserAssignmentEnd) => {
       if (!selectedTellerId) return;
-      await dispatch(
-        endUserAssignment({ assignmentId, data }),
-      );
+      await dispatch(endUserAssignment({ assignmentId, data }));
     },
     [dispatch, selectedTellerId],
   );
@@ -139,6 +190,7 @@ export function useTellersScreen() {
     error,
     refreshing,
     accounts,
+    companyUsers,
     // Selection
     selectedTellerId,
     setSelectedTellerId,
