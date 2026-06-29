@@ -94,8 +94,8 @@ export const createTeller = createAsyncThunk<
   try {
     const state = getState();
     const companyId =
-      payload.companyId ??
-      state.auth.viewingAgencyId ??
+      payload.companyId ||
+      state.auth.viewingAgencyId ||
       state.auth.user?.companyId;
 
     if (!companyId) return rejectWithValue("No company_id found");

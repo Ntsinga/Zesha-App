@@ -245,6 +245,30 @@ export async function createUser(user: UserCreate): Promise<User> {
    return <BalanceList items={items} />;
    ```
 
+4. **Currency/amount inputs MUST use comma formatting**
+
+   Never use `type="number"` for monetary or large numeric inputs. Always use `type="text"` with `inputMode="decimal"` and the existing `formatAmountInput`/`parseAmountInput` utilities from `@/utils/formatters` to show thousands separators while the user types.
+
+   ```typescript
+   import { formatAmountInput, parseAmountInput } from "@/utils/formatters";
+
+   // ❌ BAD - No thousands separators, raw number input
+   <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} />
+
+   // ✅ GOOD - Displays "7,000,000" while storing "7000000"
+   <input
+     type="text"
+     inputMode="decimal"
+     value={formatAmountInput(amount)}
+     onChange={(e) => {
+       const parsed = parseAmountInput(e.target.value);
+       if (parsed !== null) setAmount(parsed);
+     }}
+   />
+   ```
+
+   When submitting, strip commas before parsing: `parseFloat(amount.replace(/,/g, ""))`
+
 ---
 
 ## Multi-Tenant Pattern

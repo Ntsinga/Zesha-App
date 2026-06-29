@@ -63,10 +63,9 @@ export function useTellersScreen() {
 
   const handleCreate = useCallback(async () => {
     const payload: TellerCreate = {
-      companyId: 0, // Will be resolved from auth state by the thunk
       name: newTellerName.trim(),
-      targetCash: parseFloat(newTargetCash) || 0,
-      targetFloat: parseFloat(newTargetFloat) || 0,
+      targetCash: parseFloat(newTargetCash.replace(/,/g, "")) || 0,
+      targetFloat: parseFloat(newTargetFloat.replace(/,/g, "")) || 0,
     };
     const result = await dispatch(createTeller(payload));
     if (createTeller.fulfilled.match(result)) {

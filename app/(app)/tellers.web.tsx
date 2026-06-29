@@ -15,6 +15,7 @@ import { useTellersScreen } from "@/hooks/screens/useTellersScreen";
 import { useAppSelector } from "@/store/hooks";
 import { selectUserRole } from "@/store/slices/authSlice";
 import { useCurrencyFormatter } from "@/hooks/useCurrency";
+import { formatAmountInput, parseAmountInput } from "@/utils/formatters";
 import type { ShiftEnum } from "@/types";
 import "../../styles/web.css";
 
@@ -523,20 +524,28 @@ export default function TellersWeb() {
                 <label className="form-label">Target Cash</label>
                 <input
                   className="form-input"
-                  type="number"
+                  type="text"
+                  inputMode="decimal"
                   placeholder="0"
-                  value={newTargetCash}
-                  onChange={(e) => setNewTargetCash(e.target.value)}
+                  value={formatAmountInput(newTargetCash)}
+                  onChange={(e) => {
+                    const parsed = parseAmountInput(e.target.value);
+                    if (parsed !== null) setNewTargetCash(parsed);
+                  }}
                 />
               </div>
               <div className="form-group">
                 <label className="form-label">Target Float</label>
                 <input
                   className="form-input"
-                  type="number"
+                  type="text"
+                  inputMode="decimal"
                   placeholder="0"
-                  value={newTargetFloat}
-                  onChange={(e) => setNewTargetFloat(e.target.value)}
+                  value={formatAmountInput(newTargetFloat)}
+                  onChange={(e) => {
+                    const parsed = parseAmountInput(e.target.value);
+                    if (parsed !== null) setNewTargetFloat(parsed);
+                  }}
                 />
               </div>
             </div>

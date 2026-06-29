@@ -15,7 +15,7 @@ export interface Teller {
 }
 
 export interface TellerCreate {
-  companyId: number;
+  companyId?: number;
   name: string;
   targetCash?: number;
   targetFloat?: number;
