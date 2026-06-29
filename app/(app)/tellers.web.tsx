@@ -7,7 +7,6 @@ import {
   X,
   Check,
   CreditCard,
-  UserPlus,
   UserMinus,
   Settings,
 } from "lucide-react";
@@ -16,7 +15,7 @@ import { useTellersScreen } from "@/hooks/screens/useTellersScreen";
 import { useAppSelector } from "@/store/hooks";
 import { selectUserRole } from "@/store/slices/authSlice";
 import { useCurrencyFormatter } from "@/hooks/useCurrency";
-import type { Teller, ShiftEnum } from "@/types";
+import type { ShiftEnum } from "@/types";
 import "../../styles/web.css";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -86,25 +85,26 @@ export default function TellersWeb() {
   }
 
   return (
-    <div className="page-container">
+    <div className="page-wrapper">
       {/* Header */}
-      <div className="page-header">
-        <div className="page-header-left">
-          <Users size={24} style={{ color: "var(--color-primary)" }} />
-          <h1 className="page-title">Tellers</h1>
-          <span className="badge badge-info">{tellers.length}</span>
+      <header className="header-bar">
+        <div className="header-left">
+          <Users size={22} color="var(--color-primary)" />
+          <h1 className="header-title">Tellers</h1>
+          <span className="header-date">{tellers.length} configured</span>
         </div>
-        <div className="page-header-right">
+        <div className="header-right">
           <button
-            className="btn btn-ghost btn-sm"
-            onClick={onRefresh}
+            className="btn-refresh"
+            onClick={() => void onRefresh()}
             disabled={refreshing}
+            title="Refresh"
           >
-            <RefreshCw size={16} className={refreshing ? "spinning" : ""} />
+            <RefreshCw size={16} className={refreshing ? "spin" : ""} />
           </button>
           {isAdmin && (
             <button
-              className="btn btn-primary btn-sm"
+              className="btn-add"
               onClick={() => setShowCreateModal(true)}
             >
               <Plus size={16} />
@@ -112,261 +112,399 @@ export default function TellersWeb() {
             </button>
           )}
         </div>
-      </div>
+      </header>
 
-      {error && (
-        <div className="alert alert-danger">
-          <p>{error}</p>
-        </div>
-      )}
+      <div className="dashboard-content">
+        {error && (
+          <div className="alert alert-error">
+            <p>{error}</p>
+          </div>
+        )}
 
-      {/* Main content: list + detail */}
-      <div className="split-layout">
-        {/* Left: Teller list */}
-        <div className="split-layout-sidebar">
-          {tellers.length === 0 ? (
-            <div className="empty-state">
-              <Users size={48} style={{ color: "var(--color-text-muted)" }} />
-              <p>No tellers configured</p>
-              {isAdmin && (
-                <button
-                  className="btn btn-primary btn-sm"
-                  onClick={() => setShowCreateModal(true)}
-                >
-                  <Plus size={16} />
-                  Create First Teller
-                </button>
-              )}
+        {/* Two-panel layout */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 2fr",
+            gap: 24,
+            alignItems: "start",
+          }}
+        >
+          {/* Left: Teller list */}
+          <div className="table-card">
+            <div className="table-header">
+              <h3>All Tellers</h3>
             </div>
-          ) : (
-            <div className="list-items">
-              {tellers.map((teller) => (
-                <div
-                  key={teller.id}
-                  className={`list-item ${selectedTellerId === teller.id ? "list-item-active" : ""}`}
-                  onClick={() => setSelectedTellerId(teller.id)}
-                >
-                  <div className="list-item-content">
-                    <div className="list-item-header">
-                      <span className="list-item-title">{teller.name}</span>
-                      <span className="badge badge-ghost">{teller.code}</span>
-                    </div>
-                    <div className="list-item-meta">
-                      <span>Cash: {formatCurrency(teller.targetCash)}</span>
-                      <span>Float: {formatCurrency(teller.targetFloat)}</span>
-                    </div>
-                  </div>
-                  {!teller.isActive && (
-                    <span className="badge badge-warning">Inactive</span>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Right: Detail panel */}
-        <div className="split-layout-main">
-          {selectedTeller ? (
-            <div className="detail-panel">
-              <div className="detail-header">
-                <div>
-                  <h2 className="detail-title">
-                    {selectedTeller.name}
-                    <span
-                      className="badge badge-ghost"
-                      style={{ marginLeft: 8 }}
-                    >
-                      {selectedTeller.code}
-                    </span>
-                  </h2>
-                  <p className="detail-subtitle">
-                    Cash Target: {formatCurrency(selectedTeller.targetCash)} |
-                    Float Target: {formatCurrency(selectedTeller.targetFloat)}
-                  </p>
-                </div>
+            {tellers.length === 0 ? (
+              <div className="empty-state">
+                <Users
+                  size={40}
+                  style={{ color: "var(--color-text-muted)", marginBottom: 12 }}
+                />
+                <p style={{ margin: 0 }}>No tellers configured</p>
                 {isAdmin && (
                   <button
-                    className="btn btn-danger btn-sm"
-                    onClick={() => handleDelete(selectedTeller.id)}
+                    className="btn-add"
+                    style={{ marginTop: 16 }}
+                    onClick={() => setShowCreateModal(true)}
                   >
-                    <Trash2 size={14} />
+                    <Plus size={16} />
+                    Create First Teller
                   </button>
                 )}
               </div>
+            ) : (
+              <div style={{ padding: 0 }}>
+                {tellers.map((teller) => (
+                  <div
+                    key={teller.id}
+                    onClick={() => setSelectedTellerId(teller.id)}
+                    style={{
+                      padding: "14px 24px",
+                      cursor: "pointer",
+                      borderBottom: "1px solid var(--color-border-light)",
+                      background:
+                        selectedTellerId === teller.id
+                          ? "var(--color-bg)"
+                          : "white",
+                      borderLeft:
+                        selectedTellerId === teller.id
+                          ? "3px solid var(--color-primary)"
+                          : "3px solid transparent",
+                      transition: "all 0.15s ease",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                      }}
+                    >
+                      <span style={{ fontWeight: 600, fontSize: 14 }}>
+                        {teller.name}
+                      </span>
+                      <span
+                        style={{
+                          fontSize: 12,
+                          color: "var(--color-text-secondary)",
+                          background: "var(--color-bg)",
+                          padding: "2px 8px",
+                          borderRadius: 4,
+                        }}
+                      >
+                        {teller.code}
+                      </span>
+                    </div>
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: 16,
+                        marginTop: 4,
+                        fontSize: 12,
+                        color: "var(--color-text-secondary)",
+                      }}
+                    >
+                      <span>Cash: {formatCurrency(teller.targetCash)}</span>
+                      <span>Float: {formatCurrency(teller.targetFloat)}</span>
+                    </div>
+                    {!teller.isActive && (
+                      <span
+                        style={{
+                          display: "inline-block",
+                          marginTop: 4,
+                          fontSize: 11,
+                          padding: "2px 6px",
+                          borderRadius: 4,
+                          background: "var(--color-warning-light)",
+                          color: "var(--color-warning)",
+                          fontWeight: 600,
+                        }}
+                      >
+                        Inactive
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
-              {/* Assigned Accounts */}
-              <div className="detail-section">
-                <div className="detail-section-header">
-                  <h3>
-                    <CreditCard size={16} /> Assigned Accounts
-                  </h3>
+          {/* Right: Detail panel */}
+          <div className="table-card">
+            {selectedTeller ? (
+              <>
+                <div className="table-header">
+                  <div>
+                    <h3 style={{ margin: 0 }}>
+                      {selectedTeller.name}
+                      <span
+                        style={{
+                          marginLeft: 8,
+                          fontSize: 12,
+                          color: "var(--color-text-secondary)",
+                          background: "var(--color-bg)",
+                          padding: "2px 8px",
+                          borderRadius: 4,
+                          fontWeight: 500,
+                        }}
+                      >
+                        {selectedTeller.code}
+                      </span>
+                    </h3>
+                    <p
+                      style={{
+                        margin: "4px 0 0",
+                        fontSize: 13,
+                        color: "var(--color-text-secondary)",
+                      }}
+                    >
+                      Cash Target: {formatCurrency(selectedTeller.targetCash)} |
+                      Float Target: {formatCurrency(selectedTeller.targetFloat)}
+                    </p>
+                  </div>
                   {isAdmin && (
                     <button
-                      className="btn btn-ghost btn-sm"
-                      onClick={() => setShowAssignAccountModal(true)}
+                      className="btn-icon"
+                      onClick={() => handleDelete(selectedTeller.id)}
+                      title="Delete teller"
+                      style={{ color: "var(--color-danger)" }}
                     >
-                      <Plus size={14} /> Assign
+                      <Trash2 size={16} />
                     </button>
                   )}
                 </div>
-                {selectedTeller.assignedAccounts.length === 0 ? (
-                  <p className="text-muted">No accounts assigned</p>
-                ) : (
-                  <div className="table-wrapper">
-                    <table className="table">
-                      <thead>
-                        <tr>
-                          <th>Account</th>
-                          <th>Since</th>
-                          <th>Status</th>
-                          {isAdmin && <th></th>}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {selectedTeller.assignedAccounts.map((a) => (
-                          <tr key={a.id}>
-                            <td>
-                              {a.accountName || `Account #${a.accountId}`}
-                            </td>
-                            <td>
-                              {a.effectiveDate} ({a.effectiveShift})
-                            </td>
-                            <td>
-                              {a.endedAtDate ? (
-                                <span className="badge badge-ghost">
-                                  Ended {a.endedAtDate}
-                                </span>
-                              ) : (
-                                <span className="badge badge-success">
-                                  Active
-                                </span>
-                              )}
-                            </td>
-                            {isAdmin && (
-                              <td>
-                                {!a.endedAtDate && (
-                                  <button
-                                    className="btn btn-ghost btn-xs"
-                                    onClick={() =>
-                                      handleEndAccountAssignment(a.id, {
-                                        endedAtDate: todayStr(),
-                                        endedAtShift: "PM",
-                                      })
-                                    }
-                                  >
-                                    <UserMinus size={14} />
-                                  </button>
-                                )}
-                              </td>
-                            )}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
 
-              {/* Assigned Users */}
-              <div className="detail-section">
-                <div className="detail-section-header">
-                  <h3>
-                    <Users size={16} /> Assigned Users
-                  </h3>
-                  {isAdmin && (
-                    <button
-                      className="btn btn-ghost btn-sm"
-                      onClick={() => setShowAssignUserModal(true)}
+                <div
+                  style={{
+                    padding: 24,
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 24,
+                  }}
+                >
+                  {/* Assigned Accounts Section */}
+                  <div>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        marginBottom: 12,
+                      }}
                     >
-                      <Plus size={14} /> Assign
-                    </button>
-                  )}
-                </div>
-                {selectedTeller.assignedUsers.length === 0 ? (
-                  <p className="text-muted">No users assigned</p>
-                ) : (
-                  <div className="table-wrapper">
-                    <table className="table">
-                      <thead>
-                        <tr>
-                          <th>User</th>
-                          <th>Since</th>
-                          <th>Status</th>
-                          {isAdmin && <th></th>}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {selectedTeller.assignedUsers.map((u) => (
-                          <tr key={u.id}>
-                            <td>
-                              {u.userName || u.userEmail || `#${u.userId}`}
-                            </td>
-                            <td>
-                              {u.effectiveDate} ({u.effectiveShift})
-                            </td>
-                            <td>
-                              {u.endedAtDate ? (
-                                <span className="badge badge-ghost">
-                                  Ended {u.endedAtDate}
-                                </span>
-                              ) : (
-                                <span className="badge badge-success">
-                                  Active
-                                </span>
-                              )}
-                            </td>
-                            {isAdmin && (
+                      <h4
+                        style={{
+                          margin: 0,
+                          fontSize: 14,
+                          fontWeight: 600,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 8,
+                        }}
+                      >
+                        <CreditCard size={16} /> Assigned Accounts
+                      </h4>
+                      {isAdmin && (
+                        <button
+                          className="btn-secondary"
+                          style={{ fontSize: 12, padding: "6px 12px" }}
+                          onClick={() => setShowAssignAccountModal(true)}
+                        >
+                          <Plus size={14} /> Assign
+                        </button>
+                      )}
+                    </div>
+                    {selectedTeller.assignedAccounts.length === 0 ? (
+                      <p
+                        style={{
+                          color: "var(--color-text-muted)",
+                          fontSize: 13,
+                        }}
+                      >
+                        No accounts assigned yet
+                      </p>
+                    ) : (
+                      <table className="data-table">
+                        <thead>
+                          <tr>
+                            <th>Account</th>
+                            <th>Since</th>
+                            <th>Status</th>
+                            {isAdmin && <th style={{ width: 40 }}></th>}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {selectedTeller.assignedAccounts.map((a) => (
+                            <tr key={a.id}>
                               <td>
-                                {!u.endedAtDate && (
-                                  <button
-                                    className="btn btn-ghost btn-xs"
-                                    onClick={() =>
-                                      handleEndUserAssignment(u.id, {
-                                        endedAtDate: todayStr(),
-                                        endedAtShift: "PM",
-                                      })
-                                    }
-                                  >
-                                    <UserMinus size={14} />
-                                  </button>
+                                {a.accountName || `Account #${a.accountId}`}
+                              </td>
+                              <td>
+                                {a.effectiveDate} ({a.effectiveShift})
+                              </td>
+                              <td>
+                                {a.endedAtDate ? (
+                                  <span className="status-badge neutral">
+                                    Ended {a.endedAtDate}
+                                  </span>
+                                ) : (
+                                  <span className="status-badge success">
+                                    Active
+                                  </span>
                                 )}
                               </td>
-                            )}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                              {isAdmin && (
+                                <td>
+                                  {!a.endedAtDate && (
+                                    <button
+                                      className="btn-icon"
+                                      title="End assignment"
+                                      onClick={() =>
+                                        handleEndAccountAssignment(a.id, {
+                                          endedAtDate: todayStr(),
+                                          endedAtShift: "PM",
+                                        })
+                                      }
+                                    >
+                                      <UserMinus size={14} />
+                                    </button>
+                                  )}
+                                </td>
+                              )}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    )}
                   </div>
-                )}
+
+                  {/* Assigned Users Section */}
+                  <div>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        marginBottom: 12,
+                      }}
+                    >
+                      <h4
+                        style={{
+                          margin: 0,
+                          fontSize: 14,
+                          fontWeight: 600,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 8,
+                        }}
+                      >
+                        <Users size={16} /> Assigned Users
+                      </h4>
+                      {isAdmin && (
+                        <button
+                          className="btn-secondary"
+                          style={{ fontSize: 12, padding: "6px 12px" }}
+                          onClick={() => setShowAssignUserModal(true)}
+                        >
+                          <Plus size={14} /> Assign
+                        </button>
+                      )}
+                    </div>
+                    {selectedTeller.assignedUsers.length === 0 ? (
+                      <p
+                        style={{
+                          color: "var(--color-text-muted)",
+                          fontSize: 13,
+                        }}
+                      >
+                        No users assigned yet
+                      </p>
+                    ) : (
+                      <table className="data-table">
+                        <thead>
+                          <tr>
+                            <th>User</th>
+                            <th>Since</th>
+                            <th>Status</th>
+                            {isAdmin && <th style={{ width: 40 }}></th>}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {selectedTeller.assignedUsers.map((u) => (
+                            <tr key={u.id}>
+                              <td>
+                                {u.userName ||
+                                  u.userEmail ||
+                                  `User #${u.userId}`}
+                              </td>
+                              <td>
+                                {u.effectiveDate} ({u.effectiveShift})
+                              </td>
+                              <td>
+                                {u.endedAtDate ? (
+                                  <span className="status-badge neutral">
+                                    Ended {u.endedAtDate}
+                                  </span>
+                                ) : (
+                                  <span className="status-badge success">
+                                    Active
+                                  </span>
+                                )}
+                              </td>
+                              {isAdmin && (
+                                <td>
+                                  {!u.endedAtDate && (
+                                    <button
+                                      className="btn-icon"
+                                      title="End assignment"
+                                      onClick={() =>
+                                        handleEndUserAssignment(u.id, {
+                                          endedAtDate: todayStr(),
+                                          endedAtShift: "PM",
+                                        })
+                                      }
+                                    >
+                                      <UserMinus size={14} />
+                                    </button>
+                                  )}
+                                </td>
+                              )}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    )}
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="empty-state">
+                <Settings
+                  size={40}
+                  style={{ color: "var(--color-text-muted)", marginBottom: 12 }}
+                />
+                <p style={{ margin: 0 }}>Select a teller to view details</p>
               </div>
-            </div>
-          ) : (
-            <div className="empty-state">
-              <Settings
-                size={48}
-                style={{ color: "var(--color-text-muted)" }}
-              />
-              <p>Select a teller to view details</p>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
 
       {/* Create Teller Modal */}
       {showCreateModal && (
         <div
-          className="modal-backdrop"
+          className="modal-overlay"
           onClick={() => setShowCreateModal(false)}
         >
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h3>Create Teller</h3>
+              <h2>Create Teller</h2>
               <button
-                className="btn btn-ghost btn-sm"
+                className="modal-close"
                 onClick={() => setShowCreateModal(false)}
               >
-                <X size={16} />
+                <X size={18} />
               </button>
             </div>
             <div className="modal-body">
@@ -378,6 +516,7 @@ export default function TellersWeb() {
                   placeholder="e.g. Main Counter"
                   value={newTellerName}
                   onChange={(e) => setNewTellerName(e.target.value)}
+                  autoFocus
                 />
               </div>
               <div className="form-group">
@@ -403,13 +542,13 @@ export default function TellersWeb() {
             </div>
             <div className="modal-footer">
               <button
-                className="btn btn-ghost"
+                className="btn-secondary"
                 onClick={() => setShowCreateModal(false)}
               >
                 Cancel
               </button>
               <button
-                className="btn btn-primary"
+                className="btn-primary"
                 onClick={handleCreate}
                 disabled={!newTellerName.trim()}
               >
@@ -423,17 +562,17 @@ export default function TellersWeb() {
       {/* Assign Account Modal */}
       {showAssignAccountModal && (
         <div
-          className="modal-backdrop"
+          className="modal-overlay"
           onClick={() => setShowAssignAccountModal(false)}
         >
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h3>Assign Account to {selectedTeller?.name}</h3>
+              <h2>Assign Account to {selectedTeller?.name}</h2>
               <button
-                className="btn btn-ghost btn-sm"
+                className="modal-close"
                 onClick={() => setShowAssignAccountModal(false)}
               >
-                <X size={16} />
+                <X size={18} />
               </button>
             </div>
             <div className="modal-body">
@@ -481,13 +620,13 @@ export default function TellersWeb() {
             </div>
             <div className="modal-footer">
               <button
-                className="btn btn-ghost"
+                className="btn-secondary"
                 onClick={() => setShowAssignAccountModal(false)}
               >
                 Cancel
               </button>
               <button
-                className="btn btn-primary"
+                className="btn-primary"
                 onClick={() => {
                   if (!assignAccountId) return;
                   handleAssignAccount({
@@ -510,17 +649,17 @@ export default function TellersWeb() {
       {/* Assign User Modal */}
       {showAssignUserModal && (
         <div
-          className="modal-backdrop"
+          className="modal-overlay"
           onClick={() => setShowAssignUserModal(false)}
         >
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h3>Assign User to {selectedTeller?.name}</h3>
+              <h2>Assign User to {selectedTeller?.name}</h2>
               <button
-                className="btn btn-ghost btn-sm"
+                className="modal-close"
                 onClick={() => setShowAssignUserModal(false)}
               >
-                <X size={16} />
+                <X size={18} />
               </button>
             </div>
             <div className="modal-body">
@@ -563,13 +702,13 @@ export default function TellersWeb() {
             </div>
             <div className="modal-footer">
               <button
-                className="btn btn-ghost"
+                className="btn-secondary"
                 onClick={() => setShowAssignUserModal(false)}
               >
                 Cancel
               </button>
               <button
-                className="btn btn-primary"
+                className="btn-primary"
                 onClick={() => {
                   if (!assignUserId) return;
                   handleAssignUser({
