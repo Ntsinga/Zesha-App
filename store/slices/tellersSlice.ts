@@ -59,9 +59,7 @@ export const fetchTellers = createAsyncThunk<
       undefined;
 
     const query = buildTypedQueryString({ ...filters, companyId });
-    return await apiRequest<Teller[]>(
-      `${API_ENDPOINTS.tellers.list}${query}`,
-    );
+    return await apiRequest<Teller[]>(`${API_ENDPOINTS.tellers.list}${query}`);
   } catch (error) {
     return rejectWithValue(
       error instanceof Error ? error.message : "Failed to fetch tellers",
@@ -73,10 +71,13 @@ export const fetchTellerDetail = createAsyncThunk<
   TellerDetail,
   number,
   { state: RootState; rejectValue: string }
->("tellers/fetchDetail", async (tellerId, { rejectWithValue }) => {
+>("tellers/fetchDetail", async (tellerId, { getState, rejectWithValue }) => {
   try {
+    const state = getState();
+    const companyId = state.auth.viewingAgencyId ?? state.auth.user?.companyId;
+    const query = buildTypedQueryString({ companyId });
     return await apiRequest<TellerDetail>(
-      API_ENDPOINTS.tellers.get(tellerId),
+      `${API_ENDPOINTS.tellers.get(tellerId)}${query}`,
     );
   } catch (error) {
     return rejectWithValue(
@@ -114,28 +115,42 @@ export const updateTeller = createAsyncThunk<
   Teller,
   { tellerId: number; data: TellerUpdate },
   { state: RootState; rejectValue: string }
->("tellers/update", async ({ tellerId, data }, { rejectWithValue }) => {
-  try {
-    return await apiRequest<Teller>(API_ENDPOINTS.tellers.update(tellerId), {
-      method: "PATCH",
-      body: JSON.stringify(mapApiRequest(data)),
-    });
-  } catch (error) {
-    return rejectWithValue(
-      error instanceof Error ? error.message : "Failed to update teller",
-    );
-  }
-});
+>(
+  "tellers/update",
+  async ({ tellerId, data }, { getState, rejectWithValue }) => {
+    try {
+      const state = getState();
+      const companyId =
+        state.auth.viewingAgencyId ?? state.auth.user?.companyId;
+      const query = buildTypedQueryString({ companyId });
+      return await apiRequest<Teller>(
+        `${API_ENDPOINTS.tellers.update(tellerId)}${query}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify(mapApiRequest(data)),
+        },
+      );
+    } catch (error) {
+      return rejectWithValue(
+        error instanceof Error ? error.message : "Failed to update teller",
+      );
+    }
+  },
+);
 
 export const deleteTeller = createAsyncThunk<
   void,
   number,
   { state: RootState; rejectValue: string }
->("tellers/delete", async (tellerId, { rejectWithValue }) => {
+>("tellers/delete", async (tellerId, { getState, rejectWithValue }) => {
   try {
-    await secureApiRequest<void>(API_ENDPOINTS.tellers.delete(tellerId), {
-      method: "DELETE",
-    });
+    const state = getState();
+    const companyId = state.auth.viewingAgencyId ?? state.auth.user?.companyId;
+    const query = buildTypedQueryString({ companyId });
+    await secureApiRequest<void>(
+      `${API_ENDPOINTS.tellers.delete(tellerId)}${query}`,
+      { method: "DELETE" },
+    );
   } catch (error) {
     return rejectWithValue(
       error instanceof Error ? error.message : "Failed to delete teller",
@@ -147,37 +162,41 @@ export const deleteTeller = createAsyncThunk<
 
 export const assignAccountToTeller = createAsyncThunk<
   TellerAccountAssignmentRead,
-  { tellerId: number; data: TellerAccountAssignmentCreate },
+  TellerAccountAssignmentCreate,
   { state: RootState; rejectValue: string }
->(
-  "tellers/assignAccount",
-  async ({ tellerId, data }, { rejectWithValue }) => {
-    try {
-      return await apiRequest<TellerAccountAssignmentRead>(
-        API_ENDPOINTS.tellers.assignAccount(tellerId),
-        {
-          method: "POST",
-          body: JSON.stringify(mapApiRequest(data)),
-        },
-      );
-    } catch (error) {
-      return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to assign account",
-      );
-    }
-  },
-);
+>("tellers/assignAccount", async (data, { getState, rejectWithValue }) => {
+  try {
+    const state = getState();
+    const companyId = state.auth.viewingAgencyId ?? state.auth.user?.companyId;
+    const query = buildTypedQueryString({ companyId });
+    return await apiRequest<TellerAccountAssignmentRead>(
+      `${API_ENDPOINTS.tellers.assignAccount}${query}`,
+      {
+        method: "POST",
+        body: JSON.stringify(mapApiRequest(data)),
+      },
+    );
+  } catch (error) {
+    return rejectWithValue(
+      error instanceof Error ? error.message : "Failed to assign account",
+    );
+  }
+});
 
 export const endAccountAssignment = createAsyncThunk<
   TellerAccountAssignmentRead,
-  { tellerId: number; assignmentId: number; data: TellerAccountAssignmentEnd },
+  { assignmentId: number; data: TellerAccountAssignmentEnd },
   { state: RootState; rejectValue: string }
 >(
   "tellers/endAccountAssignment",
-  async ({ tellerId, assignmentId, data }, { rejectWithValue }) => {
+  async ({ assignmentId, data }, { getState, rejectWithValue }) => {
     try {
+      const state = getState();
+      const companyId =
+        state.auth.viewingAgencyId ?? state.auth.user?.companyId;
+      const query = buildTypedQueryString({ companyId });
       return await apiRequest<TellerAccountAssignmentRead>(
-        API_ENDPOINTS.tellers.endAccountAssignment(tellerId, assignmentId),
+        `${API_ENDPOINTS.tellers.endAccountAssignment(assignmentId)}${query}`,
         {
           method: "PATCH",
           body: JSON.stringify(mapApiRequest(data)),
@@ -197,37 +216,41 @@ export const endAccountAssignment = createAsyncThunk<
 
 export const assignUserToTeller = createAsyncThunk<
   TellerUserAssignmentRead,
-  { tellerId: number; data: TellerUserAssignmentCreate },
+  TellerUserAssignmentCreate,
   { state: RootState; rejectValue: string }
->(
-  "tellers/assignUser",
-  async ({ tellerId, data }, { rejectWithValue }) => {
-    try {
-      return await apiRequest<TellerUserAssignmentRead>(
-        API_ENDPOINTS.tellers.assignUser(tellerId),
-        {
-          method: "POST",
-          body: JSON.stringify(mapApiRequest(data)),
-        },
-      );
-    } catch (error) {
-      return rejectWithValue(
-        error instanceof Error ? error.message : "Failed to assign user",
-      );
-    }
-  },
-);
+>("tellers/assignUser", async (data, { getState, rejectWithValue }) => {
+  try {
+    const state = getState();
+    const companyId = state.auth.viewingAgencyId ?? state.auth.user?.companyId;
+    const query = buildTypedQueryString({ companyId });
+    return await apiRequest<TellerUserAssignmentRead>(
+      `${API_ENDPOINTS.tellers.assignUser}${query}`,
+      {
+        method: "POST",
+        body: JSON.stringify(mapApiRequest(data)),
+      },
+    );
+  } catch (error) {
+    return rejectWithValue(
+      error instanceof Error ? error.message : "Failed to assign user",
+    );
+  }
+});
 
 export const endUserAssignment = createAsyncThunk<
   TellerUserAssignmentRead,
-  { tellerId: number; assignmentId: number; data: TellerUserAssignmentEnd },
+  { assignmentId: number; data: TellerUserAssignmentEnd },
   { state: RootState; rejectValue: string }
 >(
   "tellers/endUserAssignment",
-  async ({ tellerId, assignmentId, data }, { rejectWithValue }) => {
+  async ({ assignmentId, data }, { getState, rejectWithValue }) => {
     try {
+      const state = getState();
+      const companyId =
+        state.auth.viewingAgencyId ?? state.auth.user?.companyId;
+      const query = buildTypedQueryString({ companyId });
       return await apiRequest<TellerUserAssignmentRead>(
-        API_ENDPOINTS.tellers.endUserAssignment(tellerId, assignmentId),
+        `${API_ENDPOINTS.tellers.endUserAssignment(assignmentId)}${query}`,
         {
           method: "PATCH",
           body: JSON.stringify(mapApiRequest(data)),

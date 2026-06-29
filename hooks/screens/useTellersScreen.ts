@@ -95,10 +95,10 @@ export function useTellersScreen() {
   );
 
   const handleAssignAccount = useCallback(
-    async (data: TellerAccountAssignmentCreate) => {
+    async (data: Omit<TellerAccountAssignmentCreate, "tellerId">) => {
       if (!selectedTellerId) return;
       await dispatch(
-        assignAccountToTeller({ tellerId: selectedTellerId, data }),
+        assignAccountToTeller({ ...data, tellerId: selectedTellerId }),
       );
     },
     [dispatch, selectedTellerId],
@@ -108,20 +108,18 @@ export function useTellersScreen() {
     async (assignmentId: number, data: TellerAccountAssignmentEnd) => {
       if (!selectedTellerId) return;
       await dispatch(
-        endAccountAssignment({
-          tellerId: selectedTellerId,
-          assignmentId,
-          data,
-        }),
+        endAccountAssignment({ assignmentId, data }),
       );
     },
     [dispatch, selectedTellerId],
   );
 
   const handleAssignUser = useCallback(
-    async (data: TellerUserAssignmentCreate) => {
+    async (data: Omit<TellerUserAssignmentCreate, "tellerId">) => {
       if (!selectedTellerId) return;
-      await dispatch(assignUserToTeller({ tellerId: selectedTellerId, data }));
+      await dispatch(
+        assignUserToTeller({ ...data, tellerId: selectedTellerId }),
+      );
     },
     [dispatch, selectedTellerId],
   );
@@ -130,11 +128,7 @@ export function useTellersScreen() {
     async (assignmentId: number, data: TellerUserAssignmentEnd) => {
       if (!selectedTellerId) return;
       await dispatch(
-        endUserAssignment({
-          tellerId: selectedTellerId,
-          assignmentId,
-          data,
-        }),
+        endUserAssignment({ assignmentId, data }),
       );
     },
     [dispatch, selectedTellerId],

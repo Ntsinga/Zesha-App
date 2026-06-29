@@ -37,6 +37,7 @@ export interface TellerDetail extends Teller {
 // ── Account Assignments ─────────────────────────────────────────────────────
 
 export interface TellerAccountAssignmentCreate {
+  tellerId: number;
   accountId: number;
   effectiveDate: string;
   effectiveShift: ShiftEnum;
@@ -62,6 +63,7 @@ export interface TellerAccountAssignmentRead {
 // ── User Assignments ────────────────────────────────────────────────────────
 
 export interface TellerUserAssignmentCreate {
+  tellerId: number;
   userId: number;
   effectiveDate: string;
   effectiveShift: ShiftEnum;
