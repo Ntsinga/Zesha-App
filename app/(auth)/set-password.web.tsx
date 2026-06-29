@@ -317,7 +317,12 @@ export default function SetPasswordWeb() {
   }
 
   // Show loading while Clerk initializes or processing invite
-  if (!isUserLoaded || !isSignUpLoaded || isProcessingInvite) {
+  // Don't re-show loading after ticket has been processed (prevents visual double-load
+  // when setActive causes Clerk hooks to briefly re-initialize)
+  if (
+    (!isUserLoaded || !isSignUpLoaded || isProcessingInvite) &&
+    !ticketProcessed
+  ) {
     return (
       <div
         style={{

@@ -188,6 +188,9 @@ function AppContent() {
   useEffect(() => {
     if (!isLoaded) return;
 
+    // Don't make routing decisions while user object is still loading after sign-in
+    if (isSignedIn && !user) return;
+
     // If there's an invite ticket and not on set-password, redirect to set-password.
     // Invited users are already created in Clerk - they just need to set their password.
     // Do NOT set initialNavDone here — the deep link target (e.g. sign-up) would flash
