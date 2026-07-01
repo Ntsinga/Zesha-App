@@ -2785,9 +2785,7 @@ export default function TransactionsWeb() {
                       <>
                         {/* Customer Name */}
                         <div className="form-group">
-                          <label className="form-label">
-                            Customer Name
-                          </label>
+                          <label className="form-label">Customer Name</label>
                           <input
                             type="text"
                             value={transactionForm.customerName}
@@ -2804,9 +2802,7 @@ export default function TransactionsWeb() {
 
                         {/* Phone Number — always shown */}
                         <div className="form-group">
-                          <label className="form-label">
-                            Phone Number
-                          </label>
+                          <label className="form-label">Phone Number</label>
                           <input
                             type="text"
                             value={transactionForm.phoneNumber}
@@ -2824,9 +2820,7 @@ export default function TransactionsWeb() {
                         {/* Account Number — only for bank accounts */}
                         {isBank && (
                           <div className="form-group">
-                            <label className="form-label">
-                              Account Number
-                            </label>
+                            <label className="form-label">Account Number</label>
                             <input
                               type="text"
                               value={transactionForm.accountNumber}
