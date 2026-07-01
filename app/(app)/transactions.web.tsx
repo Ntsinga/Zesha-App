@@ -49,10 +49,11 @@ function isOverlapBlocked(status?: StatementOverlapStatus): boolean {
   );
 }
 
-function maskAccountNumber(acc: string | null | undefined): string {
-  if (!acc) return "-";
-  if (acc.length <= 6) return acc;
-  return acc.slice(0, 3) + "*".repeat(acc.length - 6) + acc.slice(-3);
+function maskAccountNumber(acc: string | number | null | undefined): string {
+  if (!acc && acc !== 0) return "-";
+  const s = String(acc);
+  if (s.length <= 6) return s;
+  return s.slice(0, 3) + "*".repeat(s.length - 6) + s.slice(-3);
 }
 
 /**

@@ -26,6 +26,16 @@ Log meaningful task-execution failures even if the final feature or fix succeeds
 
 ---
 
+### 2026-07-01 - maskAccountNumber crash on Transactions screen (mobile + web)
+
+- Status: Resolved
+- Area: UI
+- Symptoms: `TypeError: undefined is not a function` in `maskAccountNumber` on `/transactions` route. Affected Android (SM-S721N, dist 12) and web. Sentry issue #7586843615.
+- Root cause: `tx.accountNumber` can arrive from the API as a number (not a string). The old implementation called `.slice()` directly on `acc`, which is undefined on numeric types.
+- Solution implemented: Changed `maskAccountNumber` to accept `string | number`, coerce with `String(acc)`, and operate on the resulting string.
+- Validation: Fix deployed to mobile production (dist 13+). Web fix applied to `transactions.web.tsx` (separate platform file had its own unfixed copy of `maskAccountNumber`).
+- Lessons learned: Always coerce API values to the expected primitive before calling string/array methods — TypeScript types do not protect at runtime. Guard utility functions against unexpected input types even when the caller has a truthiness check.
+
 ### 2026-06-25 - Password reset reused stale onboarding cache
 
 - Status: Resolved
