@@ -637,6 +637,7 @@ export function useTransactionsScreen() {
     }
     if (
       selectedAccount?.accountType === "BANK" &&
+      transactionForm.transactionType !== "WITHDRAW" &&
       !transactionForm.accountNumber?.trim()
     ) {
       setSubmitError("Account number is required for bank transactions.");

@@ -51,9 +51,10 @@ import type { Account } from "../../types";
 type TypeFilter = "ALL" | TransactionTypeEnum;
 type ShiftFilter = "ALL" | ShiftEnum;
 
-function maskAccountNumber(acc: string): string {
-  if (acc.length <= 6) return acc;
-  return acc.slice(0, 3) + "*".repeat(acc.length - 6) + acc.slice(-3);
+function maskAccountNumber(acc: string | number): string {
+  const s = String(acc);
+  if (s.length <= 6) return s;
+  return s.slice(0, 3) + "*".repeat(s.length - 6) + s.slice(-3);
 }
 
 const FINANCIAL_QUEUE_ENTITY_TYPES = new Set([
